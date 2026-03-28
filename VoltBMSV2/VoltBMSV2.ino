@@ -322,7 +322,7 @@ void setup() {
   // Display reason the Teensy was last reset
   Serial.println();
   Serial.println("Reason for last Reset: ");
-
+#ifndef TEENSY41_PORT
   if (RCM_SRS1 & RCM_SRS1_SACKERR) Serial.println("Stop Mode Acknowledge Error Reset");
   if (RCM_SRS1 & RCM_SRS1_MDM_AP) Serial.println("MDM-AP Reset");
   if (RCM_SRS1 & RCM_SRS1_SW) Serial.println("Software Reset");  // reboot with SCB_AIRCR = 0x05FA0004
@@ -333,11 +333,15 @@ void setup() {
   if (RCM_SRS0 & RCM_SRS0_LOC) Serial.println("Loss of External Clock Reset");
   if (RCM_SRS0 & RCM_SRS0_LOL) Serial.println("Loss of Lock in PLL Reset");
   if (RCM_SRS0 & RCM_SRS0_LVD) Serial.println("Low-voltage Detect Reset");
+#else
+  Serial.println("Reset reason reporting is not ported for Teensy 4.1 yet.");
+#endif
   Serial.println();
   ///////////////////
 
 
-  // enable WDT
+  // The original watchdog register sequence is for older Teensy parts.
+#ifndef TEENSY41_PORT
   noInterrupts();                  // don't allow interrupts while setting up WDOG
   WDOG_UNLOCK = WDOG_UNLOCK_SEQ1;  // unlock access to WDOG registers
   WDOG_UNLOCK = WDOG_UNLOCK_SEQ2;
@@ -348,6 +352,7 @@ void setup() {
   WDOG_PRESC = 0;
   WDOG_STCTRLH |= WDOG_STCTRLH_ALLOWUPDATE | WDOG_STCTRLH_WDOGEN | WDOG_STCTRLH_WAITEN | WDOG_STCTRLH_STOPEN | WDOG_STCTRLH_CLKSRC;
   interrupts();
+#endif
   /////////////////
 
 
@@ -2733,10 +2738,12 @@ void sendcommand() {
 }
 
 void resetwdog() {
+#ifndef TEENSY41_PORT
   noInterrupts();  //   No - reset WDT
   WDOG_REFRESH = 0xA602;
   WDOG_REFRESH = 0xB480;
   interrupts();
+#endif
 }
 
 void pwmcomms() {
@@ -2871,7 +2878,7 @@ void chargercomms() {
   if (settings.chargertype == Elcon) {
     msg.id = 0x1806E5F4;  //broadcast to all Elteks
     msg.len = 8;
-    msg.ext = 1;
+    msg.flags.extended = 1;
     msg.buf[0] = highByte(uint16_t(settings.ChargeVsetpoint * settings.Scells * 10));
     msg.buf[1] = lowByte(uint16_t(settings.ChargeVsetpoint * settings.Scells * 10));
     msg.buf[2] = highByte(chargecurrent / ncharger);
@@ -2882,7 +2889,7 @@ void chargercomms() {
     msg.buf[7] = 0x00;
 
     Can0.write(msg);
-    msg.ext = 0;
+    msg.flags.extended = 0;
   }
 
   if (settings.chargertype == Eltek) {
