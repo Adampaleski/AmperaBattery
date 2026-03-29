@@ -7,6 +7,8 @@ This project adds a companion ESP32 to the Teensy 4.1 BMS controller.
 - Reads live BMS telemetry from the Teensy over a UART link
 - Hosts a web dashboard over WiFi
 - Supports browser-based OTA updates for the ESP32 dashboard firmware
+- Stores network and charger-CAN settings in ESP32 NVS (editable from `/config`)
+- Bridges Elcon charger CAN commands through an MCP2515 interface
 
 ## What it does not do
 
@@ -35,6 +37,24 @@ Keep the CAN transceiver wiring on the Teensy side:
 - Teensy pin `30` = `CRX3`
 - Teensy pin `31` = `CTX3`
 
+## MCP2515 charger CAN bridge wiring
+
+The ESP32 now drives an Elcon CAN bus through MCP2515.
+
+- ESP32 `GPIO18` -> MCP2515 `SCK`
+- ESP32 `GPIO19` -> MCP2515 `SO` / `MISO`
+- ESP32 `GPIO23` -> MCP2515 `SI` / `MOSI`
+- ESP32 `GPIO5` -> MCP2515 `CS`
+- ESP32 `GPIO4` -> MCP2515 `INT`
+- ESP32 `GND` -> MCP2515 `GND`
+- MCP2515 CAN-H / CAN-L -> Elcon charger CAN-H / CAN-L
+
+Important hardware note for many common `MCP2515 + TJA1050` modules:
+
+- Many of these boards are 5V logic on SPI pins.
+- ESP32 IO is not 5V tolerant.
+- If your board is 5V logic, add logic-level shifting or use a 3.3V-safe CAN module.
+
 ## Build and upload
 
 ```bash
@@ -48,7 +68,14 @@ $HOME/.platformio/penv/bin/pio run -e esp32dev -t upload
 - AP mode: `http://192.168.4.1/`
 - OTA page: `http://192.168.4.1/update`
 - If station mode works and mDNS resolves: `http://ampbms.local/`
+- Config page: `/config`
 
 ## Telemetry link
 
 The Teensy publishes one JSON line roughly once per second over `Serial1` at `115200` baud.
+
+## Elcon command notes
+
+- Default Elcon CAN ID is `0x1806E5F4` (extended).
+- Default charger CAN bitrate is `250 kbps`.
+- The bridge sends command frames periodically and falls back to zero-current commands when telemetry is stale.

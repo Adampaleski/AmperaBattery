@@ -18,3 +18,9 @@ constexpr int kTeensyLinkTxPin = 17;  // ESP32 TX2, wire to Teensy RX1
 
 constexpr uint32_t kWifiConnectTimeoutMs = 15000;
 
+// MCP2515 charger CAN settings (for Elcon charging bus).
+constexpr int kMcp2515CsPin = 5;
+constexpr int kMcp2515IntPin = 4;
+constexpr uint32_t kElconCanId = 0x1806E5F4;
+constexpr uint32_t kElconCanBaudKbps = 250;
+constexpr bool kElconCanOscillator8MHz = true;

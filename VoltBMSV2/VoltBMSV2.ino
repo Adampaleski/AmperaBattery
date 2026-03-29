@@ -361,8 +361,14 @@ void sendEsp32Telemetry() {
   ESP32_LINK.print(balancecells);
   ESP32_LINK.print(",\"charge_limit_a\":");
   printEsp32TelemetryFloat(chargecurrent / 10.0f, 1);
+  ESP32_LINK.print(",\"charge_target_v\":");
+  printEsp32TelemetryFloat(settings.ChargeVsetpoint * settings.Scells, 2);
   ESP32_LINK.print(",\"discharge_limit_a\":");
   printEsp32TelemetryFloat(discurrent / 10.0f, 1);
+  ESP32_LINK.print(",\"charger_msg_period_ms\":");
+  ESP32_LINK.print(settings.chargerspd);
+  ESP32_LINK.print(",\"charge_state\":");
+  ESP32_LINK.print(bmsstatus == Charge ? 1 : 0);
   ESP32_LINK.print(",\"contactor_bits\":");
   ESP32_LINK.print(contstat);
   ESP32_LINK.print(",\"input_1\":");

@@ -80,3 +80,20 @@ Notes:
 2. During first bench testing, power the Teensy and ESP32 from their own USB connections and only share `GND` plus the two UART wires.
 3. The ESP32 dashboard does not replace the CAN transceiver. The SN65HVD230 still connects to Teensy CAN3 on pins `30` and `31`.
 4. OTA in this branch applies to the ESP32 dashboard firmware. The Teensy BMS firmware is still updated over USB.
+
+## Optional charger CAN bridge (ESP32 + MCP2515)
+
+If your charger CAN bitrate differs from the module bus, keep module comms on Teensy CAN3 and use ESP32 + MCP2515 for charger CAN.
+
+- ESP32 `GPIO18` -> MCP2515 `SCK`
+- ESP32 `GPIO19` -> MCP2515 `MISO`
+- ESP32 `GPIO23` -> MCP2515 `MOSI`
+- ESP32 `GPIO5` -> MCP2515 `CS`
+- ESP32 `GPIO4` -> MCP2515 `INT`
+- Shared `GND`
+- MCP2515 `CAN_H` / `CAN_L` -> charger CAN bus
+
+Safety warning:
+
+1. Many low-cost `MCP2515 + TJA1050` boards are 5V SPI logic and are not directly safe for ESP32 IO.
+2. Use a level shifter or a 3.3V-safe CAN module if your board does not provide 3.3V-safe SPI levels.
