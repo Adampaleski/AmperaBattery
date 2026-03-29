@@ -13,6 +13,10 @@
 // victron serial VE direct bus config
 #define VE Serial2
 
+// UART link to the companion ESP32 dashboard/OTA module
+#define ESP32_LINK Serial1
+#define ESP32_LINK_BAUD 115200
+
 #define REG_DEV_STATUS      1
 #define REG_GPAI            1
 #define REG_VCELL1          3

@@ -65,3 +65,18 @@ After CAN receive is confirmed, the next pass will map:
 2. Digital inputs
 3. Contactor and charger outputs
 4. Optional second CAN bus for BECM traffic at 500 kbps
+
+## ESP32 companion wiring
+
+The new web dashboard and OTA companion uses a separate ESP32 over UART.
+
+- Teensy 4.1 pin `1` = `TX1` -> ESP32 `GPIO16` = `RX2`
+- Teensy 4.1 pin `0` = `RX1` -> ESP32 `GPIO17` = `TX2`
+- Teensy `GND` -> ESP32 `GND`
+
+Notes:
+
+1. Both boards use 3.3V logic, so this UART link is direct.
+2. During first bench testing, power the Teensy and ESP32 from their own USB connections and only share `GND` plus the two UART wires.
+3. The ESP32 dashboard does not replace the CAN transceiver. The SN65HVD230 still connects to Teensy CAN3 on pins `30` and `31`.
+4. OTA in this branch applies to the ESP32 dashboard firmware. The Teensy BMS firmware is still updated over USB.

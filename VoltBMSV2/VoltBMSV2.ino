@@ -27,6 +27,7 @@
 #include <ADC.h>  //https://github.com/pedvide/ADC
 #include <EEPROM.h>
 #include <FlexCAN.h>  //https://github.com/collin80/FlexCAN_Library
+#include <math.h>
 #include <SPI.h>
 #include <Filters.h>                     //https://github.com/JonHub/Filters
 #include "Serial_CAN_Module_TeensyS3.h"  //https://github.com/tomdebree/Serial_CAN_Teensy
@@ -263,6 +264,118 @@ CAN_filter_t filter;
 
 uint32_t lastUpdate;
 
+float sanitizeTelemetryFloat(float value) {
+  if (!isfinite(value)) {
+    return 0.0f;
+  }
+  return value;
+}
+
+const char *bmsStatusName(byte status) {
+  switch (status) {
+    case Boot:
+      return "Boot";
+    case Ready:
+      return "Ready";
+    case Drive:
+      return "Drive";
+    case Charge:
+      return "Charge";
+    case Precharge:
+      return "Precharge";
+    case Error:
+      return "Error";
+    default:
+      return "Unknown";
+  }
+}
+
+void printEsp32TelemetryFloat(float value, uint8_t digits) {
+  ESP32_LINK.print(sanitizeTelemetryFloat(value), digits);
+}
+
+void sendEsp32Telemetry() {
+  const int modulesFound = bms.getNumFoundModules();
+  const int seriesCells = bms.seriescells();
+
+  float packVoltage = 0.0f;
+  float avgCellVolt = 0.0f;
+  float lowCellVolt = 0.0f;
+  float highCellVolt = 0.0f;
+  float avgTemperature = 0.0f;
+  float lowTemperature = 0.0f;
+  float highTemperature = 0.0f;
+  int cellDeltaMv = 0;
+
+  if (modulesFound > 0 && seriesCells > 0) {
+    avgTemperature = sanitizeTelemetryFloat(bms.getAvgTemperature());
+    lowTemperature = sanitizeTelemetryFloat(bms.getLowTemperature());
+    highTemperature = sanitizeTelemetryFloat(bms.getHighTemperature());
+    packVoltage = sanitizeTelemetryFloat(bms.getPackVoltage());
+    avgCellVolt = sanitizeTelemetryFloat(bms.getAvgCellVolt());
+    lowCellVolt = sanitizeTelemetryFloat(bms.getLowCellVolt());
+    highCellVolt = sanitizeTelemetryFloat(bms.getHighCellVolt());
+    cellDeltaMv = (int)((highCellVolt - lowCellVolt) * 1000.0f);
+    if (cellDeltaMv < 0) {
+      cellDeltaMv = 0;
+    }
+  }
+
+  ESP32_LINK.print("{\"uptime_ms\":");
+  ESP32_LINK.print(millis());
+  ESP32_LINK.print(",\"firmware\":");
+  ESP32_LINK.print(firmver);
+  ESP32_LINK.print(",\"status_code\":");
+  ESP32_LINK.print(bmsstatus);
+  ESP32_LINK.print(",\"status_text\":\"");
+  ESP32_LINK.print(bmsStatusName(bmsstatus));
+  ESP32_LINK.print("\",\"error_reason\":");
+  ESP32_LINK.print(ErrorReason);
+  ESP32_LINK.print(",\"modules\":");
+  ESP32_LINK.print(modulesFound);
+  ESP32_LINK.print(",\"series_cells\":");
+  ESP32_LINK.print(seriesCells);
+  ESP32_LINK.print(",\"pack_voltage_v\":");
+  printEsp32TelemetryFloat(packVoltage, 2);
+  ESP32_LINK.print(",\"avg_cell_v\":");
+  printEsp32TelemetryFloat(avgCellVolt, 3);
+  ESP32_LINK.print(",\"low_cell_v\":");
+  printEsp32TelemetryFloat(lowCellVolt, 3);
+  ESP32_LINK.print(",\"high_cell_v\":");
+  printEsp32TelemetryFloat(highCellVolt, 3);
+  ESP32_LINK.print(",\"cell_delta_mv\":");
+  ESP32_LINK.print(cellDeltaMv);
+  ESP32_LINK.print(",\"avg_temp_c\":");
+  printEsp32TelemetryFloat(avgTemperature, 1);
+  ESP32_LINK.print(",\"low_temp_c\":");
+  printEsp32TelemetryFloat(lowTemperature, 1);
+  ESP32_LINK.print(",\"high_temp_c\":");
+  printEsp32TelemetryFloat(highTemperature, 1);
+  ESP32_LINK.print(",\"current_a\":");
+  printEsp32TelemetryFloat(currentact / 1000.0f, 3);
+  ESP32_LINK.print(",\"current_ma\":");
+  ESP32_LINK.print((int)currentact);
+  ESP32_LINK.print(",\"soc_percent\":");
+  ESP32_LINK.print(SOC);
+  ESP32_LINK.print(",\"balance_active\":");
+  ESP32_LINK.print(balancecells);
+  ESP32_LINK.print(",\"charge_limit_a\":");
+  printEsp32TelemetryFloat(chargecurrent / 10.0f, 1);
+  ESP32_LINK.print(",\"discharge_limit_a\":");
+  printEsp32TelemetryFloat(discurrent / 10.0f, 1);
+  ESP32_LINK.print(",\"contactor_bits\":");
+  ESP32_LINK.print(contstat);
+  ESP32_LINK.print(",\"input_1\":");
+  ESP32_LINK.print(digitalRead(IN1));
+  ESP32_LINK.print(",\"input_2\":");
+  ESP32_LINK.print(digitalRead(IN2));
+  ESP32_LINK.print(",\"input_3\":");
+  ESP32_LINK.print(digitalRead(IN3));
+  ESP32_LINK.print(",\"input_4\":");
+  ESP32_LINK.print(digitalRead(IN4));
+  ESP32_LINK.println("}");
+}
+
 
 void setup() {
   delay(4000);  //just for easy debugging. It takes a few seconds for USB to come up properly on most OS's
@@ -317,6 +430,7 @@ void setup() {
   SERIALCONSOLE.println("SimpBMS V2 Volt-Ampera");
 
   Serial2.begin(115200);
+  ESP32_LINK.begin(ESP32_LINK_BAUD);
 
 
   // Display reason the Teensy was last reset
@@ -734,6 +848,7 @@ void loop() {
     if (CSVdebug != 1) {
       dashupdate();
     }
+    sendEsp32Telemetry();
 
 
     resetwdog();

@@ -25,6 +25,7 @@ public:
   float getAvgTemperature();
   float getHighTemperature();
   float getLowTemperature();
+  int getNumFoundModules();
   float getAvgCellVolt();
   float getLowCellVolt();
   float getHighCellVolt();
