@@ -104,7 +104,8 @@ void onFrame(const CAN_message_t &msg) {
 }
 
 void tick() {
-    if (millis() - g_summaryMs >= 500) {
+    // Slower JSON so the serial monitor stays readable and keys still work.
+    if (millis() - g_summaryMs >= 3000) {
         g_summaryMs = millis();
         printSummary();
     }

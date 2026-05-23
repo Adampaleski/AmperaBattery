@@ -12,31 +12,37 @@ void onCanFrame(const CAN_message_t &msg) {
     BicmDecode::onFrame(msg);
 }
 
-void dispatchSerial() {
-    while (SERIALCONSOLE.available()) {
-        const char c = static_cast<char>(SERIALCONSOLE.read());
-        switch (c) {
+void runCommand(char c) {
+    if (c >= 'A' && c <= 'Z') {
+        c = static_cast<char>(c - 'A' + 'a');
+    }
+    SERIALCONSOLE.print(F(">> cmd "));
+    SERIALCONSOLE.println(c);
+
+    switch (c) {
             case 'c':
                 BicmSniffer::setCanDebug(!BicmSniffer::canDebugEnabled());
                 break;
-            case 'S':
+            case 's':
                 BicmSniffer::printIdStats();
                 break;
-            case 'R':
+            case 'r':
                 BicmSniffer::resetStats();
                 break;
-            case 'K':
+            case 'k':
                 CanBus::setKeepAliveEnabled(!CanBus::keepAliveEnabled());
                 SERIALCONSOLE.print(F("Keep-alive "));
                 SERIALCONSOLE.println(CanBus::keepAliveEnabled() ? F("ON") : F("OFF"));
                 break;
             case 'd':
-                BicmDecode::handleSerial(c);
+                BicmDecode::printDecodeDetails();
                 break;
             case '?':
             case 'h':
                 SERIALCONSOLE.println(
-                    F("c=candump  S=ID stats  R=reset  K=keep-alive  d=decode  ?=help"));
+                    F("Keys (no Enter): c=candump s=IDs d=cells k=keep-alive r=reset ?=help"));
+                SERIALCONSOLE.println(
+                    F("Stats also print automatically every 10 seconds."));
                 break;
 #if !TELEMETRY_ONLY
             case 'E':
@@ -45,7 +51,12 @@ void dispatchSerial() {
 #endif
             default:
                 break;
-        }
+    }
+}
+
+void dispatchSerial() {
+    while (SERIALCONSOLE.available()) {
+        runCommand(static_cast<char>(SERIALCONSOLE.read()));
     }
 }
 
@@ -73,7 +84,13 @@ void setup() {
     SERIALCONSOLE.println(F("Mode: BMS (contactor outputs gated)"));
 #endif
     SERIALCONSOLE.println(F("CAN3 @ 125k — keep-alive 0x200/1s"));
-    SERIALCONSOLE.println(F("Commands: c S R K d ?"));
+    SERIALCONSOLE.print(F("Expect "));
+    SERIALCONSOLE.print(PACK_MODULE_COUNT);
+    SERIALCONSOLE.print(F(" BICM(s) = "));
+    SERIALCONSOLE.print(PACK_S_CELLS);
+    SERIALCONSOLE.println(F(" cells on CAN when all are wired."));
+    SERIALCONSOLE.println(F("Keys: c s d k r ?  (no Enter — click terminal first)"));
+    SERIALCONSOLE.println(F("ID list + cell volts print every 10 s automatically."));
 
     CanBus::begin();
     CanBus::setFrameHandler(onCanFrame);
@@ -88,6 +105,14 @@ void loop() {
     BicmDecode::tick();
     BmsApp::tick();
     dispatchSerial();
+
+    static uint32_t autoReportMs = 0;
+    if (millis() - autoReportMs >= 10000) {
+        autoReportMs = millis();
+        SERIALCONSOLE.println(F("--- auto report (10s) ---"));
+        BicmSniffer::printIdStats();
+        BicmDecode::printDecodeDetails();
+    }
 
     static uint32_t ledMs = 0;
     if (millis() - ledMs >= 500) {
