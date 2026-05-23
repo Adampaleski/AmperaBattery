@@ -10,26 +10,16 @@ constexpr int kMaxModules = 16;
 
 #if K112_24S_SUBPACK
 
-// Pack-relative cell voltages (1..24) from one K112 on CAN.
+// One K112 on the X1 daisy chain (pins 9–13 toward BECM): all 24 cells often
+// arrive as many 0x460 / 0x470 frames per burst (0x4E0 … 0x500), not as 0x461+.
 float g_packCells[25] = {};
 bool  g_idSeen[0x480 - 0x460] = {};
 
-struct K112FrameMap {
-    uint32_t id;
-    uint8_t  startCell;
-    uint8_t  cellCount;
-};
-
-// Volt-style ID map: 3 cells per 6-byte frame, 4 cells per 8-byte frame.
-constexpr K112FrameMap kK112Frames[] = {
-    {0x460, 1, 3},
-    {0x470, 4, 3},
-    {0x461, 7, 4},
-    {0x471, 11, 4},
-    {0x462, 15, 4},
-    {0x472, 19, 4},
-    {0x463, 23, 2},
-};
+uint8_t  g_burstNextCell   = 1;
+bool     g_inBurst         = false;
+uint16_t g_burst460Count   = 0;
+uint16_t g_burst470Count   = 0;
+uint32_t g_lastBurstMarkMs = 0;
 
 float decodeCell(uint8_t msb, uint8_t lsb) {
     const uint16_t raw = ((msb & 0x0F) << 8) | lsb;
@@ -39,25 +29,99 @@ float decodeCell(uint8_t msb, uint8_t lsb) {
     return raw * 0.00125f;
 }
 
-void decodeK112Frame(const CAN_message_t &msg) {
-    for (const K112FrameMap &e : kK112Frames) {
+void clearPackCells() {
+    for (int c = 0; c <= PACK_S_CELLS; c++) {
+        g_packCells[c] = 0.0f;
+    }
+    g_burstNextCell   = 1;
+    g_burst460Count   = 0;
+    g_burst470Count   = 0;
+}
+
+void startBurst() {
+    clearPackCells();
+    g_inBurst         = true;
+    g_lastBurstMarkMs = millis();
+}
+
+void endBurst() {
+    g_inBurst = false;
+}
+
+// Append every cell pair in the frame in bus order (3 cells if len=6, 4 if len=8).
+void appendCellsFromFrame(const CAN_message_t &msg) {
+    for (uint8_t i = 0; i + 1 < msg.len && g_burstNextCell <= PACK_S_CELLS; i += 2) {
+        const float v = decodeCell(msg.buf[i], msg.buf[i + 1]);
+        if (v > 0.5f && v < 5.5f) {
+            g_packCells[g_burstNextCell++] = v;
+        }
+    }
+}
+
+// Full pack on one bus: 0x461+ when multiple BICMs exist (optional path).
+struct K112FrameMap {
+    uint32_t id;
+    uint8_t  startCell;
+    uint8_t  cellCount;
+};
+
+constexpr K112FrameMap kMultiBicmFrames[] = {
+    {0x461, 7, 4},
+    {0x471, 11, 4},
+    {0x462, 15, 4},
+    {0x472, 19, 4},
+    {0x463, 23, 2},
+};
+
+void decodeMultiBicmId(const CAN_message_t &msg) {
+    for (const K112FrameMap &e : kMultiBicmFrames) {
         if (msg.id != e.id) {
             continue;
         }
-        if (msg.id >= 0x460 && msg.id < 0x480) {
-            g_idSeen[msg.id - 0x460] = true;
-        }
+        g_idSeen[msg.id - 0x460] = true;
         for (uint8_t i = 0; i < e.cellCount; i++) {
             const uint8_t bi = static_cast<uint8_t>(i * 2);
             if (bi + 1 >= msg.len) {
                 break;
             }
             const float v = decodeCell(msg.buf[bi], msg.buf[bi + 1]);
-            if (v > 0.0f) {
+            if (v > 0.5f && v < 5.5f) {
                 g_packCells[e.startCell + i] = v;
             }
         }
         return;
+    }
+}
+
+void decodeK112Frame(const CAN_message_t &msg) {
+    if (msg.id == 0x4E0) {
+        startBurst();
+        return;
+    }
+    if (msg.id == 0x500) {
+        endBurst();
+        return;
+    }
+
+    if (msg.id == 0x460 || msg.id == 0x470) {
+        g_idSeen[msg.id - 0x460] = true;
+        if (!g_inBurst) {
+            // No burst markers yet — still accumulate in receive order.
+            if (g_burstNextCell == 1 && g_packCells[1] <= 0.5f) {
+                clearPackCells();
+            }
+        }
+        if (msg.id == 0x460) {
+            g_burst460Count++;
+        } else {
+            g_burst470Count++;
+        }
+        appendCellsFromFrame(msg);
+        return;
+    }
+
+    if (msg.id >= 0x461 && msg.id < 0x480) {
+        decodeMultiBicmId(msg);
     }
 }
 
@@ -191,9 +255,8 @@ void begin() {
         g_modules[i] = ModuleState{};
     }
 #else
-    for (int c = 0; c <= PACK_S_CELLS; c++) {
-        g_packCells[c] = 0.0f;
-    }
+    clearPackCells();
+    g_inBurst = false;
     for (unsigned i = 0; i < sizeof(g_idSeen); i++) {
         g_idSeen[i] = false;
     }
@@ -282,7 +345,11 @@ void printDecodeDetails() {
     SERIALCONSOLE.println();
     SERIALCONSOLE.print(F("DECODE "));
 #if K112_24S_SUBPACK
-    SERIALCONSOLE.print(F("K112 24S sub-pack  can_ids="));
+    SERIALCONSOLE.print(F("K112 24S  460frames="));
+    SERIALCONSOLE.print(g_burst460Count);
+    SERIALCONSOLE.print(F(" 470frames="));
+    SERIALCONSOLE.print(g_burst470Count);
+    SERIALCONSOLE.print(F("  can_ids="));
     SERIALCONSOLE.print(moduleCount());
 #else
     SERIALCONSOLE.print(F("modules="));
