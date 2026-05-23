@@ -1,4 +1,5 @@
 #include "BicmDecode.h"
+#include "BicmPackProfile.h"
 #include "Config.h"
 #include <math.h>
 
@@ -8,17 +9,25 @@ namespace {
 
 constexpr int kMaxModules = 16;
 
-#if K112_24S_SUBPACK
+#if K112_PACK_DECODE
 
-// One K112 on the X1 daisy chain (pins 9–13 toward BECM): all 24 cells often
-// arrive as many 0x460 / 0x470 frames per burst (0x4E0 … 0x500), not as 0x461+.
-float g_packCells[25] = {};
+float g_packCells[PACK_S_CELLS + 1] = {};
 bool  g_idSeen[0x480 - 0x460] = {};
 
-uint8_t  g_burstNextCell   = 1;
+struct StreamState {
+    uint32_t idLow;
+    uint32_t idHigh;
+    uint8_t  startCell;
+    uint8_t  endCell;
+    uint8_t  nextCell;
+    uint16_t framesLow;
+    uint16_t framesHigh;
+    const char *label;
+};
+
+StreamState g_streams[kBicmStreamCount];
+
 bool     g_inBurst         = false;
-uint16_t g_burst460Count   = 0;
-uint16_t g_burst470Count   = 0;
 uint32_t g_lastBurstMarkMs = 0;
 
 float decodeCell(uint8_t msb, uint8_t lsb) {
@@ -29,13 +38,34 @@ float decodeCell(uint8_t msb, uint8_t lsb) {
     return raw * 0.00125f;
 }
 
+void initStreams() {
+    for (uint8_t i = 0; i < kBicmStreamCount; i++) {
+        const BicmCanStreamDef &def = kBicmStreams[i];
+        g_streams[i].idLow      = def.idLow;
+        g_streams[i].idHigh     = def.idHigh;
+        g_streams[i].startCell  = def.startCell;
+        g_streams[i].endCell    = static_cast<uint8_t>(def.startCell + def.cellCount - 1);
+        g_streams[i].nextCell   = def.startCell;
+        g_streams[i].framesLow  = 0;
+        g_streams[i].framesHigh = 0;
+        g_streams[i].label      = def.label;
+    }
+}
+
 void clearPackCells() {
     for (int c = 0; c <= PACK_S_CELLS; c++) {
         g_packCells[c] = 0.0f;
     }
-    g_burstNextCell   = 1;
-    g_burst460Count   = 0;
-    g_burst470Count   = 0;
+    for (uint8_t i = 0; i < kBicmStreamCount; i++) {
+        g_streams[i].nextCell = g_streams[i].startCell;
+    }
+}
+
+void resetStream(StreamState &s) {
+    for (uint8_t c = s.startCell; c <= s.endCell; c++) {
+        g_packCells[c] = 0.0f;
+    }
+    s.nextCell = s.startCell;
 }
 
 void startBurst() {
@@ -48,49 +78,22 @@ void endBurst() {
     g_inBurst = false;
 }
 
-// Append every cell pair in the frame in bus order (3 cells if len=6, 4 if len=8).
-void appendCellsFromFrame(const CAN_message_t &msg) {
-    for (uint8_t i = 0; i + 1 < msg.len && g_burstNextCell <= PACK_S_CELLS; i += 2) {
+void appendCellsFromFrame(StreamState &s, const CAN_message_t &msg) {
+    for (uint8_t i = 0; i + 1 < msg.len && s.nextCell <= s.endCell; i += 2) {
         const float v = decodeCell(msg.buf[i], msg.buf[i + 1]);
         if (v > 0.5f && v < 5.5f) {
-            g_packCells[g_burstNextCell++] = v;
+            g_packCells[s.nextCell++] = v;
         }
     }
 }
 
-// Full pack on one bus: 0x461+ when multiple BICMs exist (optional path).
-struct K112FrameMap {
-    uint32_t id;
-    uint8_t  startCell;
-    uint8_t  cellCount;
-};
-
-constexpr K112FrameMap kMultiBicmFrames[] = {
-    {0x461, 7, 4},
-    {0x471, 11, 4},
-    {0x462, 15, 4},
-    {0x472, 19, 4},
-    {0x463, 23, 2},
-};
-
-void decodeMultiBicmId(const CAN_message_t &msg) {
-    for (const K112FrameMap &e : kMultiBicmFrames) {
-        if (msg.id != e.id) {
-            continue;
+StreamState *streamForId(uint32_t id) {
+    for (uint8_t i = 0; i < kBicmStreamCount; i++) {
+        if (g_streams[i].idLow == id || g_streams[i].idHigh == id) {
+            return &g_streams[i];
         }
-        g_idSeen[msg.id - 0x460] = true;
-        for (uint8_t i = 0; i < e.cellCount; i++) {
-            const uint8_t bi = static_cast<uint8_t>(i * 2);
-            if (bi + 1 >= msg.len) {
-                break;
-            }
-            const float v = decodeCell(msg.buf[bi], msg.buf[bi + 1]);
-            if (v > 0.5f && v < 5.5f) {
-                g_packCells[e.startCell + i] = v;
-            }
-        }
-        return;
     }
+    return nullptr;
 }
 
 void decodeK112Frame(const CAN_message_t &msg) {
@@ -103,31 +106,42 @@ void decodeK112Frame(const CAN_message_t &msg) {
         return;
     }
 
-    if (msg.id == 0x460 || msg.id == 0x470) {
-        g_idSeen[msg.id - 0x460] = true;
-        if (!g_inBurst) {
-            // No burst markers yet — still accumulate in receive order.
-            if (g_burstNextCell == 1 && g_packCells[1] <= 0.5f) {
-                clearPackCells();
-            }
-        }
-        if (msg.id == 0x460) {
-            g_burst460Count++;
-        } else {
-            g_burst470Count++;
-        }
-        appendCellsFromFrame(msg);
+    StreamState *s = streamForId(msg.id);
+    if (!s) {
         return;
     }
 
-    if (msg.id >= 0x461 && msg.id < 0x480) {
-        decodeMultiBicmId(msg);
+    g_idSeen[msg.id - 0x460] = true;
+
+    if (!g_inBurst) {
+        if (s->nextCell > s->endCell) {
+            resetStream(*s);
+        } else if (s->nextCell == s->startCell && g_packCells[s->startCell] <= 0.5f) {
+            resetStream(*s);
+        }
     }
+
+    if (msg.id == s->idLow) {
+        s->framesLow++;
+    } else {
+        s->framesHigh++;
+    }
+    appendCellsFromFrame(*s, msg);
 }
 
 int countPackCells() {
     int n = 0;
     for (int c = 1; c <= PACK_S_CELLS; c++) {
+        if (g_packCells[c] > 0.5f && g_packCells[c] < 5.5f) {
+            n++;
+        }
+    }
+    return n;
+}
+
+int countStreamCells(const StreamState &s) {
+    int n = 0;
+    for (uint8_t c = s.startCell; c <= s.endCell; c++) {
         if (g_packCells[c] > 0.5f && g_packCells[c] < 5.5f) {
             n++;
         }
@@ -145,7 +159,7 @@ int countSeenIds() {
     return n;
 }
 
-#else  // !K112_24S_SUBPACK
+#else  // !K112_PACK_DECODE
 
 constexpr int kCellsPerMod = BICM_CELLS_PER_MODULE;
 constexpr int kCellsBuf    = 8;
@@ -224,7 +238,7 @@ int countModuleCells(const ModuleState &mod) {
     return n;
 }
 
-#endif  // K112_24S_SUBPACK
+#endif  // K112_PACK_DECODE
 
 int g_stableTicks      = 0;
 bool g_packStable      = false;
@@ -232,7 +246,7 @@ uint32_t g_printLastMs = 0;
 
 void updateStability() {
     const int cells = seriesCellCount();
-#if K112_24S_SUBPACK
+#if K112_PACK_DECODE
     const bool ok = (cells == PACK_S_CELLS);
 #else
     const bool ok = (cells == PACK_S_CELLS && moduleCount() == PACK_MODULE_COUNT);
@@ -250,11 +264,12 @@ void updateStability() {
 }  // namespace
 
 void begin() {
-#if !K112_24S_SUBPACK
+#if !K112_PACK_DECODE
     for (int i = 0; i <= kMaxModules; i++) {
         g_modules[i] = ModuleState{};
     }
 #else
+    initStreams();
     clearPackCells();
     g_inBurst = false;
     for (unsigned i = 0; i < sizeof(g_idSeen); i++) {
@@ -264,7 +279,7 @@ void begin() {
 }
 
 void onFrame(const CAN_message_t &msg) {
-#if K112_24S_SUBPACK
+#if K112_PACK_DECODE
     if (msg.id >= 0x460 && msg.id < 0x480) {
         decodeK112Frame(msg);
     }
@@ -306,7 +321,7 @@ void tick() {
 }
 
 int seriesCellCount() {
-#if K112_24S_SUBPACK
+#if K112_PACK_DECODE
     return countPackCells();
 #else
     int total = 0;
@@ -324,8 +339,15 @@ int seriesCellCount() {
 }
 
 int moduleCount() {
-#if K112_24S_SUBPACK
-    return countSeenIds();
+#if K112_PACK_DECODE
+    int n = 0;
+    for (uint8_t i = 0; i < kBicmStreamCount; i++) {
+        const int expected = static_cast<int>(g_streams[i].endCell - g_streams[i].startCell + 1);
+        if (countStreamCells(g_streams[i]) >= expected) {
+            n++;
+        }
+    }
+    return n;
 #else
     int n = 0;
     for (int m = 1; m <= kMaxModules; m++) {
@@ -341,16 +363,28 @@ int moduleCount() {
 
 bool packStable() { return g_packStable; }
 
+#if K112_PACK_DECODE
+static void printCellRange(uint8_t from, uint8_t to) {
+    for (uint8_t c = from; c <= to; c++) {
+        SERIALCONSOLE.print(g_packCells[c], 3);
+        SERIALCONSOLE.print(' ');
+    }
+    SERIALCONSOLE.println();
+}
+#endif
+
 void printDecodeDetails() {
     SERIALCONSOLE.println();
     SERIALCONSOLE.print(F("DECODE "));
-#if K112_24S_SUBPACK
-    SERIALCONSOLE.print(F("K112 24S  460frames="));
-    SERIALCONSOLE.print(g_burst460Count);
-    SERIALCONSOLE.print(F(" 470frames="));
-    SERIALCONSOLE.print(g_burst470Count);
-    SERIALCONSOLE.print(F("  can_ids="));
+#if K112_PACK_DECODE
+    SERIALCONSOLE.print(F("K112 "));
+    SERIALCONSOLE.print(PACK_S_CELLS);
+    SERIALCONSOLE.print(F("S  bicms="));
     SERIALCONSOLE.print(moduleCount());
+    SERIALCONSOLE.print(F("/"));
+    SERIALCONSOLE.print(kBicmStreamCount);
+    SERIALCONSOLE.print(F("  can_ids="));
+    SERIALCONSOLE.print(countSeenIds());
 #else
     SERIALCONSOLE.print(F("modules="));
     SERIALCONSOLE.print(moduleCount());
@@ -362,26 +396,39 @@ void printDecodeDetails() {
     SERIALCONSOLE.print(F("  stable="));
     SERIALCONSOLE.println(g_packStable ? F("Y") : F("N"));
 
-#if K112_24S_SUBPACK
-    SERIALCONSOLE.println(F("  (one physical K112 — cells 1-24 on CAN)"));
-    SERIALCONSOLE.print(F("  cells 1-6:  "));
-    for (int c = 1; c <= 6; c++) {
-        SERIALCONSOLE.print(g_packCells[c], 3);
-        SERIALCONSOLE.print(' ');
+#if K112_PACK_DECODE
+    for (uint8_t i = 0; i < kBicmStreamCount; i++) {
+        const StreamState &s = g_streams[i];
+        SERIALCONSOLE.print(F("  "));
+        SERIALCONSOLE.print(s.label);
+        SERIALCONSOLE.print(F(" 0x"));
+        SERIALCONSOLE.print(s.idLow, HEX);
+        SERIALCONSOLE.print(F("/0x"));
+        SERIALCONSOLE.print(s.idHigh, HEX);
+        SERIALCONSOLE.print(F(" 460#="));
+        SERIALCONSOLE.print(s.framesLow);
+        SERIALCONSOLE.print(F(" 470#="));
+        SERIALCONSOLE.print(s.framesHigh);
+        SERIALCONSOLE.print(F("  cells="));
+        SERIALCONSOLE.print(countStreamCells(s));
+        SERIALCONSOLE.print(F("/"));
+        SERIALCONSOLE.println(static_cast<int>(s.endCell - s.startCell + 1));
     }
-    SERIALCONSOLE.println();
-    SERIALCONSOLE.print(F("  cells 7-18: "));
-    for (int c = 7; c <= 18; c++) {
-        SERIALCONSOLE.print(g_packCells[c], 3);
-        SERIALCONSOLE.print(' ');
+    if (PACK_S_CELLS <= 24) {
+        SERIALCONSOLE.println(F("  cells 1-6:  "));
+        printCellRange(1, 6);
+        SERIALCONSOLE.println(F("  cells 7-18: "));
+        printCellRange(7, 18);
+        SERIALCONSOLE.println(F("  cells 19-24:"));
+        printCellRange(19, 24);
+    } else {
+        SERIALCONSOLE.println(F("  cells 1-12: "));
+        printCellRange(1, 12);
+        SERIALCONSOLE.println(F("  cells 13-24:"));
+        printCellRange(13, 24);
+        SERIALCONSOLE.println(F("  cells 25-36:"));
+        printCellRange(25, 36);
     }
-    SERIALCONSOLE.println();
-    SERIALCONSOLE.print(F("  cells 19-24:"));
-    for (int c = 19; c <= 24; c++) {
-        SERIALCONSOLE.print(g_packCells[c], 3);
-        SERIALCONSOLE.print(' ');
-    }
-    SERIALCONSOLE.println();
 #else
     for (int m = 1; m <= PACK_MODULE_COUNT; m++) {
         const ModuleState &mod = g_modules[m];

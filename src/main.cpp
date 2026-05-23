@@ -4,6 +4,8 @@
 #include "BicmSniffer.h"
 #include "BicmDecode.h"
 #include "BmsApp.h"
+#include "BmsCapabilities.h"
+#include "BicmPackProfile.h"
 
 namespace {
 
@@ -73,20 +75,39 @@ void setup() {
     SERIALCONSOLE.println(F("=== Ampera BICM Teensy 4.1 ==="));
     SERIALCONSOLE.print(F("Pack: "));
     SERIALCONSOLE.print(PACK_S_CELLS);
-    SERIALCONSOLE.print(F("S / "));
+    SERIALCONSOLE.print(F("S"));
+#if K112_PACK_DECODE
+    SERIALCONSOLE.print(F(" / "));
+    SERIALCONSOLE.print(kBicmStreamCount);
+    SERIALCONSOLE.println(F(" physical BICM(s) on daisy chain"));
+#else
+    SERIALCONSOLE.print(F(" / "));
     SERIALCONSOLE.print(PACK_MODULE_COUNT);
     SERIALCONSOLE.print(F(" modules / "));
     SERIALCONSOLE.print(BICM_CELLS_PER_MODULE);
     SERIALCONSOLE.println(F(" cells per module"));
+#endif
 #if TELEMETRY_ONLY
-    SERIALCONSOLE.println(F("Mode: sniffer + decode (TELEMETRY_ONLY)"));
+    SERIALCONSOLE.println(F("Mode: MONITOR ONLY — no balance, charge, or contactors"));
 #else
-    SERIALCONSOLE.println(F("Mode: BMS (contactor outputs gated)"));
+    SERIALCONSOLE.println(F("Mode: BMS GPIO (contactor outputs gated, send E)"));
 #endif
     SERIALCONSOLE.println(F("CAN3 @ 125k — keep-alive 0x200/1s"));
-#if K112_24S_SUBPACK
-    SERIALCONSOLE.println(F("Profile: ONE K112 BICM, 24S sub-pack (6+12+6 on sense harness)"));
-    SERIALCONSOLE.println(F("Expect ~24 cells across CAN IDs 0x460-0x473 when X1-X4 are connected."));
+    SERIALCONSOLE.print(F("Capabilities: cells="));
+    SERIALCONSOLE.print(BMS_CAP_READ_CELL_VOLTS);
+    SERIALCONSOLE.print(F(" keepalive="));
+    SERIALCONSOLE.print(BMS_CAP_KEEPALIVE_TX);
+    SERIALCONSOLE.print(F(" balance="));
+    SERIALCONSOLE.print(BMS_CAP_BALANCE_TX);
+    SERIALCONSOLE.print(F(" charge="));
+    SERIALCONSOLE.println(BMS_CAP_CHARGE_TX);
+#if K112_PACK_DECODE
+#if PACK_BICM_COUNT == 1
+    SERIALCONSOLE.println(F("Profile: one K112, 24S (0x460/0x470 burst)"));
+#elif PACK_BICM_COUNT == 2
+    SERIALCONSOLE.println(F("Profile: two KICMs, 36S (A=0x460/470, B=0x461/471)"));
+    SERIALCONSOLE.println(F("If B cells stay 0, run `s` and adjust BicmPackProfile.h IDs."));
+#endif
 #else
     SERIALCONSOLE.print(F("Expect "));
     SERIALCONSOLE.print(PACK_MODULE_COUNT);
