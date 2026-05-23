@@ -7,24 +7,29 @@ namespace BicmDecode {
 namespace {
 
 constexpr int kMaxModules = 16;
-constexpr int kCellsPerMod = BICM_CELLS_PER_MODULE;
-constexpr int kCellsBuf    = 8;
 
-struct ModuleState {
-    bool     exists       = false;
-    bool     sawLowFrame  = false;  // id nibble -> 0xX60
-    bool     sawHighFrame = false;  // id nibble -> 0xX70
-    float    cells[kCellsBuf] = {};
-    float    temperature    = 0.0f;
-    bool     hasTemp        = false;
-    uint32_t lastUpdateMs   = 0;
+#if K112_24S_SUBPACK
+
+// Pack-relative cell voltages (1..24) from one K112 on CAN.
+float g_packCells[25] = {};
+bool  g_idSeen[0x480 - 0x460] = {};
+
+struct K112FrameMap {
+    uint32_t id;
+    uint8_t  startCell;
+    uint8_t  cellCount;
 };
 
-ModuleState g_modules[kMaxModules + 1];
-
-int g_stableTicks     = 0;
-bool g_packStable     = false;
-uint32_t g_printLastMs = 0;
+// Volt-style ID map: 3 cells per 6-byte frame, 4 cells per 8-byte frame.
+constexpr K112FrameMap kK112Frames[] = {
+    {0x460, 1, 3},
+    {0x470, 4, 3},
+    {0x461, 7, 4},
+    {0x471, 11, 4},
+    {0x462, 15, 4},
+    {0x472, 19, 4},
+    {0x463, 23, 2},
+};
 
 float decodeCell(uint8_t msb, uint8_t lsb) {
     const uint16_t raw = ((msb & 0x0F) << 8) | lsb;
@@ -34,7 +39,73 @@ float decodeCell(uint8_t msb, uint8_t lsb) {
     return raw * 0.00125f;
 }
 
-// DBC Temp: factor 0.0556, offset -27.778 on 10-bit field at bit 1.
+void decodeK112Frame(const CAN_message_t &msg) {
+    for (const K112FrameMap &e : kK112Frames) {
+        if (msg.id != e.id) {
+            continue;
+        }
+        if (msg.id >= 0x460 && msg.id < 0x480) {
+            g_idSeen[msg.id - 0x460] = true;
+        }
+        for (uint8_t i = 0; i < e.cellCount; i++) {
+            const uint8_t bi = static_cast<uint8_t>(i * 2);
+            if (bi + 1 >= msg.len) {
+                break;
+            }
+            const float v = decodeCell(msg.buf[bi], msg.buf[bi + 1]);
+            if (v > 0.0f) {
+                g_packCells[e.startCell + i] = v;
+            }
+        }
+        return;
+    }
+}
+
+int countPackCells() {
+    int n = 0;
+    for (int c = 1; c <= PACK_S_CELLS; c++) {
+        if (g_packCells[c] > 0.5f && g_packCells[c] < 5.5f) {
+            n++;
+        }
+    }
+    return n;
+}
+
+int countSeenIds() {
+    int n = 0;
+    for (unsigned i = 0; i < sizeof(g_idSeen); i++) {
+        if (g_idSeen[i]) {
+            n++;
+        }
+    }
+    return n;
+}
+
+#else  // !K112_24S_SUBPACK
+
+constexpr int kCellsPerMod = BICM_CELLS_PER_MODULE;
+constexpr int kCellsBuf    = 8;
+
+struct ModuleState {
+    bool     exists       = false;
+    bool     sawLowFrame  = false;
+    bool     sawHighFrame = false;
+    float    cells[kCellsBuf] = {};
+    float    temperature    = 0.0f;
+    bool     hasTemp        = false;
+    uint32_t lastUpdateMs   = 0;
+};
+
+ModuleState g_modules[kMaxModules + 1];
+
+float decodeCell(uint8_t msb, uint8_t lsb) {
+    const uint16_t raw = ((msb & 0x0F) << 8) | lsb;
+    if (raw == 0) {
+        return 0.0f;
+    }
+    return raw * 0.00125f;
+}
+
 float decodeTempDbc(const CAN_message_t &msg) {
     if (msg.len < 2) {
         return 0.0f;
@@ -43,7 +114,6 @@ float decodeTempDbc(const CAN_message_t &msg) {
     return raw10 * 0.0556f - 27.778f;
 }
 
-// Legacy Volt frame layout (bytes 6–7) — kept for cross-check on bench.
 float decodeTempLegacy(const CAN_message_t &msg) {
     if (msg.len < 8) {
         return 0.0f;
@@ -90,11 +160,20 @@ int countModuleCells(const ModuleState &mod) {
     return n;
 }
 
+#endif  // K112_24S_SUBPACK
+
+int g_stableTicks      = 0;
+bool g_packStable      = false;
+uint32_t g_printLastMs = 0;
+
 void updateStability() {
     const int cells = seriesCellCount();
-    const int mods  = moduleCount();
-
-    if (cells == PACK_S_CELLS && mods == PACK_MODULE_COUNT) {
+#if K112_24S_SUBPACK
+    const bool ok = (cells == PACK_S_CELLS);
+#else
+    const bool ok = (cells == PACK_S_CELLS && moduleCount() == PACK_MODULE_COUNT);
+#endif
+    if (ok) {
         if (g_stableTicks < 255) {
             g_stableTicks++;
         }
@@ -107,12 +186,27 @@ void updateStability() {
 }  // namespace
 
 void begin() {
+#if !K112_24S_SUBPACK
     for (int i = 0; i <= kMaxModules; i++) {
         g_modules[i] = ModuleState{};
     }
+#else
+    for (int c = 0; c <= PACK_S_CELLS; c++) {
+        g_packCells[c] = 0.0f;
+    }
+    for (unsigned i = 0; i < sizeof(g_idSeen); i++) {
+        g_idSeen[i] = false;
+    }
+#endif
 }
 
 void onFrame(const CAN_message_t &msg) {
+#if K112_24S_SUBPACK
+    if (msg.id >= 0x460 && msg.id < 0x480) {
+        decodeK112Frame(msg);
+    }
+    return;
+#else
     if (msg.id >= 0x460 && msg.id < 0x480) {
         const int idx = moduleIndexFromId(msg.id);
         if (idx < 1 || idx > kMaxModules) {
@@ -122,9 +216,6 @@ void onFrame(const CAN_message_t &msg) {
         mod.exists       = true;
         mod.lastUpdateMs = millis();
         decodeCellFrame(mod, msg);
-        if (mod.sawLowFrame && mod.sawHighFrame) {
-            mod.exists = true;
-        }
         return;
     }
 
@@ -140,11 +231,11 @@ void onFrame(const CAN_message_t &msg) {
         mod.hasTemp      = isfinite(mod.temperature);
         (void)decodeTempLegacy(msg);
     }
+#endif
 }
 
 void tick() {
     updateStability();
-
     if (millis() - g_printLastMs >= 3000 && g_packStable) {
         g_printLastMs = millis();
         printDecodeDetails();
@@ -152,6 +243,9 @@ void tick() {
 }
 
 int seriesCellCount() {
+#if K112_24S_SUBPACK
+    return countPackCells();
+#else
     int total = 0;
     for (int m = 1; m <= kMaxModules; m++) {
         if (!g_modules[m].exists) {
@@ -163,9 +257,13 @@ int seriesCellCount() {
         total += countModuleCells(g_modules[m]);
     }
     return total;
+#endif
 }
 
 int moduleCount() {
+#if K112_24S_SUBPACK
+    return countSeenIds();
+#else
     int n = 0;
     for (int m = 1; m <= kMaxModules; m++) {
         if (g_modules[m].exists && g_modules[m].sawLowFrame && g_modules[m].sawHighFrame) {
@@ -175,21 +273,49 @@ int moduleCount() {
         }
     }
     return n;
+#endif
 }
 
 bool packStable() { return g_packStable; }
 
 void printDecodeDetails() {
     SERIALCONSOLE.println();
-    SERIALCONSOLE.print(F("DECODE modules="));
+    SERIALCONSOLE.print(F("DECODE "));
+#if K112_24S_SUBPACK
+    SERIALCONSOLE.print(F("K112 24S sub-pack  can_ids="));
     SERIALCONSOLE.print(moduleCount());
-    SERIALCONSOLE.print(F(" cells="));
+#else
+    SERIALCONSOLE.print(F("modules="));
+    SERIALCONSOLE.print(moduleCount());
+#endif
+    SERIALCONSOLE.print(F("  cells="));
     SERIALCONSOLE.print(seriesCellCount());
-    SERIALCONSOLE.print(F(" expected="));
+    SERIALCONSOLE.print(F("  expected="));
     SERIALCONSOLE.print(PACK_S_CELLS);
-    SERIALCONSOLE.print(F(" stable="));
+    SERIALCONSOLE.print(F("  stable="));
     SERIALCONSOLE.println(g_packStable ? F("Y") : F("N"));
 
+#if K112_24S_SUBPACK
+    SERIALCONSOLE.println(F("  (one physical K112 — cells 1-24 on CAN)"));
+    SERIALCONSOLE.print(F("  cells 1-6:  "));
+    for (int c = 1; c <= 6; c++) {
+        SERIALCONSOLE.print(g_packCells[c], 3);
+        SERIALCONSOLE.print(' ');
+    }
+    SERIALCONSOLE.println();
+    SERIALCONSOLE.print(F("  cells 7-18: "));
+    for (int c = 7; c <= 18; c++) {
+        SERIALCONSOLE.print(g_packCells[c], 3);
+        SERIALCONSOLE.print(' ');
+    }
+    SERIALCONSOLE.println();
+    SERIALCONSOLE.print(F("  cells 19-24:"));
+    for (int c = 19; c <= 24; c++) {
+        SERIALCONSOLE.print(g_packCells[c], 3);
+        SERIALCONSOLE.print(' ');
+    }
+    SERIALCONSOLE.println();
+#else
     for (int m = 1; m <= PACK_MODULE_COUNT; m++) {
         const ModuleState &mod = g_modules[m];
         if (!mod.exists) {
@@ -210,6 +336,7 @@ void printDecodeDetails() {
         }
         SERIALCONSOLE.println();
     }
+#endif
 }
 
 void handleSerial(char c) {

@@ -84,11 +84,16 @@ void setup() {
     SERIALCONSOLE.println(F("Mode: BMS (contactor outputs gated)"));
 #endif
     SERIALCONSOLE.println(F("CAN3 @ 125k — keep-alive 0x200/1s"));
+#if K112_24S_SUBPACK
+    SERIALCONSOLE.println(F("Profile: ONE K112 BICM, 24S sub-pack (6+12+6 on sense harness)"));
+    SERIALCONSOLE.println(F("Expect ~24 cells across CAN IDs 0x460-0x473 when X1-X4 are connected."));
+#else
     SERIALCONSOLE.print(F("Expect "));
     SERIALCONSOLE.print(PACK_MODULE_COUNT);
-    SERIALCONSOLE.print(F(" BICM(s) = "));
+    SERIALCONSOLE.print(F(" CAN module(s) = "));
     SERIALCONSOLE.print(PACK_S_CELLS);
-    SERIALCONSOLE.println(F(" cells on CAN when all are wired."));
+    SERIALCONSOLE.println(F(" cells."));
+#endif
     SERIALCONSOLE.println(F("Keys: c s d k r ?  (no Enter — click terminal first)"));
     SERIALCONSOLE.println(F("ID list + cell volts print every 10 s automatically."));
 
