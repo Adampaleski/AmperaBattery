@@ -1,5 +1,6 @@
 #include "BicmDecode.h"
 #include "BicmPackProfile.h"
+#include "BicmSparseMap.h"
 #include "Config.h"
 #include <math.h>
 
@@ -96,6 +97,44 @@ StreamState *streamForId(uint32_t id) {
     return nullptr;
 }
 
+#if K112_SPARSE_SECOND_BICM
+void markIdSeen(uint32_t id) {
+    if (id >= 0x460 && id < 0x480) {
+        g_idSeen[id - 0x460] = true;
+    }
+}
+
+int countSecondBicmCells() {
+    int n = 0;
+    for (int c = 25; c <= PACK_S_CELLS && c <= 36; c++) {
+        if (g_packCells[c] > 0.5f && g_packCells[c] < 5.5f) {
+            n++;
+        }
+    }
+    return n;
+}
+
+void decodeSparseSecondBicm(const CAN_message_t &msg) {
+    for (const SparseCellFrameDef &e : kSparseSecondBicm) {
+        if (msg.id != e.id) {
+            continue;
+        }
+        markIdSeen(msg.id);
+        for (uint8_t i = 0; i < e.cellCount; i++) {
+            const uint8_t bi = static_cast<uint8_t>(i * 2);
+            if (bi + 1 >= msg.len) {
+                break;
+            }
+            const float v = decodeCell(msg.buf[bi], msg.buf[bi + 1]);
+            if (v > 0.5f && v < 5.5f) {
+                g_packCells[static_cast<uint8_t>(e.startCell + i)] = v;
+            }
+        }
+        return;
+    }
+}
+#endif
+
 void decodeK112Frame(const CAN_message_t &msg) {
     if (msg.id == 0x4E0) {
         startBurst();
@@ -128,6 +167,15 @@ void decodeK112Frame(const CAN_message_t &msg) {
     }
     appendCellsFromFrame(*s, msg);
 }
+
+#if K112_SPARSE_SECOND_BICM
+void decodeK112Extended(const CAN_message_t &msg) {
+    if (msg.id >= 0x460 && msg.id < 0x480) {
+        decodeK112Frame(msg);
+    }
+    decodeSparseSecondBicm(msg);
+}
+#endif
 
 int countPackCells() {
     int n = 0;
@@ -280,9 +328,15 @@ void begin() {
 
 void onFrame(const CAN_message_t &msg) {
 #if K112_PACK_DECODE
+#if K112_SPARSE_SECOND_BICM
+    if (msg.id >= 0x460 && msg.id <= 0x510) {
+        decodeK112Extended(msg);
+    }
+#else
     if (msg.id >= 0x460 && msg.id < 0x480) {
         decodeK112Frame(msg);
     }
+#endif
     return;
 #else
     if (msg.id >= 0x460 && msg.id < 0x480) {
@@ -343,10 +397,22 @@ int moduleCount() {
     int n = 0;
     for (uint8_t i = 0; i < kBicmStreamCount; i++) {
         const int expected = static_cast<int>(g_streams[i].endCell - g_streams[i].startCell + 1);
-        if (countStreamCells(g_streams[i]) >= expected) {
+        const int have     = countStreamCells(g_streams[i]);
+#if K112_SPARSE_SECOND_BICM
+        if (have >= expected - 1) {
             n++;
         }
+#else
+        if (have >= expected) {
+            n++;
+        }
+#endif
     }
+#if K112_SPARSE_SECOND_BICM
+    if (countSecondBicmCells() >= 9) {
+        n++;
+    }
+#endif
     return n;
 #else
     int n = 0;
@@ -371,6 +437,39 @@ static void printCellRange(uint8_t from, uint8_t to) {
     }
     SERIALCONSOLE.println();
 }
+
+static float sumCellRange(uint8_t from, uint8_t to) {
+    float sum = 0.0f;
+    for (uint8_t c = from; c <= to; c++) {
+        if (g_packCells[c] > 0.5f && g_packCells[c] < 5.5f) {
+            sum += g_packCells[c];
+        }
+    }
+    return sum;
+}
+
+static void printBlockSummary(uint8_t from, uint8_t to, const __FlashStringHelper *label) {
+    float minV = 5.5f;
+    float maxV = 0.0f;
+    for (uint8_t c = from; c <= to; c++) {
+        const float v = g_packCells[c];
+        if (v > 0.5f && v < 5.5f) {
+            if (v < minV) {
+                minV = v;
+            }
+            if (v > maxV) {
+                maxV = v;
+            }
+        }
+    }
+    SERIALCONSOLE.print(label);
+    SERIALCONSOLE.print(F(" sum="));
+    SERIALCONSOLE.print(sumCellRange(from, to), 2);
+    SERIALCONSOLE.print(F("V  min="));
+    SERIALCONSOLE.print(minV, 3);
+    SERIALCONSOLE.print(F("  max="));
+    SERIALCONSOLE.println(maxV, 3);
+}
 #endif
 
 void printDecodeDetails() {
@@ -382,7 +481,11 @@ void printDecodeDetails() {
     SERIALCONSOLE.print(F("S  bicms="));
     SERIALCONSOLE.print(moduleCount());
     SERIALCONSOLE.print(F("/"));
+#if K112_SPARSE_SECOND_BICM
+    SERIALCONSOLE.print(kBicmStreamCount + 1);
+#else
     SERIALCONSOLE.print(kBicmStreamCount);
+#endif
     SERIALCONSOLE.print(F("  can_ids="));
     SERIALCONSOLE.print(countSeenIds());
 #else
@@ -414,6 +517,11 @@ void printDecodeDetails() {
         SERIALCONSOLE.print(F("/"));
         SERIALCONSOLE.println(static_cast<int>(s.endCell - s.startCell + 1));
     }
+#if K112_SPARSE_SECOND_BICM
+    SERIALCONSOLE.print(F("  BICM-B sparse 46D/47D/46E/47E  cells="));
+    SERIALCONSOLE.print(countSecondBicmCells());
+    SERIALCONSOLE.println(F("/12"));
+#endif
     if (PACK_S_CELLS <= 24) {
         SERIALCONSOLE.println(F("  cells 1-6:  "));
         printCellRange(1, 6);
@@ -428,6 +536,11 @@ void printDecodeDetails() {
         printCellRange(13, 24);
         SERIALCONSOLE.println(F("  cells 25-36:"));
         printCellRange(25, 36);
+        printBlockSummary(1, 24, F("  block A (cells 1-24):"));
+        printBlockSummary(25, 36, F("  block B (cells 25-36):"));
+        SERIALCONSOLE.print(F("  pack total: "));
+        SERIALCONSOLE.print(sumCellRange(1, static_cast<uint8_t>(PACK_S_CELLS)), 2);
+        SERIALCONSOLE.println(F("V"));
     }
 #else
     for (int m = 1; m <= PACK_MODULE_COUNT; m++) {

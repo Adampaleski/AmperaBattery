@@ -26,17 +26,22 @@ struct BicmCanStreamDef {
 };
 
 #if PACK_BICM_COUNT == 1
-// One K112 on the daisy chain (24S sub-pack).
+// One stream: 24S default, or 48S probe (accumulate 0x460/0x470 past cell 24).
+constexpr BicmCanStreamDef kBicmStreams[] = {
+    {0x460, 0x470, 1, PACK_S_CELLS, "BICM-A"},
+};
+#elif PACK_BICM_COUNT == 2
+// K112A 24S burst + K112B 12S (sparse 0x46D–0x47E or burst 0x461/0x471).
+#if K112_SPARSE_SECOND_BICM
 constexpr BicmCanStreamDef kBicmStreams[] = {
     {0x460, 0x470, 1, 24, "BICM-A"},
 };
-#elif PACK_BICM_COUNT == 2
-// K112A 24S + K112B 12S on the same 125k daisy chain (36S total).
-// If B uses different IDs on your bus, change after `s` histogram on bench.
+#else
 constexpr BicmCanStreamDef kBicmStreams[] = {
     {0x460, 0x470, 1, 24, "BICM-A"},
     {0x461, 0x471, 25, 12, "BICM-B"},
 };
+#endif
 #else
 #error "PACK_BICM_COUNT must be 1 or 2 for K112_PACK_DECODE"
 #endif

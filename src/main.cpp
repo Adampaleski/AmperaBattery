@@ -105,8 +105,12 @@ void setup() {
 #if PACK_BICM_COUNT == 1
     SERIALCONSOLE.println(F("Profile: one K112, 24S (0x460/0x470 burst)"));
 #elif PACK_BICM_COUNT == 2
+#if K112_SPARSE_SECOND_BICM
+    SERIALCONSOLE.println(F("Profile: 36S — A burst 0x460/470, B sparse 0x46D-0x47E"));
+#else
     SERIALCONSOLE.println(F("Profile: two KICMs, 36S (A=0x460/470, B=0x461/471)"));
-    SERIALCONSOLE.println(F("If B cells stay 0, run `s` and adjust BicmPackProfile.h IDs."));
+#endif
+    SERIALCONSOLE.println(F("If B cells stay 0, run `s` and adjust BicmSparseMap.h."));
 #endif
 #else
     SERIALCONSOLE.print(F("Expect "));

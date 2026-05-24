@@ -34,6 +34,10 @@ constexpr uint16_t kCanScanMaxIds = 64;
 #define PACK_BICM_COUNT 1
 #endif
 
+#ifndef K112_SPARSE_SECOND_BICM
+#define K112_SPARSE_SECOND_BICM 0
+#endif
+
 #ifndef BICM_CELLS_PER_MODULE
 #define BICM_CELLS_PER_MODULE 6
 #endif
