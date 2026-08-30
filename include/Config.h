@@ -42,6 +42,11 @@ constexpr uint16_t kCanScanMaxIds = 64;
 #define BICM_CELLS_PER_MODULE 6
 #endif
 
+// Passive-bleed thresholds (used only when BMS_CAP_BALANCE_TX=1).
+// Cell must be above both the floor and (pack min + hysteresis).
+constexpr float kBalanceMinVoltage  = 3.90f;
+constexpr float kBalanceHysteresis  = 0.04f;
+
 // Pin map (matches VoltBMS carrier / Teensy 4.1 CAN3 bring-up)
 namespace Pins {
 constexpr int LED  = 13;

@@ -1,4 +1,5 @@
 #include "CanBus.h"
+#include "BalanceTx.h"
 #include "Config.h"
 #include "FlexCanCompat.h"
 
@@ -36,6 +37,10 @@ void sendKeepAlive() {
         g_stats.keepAliveSkipCount++;
         return;
     }
+
+    // Queue bleed bits before the 0x200 trigger (OEM order: 0x300, 0x310, 0x200).
+    // No-op when BMS_CAP_BALANCE_TX is 0.
+    BalanceTx::sendQueuedBeforeKeepAlive();
 
     CAN_message_t keepAlive{};
     keepAlive.id  = 0x200;
@@ -129,5 +134,20 @@ uint32_t lastRxAgeMs() {
 }
 
 void setFrameHandler(FrameHandler handler) { g_handler = handler; }
+
+int writeFrame(const CAN_message_t &msg) {
+    const uint32_t q = Can0.getTXQueueCount();
+    if (q > g_stats.txQueueHighWater) {
+        g_stats.txQueueHighWater = q;
+    }
+    const int tx = Can0.writeStatus(msg);
+    if (msg.id == 0x300 || msg.id == 0x310) {
+        g_stats.balanceTxCount++;
+        if (tx <= 0) {
+            g_stats.balanceFailCount++;
+        }
+    }
+    return tx;
+}
 
 }  // namespace CanBus

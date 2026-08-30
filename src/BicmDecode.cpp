@@ -429,6 +429,24 @@ int moduleCount() {
 
 bool packStable() { return g_packStable; }
 
+float cellVoltage(uint8_t cell) {
+    if (cell < 1 || cell > PACK_S_CELLS) {
+        return 0.0f;
+    }
+#if K112_PACK_DECODE
+    return g_packCells[cell];
+#else
+    const int per = kCellsPerMod;
+    const int idx = static_cast<int>((cell - 1) / per) + 1;
+    const int sub = static_cast<int>((cell - 1) % per) + 1;
+    if (idx < 1 || idx > kMaxModules || !g_modules[idx].exists) {
+        return 0.0f;
+    }
+    return g_modules[idx].cells[sub];
+#endif
+}
+
+
 #if K112_PACK_DECODE
 static void printCellRange(uint8_t from, uint8_t to) {
     for (uint8_t c = from; c <= to; c++) {

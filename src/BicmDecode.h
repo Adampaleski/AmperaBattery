@@ -12,6 +12,9 @@ int  seriesCellCount();
 int  moduleCount();
 bool packStable();
 
+// 1-based pack cell. Returns 0 if missing / out of range.
+float cellVoltage(uint8_t cell);
+
 void printDecodeDetails();
 void handleSerial(char c);
 

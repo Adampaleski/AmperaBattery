@@ -16,6 +16,8 @@ struct Stats {
     uint32_t lastRxMs           = 0;
     uint32_t lastRxId           = 0;
     uint32_t txQueueHighWater   = 0;
+    uint32_t balanceTxCount     = 0;
+    uint32_t balanceFailCount   = 0;
 };
 
 void begin();
@@ -29,5 +31,7 @@ uint32_t lastRxAgeMs();
 
 using FrameHandler = void (*)(const CAN_message_t &msg);
 void setFrameHandler(FrameHandler handler);
+
+int writeFrame(const CAN_message_t &msg);
 
 }  // namespace CanBus

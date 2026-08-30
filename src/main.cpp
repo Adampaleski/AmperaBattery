@@ -6,6 +6,7 @@
 #include "BmsApp.h"
 #include "BmsCapabilities.h"
 #include "BicmPackProfile.h"
+#include "BalanceTx.h"
 
 namespace {
 
@@ -39,10 +40,13 @@ void runCommand(char c) {
             case 'd':
                 BicmDecode::printDecodeDetails();
                 break;
+            case 'b':
+                BalanceTx::printStatus();
+                break;
             case '?':
             case 'h':
                 SERIALCONSOLE.println(
-                    F("Keys (no Enter): c=candump s=IDs d=cells k=keep-alive r=reset ?=help"));
+                    F("Keys (no Enter): c=candump s=IDs d=cells b=balance k=keep-alive r=reset ?=help"));
                 SERIALCONSOLE.println(
                     F("Stats also print automatically every 10 seconds."));
                 break;
@@ -88,11 +92,15 @@ void setup() {
     SERIALCONSOLE.println(F(" cells per module"));
 #endif
 #if TELEMETRY_ONLY
-    SERIALCONSOLE.println(F("Mode: MONITOR ONLY — no balance, charge, or contactors"));
+    SERIALCONSOLE.println(F("Mode: MONITOR — no charge TX, no contactor drive"));
 #else
     SERIALCONSOLE.println(F("Mode: BMS GPIO (contactor outputs gated, send E)"));
 #endif
-    SERIALCONSOLE.println(F("CAN3 @ 125k — keep-alive 0x200/1s"));
+#if BMS_CAP_BALANCE_TX
+    SERIALCONSOLE.println(F("CAN3 @ 125k — keep-alive 0x200/1s + balance 0x300/0x310"));
+#else
+    SERIALCONSOLE.println(F("CAN3 @ 125k — keep-alive 0x200/1s (balance TX compiled, flag=0)"));
+#endif
     SERIALCONSOLE.print(F("Capabilities: cells="));
     SERIALCONSOLE.print(BMS_CAP_READ_CELL_VOLTS);
     SERIALCONSOLE.print(F(" keepalive="));
@@ -119,13 +127,14 @@ void setup() {
     SERIALCONSOLE.print(PACK_S_CELLS);
     SERIALCONSOLE.println(F(" cells."));
 #endif
-    SERIALCONSOLE.println(F("Keys: c s d k r ?  (no Enter — click terminal first)"));
+    SERIALCONSOLE.println(F("Keys: c s d b k r ?  (no Enter — click terminal first)"));
     SERIALCONSOLE.println(F("ID list + cell volts print every 10 s automatically."));
 
     CanBus::begin();
     CanBus::setFrameHandler(onCanFrame);
     BicmSniffer::begin();
     BicmDecode::begin();
+    BalanceTx::begin();
     BmsApp::begin();
 }
 
@@ -133,6 +142,7 @@ void loop() {
     CanBus::tick();
     BicmSniffer::tick();
     BicmDecode::tick();
+    BalanceTx::tick();
     BmsApp::tick();
     dispatchSerial();
 
@@ -142,6 +152,7 @@ void loop() {
         SERIALCONSOLE.println(F("--- auto report (10s) ---"));
         BicmSniffer::printIdStats();
         BicmDecode::printDecodeDetails();
+        BalanceTx::printStatus();
     }
 
     static uint32_t ledMs = 0;
