@@ -1,8 +1,10 @@
 #include "FlexCanCompat.h"
 
 FlexCanCompat Can0;
+FlexCanCompatT<CAN2> CanCharger;
 
-void FlexCanCompat::begin(uint32_t baudrate) {
+template <CAN_DEV_TABLE Bus>
+void FlexCanCompatT<Bus>::begin(uint32_t baudrate) {
     if (!started_) {
         can_.begin();
         can_.setMaxMB(16);
@@ -20,7 +22,8 @@ void FlexCanCompat::begin(uint32_t baudrate) {
     current_baud_ = baudrate;
 }
 
-void FlexCanCompat::restart(uint32_t baudrate, bool listenOnly) {
+template <CAN_DEV_TABLE Bus>
+void FlexCanCompatT<Bus>::restart(uint32_t baudrate, bool listenOnly) {
     started_        = false;
     current_baud_   = 0;
     has_pending_    = false;
@@ -28,7 +31,8 @@ void FlexCanCompat::restart(uint32_t baudrate, bool listenOnly) {
     begin(baudrate);
 }
 
-bool FlexCanCompat::available() {
+template <CAN_DEV_TABLE Bus>
+bool FlexCanCompatT<Bus>::available() {
     if (has_pending_) {
         return true;
     }
@@ -41,7 +45,8 @@ bool FlexCanCompat::available() {
     return false;
 }
 
-bool FlexCanCompat::read(CAN_message_t &msg) {
+template <CAN_DEV_TABLE Bus>
+bool FlexCanCompatT<Bus>::read(CAN_message_t &msg) {
     if (has_pending_) {
         msg          = pending_;
         has_pending_ = false;
@@ -50,14 +55,20 @@ bool FlexCanCompat::read(CAN_message_t &msg) {
     return can_.read(msg);
 }
 
-int FlexCanCompat::writeStatus(const CAN_message_t &msg) {
+template <CAN_DEV_TABLE Bus>
+int FlexCanCompatT<Bus>::writeStatus(const CAN_message_t &msg) {
     return can_.write(MB15, msg);
 }
 
-uint32_t FlexCanCompat::getTXQueueCount() {
+template <CAN_DEV_TABLE Bus>
+uint32_t FlexCanCompatT<Bus>::getTXQueueCount() {
     return can_.getTXQueueCount();
 }
 
-bool FlexCanCompat::error(CAN_error_t &err, bool printDetails) {
+template <CAN_DEV_TABLE Bus>
+bool FlexCanCompatT<Bus>::error(CAN_error_t &err, bool printDetails) {
     return can_.error(err, printDetails);
 }
+
+template class FlexCanCompatT<CAN3>;
+template class FlexCanCompatT<CAN2>;

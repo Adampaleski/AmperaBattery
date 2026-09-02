@@ -446,6 +446,56 @@ float cellVoltage(uint8_t cell) {
 #endif
 }
 
+namespace {
+bool validCellV(float v) {
+    return v > 0.5f && v < 5.5f;
+}
+}  // namespace
+
+float packVoltage() {
+    float sum = 0.0f;
+    for (int c = 1; c <= PACK_S_CELLS; c++) {
+        const float v = cellVoltage(static_cast<uint8_t>(c));
+        if (!validCellV(v)) {
+            return 0.0f;
+        }
+        sum += v;
+    }
+    return sum;
+}
+
+float minCellVoltage() {
+    float m = 5.5f;
+    int n = 0;
+    for (int c = 1; c <= PACK_S_CELLS; c++) {
+        const float v = cellVoltage(static_cast<uint8_t>(c));
+        if (!validCellV(v)) {
+            continue;
+        }
+        n++;
+        if (v < m) {
+            m = v;
+        }
+    }
+    return n > 0 ? m : 0.0f;
+}
+
+float maxCellVoltage() {
+    float m = 0.0f;
+    int n = 0;
+    for (int c = 1; c <= PACK_S_CELLS; c++) {
+        const float v = cellVoltage(static_cast<uint8_t>(c));
+        if (!validCellV(v)) {
+            continue;
+        }
+        n++;
+        if (v > m) {
+            m = v;
+        }
+    }
+    return n > 0 ? m : 0.0f;
+}
+
 
 #if K112_PACK_DECODE
 static void printCellRange(uint8_t from, uint8_t to) {

@@ -15,6 +15,11 @@ bool packStable();
 // 1-based pack cell. Returns 0 if missing / out of range.
 float cellVoltage(uint8_t cell);
 
+// Sum of all PACK_S_CELLS if every cell is valid, else 0.
+float packVoltage();
+float minCellVoltage();
+float maxCellVoltage();
+
 void printDecodeDetails();
 void handleSerial(char c);
 
