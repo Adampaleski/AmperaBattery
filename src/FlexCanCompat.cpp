@@ -4,15 +4,20 @@ FlexCanCompat Can0;
 FlexCanCompatT<CAN2> CanCharger;
 
 template <CAN_DEV_TABLE Bus>
-void FlexCanCompatT<Bus>::begin(uint32_t baudrate) {
+void FlexCanCompatT<Bus>::begin(uint32_t baudrate, bool extendedIds) {
     if (!started_) {
         can_.begin();
         can_.setMaxMB(16);
         can_.disableFIFO();
+        extended_ids_ = extendedIds;
+        const FLEXCAN_IDE ide = extendedIds ? EXT : STD;
         for (uint8_t mb = 0; mb < 15; mb++) {
-            can_.setMB(static_cast<FLEXCAN_MAILBOX>(mb), RX, STD);
+            can_.setMB(static_cast<FLEXCAN_MAILBOX>(mb), RX, ide);
         }
-        can_.setMB(MB15, TX, STD);
+        can_.setMB(MB15, TX, ide);
+        if (extendedIds) {
+            can_.setMBFilter(ACCEPT_ALL);
+        }
         started_ = true;
     }
     if (started_ && baudrate == current_baud_) {
@@ -28,7 +33,7 @@ void FlexCanCompatT<Bus>::restart(uint32_t baudrate, bool listenOnly) {
     current_baud_   = 0;
     has_pending_    = false;
     listen_only_    = listenOnly;
-    begin(baudrate);
+    begin(baudrate, extended_ids_);
 }
 
 template <CAN_DEV_TABLE Bus>

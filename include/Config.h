@@ -12,10 +12,11 @@ constexpr uint32_t kCanRecoveryRetryMs  = 15000;
 constexpr uint16_t kCanFrameProcessBudget = 256;
 constexpr uint8_t  kKeepAliveMaxTxQueueDepth = 2;
 
-// Brusa NLG5x1 charger CAN — CAN2 pins 0/1, second SN65HVD230.
-// Not the 125k BICM bus. Not Eltek.
-constexpr uint32_t kChargerCanBitrate     = 500000;
-constexpr uint32_t kChargerPeriodMs       = 100;
+// Elcon / TC charger CAN — CAN2 pins 0/1, second SN65HVD230.
+// 250 kbit, 29-bit. Not Brusa 500k. Not BICM 125k.
+// Winding unread (HK-MF-108 vs 144 vs 72) — do not hardcode a range.
+constexpr uint32_t kChargerCanBitrate     = 250000;
+constexpr uint32_t kChargerPeriodMs       = 1000;  // Elcon expects ~1 s; timeout 5 s
 constexpr uint8_t  kChargerMaxTxQueueDepth = 2;
 
 constexpr uint16_t kCanScanMaxIds = 64;
@@ -57,11 +58,12 @@ constexpr uint16_t kCanScanMaxIds = 64;
 constexpr float kBalanceMinVoltage  = 3.90f;
 constexpr float kBalanceHysteresis  = 0.04f;
 
-// Charge setpoints packed into Brusa 0x618 (only TX when BMS_CAP_CHARGE_TX=1).
-// NLG5x1 winding 130–260 V: 36S * 4.15 V = 149.4 V. Do not charge a 24S sub-pack.
+// Charge setpoints packed into Elcon 0x1806E5F4 (only TX when BMS_CAP_CHARGE_TX=1).
+// Demand is PACK_S_CELLS * cell V — not a charger winding. 36S * 4.15 V = 149.4 V.
+// Do not charge a 24S sub-pack. A 72/96 V Elcon cannot finish 36S; a 312 V box
+// will not start a drained 36S.
 constexpr float    kChargeCellSetpointV   = 4.15f;
 constexpr uint16_t kChargeCurrentDeciA    = 50;   // 5.0 A DC, 0.1 A units
-constexpr uint16_t kChargeMainsMaxDeciA   = 160;  // 16.0 A AC, 0.1 A units
 
 // Contactor / precharge timing (coil drive gated by BMS_CAP_CONTACTOR_DRV).
 constexpr uint32_t kPrechargeMinMs        = 200;
@@ -92,8 +94,9 @@ constexpr int OUT8 = 6;
 
 // VoltBMSV2 names: OUT1=main+, OUT2=precharge, OUT4=main-.
 // 12 V coil FETs downstream — Teensy pin is the FET gate, not the coil.
+// Shop precharge coil is TE EV11 / K1KABNA on OUT2, not a third EV200.
 constexpr int MAIN_POS  = OUT1;  // pin 11
-constexpr int PRECHARGE = OUT2;  // pin 12
+constexpr int PRECHARGE = OUT2;  // pin 12 — TE EV11 / K1KABNA
 constexpr int MAIN_NEG  = OUT4;  // pin 21
 constexpr int HV_SENSE  = 24;    // A10, optional HV-bus divider
 }  // namespace Pins

@@ -2,7 +2,7 @@
 #include <string.h>
 #include "BicmDecode.h"
 #include "BmsCapabilities.h"
-#include "BrusaNlg5.h"
+#include "ElconCharger.h"
 #include "ChargerCan.h"
 #include "Config.h"
 #include "ContactorSeq.h"
@@ -19,12 +19,6 @@ uint32_t g_txFail   = 0;
 uint8_t  g_st[8]    = {};
 uint8_t  g_stLen    = 0;
 uint32_t g_stMs     = 0;
-uint8_t  g_act[8]   = {};
-uint8_t  g_actLen   = 0;
-uint32_t g_actMs    = 0;
-uint8_t  g_err[8]   = {};
-uint8_t  g_errLen   = 0;
-uint32_t g_errMs    = 0;
 
 uint16_t be16(const uint8_t *p) {
     return static_cast<uint16_t>((static_cast<uint16_t>(p[0]) << 8) | p[1]);
@@ -67,13 +61,14 @@ bool chargeAllowed() {
 
 #if BMS_CAP_CHARGE_TX && !TELEMETRY_ONLY
 void sendControl(bool enable) {
-    uint8_t buf[BrusaNlg5::kCtlLen];
+    uint8_t buf[ElconCharger::kCtlLen];
     packControl(buf, enable);
 
     CAN_message_t msg{};
-    msg.id  = BrusaNlg5::kCtlId;
-    msg.len = BrusaNlg5::kCtlLen;
-    memcpy(msg.buf, buf, BrusaNlg5::kCtlLen);
+    msg.id  = ElconCharger::kCtlId;
+    msg.len = ElconCharger::kCtlLen;
+    msg.flags.extended = 1;
+    memcpy(msg.buf, buf, ElconCharger::kCtlLen);
     if (ChargerCan::writeFrame(msg) <= 0) {
         g_txFail++;
     } else {
@@ -90,48 +85,30 @@ void begin() {
     g_txOk     = 0;
     g_txFail   = 0;
     g_stLen    = 0;
-    g_actLen   = 0;
-    g_errLen   = 0;
 }
 
-void packControl(uint8_t buf[7], bool enable) {
-    memset(buf, 0, BrusaNlg5::kCtlLen);
-    buf[0] = enable ? BrusaNlg5::kCtlEnable : BrusaNlg5::kCtlIdle;
+void packControl(uint8_t buf[8], bool enable) {
+    memset(buf, 0, ElconCharger::kCtlLen);
 
-    const uint16_t mains = kChargeMainsMaxDeciA;
-    buf[1] = static_cast<uint8_t>((mains >> 8) & 0xFF);
-    buf[2] = static_cast<uint8_t>(mains & 0xFF);
-
-    uint16_t volts = 0;
     const float demand = kChargeCellSetpointV * static_cast<float>(PACK_S_CELLS);
-    volts = static_cast<uint16_t>(demand * 10.0f + 0.5f);
-    buf[3] = static_cast<uint8_t>((volts >> 8) & 0xFF);
-    buf[4] = static_cast<uint8_t>(volts & 0xFF);
+    const uint16_t volts = static_cast<uint16_t>(demand * 10.0f + 0.5f);
+    buf[0] = static_cast<uint8_t>((volts >> 8) & 0xFF);
+    buf[1] = static_cast<uint8_t>(volts & 0xFF);
 
     const uint16_t amps = enable ? kChargeCurrentDeciA : 0;
-    buf[5] = static_cast<uint8_t>((amps >> 8) & 0xFF);
-    buf[6] = static_cast<uint8_t>(amps & 0xFF);
+    buf[2] = static_cast<uint8_t>((amps >> 8) & 0xFF);
+    buf[3] = static_cast<uint8_t>(amps & 0xFF);
+
+    buf[4] = enable ? ElconCharger::kCtlCharge : ElconCharger::kCtlStop;
 }
 
 void onFrame(const CAN_message_t &msg) {
-    if (msg.id == BrusaNlg5::kStatusId) {
-        g_stLen = msg.len > 8 ? 8 : msg.len;
-        memcpy(g_st, msg.buf, g_stLen);
-        g_stMs = millis();
+    if (msg.id != ElconCharger::kStatusId) {
         return;
     }
-    if (msg.id == BrusaNlg5::kActIId) {
-        g_actLen = msg.len > 8 ? 8 : msg.len;
-        memcpy(g_act, msg.buf, g_actLen);
-        g_actMs = millis();
-        return;
-    }
-    if (msg.id == BrusaNlg5::kErrId) {
-        g_errLen = msg.len > 8 ? 8 : msg.len;
-        memcpy(g_err, msg.buf, g_errLen);
-        g_errMs = millis();
-        return;
-    }
+    g_stLen = msg.len > 8 ? 8 : msg.len;
+    memcpy(g_st, msg.buf, g_stLen);
+    g_stMs = millis();
 }
 
 void tick() {
@@ -160,10 +137,10 @@ void toggleChargeRequest() {
 
 void printStatus() {
     const bool allow = chargeAllowed();
-    uint8_t buf[BrusaNlg5::kCtlLen];
+    uint8_t buf[ElconCharger::kCtlLen];
     packControl(buf, allow);
 
-    SERIALCONSOLE.print(F("CHARGE BrusaNLG5  flag="));
+    SERIALCONSOLE.print(F("CHARGE Elcon  flag="));
     SERIALCONSOLE.print(BMS_CAP_CHARGE_TX);
     SERIALCONSOLE.print(F("  req="));
     SERIALCONSOLE.print(g_request ? 1 : 0);
@@ -171,8 +148,8 @@ void printStatus() {
     SERIALCONSOLE.print(allow ? 1 : 0);
     SERIALCONSOLE.print(F("  contactors="));
     SERIALCONSOLE.println(ContactorSeq::stateName(ContactorSeq::state()));
-    SERIALCONSOLE.print(F("  0x618#"));
-    printHexPayload(buf, BrusaNlg5::kCtlLen);
+    SERIALCONSOLE.print(F("  0x1806E5F4#"));
+    printHexPayload(buf, ElconCharger::kCtlLen);
     SERIALCONSOLE.println();
     SERIALCONSOLE.print(F("  demand "));
     SERIALCONSOLE.print(kChargeCellSetpointV * static_cast<float>(PACK_S_CELLS), 1);
@@ -180,7 +157,8 @@ void printStatus() {
     SERIALCONSOLE.print(kChargeCurrentDeciA / 10);
     SERIALCONSOLE.print(F("."));
     SERIALCONSOLE.print(kChargeCurrentDeciA % 10);
-    SERIALCONSOLE.println(F("A  (VoltBMSV2 0x618 layout)"));
+    SERIALCONSOLE.println(F("A  (Elcon V/I 0.1 BE, ctl 0=charge 1=stop)"));
+    SERIALCONSOLE.println(F("  winding unread — 72/96 V box cannot finish 36S; 312 V will not start drained 36S"));
 #if !BMS_CAP_CHARGE_TX
     SERIALCONSOLE.println(F("  (not TX — BMS_CAP_CHARGE_TX=0)"));
 #elif TELEMETRY_ONLY
@@ -191,40 +169,25 @@ void printStatus() {
     SERIALCONSOLE.print(F("  tx_fail="));
     SERIALCONSOLE.println(g_txFail);
 #endif
-    SERIALCONSOLE.print(F("  CAN2 rx="));
+    SERIALCONSOLE.print(F("  CAN2 250k rx="));
     SERIALCONSOLE.print(ChargerCan::stats().rxCount);
     SERIALCONSOLE.print(F("  age_ms="));
     SERIALCONSOLE.println(ChargerCan::lastRxAgeMs());
     if (g_stLen) {
-        SERIALCONSOLE.print(F("  0x610#"));
+        SERIALCONSOLE.print(F("  0x18FF50E5#"));
         printHexPayload(g_st, g_stLen);
+        SERIALCONSOLE.print(F("  V="));
+        SERIALCONSOLE.print(be16(g_st) * 0.1f, 1);
+        SERIALCONSOLE.print(F(" I="));
+        SERIALCONSOLE.print(be16(g_st + 2) * 0.1f, 1);
+        SERIALCONSOLE.print(F("A st="));
+        if (g_stLen >= 5) {
+            SERIALCONSOLE.print(g_st[4], HEX);
+        } else {
+            SERIALCONSOLE.print('-');
+        }
         SERIALCONSOLE.print(F("  age="));
         SERIALCONSOLE.println(millis() - g_stMs);
-    }
-    if (g_actLen >= 8) {
-        SERIALCONSOLE.print(F("  0x611#"));
-        printHexPayload(g_act, g_actLen);
-        SERIALCONSOLE.print(F("  MC="));
-        SERIALCONSOLE.print(be16(g_act) * 0.01f, 2);
-        SERIALCONSOLE.print(F("A MV="));
-        SERIALCONSOLE.print(be16(g_act + 2) * 0.1f, 1);
-        SERIALCONSOLE.print(F("V OC="));
-        SERIALCONSOLE.print(be16(g_act + 4) * 0.01f, 2);
-        SERIALCONSOLE.print(F("A OV="));
-        SERIALCONSOLE.print(be16(g_act + 6) * 0.1f, 1);
-        SERIALCONSOLE.print(F("V  age="));
-        SERIALCONSOLE.print(millis() - g_actMs);
-        SERIALCONSOLE.println(F("  (Motorola u16; confirm vs ChargeStar)"));
-    } else if (g_actLen) {
-        SERIALCONSOLE.print(F("  0x611#"));
-        printHexPayload(g_act, g_actLen);
-        SERIALCONSOLE.println();
-    }
-    if (g_errLen) {
-        SERIALCONSOLE.print(F("  0x614#"));
-        printHexPayload(g_err, g_errLen);
-        SERIALCONSOLE.print(F("  age="));
-        SERIALCONSOLE.println(millis() - g_errMs);
     }
 }
 

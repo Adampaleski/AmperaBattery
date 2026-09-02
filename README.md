@@ -11,9 +11,9 @@ Based on [Tom-evnut/AmperaBattery](https://github.com/Tom-evnut/AmperaBattery) d
 | BICM CAN | Teensy 4.1 **CAN3** — pin 30 RX, pin 31 TX @ 125 kbps |
 | BICM transceiver | 3.3V SN65HVD230 (or TJA1051 / MCP2562) |
 | Pack bus | K16 **X2**: pin 10 GND, 11 CAN_L, 12 CAN_H |
-| Brusa CAN | Teensy 4.1 **CAN2** — pin 0 RX, pin 1 TX @ 500 kbps |
-| Brusa transceiver | **Second** SN65HVD230 (required; CAN1 22/23 collides with OUT5/OUT6) |
-| Contactors | OUT1/pin11 = main+, OUT2/pin12 = precharge, OUT4/pin21 = main− (FET gates) |
+| Elcon CAN | Teensy 4.1 **CAN2** — pin 0 RX, pin 1 TX @ 250 kbps (29-bit) |
+| Elcon transceiver | **Second** SN65HVD230 (required; CAN1 22/23 collides with OUT5/OUT6) |
+| Contactors | OUT1/pin11 = main+, OUT2/pin12 = TE EV11/K1KABNA precharge, OUT4/pin21 = main− (FET gates) |
 | Termination | 120 Ω at one end of each bus |
 
 Do **not** connect pack 5V (X2 pin 9) to Teensy I/O.
@@ -45,7 +45,7 @@ pio run -e teensy41_bms -t upload
 | `b` | Print would-be balance `0x300`/`0x310` |
 | `e` | Toggle dead-man (starts/aborts contactor sequence; dry-run when flag=0) |
 | `p` | Print contactor state + intended vs driven pins |
-| `g` | Toggle charge request (prints would-be Brusa `0x618`) |
+| `g` | Toggle charge request (prints would-be Elcon `0x1806E5F4`) |
 | `?` | Help |
 
 Every 500 ms a JSON summary line is printed (`rx_total`, `unique_ids`, `keepalive_tx`, etc.).
@@ -64,6 +64,6 @@ Scripts: `scripts/monitor.sh`, `scripts/bench_checklist.md`.
 ## Reference
 
 - [`docs/Volt_BMS.dbc`](docs/Volt_BMS.dbc) — cell/temp scaling
-- [`docs/WIRING.md`](docs/WIRING.md) — CAN2 Brusa + contactor FET map
+- [`docs/WIRING.md`](docs/WIRING.md) — CAN2 Elcon 250k + contactor FET map
 - [`docs/SAFETY.md`](docs/SAFETY.md) — capability flags stay 0
 - Upstream wiring: AmperaBattery README (K16 X1 = 500k BECM, X2 = 125k BICM)

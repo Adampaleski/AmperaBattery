@@ -14,11 +14,11 @@ Connector **X2** on BECM K16:
 Teensy 4.1: **CAN3** — pin 30 RX, pin 31 TX, transceiver GND common with pack.
 Use the existing SN65HVD230 (or equivalent 3.3 V transceiver).
 
-## Brusa NLG5x1 charger CAN (500 kbps) — second transceiver
+## Elcon / TC charger CAN (250 kbps) — second transceiver
 
-**Not** Eltek. **Not** the 125 kbit BICM bus.
+**Not** Brusa 500 kbit. **Not** Eltek. **Not** the 125 kbit BICM bus.
 
-Teensy 4.1 **CAN2** — pin 0 RX (`CRX2`), pin 1 TX (`CTX2`).
+Teensy 4.1 **CAN2** — pin 0 RX (`CRX2`), pin 1 TX (`CTX2`) @ **250000**. Extended 29-bit IDs.
 
 A **second SN65HVD230** (3.3 V) is required. CAN1 pins 22/23 collide with `Pins::OUT5`/`OUT6` on the VoltBMS carrier, so the charger must not use CAN1.
 
@@ -26,10 +26,14 @@ A **second SN65HVD230** (3.3 V) is required. CAN1 pins 22/23 collide with `Pins:
 |--------|-------------|---------|
 | pin 0 (`CRX2`) | CRX / RXD | — |
 | pin 1 (`CTX2`) | CTX / TXD | — |
-| GND | GND | CAN GND (isolated on the NLG5) |
+| GND | GND | CAN GND |
 | 3.3 V | VCC | — |
-| — | CANH / CANL | NLG5 CANH / CANL |
+| — | CANH / CANL | Elcon CANH / CANL |
 | — | 120 Ω | terminate one end of this bus |
+
+Sticker **E5** is the CAN node ID (IDs `0x1806E5F4` / `0x18FF50E5`), **not** voltage.
+
+Winding (HK-MF-108 vs 144 vs 72) is still unread — protocol is the same; firmware does not hardcode a range. A **72/96 V** box cannot finish **36S** (~149 V at 4.15 V/cell). A **312 V** box will not start a drained 36S.
 
 Pins 0/1 are also `Serial1`. This firmware does **not** use the VoltBMS ESP32 UART companion on those pins.
 
@@ -42,11 +46,11 @@ VoltBMSV2 names on `Pins::OUT1..OUT8`. Teensy pin = FET gate, **not** the coil.
 | Alias | Pin | Function |
 |-------|-----|----------|
 | `OUT1` / `MAIN_POS` | 11 | B+ EV200 coil FET |
-| `OUT2` / `PRECHARGE` | 12 | HV precharge relay FET |
+| `OUT2` / `PRECHARGE` | 12 | TE EV11 / K1KABNA precharge coil FET (shop coil, **not** a third EV200) |
 | `OUT4` / `MAIN_NEG` | 21 | B− EV200 coil FET |
 | `OUT3` | 20 | unused here (VoltBMS charger-enable relay; we use CAN) |
 
-Mechanic's HV kit (assumed present in the sequence, not encoded as P/Ns): 2× EV200 (B+ and B−), 1× HV precharge relay, 50 Ω 100 W precharge resistor, Class T 200 A fuse.
+Mechanic's HV kit (assumed present in the sequence, not encoded as P/Ns): 2× EV200 (B+ and B−), 1× TE EV11 / K1KABNA precharge, 50 Ω 100 W precharge resistor, Class T 200 A fuse.
 
 Do **not** wire coils until `BMS_CAP_CONTACTOR_DRV` is intentionally set to 1. Default flag is 0; `e` only dry-runs intended pin states.
 
@@ -54,4 +58,4 @@ Optional HV-bus analog: pin 24 (`A10`), compile with `HV_ANALOG_ENABLE=1`. Defau
 
 ## BECM vehicle CAN (500 kbps) — not used by this firmware
 
-Connector **X1** — 500 kbps when accessory wake lines are held high. See upstream README. The Brusa bus is a **separate** 500 kbit network on CAN2, not X1.
+Connector **X1** — 500 kbps when accessory wake lines are held high. See upstream README. The Elcon bus is a **separate** 250 kbit network on CAN2, not X1.

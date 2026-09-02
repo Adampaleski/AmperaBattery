@@ -115,9 +115,9 @@ void setup() {
     SERIALCONSOLE.println(F("CAN3 @ 125k — keep-alive 0x200/1s (balance TX compiled, flag=0)"));
 #endif
 #if BMS_CAP_CHARGE_TX
-    SERIALCONSOLE.println(F("CAN2 @ 500k pins 0/1 — Brusa NLG5 0x618 TX"));
+    SERIALCONSOLE.println(F("CAN2 @ 250k pins 0/1 — Elcon 0x1806E5F4 TX"));
 #else
-    SERIALCONSOLE.println(F("CAN2 @ 500k pins 0/1 — Brusa NLG5 (charge TX compiled, flag=0)"));
+    SERIALCONSOLE.println(F("CAN2 @ 250k pins 0/1 — Elcon (charge TX compiled, flag=0)"));
 #endif
     SERIALCONSOLE.print(F("Capabilities: cells="));
     SERIALCONSOLE.print(BMS_CAP_READ_CELL_VOLTS);

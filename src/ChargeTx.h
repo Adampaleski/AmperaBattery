@@ -13,8 +13,8 @@ void setChargeRequest(bool on);
 bool chargeRequested();
 void toggleChargeRequest();
 
-// Pack NLG5_CTL 0x618 (DLC 7). enable=false clears the run bit.
-void packControl(uint8_t buf[7], bool enable);
+// Pack Elcon 0x1806E5F4 (DLC 8, extended). enable=false sets control 0x01 (stop).
+void packControl(uint8_t buf[8], bool enable);
 
 void printStatus();
 

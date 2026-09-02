@@ -14,7 +14,7 @@
 | 1 | Monitor + decode one K112 (24S) | Done (`teensy41_k112_24s`) |
 | 2 | Monitor + decode two KICMs (36S) | Done (`teensy41_k112_36s`) |
 | 3a | Balance TX for one 36S string (`0x300`/`0x310`) | Implemented, gated by `BMS_CAP_BALANCE_TX=0` — not production |
-| 3b | Charge TX (Brusa NLG5 on CAN2) + precharge/contactor SM | Implemented, gated by `BMS_CAP_CHARGE_TX=0` and `BMS_CAP_CONTACTOR_DRV=0`. Serial dry-run: `e` / `p` / `g` |
+| 3b | Charge TX (Elcon on CAN2 @ 250 kbit) + precharge/contactor SM | Implemented, gated by `BMS_CAP_CHARGE_TX=0` and `BMS_CAP_CONTACTOR_DRV=0`. Serial dry-run: `e` / `p` / `g` |
 | 4 | Four parallel 36S packs (pack ID, separate CAN or addressing) | Future — not started |
 
 Default `teensy41_k112_36s` stays `TELEMETRY_ONLY=1`. Weekend bench does not need charger or coils.

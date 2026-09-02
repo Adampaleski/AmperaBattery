@@ -17,6 +17,6 @@
 ## Optional BMS env
 
 - [ ] `teensy41_bms` builds; `e` dry-runs the precharge/contactor sequence (outputs stay LOW while `BMS_CAP_CONTACTOR_DRV=0`)
-- [ ] `g` prints a would-be Brusa `0x618` (not sent while `BMS_CAP_CHARGE_TX=0`)
+- [ ] `g` prints a would-be Elcon `0x1806E5F4` (not sent while `BMS_CAP_CHARGE_TX=0`)
 
 Weekend bench does not need the charger or coils.

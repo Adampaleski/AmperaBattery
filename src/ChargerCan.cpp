@@ -40,7 +40,8 @@ void drainRx(uint16_t maxFrames) {
 }  // namespace
 
 void begin() {
-    CanCharger.begin(kChargerCanBitrate);
+    // Elcon: 250 kbit, 29-bit. BICM CAN3 stays 125k / 11-bit.
+    CanCharger.begin(kChargerCanBitrate, true);
 }
 
 void tick() {

@@ -15,11 +15,11 @@ struct CAN_message_flags_t {
 };
 
 // Thin wrapper: RX mailboxes 0–14, TX on MB15, FIFO off (bench-proven layout).
-// Bus is CAN3 (BICM 125k, pins 30/31) or CAN2 (Brusa 500k, pins 0/1).
+// Bus is CAN3 (BICM 125k, 11-bit, pins 30/31) or CAN2 (Elcon 250k, 29-bit, pins 0/1).
 template <CAN_DEV_TABLE Bus>
 class FlexCanCompatT {
 public:
-    void begin(uint32_t baudrate);
+    void begin(uint32_t baudrate, bool extendedIds = false);
     void restart(uint32_t baudrate, bool listenOnly = false);
 
     bool available();
@@ -35,6 +35,7 @@ private:
     bool started_          = false;
     uint32_t current_baud_ = 0;
     bool listen_only_      = false;
+    bool extended_ids_     = false;
 };
 
 using FlexCanCompat = FlexCanCompatT<CAN3>;
