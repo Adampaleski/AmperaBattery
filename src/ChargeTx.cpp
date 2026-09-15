@@ -130,8 +130,16 @@ bool chargeRequested() { return g_request; }
 
 void toggleChargeRequest() {
     g_request = !g_request;
+#if !BMS_CAP_CHARGE_TX || TELEMETRY_ONLY
+    SERIALCONSOLE.println(
+        F("*** CHARGE PRINT-ONLY  FLAG=0  DRIVE=OFF  CAN2 NOT fired ***"));
+    SERIALCONSOLE.print(F("Charge-request latch (dry-run) "));
+    SERIALCONSOLE.print(g_request ? F("ON") : F("OFF"));
+    SERIALCONSOLE.println(F(" — would-be Elcon frame only; no TX"));
+#else
     SERIALCONSOLE.print(F("Charge request "));
     SERIALCONSOLE.println(g_request ? F("ON") : F("OFF"));
+#endif
     printStatus();
 }
 
@@ -140,15 +148,21 @@ void printStatus() {
     uint8_t buf[ElconCharger::kCtlLen];
     packControl(buf, allow);
 
-    SERIALCONSOLE.print(F("CHARGE Elcon  flag="));
+#if !BMS_CAP_CHARGE_TX || TELEMETRY_ONLY
+    SERIALCONSOLE.println(
+        F("*** CHARGE PRINT-ONLY  FLAG=0  DRIVE=OFF  CAN2 NOT fired ***"));
+#endif
+    SERIALCONSOLE.print(F("CHARGE Elcon  FLAG="));
     SERIALCONSOLE.print(BMS_CAP_CHARGE_TX);
+    SERIALCONSOLE.print(F("  telemetry="));
+    SERIALCONSOLE.print(TELEMETRY_ONLY);
     SERIALCONSOLE.print(F("  req="));
     SERIALCONSOLE.print(g_request ? 1 : 0);
     SERIALCONSOLE.print(F("  allow="));
     SERIALCONSOLE.print(allow ? 1 : 0);
     SERIALCONSOLE.print(F("  contactors="));
     SERIALCONSOLE.println(ContactorSeq::stateName(ContactorSeq::state()));
-    SERIALCONSOLE.print(F("  0x1806E5F4#"));
+    SERIALCONSOLE.print(F("  WOULD-BE 0x1806E5F4#"));
     printHexPayload(buf, ElconCharger::kCtlLen);
     SERIALCONSOLE.println();
     SERIALCONSOLE.print(F("  demand "));
@@ -160,11 +174,13 @@ void printStatus() {
     SERIALCONSOLE.println(F("A  (Elcon V/I 0.1 BE, ctl 0=charge 1=stop)"));
     SERIALCONSOLE.println(F("  winding unread — 72/96 V box cannot finish 36S; 312 V will not start drained 36S"));
 #if !BMS_CAP_CHARGE_TX
-    SERIALCONSOLE.println(F("  (not TX — BMS_CAP_CHARGE_TX=0)"));
+    SERIALCONSOLE.println(
+        F("  PRINT-ONLY — frame above is NOT written to CAN2 (BMS_CAP_CHARGE_TX=0)"));
 #elif TELEMETRY_ONLY
-    SERIALCONSOLE.println(F("  (not TX — TELEMETRY_ONLY=1)"));
+    SERIALCONSOLE.println(
+        F("  PRINT-ONLY — frame above is NOT written to CAN2 (TELEMETRY_ONLY=1)"));
 #else
-    SERIALCONSOLE.print(F("  tx_ok="));
+    SERIALCONSOLE.print(F("  LIVE TX  tx_ok="));
     SERIALCONSOLE.print(g_txOk);
     SERIALCONSOLE.print(F("  tx_fail="));
     SERIALCONSOLE.println(g_txFail);

@@ -47,10 +47,17 @@ Outputs outputsFor(State s) {
 }
 
 void applyPins(const Outputs &want) {
-    const bool drive = driveEnabled();
-    digitalWrite(Pins::PRECHARGE, (drive && want.precharge) ? HIGH : LOW);
-    digitalWrite(Pins::MAIN_POS,  (drive && want.mainPos)   ? HIGH : LOW);
-    digitalWrite(Pins::MAIN_NEG,  (drive && want.mainNeg)   ? HIGH : LOW);
+    // Hard gate: FLAG=0 or TELEMETRY_ONLY forces every coil FET LOW.
+    // Intended pin wants are printed only; GPIO never follows want when gated.
+    if (!driveEnabled()) {
+        digitalWrite(Pins::PRECHARGE, LOW);
+        digitalWrite(Pins::MAIN_POS, LOW);
+        digitalWrite(Pins::MAIN_NEG, LOW);
+        return;
+    }
+    digitalWrite(Pins::PRECHARGE, want.precharge ? HIGH : LOW);
+    digitalWrite(Pins::MAIN_POS,  want.mainPos   ? HIGH : LOW);
+    digitalWrite(Pins::MAIN_NEG,  want.mainNeg   ? HIGH : LOW);
 }
 
 #if HV_ANALOG_ENABLE
@@ -62,6 +69,10 @@ float readHvBusV() {
 
 void printTransition(State from, State to, const char *why) {
     const Outputs want = outputsFor(to);
+    if (!driveEnabled()) {
+        SERIALCONSOLE.println(
+            F("*** CONTACTOR PRINT-ONLY  FLAG=0  DRIVE=OFF  GPIO NOT fired ***"));
+    }
     SERIALCONSOLE.print(F("CONTACTOR "));
     SERIALCONSOLE.print(stateName(from));
     SERIALCONSOLE.print(F(" -> "));
@@ -70,14 +81,14 @@ void printTransition(State from, State to, const char *why) {
         SERIALCONSOLE.print(F("  reason="));
         SERIALCONSOLE.print(why);
     }
-    SERIALCONSOLE.print(F("  want PRE="));
+    SERIALCONSOLE.print(F("  WANT PRE="));
     SERIALCONSOLE.print(want.precharge ? 1 : 0);
     SERIALCONSOLE.print(F(" MAIN+="));
     SERIALCONSOLE.print(want.mainPos ? 1 : 0);
     SERIALCONSOLE.print(F(" MAIN-="));
     SERIALCONSOLE.print(want.mainNeg ? 1 : 0);
-    SERIALCONSOLE.print(F("  drive="));
-    SERIALCONSOLE.println(driveEnabled() ? 1 : 0);
+    SERIALCONSOLE.print(F("  DRIVE="));
+    SERIALCONSOLE.println(driveEnabled() ? F("ON") : F("OFF"));
 }
 
 void enter(State next, const char *why) {
@@ -156,9 +167,14 @@ void begin() {
     g_stateMs      = millis();
     g_faultWhy     = "";
     applyPins(outputsFor(State::Open));
-    SERIALCONSOLE.print(F("Contactors: SM ready  PRE=OUT2/12  MAIN+=OUT1/11  MAIN-=OUT4/21  drv="));
+    SERIALCONSOLE.print(F("Contactors: SM ready  PRE=OUT2/12  MAIN+=OUT1/11  MAIN-=OUT4/21  FLAG="));
     SERIALCONSOLE.print(BMS_CAP_CONTACTOR_DRV);
-    SERIALCONSOLE.println(F("  ('e' dry-runs intended pins)"));
+    SERIALCONSOLE.print(F("  DRIVE="));
+    SERIALCONSOLE.println(driveEnabled() ? F("ON") : F("OFF (PRINT-ONLY)"));
+    if (!driveEnabled()) {
+        SERIALCONSOLE.println(
+            F("  'e'/'p' print intended pins only — coil FETs stay LOW"));
+    }
 }
 
 void tick() {
@@ -199,7 +215,8 @@ void tick() {
                 SERIALCONSOLE.print(elapsed);
                 SERIALCONSOLE.print(F("/"));
                 SERIALCONSOLE.print(kPrechargeTimeMs);
-                SERIALCONSOLE.println(F("ms  want PRE=1 MAIN+=0 MAIN-=0"));
+                SERIALCONSOLE.print(F("ms  WANT PRE=1 MAIN+=0 MAIN-=0  DRIVE="));
+                SERIALCONSOLE.println(driveEnabled() ? F("ON") : F("OFF (PRINT-ONLY)"));
             }
             break;
 
@@ -240,8 +257,17 @@ void setDeadman(bool on) {
 
 void toggleDeadman() {
     setDeadman(!g_deadman);
-    SERIALCONSOLE.print(F("Dead-man "));
-    SERIALCONSOLE.println(g_deadman ? F("ON (sequence may close)") : F("OFF (all open)"));
+    if (!driveEnabled()) {
+        SERIALCONSOLE.println(
+            F("*** CONTACTOR PRINT-ONLY  FLAG=0  DRIVE=OFF  GPIO NOT fired ***"));
+        SERIALCONSOLE.print(F("Dead-man (dry-run) "));
+        SERIALCONSOLE.print(g_deadman ? F("ON") : F("OFF"));
+        SERIALCONSOLE.println(
+            F(" — SM may advance intended pins; coils stay LOW"));
+    } else {
+        SERIALCONSOLE.print(F("Dead-man "));
+        SERIALCONSOLE.println(g_deadman ? F("ON (sequence may close)") : F("OFF (all open)"));
+    }
     printStatus();
 }
 
@@ -280,21 +306,27 @@ Outputs driven() {
 void printStatus() {
     const Outputs want = intended();
     const Outputs drv  = driven();
+    if (!driveEnabled()) {
+        SERIALCONSOLE.println(
+            F("*** CONTACTOR PRINT-ONLY  FLAG=0  DRIVE=OFF  GPIO NOT fired ***"));
+    }
     SERIALCONSOLE.print(F("CONTACTOR state="));
     SERIALCONSOLE.print(stateName(g_state));
     SERIALCONSOLE.print(F("  deadman="));
     SERIALCONSOLE.print(g_deadman ? 1 : 0);
-    SERIALCONSOLE.print(F("  flag="));
+    SERIALCONSOLE.print(F("  FLAG="));
     SERIALCONSOLE.print(BMS_CAP_CONTACTOR_DRV);
     SERIALCONSOLE.print(F("  telemetry="));
-    SERIALCONSOLE.println(TELEMETRY_ONLY);
-    SERIALCONSOLE.print(F("  want PRE="));
+    SERIALCONSOLE.print(TELEMETRY_ONLY);
+    SERIALCONSOLE.print(F("  DRIVE="));
+    SERIALCONSOLE.println(driveEnabled() ? F("ON") : F("OFF"));
+    SERIALCONSOLE.print(F("  WANT PRE="));
     SERIALCONSOLE.print(want.precharge ? 1 : 0);
     SERIALCONSOLE.print(F(" MAIN+="));
     SERIALCONSOLE.print(want.mainPos ? 1 : 0);
     SERIALCONSOLE.print(F(" MAIN-="));
     SERIALCONSOLE.print(want.mainNeg ? 1 : 0);
-    SERIALCONSOLE.print(F("  drive PRE="));
+    SERIALCONSOLE.print(F("  DRIVEN PRE="));
     SERIALCONSOLE.print(drv.precharge ? 1 : 0);
     SERIALCONSOLE.print(F(" MAIN+="));
     SERIALCONSOLE.print(drv.mainPos ? 1 : 0);
@@ -314,11 +346,9 @@ void printStatus() {
 #else
     SERIALCONSOLE.println(F("  gate=timer 5s (HV_ANALOG_ENABLE=0)"));
 #endif
-#if !BMS_CAP_CONTACTOR_DRV
-    SERIALCONSOLE.println(F("  (coils not driven — BMS_CAP_CONTACTOR_DRV=0)"));
-#endif
-#if TELEMETRY_ONLY
-    SERIALCONSOLE.println(F("  (TELEMETRY_ONLY=1 — physical outputs forced open)"));
+#if !BMS_CAP_CONTACTOR_DRV || TELEMETRY_ONLY
+    SERIALCONSOLE.println(
+        F("  PRINT-ONLY — WANT pins above; DRIVEN stays 0/0/0 (coils NOT fired)"));
 #endif
 }
 

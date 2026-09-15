@@ -153,24 +153,32 @@ void printStatus() {
     uint8_t buf310[5];
     const int marked = packFrames(buf300, buf310);
 
-    SERIALCONSOLE.print(F("BALANCE map=K112-36S  flag="));
+#if !BMS_CAP_BALANCE_TX
+    SERIALCONSOLE.println(
+        F("*** BALANCE PRINT-ONLY  FLAG=0  DRIVE=OFF  CAN NOT fired ***"));
+#endif
+    SERIALCONSOLE.print(F("BALANCE map=K112-36S  FLAG="));
     SERIALCONSOLE.print(BMS_CAP_BALANCE_TX);
     SERIALCONSOLE.print(F("  wanted="));
     SERIALCONSOLE.print(marked);
+#if BMS_CAP_BALANCE_TX
     SERIALCONSOLE.print(F("  tx_ok="));
     SERIALCONSOLE.print(g_txOk);
     SERIALCONSOLE.print(F("  tx_fail="));
-    SERIALCONSOLE.println(g_txFail);
-    SERIALCONSOLE.print(F("  0x300#"));
+    SERIALCONSOLE.print(g_txFail);
+#endif
+    SERIALCONSOLE.println();
+    SERIALCONSOLE.print(F("  WOULD-BE 0x300#"));
     printHexPayload(buf300, kBalance300Len);
     SERIALCONSOLE.println();
-    SERIALCONSOLE.print(F("  0x310#"));
+    SERIALCONSOLE.print(F("  WOULD-BE 0x310#"));
     printHexPayload(buf310, kBalance310Len);
     SERIALCONSOLE.println();
 #if !BMS_CAP_BALANCE_TX
-    SERIALCONSOLE.println(F("  (not TX — BMS_CAP_BALANCE_TX=0)"));
+    SERIALCONSOLE.println(
+        F("  PRINT-ONLY — frames above are NOT written to CAN3 (BMS_CAP_BALANCE_TX=0)"));
 #else
-    SERIALCONSOLE.println(F("  (TX queued before each 0x200 keep-alive)"));
+    SERIALCONSOLE.println(F("  LIVE TX — queued before each 0x200 keep-alive"));
 #endif
 }
 

@@ -50,6 +50,10 @@ pio run -e teensy41_bms -t upload
 
 Every 500 ms a JSON summary line is printed (`rx_total`, `unique_ids`, `keepalive_tx`, etc.).
 
+## Saturday bench (36S)
+
+See **[`docs/BENCH.md`](docs/BENCH.md)** — flash `teensy41_k112_36s`, wiring minimum, expected caps, `b`/`e`/`p`/`g` print-only. Do not flip capability flags.
+
 ## Bench validation
 
 With BICMs powered on X2:

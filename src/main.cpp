@@ -13,6 +13,20 @@
 
 namespace {
 
+void warnCapsCompileTime() {
+    SERIALCONSOLE.println(
+        F("NOTE: BMS_CAP_BALANCE_TX / CHARGE_TX / CONTACTOR_DRV are compile-time."));
+    SERIALCONSOLE.println(
+        F("      Serial cannot enable TX or coil drive — edit include/BmsCapabilities.h and reflash."));
+    SERIALCONSOLE.print(F("      This build FLAG balance="));
+    SERIALCONSOLE.print(BMS_CAP_BALANCE_TX);
+    SERIALCONSOLE.print(F(" charge="));
+    SERIALCONSOLE.print(BMS_CAP_CHARGE_TX);
+    SERIALCONSOLE.print(F(" contactors="));
+    SERIALCONSOLE.print(BMS_CAP_CONTACTOR_DRV);
+    SERIALCONSOLE.println(F("  → MONITOR / PRINT-ONLY dry-runs only."));
+}
+
 void onCanFrame(const CAN_message_t &msg) {
     BicmSniffer::onFrame(msg);
     BicmDecode::onFrame(msg);
@@ -25,6 +39,10 @@ void onChargerFrame(const CAN_message_t &msg) {
 void runCommand(char c) {
     if (c >= 'A' && c <= 'Z') {
         c = static_cast<char>(c - 'A' + 'a');
+    }
+    // Ignore noise (CR/LF/space) from terminal Enter / paste.
+    if (c == '\r' || c == '\n' || c == ' ' || c == '\t') {
+        return;
     }
     SERIALCONSOLE.print(F(">> cmd "));
     SERIALCONSOLE.println(c);
@@ -64,11 +82,16 @@ void runCommand(char c) {
                 SERIALCONSOLE.println(
                     F("Keys (no Enter): c=candump s=IDs d=cells b=balance k=keep-alive r=reset"));
                 SERIALCONSOLE.println(
-                    F("  e=dead-man  p=contactors  g=charge-request ?=help"));
+                    F("  e=dead-man(PRINT-ONLY)  p=contactors(PRINT-ONLY)  g=charge(PRINT-ONLY) ?=help"));
                 SERIALCONSOLE.println(
                     F("Stats also print automatically every 10 seconds."));
+                warnCapsCompileTime();
                 break;
             default:
+                // Refuse mistaken "enable flag" / unknown attempts — caps are not runtime.
+                SERIALCONSOLE.println(
+                    F("Unknown key — refuse. Flags are compile-time; serial cannot enable TX/drive."));
+                warnCapsCompileTime();
                 break;
     }
 }
@@ -90,6 +113,8 @@ void setup() {
 
     SERIALCONSOLE.println();
     SERIALCONSOLE.println(F("=== Ampera BICM Teensy 4.1 ==="));
+    SERIALCONSOLE.println(
+        F("*** BUILD: MONITOR / DRY-RUN — FLAG=0  DRIVE=OFF  no live bleed/charge/coil ***"));
     SERIALCONSOLE.print(F("Pack: "));
     SERIALCONSOLE.print(PACK_S_CELLS);
     SERIALCONSOLE.print(F("S"));
@@ -105,19 +130,21 @@ void setup() {
     SERIALCONSOLE.println(F(" cells per module"));
 #endif
 #if TELEMETRY_ONLY
-    SERIALCONSOLE.println(F("Mode: MONITOR — no charge TX, no contactor drive"));
+    SERIALCONSOLE.println(F("Mode: MONITOR — keep-alive + decode only; charge/contactor PRINT-ONLY"));
 #else
     SERIALCONSOLE.println(F("Mode: BMS GPIO (coil drive still gated by BMS_CAP_CONTACTOR_DRV)"));
 #endif
 #if BMS_CAP_BALANCE_TX
-    SERIALCONSOLE.println(F("CAN3 @ 125k — keep-alive 0x200/1s + balance 0x300/0x310"));
+    SERIALCONSOLE.println(F("CAN3 @ 125k — keep-alive 0x200/1s + LIVE balance 0x300/0x310"));
 #else
-    SERIALCONSOLE.println(F("CAN3 @ 125k — keep-alive 0x200/1s (balance TX compiled, flag=0)"));
+    SERIALCONSOLE.println(
+        F("CAN3 @ 125k — keep-alive 0x200/1s  |  balance FLAG=0 PRINT-ONLY (b)"));
 #endif
 #if BMS_CAP_CHARGE_TX
-    SERIALCONSOLE.println(F("CAN2 @ 250k pins 0/1 — Elcon 0x1806E5F4 TX"));
+    SERIALCONSOLE.println(F("CAN2 @ 250k pins 0/1 — LIVE Elcon 0x1806E5F4 TX"));
 #else
-    SERIALCONSOLE.println(F("CAN2 @ 250k pins 0/1 — Elcon (charge TX compiled, flag=0)"));
+    SERIALCONSOLE.println(
+        F("CAN2 @ 250k pins 0/1 — Elcon FLAG=0 PRINT-ONLY (g); bus optional this weekend"));
 #endif
     SERIALCONSOLE.print(F("Capabilities: cells="));
     SERIALCONSOLE.print(BMS_CAP_READ_CELL_VOLTS);
@@ -129,6 +156,7 @@ void setup() {
     SERIALCONSOLE.print(BMS_CAP_CHARGE_TX);
     SERIALCONSOLE.print(F(" contactors="));
     SERIALCONSOLE.println(BMS_CAP_CONTACTOR_DRV);
+    warnCapsCompileTime();
 #if K112_PACK_DECODE
 #if PACK_BICM_COUNT == 1
     SERIALCONSOLE.println(F("Profile: one K112, 24S (0x460/0x470 burst)"));
@@ -148,7 +176,7 @@ void setup() {
     SERIALCONSOLE.println(F(" cells."));
 #endif
     SERIALCONSOLE.println(F("Keys: c s d b k r e p g ?  (no Enter — click terminal first)"));
-    SERIALCONSOLE.println(F("ID list + cell volts print every 10 s automatically."));
+    SERIALCONSOLE.println(F("b/e/p/g = PRINT-ONLY dry-runs. ID list + cells every 10 s."));
 
     CanBus::begin();
     CanBus::setFrameHandler(onCanFrame);
