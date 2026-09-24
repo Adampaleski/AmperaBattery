@@ -71,3 +71,7 @@ Scripts: `scripts/monitor.sh`, `scripts/bench_checklist.md`.
 - [`docs/WIRING.md`](docs/WIRING.md) — CAN2 Elcon 250k + contactor FET map
 - [`docs/SAFETY.md`](docs/SAFETY.md) — capability flags stay 0
 - Upstream wiring: AmperaBattery README (K16 X1 = 500k BECM, X2 = 125k BICM)
+
+## Vehicle hub / install docs
+
+Tablet PWA, install wiring, and status schema v1 live in a separate repo: [`Adampaleski/teryx-ev-hub`](https://github.com/Adampaleski/teryx-ev-hub) (not merged into this firmware tree).
