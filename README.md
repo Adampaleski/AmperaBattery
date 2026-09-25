@@ -13,6 +13,8 @@ Based on [Tom-evnut/AmperaBattery](https://github.com/Tom-evnut/AmperaBattery) d
 | Pack bus | K16 **X2**: pin 10 GND, 11 CAN_L, 12 CAN_H |
 | Elcon CAN | Teensy 4.1 **CAN2** — pin 0 RX, pin 1 TX @ 250 kbps (29-bit) |
 | Elcon transceiver | **Second** SN65HVD230 (required; CAN1 22/23 collides with OUT5/OUT6) |
+| Kelly KLS8080 NPS | **Same CAN2** @ 250 kbit — IDs `0x0CF11E05` / `0x0CF11F05` (RX; see docs/KELLY_CAN.md) |
+| Hub UART (ESP32) | **Serial4** pin 17 TX / 16 RX — not pins 0/1 |
 | Contactors | OUT1/pin11 = main+, OUT2/pin12 = TE EV11/K1KABNA precharge, OUT4/pin21 = main− (FET gates) |
 | Termination | 120 Ω at one end of each bus |
 
@@ -46,6 +48,7 @@ pio run -e teensy41_bms -t upload
 | `e` | Toggle dead-man (starts/aborts contactor sequence; dry-run when flag=0) |
 | `p` | Print contactor state + intended vs driven pins |
 | `g` | Toggle charge request (prints would-be Elcon `0x1806E5F4`) |
+| `y` | Kelly CAN2 RX status (frame counts + raw; unpack FLAG=0) |
 | `?` | Help |
 
 Every 500 ms a JSON summary line is printed (`rx_total`, `unique_ids`, `keepalive_tx`, etc.).
@@ -70,6 +73,7 @@ Scripts: `scripts/monitor.sh`, `scripts/bench_checklist.md`.
 - [`docs/Volt_BMS.dbc`](docs/Volt_BMS.dbc) — cell/temp scaling
 - [`docs/WIRING.md`](docs/WIRING.md) — CAN2 Elcon 250k + contactor FET map
 - [`docs/SAFETY.md`](docs/SAFETY.md) — capability flags stay 0
+- [`docs/KELLY_CAN.md`](docs/KELLY_CAN.md) — KLS8080 NPS on shared CAN2 (not serial)
 - Upstream wiring: AmperaBattery README (K16 X1 = 500k BECM, X2 = 125k BICM)
 
 ## Vehicle hub / install docs

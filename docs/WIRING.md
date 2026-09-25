@@ -59,3 +59,24 @@ Optional HV-bus analog: pin 24 (`A10`), compile with `HV_ANALOG_ENABLE=1`. Defau
 ## BECM vehicle CAN (500 kbps) — not used by this firmware
 
 Connector **X1** — 500 kbps when accessory wake lines are held high. See upstream README. The Elcon bus is a **separate** 250 kbit network on CAN2, not X1.
+
+## Kelly KLS8080 NPS (250 kbps) — same CAN2 as Elcon
+
+Broadcast RX only. **Not** serial. **Not** BICM CAN3.
+
+| Teensy | Shared with | Kelly |
+|--------|-------------|-------|
+| CAN2 pin 0/1 @ 250 kbit, 29-bit | Elcon SN65HVD230 #2 | CANH / CANL on same bus |
+| IDs | — | `0x0CF11E05`, `0x0CF11F05` |
+
+See [`KELLY_CAN.md`](KELLY_CAN.md). `BMS_CAP_KELLY_RX` default **0** (count + raw via serial `y`).
+
+## Hub UART (ESP32) — Serial4, not CAN2
+
+| Teensy | ESP32 | Notes |
+|--------|-------|-------|
+| **Serial4 TX pin 17** / **RX pin 16** | UART2 GPIO16 RX / GPIO17 TX (crossed) | Frees 0/1 for CAN2 |
+| GND | GND | |
+
+`Pins::IN1`/`IN2` in Config.h also use 17/16 — unavailable when hub UART is wired (unused by contactors). Details: teryx-ev-hub repo: `firmware/esp32-gateway/docs/PINMAP.md`.
+

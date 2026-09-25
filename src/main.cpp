@@ -10,6 +10,7 @@
 #include "BalanceTx.h"
 #include "ChargeTx.h"
 #include "ContactorSeq.h"
+#include "KellyDecode.h"
 
 namespace {
 
@@ -34,6 +35,7 @@ void onCanFrame(const CAN_message_t &msg) {
 
 void onChargerFrame(const CAN_message_t &msg) {
     ChargeTx::onFrame(msg);
+    KellyDecode::onFrame(msg);  // listen-only; BMS_CAP_KELLY_RX gates unpack
 }
 
 void runCommand(char c) {
@@ -77,12 +79,17 @@ void runCommand(char c) {
             case 'g':
                 ChargeTx::toggleChargeRequest();
                 break;
+            case 'y':
+                KellyDecode::printStatus();
+                break;
             case '?':
             case 'h':
                 SERIALCONSOLE.println(
                     F("Keys (no Enter): c=candump s=IDs d=cells b=balance k=keep-alive r=reset"));
                 SERIALCONSOLE.println(
-                    F("  e=dead-man(PRINT-ONLY)  p=contactors(PRINT-ONLY)  g=charge(PRINT-ONLY) ?=help"));
+                    F("  e=dead-man(PRINT-ONLY)  p=contactors(PRINT-ONLY)  g=charge(PRINT-ONLY)"));
+                SERIALCONSOLE.println(
+                    F("  y=Kelly CAN2 RX (count/raw; unpack FLAG=0)  ?=help"));
                 SERIALCONSOLE.println(
                     F("Stats also print automatically every 10 seconds."));
                 warnCapsCompileTime();
@@ -146,6 +153,9 @@ void setup() {
     SERIALCONSOLE.println(
         F("CAN2 @ 250k pins 0/1 — Elcon FLAG=0 PRINT-ONLY (g); bus optional this weekend"));
 #endif
+    SERIALCONSOLE.print(F("Kelly KLS RX on CAN2 (share Elcon): FLAG="));
+    SERIALCONSOLE.print(BMS_CAP_KELLY_RX);
+    SERIALCONSOLE.println(F("  keys: y=status  IDs 0x0CF11E05/0x0CF11F05"));
     SERIALCONSOLE.print(F("Capabilities: cells="));
     SERIALCONSOLE.print(BMS_CAP_READ_CELL_VOLTS);
     SERIALCONSOLE.print(F(" keepalive="));
@@ -175,7 +185,7 @@ void setup() {
     SERIALCONSOLE.print(PACK_S_CELLS);
     SERIALCONSOLE.println(F(" cells."));
 #endif
-    SERIALCONSOLE.println(F("Keys: c s d b k r e p g ?  (no Enter — click terminal first)"));
+    SERIALCONSOLE.println(F("Keys: c s d b k r e p g y ?  (no Enter — click terminal first)"));
     SERIALCONSOLE.println(F("b/e/p/g = PRINT-ONLY dry-runs. ID list + cells every 10 s."));
 
     CanBus::begin();
@@ -186,6 +196,7 @@ void setup() {
     BicmDecode::begin();
     BalanceTx::begin();
     ChargeTx::begin();
+    KellyDecode::begin();
     BmsApp::begin();
 }
 
@@ -196,6 +207,7 @@ void loop() {
     BicmDecode::tick();
     BalanceTx::tick();
     ChargeTx::tick();
+    KellyDecode::tick();
     BmsApp::tick();
     dispatchSerial();
 
@@ -208,6 +220,7 @@ void loop() {
         BalanceTx::printStatus();
         ContactorSeq::printStatus();
         ChargeTx::printStatus();
+        KellyDecode::printStatus();
     }
 
     static uint32_t ledMs = 0;

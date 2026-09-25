@@ -14,6 +14,7 @@ Capability flags stay **0** until a later, explicit reflash:
 - `BMS_CAP_BALANCE_TX=0` — `0x300` / `0x310` packing is compiled, frames are **not** sent.
 - `BMS_CAP_CHARGE_TX=0` — Elcon `0x1806E5F4` is packed and printed, **never** written to CAN2.
 - `BMS_CAP_CONTACTOR_DRV=0` — precharge/contactor state machine dry-runs over serial; coil FETs stay LOW.
+- `BMS_CAP_KELLY_RX=0` — Kelly KLS frames on CAN2 are counted/raw-logged only; unpack off. **Listen-only** (no Kelly TX).
 
 Weekend bench still does **not** need the charger or coils.
 
@@ -26,6 +27,7 @@ Weekend bench still does **not** need the charger or coils.
 | Contactor / precharge | **State machine compiled, coils gated off** (`BMS_CAP_CONTACTOR_DRV=0`) | Serial `e` prints intended pin states; GPIO stays LOW |
 | Multi-pack parallel (4× 36S) | **Not implemented** | One CAN bus / one decode context only |
 | HV isolation / IMD | **Not implemented** | Software will not detect an isolation fault |
+| Kelly KLS CAN RX (shared CAN2) | **Hooked, unpack gated** (`BMS_CAP_KELLY_RX=0`) | Serial `y` shows counts/raw; no motor control |
 
 Treat this repo as a **monitor and bring-up tool**. Enabling any of the three TX/drive flags still does **not** make this a production BMS.
 
