@@ -77,6 +77,9 @@ See [`KELLY_CAN.md`](KELLY_CAN.md). `BMS_CAP_KELLY_RX` default **0** (count + ra
 |--------|-------|-------|
 | **Serial4 TX pin 17** / **RX pin 16** | UART2 GPIO16 RX / GPIO17 TX (crossed) | Frees 0/1 for CAN2 |
 | GND | GND | |
+| Baud / format | 115200 8N1 | One **STATUS_SCHEMA v1** JSON object per line (~1 Hz) |
 
-`Pins::IN1`/`IN2` in Config.h also use 17/16 — unavailable when hub UART is wired (unused by contactors). Details: teryx-ev-hub repo: `firmware/esp32-gateway/docs/PINMAP.md`.
+Firmware: `HubStatus` emits on Serial4. Caps `BALANCE_TX` / `CHARGE_TX` / `CONTACTOR_DRV` / `KELLY_RX` stay **0**.
+
+`Pins::IN1`/`IN2` in Config.h also use 17/16 — unavailable when hub UART is wired (unused by contactors; BmsApp does not `pinMode` them). Details: teryx-ev-hub repo: `firmware/esp32-gateway/docs/PINMAP.md`.
 

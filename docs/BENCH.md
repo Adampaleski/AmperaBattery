@@ -1,7 +1,7 @@
 # Saturday bench — flash + monitor (36S)
 
 One-page bring-up for **this branch tip**. Monitor / print-only only.  
-**Do not** flip `BMS_CAP_BALANCE_TX`, `BMS_CAP_CHARGE_TX`, or `BMS_CAP_CONTACTOR_DRV` off 0.  
+**Do not** flip `BMS_CAP_BALANCE_TX`, `BMS_CAP_CHARGE_TX`, `BMS_CAP_CONTACTOR_DRV`, or `BMS_CAP_KELLY_RX` off 0.  
 **Do not** reflash with those flags set. Serial **cannot** enable them (compile-time in `include/BmsCapabilities.h`).
 
 Elcon charger and contactor coils are **not needed** this weekend.
@@ -65,9 +65,23 @@ These **print** would-be frames or pin wants. They do **not** TX bleed/charge or
 
 Any unknown key refuses and reminds you: flags are compile-time — reflash required to change them.
 
-## 6. Do not (this weekend)
+## 6b. Hub UART (Serial4 → ESP32)
 
-- Do **not** set `BMS_CAP_BALANCE_TX`, `BMS_CAP_CHARGE_TX`, or `BMS_CAP_CONTACTOR_DRV` to 1.
+After flash, USB boot prints one line: `Serial4 hub emit ON — STATUS_SCHEMA v1 JSON @ 115200 (pins TX17/RX16)`.
+
+| Item | Detail |
+|------|--------|
+| Port | **Serial4** TX **17** / RX **16** @ **115200** 8N1 (not Serial1 / 0/1) |
+| Payload | One **STATUS_SCHEMA v1** JSON object per line (~1 Hz) |
+| USB | JSON is **not** dumped on USB every tick; press **`j`** for a one-shot on the console |
+| Caps | `BALANCE_TX` / `CHARGE_TX` / `CONTACTOR_DRV` / `KELLY_RX` stay **0** |
+
+ESP32 gateway (teryx-ev-hub `firmware/esp32-gateway`): UART2 GPIO16 RX ← Teensy 17, GPIO17 TX → Teensy 16. Crossed. Common GND.
+
+## 6c. Do not (this weekend)
+
+
+- Do **not** set `BMS_CAP_BALANCE_TX`, `BMS_CAP_CHARGE_TX`, `BMS_CAP_CONTACTOR_DRV`, or `BMS_CAP_KELLY_RX` to 1.
 - Do **not** expect serial to enable live bleed, Elcon TX, or coil drive.
 - Elcon on CAN2 and contactor coils: leave for later.
 

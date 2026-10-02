@@ -49,13 +49,14 @@ pio run -e teensy41_bms -t upload
 | `p` | Print contactor state + intended vs driven pins |
 | `g` | Toggle charge request (prints would-be Elcon `0x1806E5F4`) |
 | `y` | Kelly CAN2 RX status (frame counts + raw; unpack FLAG=0) |
+| `j` | Print one STATUS_SCHEMA v1 JSON frame on USB (Serial4 also emits ~1 Hz) |
 | `?` | Help |
 
-Every 500 ms a JSON summary line is printed (`rx_total`, `unique_ids`, `keepalive_tx`, etc.).
+Hub link: **Serial4** emits STATUS_SCHEMA v1 JSON @ 115200 (~1 Hz) for the teryx-ev-hub ESP32 gateway. USB stays quiet except boot note and optional `j`.
 
 ## Saturday bench (36S)
 
-See **[`docs/BENCH.md`](docs/BENCH.md)** — flash `teensy41_k112_36s`, wiring minimum, expected caps, `b`/`e`/`p`/`g` print-only. Do not flip capability flags.
+See **[`docs/BENCH.md`](docs/BENCH.md)** — flash `teensy41_k112_36s`, wiring minimum, expected caps, `b`/`e`/`p`/`g` print-only, Serial4 hub JSON. Do not flip capability flags (still 0).
 
 ## Bench validation
 

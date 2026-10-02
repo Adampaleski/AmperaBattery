@@ -7,8 +7,8 @@ namespace BmsApp {
 namespace {
 
 void initPins() {
-    pinMode(Pins::IN1, INPUT);
-    pinMode(Pins::IN2, INPUT);
+    // IN1=17 / IN2=16 are Serial4 TX/RX for the teryx-ev-hub ESP32 link.
+    // Do not pinMode them as GPIO — HubStatus::begin() owns Serial4.
     pinMode(Pins::IN3, INPUT);
     pinMode(Pins::IN4, INPUT);
 

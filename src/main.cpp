@@ -11,6 +11,7 @@
 #include "ChargeTx.h"
 #include "ContactorSeq.h"
 #include "KellyDecode.h"
+#include "HubStatus.h"
 
 namespace {
 
@@ -82,6 +83,10 @@ void runCommand(char c) {
             case 'y':
                 KellyDecode::printStatus();
                 break;
+            case 'j':
+                SERIALCONSOLE.println(F("--- hub STATUS_SCHEMA v1 (USB one-shot) ---"));
+                HubStatus::printFrame(SERIALCONSOLE);
+                break;
             case '?':
             case 'h':
                 SERIALCONSOLE.println(
@@ -89,7 +94,7 @@ void runCommand(char c) {
                 SERIALCONSOLE.println(
                     F("  e=dead-man(PRINT-ONLY)  p=contactors(PRINT-ONLY)  g=charge(PRINT-ONLY)"));
                 SERIALCONSOLE.println(
-                    F("  y=Kelly CAN2 RX (count/raw; unpack FLAG=0)  ?=help"));
+                    F("  y=Kelly CAN2 RX (count/raw; unpack FLAG=0)  j=hub JSON once  ?=help"));
                 SERIALCONSOLE.println(
                     F("Stats also print automatically every 10 seconds."));
                 warnCapsCompileTime();
@@ -185,7 +190,7 @@ void setup() {
     SERIALCONSOLE.print(PACK_S_CELLS);
     SERIALCONSOLE.println(F(" cells."));
 #endif
-    SERIALCONSOLE.println(F("Keys: c s d b k r e p g y ?  (no Enter — click terminal first)"));
+    SERIALCONSOLE.println(F("Keys: c s d b k r e p g y j ?  (no Enter — click terminal first)"));
     SERIALCONSOLE.println(F("b/e/p/g = PRINT-ONLY dry-runs. ID list + cells every 10 s."));
 
     CanBus::begin();
@@ -198,6 +203,7 @@ void setup() {
     ChargeTx::begin();
     KellyDecode::begin();
     BmsApp::begin();
+    HubStatus::begin();  // Serial4 after BmsApp so UART owns pins 16/17
 }
 
 void loop() {
@@ -209,6 +215,7 @@ void loop() {
     ChargeTx::tick();
     KellyDecode::tick();
     BmsApp::tick();
+    HubStatus::tick();
     dispatchSerial();
 
     static uint32_t autoReportMs = 0;
