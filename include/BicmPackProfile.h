@@ -33,10 +33,10 @@ constexpr BicmCanStreamDef kBicmStreams[] = {
 #elif PACK_BICM_COUNT == 2
 // K112A 24S burst + K112B 12S (sparse 0x46D–0x47E or burst 0x461/0x471).
 #if defined(PACK_CELLS_PER_BICM)
-// Bench: two as-pulled 30S sections, one BICM each (second assumed 0x461/0x471).
+// Bench: two as-pulled 30S sections, one BICM each (BICM-B IDs unknown until first chained capture; 0x461/0x471 belong to BICM-A, so B is parked on IDs that never arrive. Use the s key ID histogram to find them.).
 constexpr BicmCanStreamDef kBicmStreams[] = {
     {0x460, 0x470, 1, PACK_CELLS_PER_BICM, "BICM-A"},
-    {0x461, 0x471, PACK_CELLS_PER_BICM + 1, PACK_CELLS_PER_BICM, "BICM-B"},
+    {0x7FF0, 0x7FF1, PACK_CELLS_PER_BICM + 1, PACK_CELLS_PER_BICM, "BICM-B"},
 };
 #elif K112_SPARSE_SECOND_BICM
 constexpr BicmCanStreamDef kBicmStreams[] = {
