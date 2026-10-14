@@ -35,6 +35,64 @@ void printQuoted(Print &out, const char *s) {
     out.print('"');
 }
 
+#if FACTORY_BUS_DECODE
+// Factory bus: per-module voltages; packV only if the map is one series string.
+// cellVolts[i] = pack cell i+1; null when not wired / no data. Out-of-range
+// values are still printed (with alarm=true) so the hub can see them.
+void printBms(Print &out) {
+    const bool stable = BicmDecode::packStable();
+    out.print(F("\"bms\":{\"wired\":true,\"packV\":"));
+    const float pv = BicmDecode::packVoltage();
+    if (pv > 0.0f) printFloat(out, pv, 2); else printNull(out);
+    out.print(F(",\"sectionV\":["));
+    for (uint8_t m = 1; m <= 4; m++) {
+        if (m > 1) out.print(',');
+        const float v = BicmDecode::moduleVoltage(m);
+        if (v > 0.0f) printFloat(out, v, 2); else printNull(out);
+    }
+    out.print(F("],\"modules\":["));
+    for (uint8_t m = 1; m <= 4; m++) {
+        if (m > 1) out.print(',');
+        out.print(F("{\"id\":"));
+        out.print(m);
+        out.print(F(",\"present\":"));
+        printBool(out, BicmDecode::modulePresent(m));
+        out.print(F(",\"wired\":"));
+        out.print(BicmDecode::moduleWired(m));
+        out.print(F(",\"ok\":"));
+        out.print(BicmDecode::moduleOk(m));
+        out.print(F(",\"alarm\":"));
+        printBool(out, BicmDecode::moduleAlarm(m));
+        out.print('}');
+    }
+    out.print(F("],\"packA\":null,\"socPct\":null"));
+    const float mn = BicmDecode::minCellVoltage();
+    const float mx = BicmDecode::maxCellVoltage();
+    const bool have = mn > 0.0f && mx > 0.0f;
+    out.print(F(",\"cellMinV\":"));
+    if (have) printFloat(out, mn, 3); else printNull(out);
+    out.print(F(",\"cellMaxV\":"));
+    if (have) printFloat(out, mx, 3); else printNull(out);
+    out.print(F(",\"cellDeltaV\":"));
+    if (have) printFloat(out, mx - mn, 3); else printNull(out);
+    out.print(F(",\"tempMinC\":null,\"tempMaxC\":null,\"cells\":"));
+    out.print(PACK_S_CELLS);
+    out.print(F(",\"cellVolts\":["));
+    for (int c = 1; c <= PACK_S_CELLS; c++) {
+        if (c > 1) out.print(',');
+        const uint8_t cell = static_cast<uint8_t>(c);
+        const float v = BicmDecode::cellRawVoltage(cell);
+        if (BicmDecode::cellPresent(cell)) printFloat(out, v, 3); else printNull(out);
+    }
+    out.print(F("],\"alarm\":"));
+    printBool(out, BicmDecode::anyAlarm());
+    out.print(F(",\"stable\":"));
+    printBool(out, stable);
+    out.print(F(",\"balancing\":false,\"balanceEnabled\":"));
+    printBool(out, BMS_CAP_BALANCE_TX != 0);
+    out.print('}');
+}
+#else
 void printBms(Print &out) {
     const bool stable = BicmDecode::packStable();
     const float packV = BicmDecode::packVoltage();
@@ -134,6 +192,7 @@ void printBms(Print &out) {
 
     out.print('}');
 }
+#endif  // FACTORY_BUS_DECODE
 
 void printContactors(Print &out) {
     const ContactorSeq::Outputs want = ContactorSeq::intended();

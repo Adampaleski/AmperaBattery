@@ -37,6 +37,11 @@ constexpr uint16_t kCanScanMaxIds = 64;
 #endif
 #endif
 
+// Four factory-strapped Volt BICMs on one CAN3 bus (include/FactoryCellMap.h).
+#ifndef FACTORY_BUS_DECODE
+#define FACTORY_BUS_DECODE 0
+#endif
+
 #ifndef PACK_BICM_COUNT
 #define PACK_BICM_COUNT 1
 #endif

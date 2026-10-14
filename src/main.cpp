@@ -130,7 +130,9 @@ void setup() {
     SERIALCONSOLE.print(F("Pack: "));
     SERIALCONSOLE.print(PACK_S_CELLS);
     SERIALCONSOLE.print(F("S"));
-#if K112_PACK_DECODE
+#if FACTORY_BUS_DECODE
+    SERIALCONSOLE.println(F(" mapped / up to 4 factory-strapped BICMs on ONE CAN3 bus (FactoryCellMap.h)"));
+#elif K112_PACK_DECODE
     SERIALCONSOLE.print(F(" / "));
     SERIALCONSOLE.print(kBicmStreamCount);
     SERIALCONSOLE.println(F(" physical BICM(s) on daisy chain"));
@@ -172,7 +174,10 @@ void setup() {
     SERIALCONSOLE.print(F(" contactors="));
     SERIALCONSOLE.println(BMS_CAP_CONTACTOR_DRV);
     warnCapsCompileTime();
-#if K112_PACK_DECODE
+#if FACTORY_BUS_DECODE
+    SERIALCONSOLE.println(F("Profile: factory IDs M1 0x460-463/470-473, M2 0x464-466/474-476,"));
+    SERIALCONSOLE.println(F("         M3 0x468-46A/478-47A, M4 0x46C-46E/47C-47E.  d = per-module cells"));
+#elif K112_PACK_DECODE
 #if PACK_BICM_COUNT == 1
     SERIALCONSOLE.println(F("Profile: one K112, 24S (0x460/0x470 burst)"));
 #elif PACK_BICM_COUNT == 2

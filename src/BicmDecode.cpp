@@ -4,6 +4,9 @@
 #include "Config.h"
 #include <math.h>
 
+// FACTORY_BUS_DECODE builds use src/BicmDecodeFactory.cpp instead.
+#if !FACTORY_BUS_DECODE
+
 namespace BicmDecode {
 
 namespace {
@@ -653,3 +656,5 @@ void handleSerial(char c) {
 }
 
 }  // namespace BicmDecode
+
+#endif  // !FACTORY_BUS_DECODE

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <FlexCAN_T4.h>
+#include "Config.h"
 
 namespace BicmDecode {
 
@@ -21,6 +22,21 @@ float packVoltage();
 float rangeVoltage(int first, int count);
 float minCellVoltage();
 float maxCellVoltage();
+
+#if FACTORY_BUS_DECODE
+// Factory-bus extras (src/BicmDecodeFactory.cpp, include/FactoryCellMap.h).
+enum class ChState : uint8_t { NotWired, NoData, Ok, Alarm };
+ChState channelState(uint8_t module, uint8_t ch);  // module 1..4, ch 1-based
+float   channelVoltage(uint8_t module, uint8_t ch); // last decoded value
+bool    modulePresent(uint8_t module);              // frame within 3 s
+int     moduleWired(uint8_t module);
+int     moduleOk(uint8_t module);
+float   moduleVoltage(uint8_t module);              // sum of wired, 0 unless all OK
+bool    moduleAlarm(uint8_t module);
+bool    anyAlarm();
+bool    cellPresent(uint8_t cell);                  // pack cell is mapped + fresh data
+float   cellRawVoltage(uint8_t cell);               // last value even if out of range
+#endif
 
 void printDecodeDetails();
 void handleSerial(char c);
