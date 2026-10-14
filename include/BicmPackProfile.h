@@ -32,7 +32,13 @@ constexpr BicmCanStreamDef kBicmStreams[] = {
 };
 #elif PACK_BICM_COUNT == 2
 // K112A 24S burst + K112B 12S (sparse 0x46D–0x47E or burst 0x461/0x471).
-#if K112_SPARSE_SECOND_BICM
+#if defined(PACK_CELLS_PER_BICM)
+// Bench: two as-pulled 30S sections, one BICM each (second assumed 0x461/0x471).
+constexpr BicmCanStreamDef kBicmStreams[] = {
+    {0x460, 0x470, 1, PACK_CELLS_PER_BICM, "BICM-A"},
+    {0x461, 0x471, PACK_CELLS_PER_BICM + 1, PACK_CELLS_PER_BICM, "BICM-B"},
+};
+#elif K112_SPARSE_SECOND_BICM
 constexpr BicmCanStreamDef kBicmStreams[] = {
     {0x460, 0x470, 1, 24, "BICM-A"},
 };

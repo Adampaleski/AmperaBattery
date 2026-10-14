@@ -17,6 +17,8 @@ float cellVoltage(uint8_t cell);
 
 // Sum of all PACK_S_CELLS if every cell is valid, else 0.
 float packVoltage();
+// Sum of cells [first, first+count-1], 0 if any invalid. Bench 2x30s sections.
+float rangeVoltage(int first, int count);
 float minCellVoltage();
 float maxCellVoltage();
 

@@ -452,6 +452,18 @@ bool validCellV(float v) {
 }
 }  // namespace
 
+float rangeVoltage(int first, int count) {
+    float sum = 0.0f;
+    for (int c = first; c < first + count && c <= PACK_S_CELLS; c++) {
+        const float v = cellVoltage(static_cast<uint8_t>(c));
+        if (!validCellV(v)) {
+            return 0.0f;
+        }
+        sum += v;
+    }
+    return sum;
+}
+
 float packVoltage() {
     float sum = 0.0f;
     for (int c = 1; c <= PACK_S_CELLS; c++) {

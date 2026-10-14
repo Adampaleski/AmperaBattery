@@ -48,12 +48,24 @@ void printBms(Print &out) {
     out.print(F("\"wired\":"));
     printBool(out, true);
 
+#if defined(PACK_CELLS_PER_BICM)
+    // Bench 2x30s: separate sections, never in series, so no pack total.
+    (void)packV;
+    out.print(F(",\"packV\":null,\"sectionV\":["));
+    for (int s = 0; s < PACK_S_CELLS / PACK_CELLS_PER_BICM; s++) {
+        if (s) out.print(',');
+        const float v = BicmDecode::rangeVoltage(s * PACK_CELLS_PER_BICM + 1, PACK_CELLS_PER_BICM);
+        if (haveCells && v > 0.0f) printFloat(out, v, 2); else printNull(out);
+    }
+    out.print(']');
+#else
     out.print(F(",\"packV\":"));
     if (haveCells && packV > 0.0f) {
         printFloat(out, packV, 2);
     } else {
         printNull(out);
     }
+#endif
 
     out.print(F(",\"packA\":"));
     printNull(out);  // no pack current sensor in this firmware yet
