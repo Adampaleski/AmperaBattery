@@ -24,6 +24,22 @@ void updateErrorStatus() {
     }
 }
 
+// Consecutive keep-alive sends that were skipped or refused. If the bus jams
+// (unacked frame stuck in the TX mailbox), reinit the controller ourselves
+// instead of waiting for a power cycle.
+uint32_t g_keepAliveStuckCount = 0;
+constexpr uint32_t kKeepAliveStuckReinit = 5;
+
+void unjamTx() {
+    SERIALCONSOLE.print(F("CAN TX jam: reinit after "));
+    SERIALCONSOLE.print(g_keepAliveStuckCount);
+    SERIALCONSOLE.println(F(" stuck keep-alives"));
+    Can0.restart(kCanBitrate, false);  // re-setMB aborts the stuck TX mailbox
+    g_stats.controllerRestarts++;
+    g_stats.recoveryCount++;
+    g_keepAliveStuckCount = 0;
+}
+
 void sendKeepAlive() {
     if (!g_keepAliveEnabled) {
         return;
@@ -35,6 +51,9 @@ void sendKeepAlive() {
     }
     if (q >= kKeepAliveMaxTxQueueDepth) {
         g_stats.keepAliveSkipCount++;
+        if (++g_keepAliveStuckCount >= kKeepAliveStuckReinit) {
+            unjamTx();
+        }
         return;
     }
 
@@ -53,6 +72,11 @@ void sendKeepAlive() {
     g_stats.keepAliveTxCount++;
     if (tx <= 0) {
         g_stats.keepAliveFailCount++;
+        if (++g_keepAliveStuckCount >= kKeepAliveStuckReinit) {
+            unjamTx();
+        }
+    } else {
+        g_keepAliveStuckCount = 0;
     }
 }
 
