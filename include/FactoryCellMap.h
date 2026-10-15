@@ -35,8 +35,8 @@
 
 #include <stdint.h>
 
-#define FACTORY_PACK_CELLS    30
-#define FACTORY_SERIES_STRING 1   // default map: module 1's 30 cells = one string
+#define FACTORY_PACK_CELLS    54
+#define FACTORY_SERIES_STRING 0   // bench: M1 30S and M2 24S are SEPARATE sections, never paralleled
 
 constexpr uint8_t kFactoryMapM1[30] = {
      1,  2,  3,  4,  5,  6,  7,  8,  9, 10,
@@ -45,8 +45,8 @@ constexpr uint8_t kFactoryMapM1[30] = {
 };
 
 constexpr uint8_t kFactoryMapM2[24] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+    43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,
 };
 
 constexpr uint8_t kFactoryMapM3[24] = {
