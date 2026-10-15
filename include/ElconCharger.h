@@ -6,7 +6,7 @@
 // 250 kbit, extended IDs. Sticker "E5" is the CAN node ID, not voltage.
 // VoltBMSV2 chargercomms() Elcon TX uses the same 0x1806E5F4 layout.
 // Winding (HK-MF-108 vs 144 vs 72) is unread — protocol is identical; do not
-// hardcode a range. A 72/96 V box cannot finish 36S (~149 V at 4.15 V/cell).
+// hardcode a range. A 72/96 V box cannot finish 36S (~148 V at 4.10 V/cell).
 // A 312 V box will not start a drained 36S (~90 V at 2.5 V/cell).
 namespace ElconCharger {
 

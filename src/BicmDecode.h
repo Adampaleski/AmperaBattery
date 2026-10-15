@@ -23,6 +23,13 @@ float rangeVoltage(int first, int count);
 float minCellVoltage();
 float maxCellVoltage();
 
+// Charge gate inputs. true only if EVERY pack cell 1..PACK_S_CELLS has a
+// reading newer than kCellStaleMs and inside the valid window. Legacy
+// (non-K112, non-factory) decode always returns false.
+bool allCellsFresh();
+// true if any pack cell is stale/missing or outside kCellFaultMinV..MaxV.
+bool cellAlarmActive();
+
 #if FACTORY_BUS_DECODE
 // Factory-bus extras (src/BicmDecodeFactory.cpp, include/FactoryCellMap.h).
 enum class ChState : uint8_t { NotWired, NoData, Ok, Alarm };

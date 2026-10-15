@@ -64,11 +64,31 @@ constexpr float kBalanceMinVoltage  = 3.90f;
 constexpr float kBalanceHysteresis  = 0.04f;
 
 // Charge setpoints packed into Elcon 0x1806E5F4 (only TX when BMS_CAP_CHARGE_TX=1).
-// Demand is PACK_S_CELLS * cell V — not a charger winding. 36S * 4.15 V = 149.4 V.
+// Demand is PACK_S_CELLS * cell V — not a charger winding. 36S * 4.10 V = 147.6 V.
 // Do not charge a 24S sub-pack. A 72/96 V Elcon cannot finish 36S; a 312 V box
 // will not start a drained 36S.
-constexpr float    kChargeCellSetpointV   = 4.15f;
+constexpr float    kChargeCellSetpointV   = 4.10f;  // stop charge when ANY cell >= this
+constexpr float    kChargeFaultCellV      = 4.12f;  // latch charge fault (until reboot)
+constexpr uint32_t kCellStaleMs           = 3000;   // cell older than this = not fresh
 constexpr uint16_t kChargeCurrentDeciA    = 50;   // 5.0 A DC, 0.1 A units
+
+// Temperatures are NOT decoded/verified yet. Charge is refused unless this is 1.
+// Only set 1 after the 0x7E0+ temp byte layout is verified at the bench AND
+// temp limits are enforced in code.
+#ifndef TEMPS_VERIFIED
+#define TEMPS_VERIFIED 0
+#endif
+
+// Elcon/TC output window (compile-time sanity check on charge voltage).
+// ASSUMPTION: TC/Elcon 3.3 kW "144 V class" unit (e.g. HK-J/TCCH 144V),
+// usable output ~100-180 V. Model/winding still unread — override with
+// -D ELCON_MIN_V=... -D ELCON_MAX_V=... once the nameplate is read.
+#ifndef ELCON_MIN_V
+#define ELCON_MIN_V 100.0f
+#endif
+#ifndef ELCON_MAX_V
+#define ELCON_MAX_V 180.0f
+#endif
 
 // Contactor / precharge timing (coil drive gated by BMS_CAP_CONTACTOR_DRV).
 constexpr uint32_t kPrechargeMinMs        = 200;

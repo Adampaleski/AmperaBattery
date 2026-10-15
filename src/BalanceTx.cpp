@@ -5,6 +5,18 @@
 #include "CanBus.h"
 #include "Config.h"
 #include "K112BalanceMap.h"
+#if FACTORY_BUS_DECODE
+#include "FactoryCellMap.h"
+#endif
+
+// Balance is only possible with a verified bleed-bit map for the active decode.
+#if FACTORY_BUS_DECODE
+#define BALANCE_MAP_OK FACTORY_BALANCE_MAP_VERIFIED
+#elif K112_PACK_DECODE
+#define BALANCE_MAP_OK 1
+#else
+#define BALANCE_MAP_OK 0
+#endif
 
 namespace BalanceTx {
 
@@ -39,7 +51,7 @@ void begin() {
 int packFrames(uint8_t buf300[8], uint8_t buf310[5]) {
     k112ClearBalanceFrames(buf300, buf310);
 
-#if !K112_PACK_DECODE
+#if !K112_PACK_DECODE || !BALANCE_MAP_OK
     (void)buf300;
     (void)buf310;
     return 0;
@@ -119,8 +131,8 @@ void tick() {
 }
 
 void sendQueuedBeforeKeepAlive() {
-#if !BMS_CAP_BALANCE_TX
-    return;
+#if !BMS_CAP_BALANCE_TX || !BALANCE_MAP_OK
+    return;  // no verified map -> never put 0x300/0x310 on the bus
 #else
     uint8_t buf300[8];
     uint8_t buf310[5];
@@ -156,6 +168,10 @@ void printStatus() {
 #if !BMS_CAP_BALANCE_TX
     SERIALCONSOLE.println(
         F("*** BALANCE PRINT-ONLY  FLAG=0  DRIVE=OFF  CAN NOT fired ***"));
+#endif
+#if FACTORY_BUS_DECODE && !BALANCE_MAP_OK
+    SERIALCONSOLE.println(F("BALANCE OFF — no verified factory balance map (FACTORY_BALANCE_MAP_VERIFIED=0)"));
+    return;
 #endif
     SERIALCONSOLE.print(F("BALANCE map=K112-36S  FLAG="));
     SERIALCONSOLE.print(BMS_CAP_BALANCE_TX);

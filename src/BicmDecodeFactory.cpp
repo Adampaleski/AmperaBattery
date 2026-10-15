@@ -5,6 +5,7 @@
 
 #include "BicmDecode.h"
 #include "Config.h"
+#include <string.h>
 
 #if FACTORY_BUS_DECODE
 
@@ -16,7 +17,16 @@ namespace {
 
 constexpr float    kAlarmLowV  = 0.5f;
 constexpr float    kAlarmHighV = 4.3f;
-constexpr uint32_t kStaleMs    = 3000;
+constexpr uint32_t kStaleMs    = kCellStaleMs;  // 3 s, Config.h
+
+// Temperature frames 0x7E0..0x7EF: raw capture only, decode UNVERIFIED.
+struct TempFrame {
+    uint8_t  buf[8] = {};
+    uint8_t  len    = 0;
+    uint32_t lastMs = 0;
+    uint32_t count  = 0;
+};
+TempFrame g_temp[16];
 
 struct Channel {
     float    v       = 0.0f;
@@ -83,6 +93,14 @@ void begin() {
 }
 
 void onFrame(const CAN_message_t &msg) {
+    if (msg.id >= 0x7E0 && msg.id < 0x7F0) {
+        TempFrame &t = g_temp[msg.id - 0x7E0];
+        t.len = msg.len > 8 ? 8 : msg.len;
+        memcpy(t.buf, msg.buf, t.len);
+        t.lastMs = millis();
+        t.count++;
+        return;  // read-only: no limits, no effect on stability/charge
+    }
     for (int i = 0; i < kFactoryFrameCount; i++) {
         const FactoryFrameDef &f = kFactoryFrames[i];
         if (msg.id != f.id) continue;
@@ -188,6 +206,57 @@ int moduleCount() {
 }
 
 bool packStable() { return g_packStable; }
+
+bool allCellsFresh() {
+    if (FACTORY_PACK_CELLS < 1) return false;
+    for (int c = 1; c <= FACTORY_PACK_CELLS; c++)
+        if (channelState(g_cellMod[c], g_cellCh[c]) != ChState::Ok) return false;
+    return true;
+}
+
+bool cellAlarmActive() {
+    if (anyAlarm()) return true;
+    for (int c = 1; c <= FACTORY_PACK_CELLS; c++) {
+        const float v = cellVoltage(static_cast<uint8_t>(c));  // 0 if stale
+        if (v < kCellFaultMinV || v > kCellFaultMaxV) return true;
+    }
+    return false;
+}
+
+void printTemps() {
+    SERIALCONSOLE.println(F("  TEMPS 0x7E0-0x7EF  *** UNVERIFIED decode, no limits enforced, TEMPS_VERIFIED=0 ***"));
+    bool any = false;
+    for (int i = 0; i < 16; i++) {
+        const TempFrame &t = g_temp[i];
+        if (!t.count) continue;
+        any = true;
+        SERIALCONSOLE.print(F("    "));
+        SERIALCONSOLE.print(0x7E0 + i, HEX);
+        SERIALCONSOLE.print('#');
+        for (uint8_t b = 0; b < t.len; b++) {
+            if (t.buf[b] < 0x10) SERIALCONSOLE.print('0');
+            SERIALCONSOLE.print(t.buf[b], HEX);
+            if (b + 1 < t.len) SERIALCONSOLE.print('.');
+        }
+        SERIALCONSOLE.print(F("  n="));
+        SERIALCONSOLE.print(t.count);
+        SERIALCONSOLE.print(F(" age="));
+        SERIALCONSOLE.print(millis() - t.lastMs);
+        // Guess A: DBC 10-bit b0[1:0]:b1, 0.0556 C/LSB - 27.778
+        if (t.len >= 2) {
+            const uint16_t r = static_cast<uint16_t>(((t.buf[0] & 0x03) << 8) | t.buf[1]);
+            SERIALCONSOLE.print(F("  guessA(dbc)="));
+            SERIALCONSOLE.print(r * 0.0556f - 27.778f, 1);
+        }
+        // Guess B: Tom VoltBMSV2 BMSModule.cpp, b6:b7 * -0.0324 + 150
+        if (t.len >= 8) {
+            SERIALCONSOLE.print(F("C  guessB(tom)="));
+            SERIALCONSOLE.print(((t.buf[6] << 8) + t.buf[7]) * -0.0324f + 150.0f, 1);
+        }
+        SERIALCONSOLE.println(F("C  UNVERIFIED"));
+    }
+    if (!any) SERIALCONSOLE.println(F("    (no 0x7E0-0x7EF frames seen)"));
+}
 
 // 0 when unmapped, stale or out of range (callers treat 0 as "no value").
 float cellVoltage(uint8_t cell) {
@@ -295,6 +364,7 @@ void printDecodeDetails() {
 #else
     SERIALCONSOLE.println(F("  (map is not one series string: no pack total)"));
 #endif
+    printTemps();
     SERIALCONSOLE.println(F("  legend: - not wired   ! alarm (<0.5/>4.3 V or stale >3 s)   ?! wired, never seen"));
 }
 

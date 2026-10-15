@@ -6,6 +6,27 @@
 #include "ChargerCan.h"
 #include "Config.h"
 #include "ContactorSeq.h"
+#if FACTORY_BUS_DECODE
+#include "FactoryCellMap.h"
+#endif
+
+// Charger voltage basis = cells in ONE series string of the ACTIVE map,
+// never PACK_S_CELLS (which can span separate, unparalleled sections).
+// 0 = no single string defined -> charging is impossible (always refused).
+#if FACTORY_BUS_DECODE
+#define CHARGE_STRING_CELLS FACTORY_STRING_CELLS
+#elif K112_PACK_DECODE && (PACK_S_CELLS == 36)
+#define CHARGE_STRING_CELLS 36
+#else
+#define CHARGE_STRING_CELLS 0  // 24S/30S/48S/60S bench sub-packs, legacy: never charge
+#endif
+
+static_assert(CHARGE_STRING_CELLS == 0 ||
+                  (kChargeCellSetpointV * CHARGE_STRING_CELLS >= ELCON_MIN_V &&
+                   kChargeCellSetpointV * CHARGE_STRING_CELLS <= ELCON_MAX_V),
+              "charge voltage (4.10 V x string cells) outside ELCON_MIN_V..ELCON_MAX_V");
+static_assert(kChargeFaultCellV > kChargeCellSetpointV && kChargeFaultCellV < kCellFaultMaxV,
+              "charge fault threshold must sit between setpoint and cell OV fault");
 
 namespace ChargeTx {
 
@@ -15,6 +36,9 @@ bool g_request     = false;
 uint32_t g_lastTxMs = 0;
 uint32_t g_txOk     = 0;
 uint32_t g_txFail   = 0;
+bool     g_wasAllowed = false;
+bool     g_chargeFault = false;  // latched at any cell >= kChargeFaultCellV, cleared only by reboot
+const char *g_refuseWhy = "no request";
 
 uint8_t  g_st[8]    = {};
 uint8_t  g_stLen    = 0;
@@ -36,26 +60,61 @@ void printHexPayload(const uint8_t *buf, uint8_t len) {
     }
 }
 
+// Latch fault from any fresh cell >= kChargeFaultCellV. Runs every tick,
+// independent of flags/request, so it is armed even in print-only builds.
+void checkChargeFault() {
+    if (g_chargeFault) {
+        return;
+    }
+    const float mx = BicmDecode::maxCellVoltage();  // fresh cells only
+    if (mx >= kChargeFaultCellV) {
+        g_chargeFault = true;
+        SERIALCONSOLE.print(F("*** CHARGE FAULT LATCHED: cell "));
+        SERIALCONSOLE.print(mx, 3);
+        SERIALCONSOLE.println(F(" V >= 4.12 V — charge refused until reboot ***"));
+    }
+}
+
+// Default is REFUSE. Every condition must positively pass.
 bool chargeAllowed() {
+    if (CHARGE_STRING_CELLS == 0) {
+        g_refuseWhy = "no single series string in map (charge impossible)";
+        return false;
+    }
+    if (!TEMPS_VERIFIED) {
+        g_refuseWhy = "temps not verified (TEMPS_VERIFIED=0)";
+        return false;
+    }
+    if (g_chargeFault) {
+        g_refuseWhy = "charge fault latched (cell >= 4.12 V)";
+        return false;
+    }
     if (!g_request) {
+        g_refuseWhy = "no request";
         return false;
     }
     if (ContactorSeq::state() != ContactorSeq::State::Closed) {
+        g_refuseWhy = "contactors not closed";
         return false;
     }
-    if (BicmDecode::packStable()) {
-        const float mn = BicmDecode::minCellVoltage();
-        const float mx = BicmDecode::maxCellVoltage();
-        if (mn > 0.0f && mn < kCellFaultMinV) {
-            return false;
-        }
-        if (mx > kCellFaultMaxV) {
-            return false;
-        }
-        if (mx >= kChargeCellSetpointV) {
-            return false;
-        }
+    if (!BicmDecode::allCellsFresh()) {
+        g_refuseWhy = "cell data missing/stale (>3 s)";
+        return false;
     }
+    if (!BicmDecode::packStable()) {
+        g_refuseWhy = "pack not stable";
+        return false;
+    }
+    if (BicmDecode::cellAlarmActive()) {
+        g_refuseWhy = "cell alarm active";
+        return false;
+    }
+    const float mx = BicmDecode::maxCellVoltage();
+    if (mx <= 0.0f || mx >= kChargeCellSetpointV) {
+        g_refuseWhy = "a cell reached 4.10 V";
+        return false;
+    }
+    g_refuseWhy = "";
     return true;
 }
 
@@ -90,7 +149,7 @@ void begin() {
 void packControl(uint8_t buf[8], bool enable) {
     memset(buf, 0, ElconCharger::kCtlLen);
 
-    const float demand = kChargeCellSetpointV * static_cast<float>(PACK_S_CELLS);
+    const float demand = kChargeCellSetpointV * static_cast<float>(CHARGE_STRING_CELLS);
     const uint16_t volts = static_cast<uint16_t>(demand * 10.0f + 0.5f);
     buf[0] = static_cast<uint8_t>((volts >> 8) & 0xFF);
     buf[1] = static_cast<uint8_t>(volts & 0xFF);
@@ -99,6 +158,7 @@ void packControl(uint8_t buf[8], bool enable) {
     buf[2] = static_cast<uint8_t>((amps >> 8) & 0xFF);
     buf[3] = static_cast<uint8_t>(amps & 0xFF);
 
+    // Disabled = explicit stop: control byte 1, zero current (never silence).
     buf[4] = enable ? ElconCharger::kCtlCharge : ElconCharger::kCtlStop;
 }
 
@@ -112,15 +172,24 @@ void onFrame(const CAN_message_t &msg) {
 }
 
 void tick() {
-#if !BMS_CAP_CHARGE_TX || TELEMETRY_ONLY
-    return;
-#else
+    checkChargeFault();
+    const bool allow = chargeAllowed();
     const uint32_t now = millis();
-    if (now - g_lastTxMs < kChargerPeriodMs) {
+    // Allowed -> refused: send STOP immediately (don't wait for the 1 s slot).
+    const bool dropped = g_wasAllowed && !allow;
+    g_wasAllowed = allow;
+#if !BMS_CAP_CHARGE_TX || TELEMETRY_ONLY
+    if (dropped) {
+        SERIALCONSOLE.print(F("*** CHARGE PRINT-ONLY: WOULD-SEND Elcon STOP (ctl=1, 0 A)  reason="));
+        SERIALCONSOLE.println(g_refuseWhy);
+    }
+    (void)now;
+#else
+    if (!dropped && now - g_lastTxMs < kChargerPeriodMs) {
         return;
     }
     g_lastTxMs = now;
-    sendControl(chargeAllowed());
+    sendControl(allow);  // refused -> explicit stop frame every period
 #endif
 }
 
@@ -162,11 +231,22 @@ void printStatus() {
     SERIALCONSOLE.print(allow ? 1 : 0);
     SERIALCONSOLE.print(F("  contactors="));
     SERIALCONSOLE.println(ContactorSeq::stateName(ContactorSeq::state()));
+    SERIALCONSOLE.print(F("  string_cells="));
+    SERIALCONSOLE.print(CHARGE_STRING_CELLS);
+    SERIALCONSOLE.print(F("  temps_verified="));
+    SERIALCONSOLE.print(TEMPS_VERIFIED);
+    SERIALCONSOLE.print(F("  fault_latched="));
+    SERIALCONSOLE.print(g_chargeFault ? 1 : 0);
+    if (!allow) {
+        SERIALCONSOLE.print(F("  REFUSED: "));
+        SERIALCONSOLE.print(g_refuseWhy);
+    }
+    SERIALCONSOLE.println();
     SERIALCONSOLE.print(F("  WOULD-BE 0x1806E5F4#"));
     printHexPayload(buf, ElconCharger::kCtlLen);
     SERIALCONSOLE.println();
     SERIALCONSOLE.print(F("  demand "));
-    SERIALCONSOLE.print(kChargeCellSetpointV * static_cast<float>(PACK_S_CELLS), 1);
+    SERIALCONSOLE.print(kChargeCellSetpointV * static_cast<float>(CHARGE_STRING_CELLS), 1);
     SERIALCONSOLE.print(F("V / "));
     SERIALCONSOLE.print(kChargeCurrentDeciA / 10);
     SERIALCONSOLE.print(F("."));

@@ -38,6 +38,20 @@
 #define FACTORY_PACK_CELLS    54
 #define FACTORY_SERIES_STRING 0   // bench: M1 30S and M2 24S are SEPARATE sections, never paralleled
 
+// Cells in ONE series string (the charger voltage basis). 0 = no single
+// series string is defined -> charging is impossible (always refused).
+// Only meaningful with FACTORY_SERIES_STRING 1 (then it must equal
+// FACTORY_PACK_CELLS, e.g. 36).
+#if FACTORY_SERIES_STRING
+#define FACTORY_STRING_CELLS FACTORY_PACK_CELLS
+#else
+#define FACTORY_STRING_CELLS 0
+#endif
+
+// No bench-verified 0x300/0x310 bleed-bit map exists for factory-strapped
+// modules. Balance stays OFF on this build until one is verified.
+#define FACTORY_BALANCE_MAP_VERIFIED 0
+
 constexpr uint8_t kFactoryMapM1[30] = {
      1,  2,  3,  4,  5,  6,  7,  8,  9, 10,
     11, 12, 13, 14, 15, 16, 17, 18, 19, 20,

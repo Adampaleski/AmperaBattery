@@ -12,6 +12,7 @@
 #include "ContactorSeq.h"
 #include "KellyDecode.h"
 #include "HubStatus.h"
+#include "Watchdog.h"
 
 namespace {
 
@@ -117,6 +118,15 @@ void dispatchSerial() {
 }  // namespace
 
 void setup() {
+    // Coil FET gates LOW before anything else (latch LOW, then make output).
+    digitalWrite(Pins::PRECHARGE, LOW);
+    digitalWrite(Pins::MAIN_POS, LOW);
+    digitalWrite(Pins::MAIN_NEG, LOW);
+    pinMode(Pins::PRECHARGE, OUTPUT);
+    pinMode(Pins::MAIN_POS, OUTPUT);
+    pinMode(Pins::MAIN_NEG, OUTPUT);
+    Watchdog::captureResetCause();
+
     pinMode(Pins::LED, OUTPUT);
     digitalWrite(Pins::LED, HIGH);
 
@@ -125,6 +135,10 @@ void setup() {
 
     SERIALCONSOLE.println();
     SERIALCONSOLE.println(F("=== Ampera BICM Teensy 4.1 ==="));
+    SERIALCONSOLE.print(F("Last reset: "));
+    SERIALCONSOLE.print(Watchdog::lastResetWasWatchdog() ? F("*** WATCHDOG ***") : F("normal"));
+    SERIALCONSOLE.print(F("  SRC_SRSR=0x"));
+    SERIALCONSOLE.println(Watchdog::lastResetRaw(), HEX);
     SERIALCONSOLE.println(
         F("*** BUILD: MONITOR / DRY-RUN — FLAG=0  DRIVE=OFF  no live bleed/charge/coil ***"));
     SERIALCONSOLE.print(F("Pack: "));
@@ -209,9 +223,12 @@ void setup() {
     KellyDecode::begin();
     BmsApp::begin();
     HubStatus::begin();  // Serial4 after BmsApp so UART owns pins 16/17
+    Watchdog::begin(2000);
+    SERIALCONSOLE.println(F("Watchdog: WDOG3 ~2 s, fed from loop()"));
 }
 
 void loop() {
+    Watchdog::feed();  // ONLY feed point
     CanBus::tick();
     ChargerCan::tick();
     BicmSniffer::tick();

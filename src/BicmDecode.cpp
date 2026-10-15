@@ -15,7 +15,14 @@ constexpr int kMaxModules = 16;
 
 #if K112_PACK_DECODE
 
-float g_packCells[PACK_S_CELLS + 1] = {};
+float    g_packCells[PACK_S_CELLS + 1] = {};
+uint32_t g_cellMs[PACK_S_CELLS + 1]    = {};  // millis() of last good write
+
+// Fresh = valid voltage written within kCellStaleMs (matches factory decode).
+bool cellFresh(int c) {
+    const float v = g_packCells[c];
+    return v > 0.5f && v < 5.5f && (millis() - g_cellMs[c]) <= kCellStaleMs;
+}
 bool  g_idSeen[0x480 - 0x460] = {};
 
 struct StreamState {
@@ -86,6 +93,7 @@ void appendCellsFromFrame(StreamState &s, const CAN_message_t &msg) {
     for (uint8_t i = 0; i + 1 < msg.len && s.nextCell <= s.endCell; i += 2) {
         const float v = decodeCell(msg.buf[i], msg.buf[i + 1]);
         if (v > 0.5f && v < 5.5f) {
+            g_cellMs[s.nextCell] = millis();
             g_packCells[s.nextCell++] = v;
         }
     }
@@ -110,7 +118,7 @@ void markIdSeen(uint32_t id) {
 int countSecondBicmCells() {
     int n = 0;
     for (int c = 25; c <= PACK_S_CELLS && c <= 36; c++) {
-        if (g_packCells[c] > 0.5f && g_packCells[c] < 5.5f) {
+        if (cellFresh(c)) {
             n++;
         }
     }
@@ -131,6 +139,7 @@ void decodeSparseSecondBicm(const CAN_message_t &msg) {
             const float v = decodeCell(msg.buf[bi], msg.buf[bi + 1]);
             if (v > 0.5f && v < 5.5f) {
                 g_packCells[static_cast<uint8_t>(e.startCell + i)] = v;
+                g_cellMs[static_cast<uint8_t>(e.startCell + i)]    = millis();
             }
         }
         return;
@@ -183,7 +192,7 @@ void decodeK112Extended(const CAN_message_t &msg) {
 int countPackCells() {
     int n = 0;
     for (int c = 1; c <= PACK_S_CELLS; c++) {
-        if (g_packCells[c] > 0.5f && g_packCells[c] < 5.5f) {
+        if (cellFresh(c)) {
             n++;
         }
     }
@@ -193,7 +202,7 @@ int countPackCells() {
 int countStreamCells(const StreamState &s) {
     int n = 0;
     for (uint8_t c = s.startCell; c <= s.endCell; c++) {
-        if (g_packCells[c] > 0.5f && g_packCells[c] < 5.5f) {
+        if (cellFresh(c)) {
             n++;
         }
     }
@@ -437,7 +446,7 @@ float cellVoltage(uint8_t cell) {
         return 0.0f;
     }
 #if K112_PACK_DECODE
-    return g_packCells[cell];
+    return cellFresh(cell) ? g_packCells[cell] : 0.0f;
 #else
     const int per = kCellsPerMod;
     const int idx = static_cast<int>((cell - 1) / per) + 1;
@@ -647,6 +656,29 @@ void printDecodeDetails() {
         SERIALCONSOLE.println();
     }
 #endif
+}
+
+bool allCellsFresh() {
+#if K112_PACK_DECODE
+    for (int c = 1; c <= PACK_S_CELLS; c++) {
+        if (!cellFresh(c)) {
+            return false;
+        }
+    }
+    return true;
+#else
+    return false;  // legacy per-module decode: no per-cell freshness -> never charge
+#endif
+}
+
+bool cellAlarmActive() {
+    for (int c = 1; c <= PACK_S_CELLS; c++) {
+        const float v = cellVoltage(static_cast<uint8_t>(c));  // 0 if stale
+        if (v < kCellFaultMinV || v > kCellFaultMaxV) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void handleSerial(char c) {
