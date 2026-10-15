@@ -80,9 +80,11 @@ constexpr uint16_t kChargeCurrentDeciA    = 50;   // 5.0 A DC, 0.1 A units
 #endif
 
 // Elcon/TC output window (compile-time sanity check on charge voltage).
-// ASSUMPTION: TC/Elcon 3.3 kW "144 V class" unit (e.g. HK-J/TCCH 144V),
-// usable output ~100-180 V. Model/winding still unread — override with
-// -D ELCON_MIN_V=... -D ELCON_MAX_V=... once the nameplate is read.
+// ASSUMPTION (docs/ASSUMPTIONS.md): TC/Elcon 3.3 kW "144 V class" unit
+// (e.g. HK-J/TCCH 144V), usable output ~100-180 V. The nameplate/winding has
+// NOT been read. Override per env in platformio.ini build_flags, e.g.
+//   -D ELCON_MIN_V=100.0f -D ELCON_MAX_V=180.0f
+// 36S x 4.10 V = 147.6 V must fall inside this window or the build fails.
 #ifndef ELCON_MIN_V
 #define ELCON_MIN_V 100.0f
 #endif

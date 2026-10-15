@@ -38,6 +38,7 @@ Channel  g_ch[kFactoryModules + 1][kFactoryMaxCh + 1];
 uint32_t g_modLastMs[kFactoryModules + 1] = {};
 bool     g_modSeen[kFactoryModules + 1]   = {};
 uint16_t g_frameCount[kFactoryFrameCount] = {};
+uint32_t g_frameLastMs[kFactoryFrameCount] = {};
 
 // Pack cell → (module, ch). 0 = unmapped.
 uint8_t g_cellMod[FACTORY_PACK_CELLS + 1] = {};
@@ -106,6 +107,7 @@ void onFrame(const CAN_message_t &msg) {
         if (msg.id != f.id) continue;
         if (g_frameCount[i] < 0xFFFF) g_frameCount[i]++;
         const uint32_t now = millis();
+        g_frameLastMs[i] = now;
         g_modSeen[f.module]   = true;
         g_modLastMs[f.module] = now;
         for (uint8_t k = 0; k < f.count; k++) {
@@ -181,6 +183,55 @@ bool anyAlarm() {
     return false;
 }
 
+int moduleLive(uint8_t m) {
+    if (m < 1 || m > kFactoryModules) return 0;
+    int n = 0;
+    for (int ch = 1; ch <= kFactoryChannels[m]; ch++) {
+        const Channel &c = g_ch[m][ch];
+        if (fresh(c.lastMs, c.seen) && validV(c.v)) n++;
+    }
+    return n;
+}
+
+int moduleExpected(uint8_t m) {
+    if (m < 1 || m > kFactoryModules) return 0;
+    return factoryExpectedLive(m);
+}
+
+bool moduleLowLive(uint8_t m) {
+    const int e = moduleExpected(m);
+    return e > 0 && moduleLive(m) < e;
+}
+
+// Report-only. Names the frames that are missing/stale so the cause
+// (loose sense plug vs. dropped CAN frame) can be chased at the bench.
+void printLowLiveWarnings() {
+    for (uint8_t m = 1; m <= kFactoryModules; m++) {
+        if (!moduleLowLive(m)) continue;
+        SERIALCONSOLE.print(F("  M"));
+        SERIALCONSOLE.print(m);
+        SERIALCONSOLE.print(F(" LOW-LIVE: "));
+        SERIALCONSOLE.print(moduleLive(m));
+        SERIALCONSOLE.print('/');
+        SERIALCONSOLE.print(moduleExpected(m));
+        SERIALCONSOLE.print(F(" live cells expected; frames"));
+        int missing = 0;
+        for (int i = 0; i < kFactoryFrameCount; i++) {
+            if (kFactoryFrames[i].module != m) continue;
+            if (g_frameCount[i] && fresh(g_frameLastMs[i], true)) continue;
+            SERIALCONSOLE.print(' ');
+            SERIALCONSOLE.print(F("0x"));
+            SERIALCONSOLE.print(kFactoryFrames[i].id, HEX);
+            missing++;
+        }
+        if (missing) {
+            SERIALCONSOLE.println(F(" missing - check plug/CAN (report only)"));
+        } else {
+            SERIALCONSOLE.println(F(" all arriving but some cells out of range - check sense plug (report only)"));
+        }
+    }
+}
+
 bool cellPresent(uint8_t cell) {
     if (cell < 1 || cell > FACTORY_PACK_CELLS || !g_cellMod[cell]) return false;
     const Channel &c = g_ch[g_cellMod[cell]][g_cellCh[cell]];
@@ -221,6 +272,38 @@ bool cellAlarmActive() {
         if (v < kCellFaultMinV || v > kCellFaultMaxV) return true;
     }
     return false;
+}
+
+void printTempsJson(Print &out) {
+    out.print('[');
+    bool first = true;
+    for (int i = 0; i < 16; i++) {
+        const TempFrame &t = g_temp[i];
+        if (!t.count) continue;
+        if (!first) out.print(',');
+        first = false;
+        out.print(F("{\"id\":"));
+        out.print(0x7E0 + i);
+        out.print(F(",\"hex\":\""));
+        for (uint8_t b = 0; b < t.len; b++) {
+            if (t.buf[b] < 0x10) out.print('0');
+            out.print(t.buf[b], HEX);
+        }
+        out.print(F("\",\"ageMs\":"));
+        out.print(millis() - t.lastMs);
+        out.print(F(",\"guessA_C\":"));
+        if (t.len >= 2) {
+            const uint16_t r = static_cast<uint16_t>(((t.buf[0] & 0x03) << 8) | t.buf[1]);
+            out.print(r * 0.0556f - 27.778f, 1);
+        } else {
+            out.print(F("null"));
+        }
+        out.print(F(",\"guessB_C\":"));
+        if (t.len >= 8) out.print(((t.buf[6] << 8) + t.buf[7]) * -0.0324f + 150.0f, 1);
+        else out.print(F("null"));
+        out.print('}');
+    }
+    out.print(']');
 }
 
 void printTemps() {
@@ -326,6 +409,10 @@ void printDecodeDetails() {
         SERIALCONSOLE.print(kFactoryChannels[m]);
         SERIALCONSOLE.print(F("  ok="));
         SERIALCONSOLE.print(moduleOk(m));
+        SERIALCONSOLE.print(F("  live="));
+        SERIALCONSOLE.print(moduleLive(m));
+        SERIALCONSOLE.print('/');
+        SERIALCONSOLE.print(moduleExpected(m));
         SERIALCONSOLE.print(F("  V="));
         const float mv = moduleVoltage(m);
         if (w && mv > 0.0f) SERIALCONSOLE.print(mv, 2); else SERIALCONSOLE.print('-');
@@ -364,6 +451,7 @@ void printDecodeDetails() {
 #else
     SERIALCONSOLE.println(F("  (map is not one series string: no pack total)"));
 #endif
+    printLowLiveWarnings();
     printTemps();
     SERIALCONSOLE.println(F("  legend: - not wired   ! alarm (<0.5/>4.3 V or stale >3 s)   ?! wired, never seen"));
 }

@@ -25,9 +25,11 @@ namespace {
 uint32_t g_txOk   = 0;
 uint32_t g_txFail = 0;
 
+#if K112_PACK_DECODE && BALANCE_MAP_OK
 bool validCell(float v) {
     return v > 0.5f && v < 5.5f;
 }
+#endif
 
 void printHexPayload(const uint8_t *buf, uint8_t len) {
     for (uint8_t i = 0; i < len; i++) {

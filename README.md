@@ -50,7 +50,7 @@ pio run -e teensy41_bms -t upload
 | `g` | Toggle charge request (prints would-be Elcon `0x1806E5F4`) |
 | `y` | Kelly CAN2 RX status (frame counts + raw; unpack FLAG=0) |
 | `j` | Print one STATUS_SCHEMA v1 JSON frame on USB (Serial4 also emits ~1 Hz) |
-| `?` | Help |
+| `h` / `?` | Key summary page |
 
 Hub link: **Serial4** emits STATUS_SCHEMA v1 JSON @ 115200 (~1 Hz) for the teryx-ev-hub ESP32 gateway. USB stays quiet except boot note and optional `j`.
 
@@ -80,3 +80,8 @@ Scripts: `scripts/monitor.sh`, `scripts/bench_checklist.md`.
 ## Vehicle hub / install docs
 
 Tablet PWA, install wiring, and status schema v1 live in a separate repo: [`Adampaleski/teryx-ev-hub`](https://github.com/Adampaleski/teryx-ev-hub) (not merged into this firmware tree).
+
+## Factory-bus build and assumptions
+
+- **[`docs/FACTORY_BUS.md`](docs/FACTORY_BUS.md)**: the `teensy41_factory_bus` env, its map and flags, the LOW-LIVE diagnostic, the hub JSON additions and the bench checklist (watchdog stall, temp warm-brick, Elcon 1 A test).
+- **[`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md)**: everything assumed so far (Elcon range, M2 = 12S, temps unverified, 2 s watchdog, 3 s stale, 4.10/4.12 V, balance map unverified).

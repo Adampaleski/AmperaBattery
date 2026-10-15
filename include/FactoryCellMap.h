@@ -73,6 +73,32 @@ constexpr uint8_t kFactoryMapM4[18] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
+// Example: M2 used as ONE 12S group (Adam: module 2 block is 12S). Which 12
+// channels are live depends on which sense connector is plugged -- confirm
+// with `d` first. If it is ch1-12 (frames 0x464/0x474/0x465):
+//   constexpr uint8_t kFactoryMapM2[24] = {
+//       31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+//        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+//   };
+// (and set FACTORY_PACK_CELLS to 42 if M1 keeps all 30.)
+
+// Expected LIVE channels per module, for the report-only LOW-LIVE diagnostic.
+// -1 (default) = derive from the map (count of non-zero channels).
+// Override when a module is plugged but intentionally not mapped, e.g.
+//   -D FACTORY_EXPECT_LIVE_M2=12
+#ifndef FACTORY_EXPECT_LIVE_M1
+#define FACTORY_EXPECT_LIVE_M1 -1
+#endif
+#ifndef FACTORY_EXPECT_LIVE_M2
+#define FACTORY_EXPECT_LIVE_M2 -1
+#endif
+#ifndef FACTORY_EXPECT_LIVE_M3
+#define FACTORY_EXPECT_LIVE_M3 -1
+#endif
+#ifndef FACTORY_EXPECT_LIVE_M4
+#define FACTORY_EXPECT_LIVE_M4 -1
+#endif
+
 // ---- do not edit below: frame layout from Tom's candecode() ----------------
 
 constexpr int kFactoryModules   = 4;
@@ -103,6 +129,21 @@ constexpr const uint8_t *kFactoryMaps[kFactoryModules + 1] = {
     nullptr, kFactoryMapM1, kFactoryMapM2, kFactoryMapM3, kFactoryMapM4,
 };
 
+constexpr int kFactoryExpectOverride[kFactoryModules + 1] = {
+    0, FACTORY_EXPECT_LIVE_M1, FACTORY_EXPECT_LIVE_M2, FACTORY_EXPECT_LIVE_M3, FACTORY_EXPECT_LIVE_M4,
+};
+
+constexpr int factoryMappedCount(int m) {
+    int n = 0;
+    for (int c = 0; c < kFactoryChannels[m]; c++)
+        if (kFactoryMaps[m][c]) n++;
+    return n;
+}
+
+constexpr int factoryExpectedLive(int m) {
+    return kFactoryExpectOverride[m] >= 0 ? kFactoryExpectOverride[m] : factoryMappedCount(m);
+}
+
 namespace factory_map_check {
 constexpr int countCell(int cell) {
     int n = 0;
@@ -126,6 +167,9 @@ constexpr bool noneTooBig() {
 
 static_assert(factory_map_check::allOnce(),
               "FactoryCellMap: every pack cell 1..FACTORY_PACK_CELLS must map exactly once");
+static_assert(FACTORY_EXPECT_LIVE_M1 <= 30 && FACTORY_EXPECT_LIVE_M2 <= 24 &&
+                  FACTORY_EXPECT_LIVE_M3 <= 24 && FACTORY_EXPECT_LIVE_M4 <= 18,
+              "FACTORY_EXPECT_LIVE_Mn exceeds that module's channel count");
 static_assert(factory_map_check::noneTooBig(),
               "FactoryCellMap: a channel maps to a cell > FACTORY_PACK_CELLS");
 #if defined(PACK_S_CELLS)

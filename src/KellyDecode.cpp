@@ -14,6 +14,7 @@ void copyRaw(uint8_t dst[8], const CAN_message_t &msg) {
     }
 }
 
+#if BMS_CAP_KELLY_RX
 uint16_t rdU16LE(const uint8_t *p) {
     return static_cast<uint16_t>(p[0] | (static_cast<uint16_t>(p[1]) << 8));
 }
@@ -21,6 +22,7 @@ uint16_t rdU16LE(const uint8_t *p) {
 int16_t rdI16LE(const uint8_t *p) {
     return static_cast<int16_t>(rdU16LE(p));
 }
+#endif
 
 void unpackRpmFrame(const CAN_message_t &msg) {
     copyRaw(g_tel.lastRpmRaw, msg);

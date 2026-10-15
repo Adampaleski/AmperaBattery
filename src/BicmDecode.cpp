@@ -522,8 +522,11 @@ float maxCellVoltage() {
 
 
 #if K112_PACK_DECODE
-static void printCellRange(uint8_t from, uint8_t to) {
-    for (uint8_t c = from; c <= to; c++) {
+static void printCellRange(int from, int to) {
+    if (to > PACK_S_CELLS) {
+        to = PACK_S_CELLS;  // e.g. 30S bench build: no cells 31-36
+    }
+    for (int c = from; c <= to; c++) {
         SERIALCONSOLE.print(g_packCells[c], 3);
         SERIALCONSOLE.print(' ');
     }
@@ -679,6 +682,10 @@ bool cellAlarmActive() {
         }
     }
     return false;
+}
+
+void printTempsJson(Print &out) {
+    out.print(F("[]"));  // temps only captured on the factory-bus build
 }
 
 void handleSerial(char c) {

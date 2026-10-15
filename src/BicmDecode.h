@@ -43,7 +43,15 @@ bool    moduleAlarm(uint8_t module);
 bool    anyAlarm();
 bool    cellPresent(uint8_t cell);                  // pack cell is mapped + fresh data
 float   cellRawVoltage(uint8_t cell);               // last value even if out of range
+// Report-only LOW-LIVE diagnostic (never trips an alarm/fault).
+int     moduleLive(uint8_t module);      // channels with fresh, in-range data
+int     moduleExpected(uint8_t module);  // FACTORY_EXPECT_LIVE_Mn or mapped count
+bool    moduleLowLive(uint8_t module);   // expected > 0 && live < expected
+void    printLowLiveWarnings();          // one line per LOW-LIVE module
 #endif
+
+// Temperature frames as a JSON array (raw + UNVERIFIED guesses). "[]" if none.
+void printTempsJson(Print &out);
 
 void printDecodeDetails();
 void handleSerial(char c);

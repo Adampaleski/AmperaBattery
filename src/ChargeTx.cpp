@@ -24,7 +24,12 @@
 static_assert(CHARGE_STRING_CELLS == 0 ||
                   (kChargeCellSetpointV * CHARGE_STRING_CELLS >= ELCON_MIN_V &&
                    kChargeCellSetpointV * CHARGE_STRING_CELLS <= ELCON_MAX_V),
-              "charge voltage (4.10 V x string cells) outside ELCON_MIN_V..ELCON_MAX_V");
+              "\n\n*** CHARGE VOLTAGE OUT OF CHARGER RANGE ***\n"
+              "kChargeCellSetpointV x CHARGE_STRING_CELLS (e.g. 4.10 V x 36 = 147.6 V) is outside\n"
+              "ELCON_MIN_V..ELCON_MAX_V (default 100..180 V, an ASSUMED 144 V-class Elcon).\n"
+              "FIX: read the Elcon nameplate output range, then set\n"
+              "  -D ELCON_MIN_V=<min>f -D ELCON_MAX_V=<max>f  in platformio.ini build_flags,\n"
+              "or correct the string cell count in FactoryCellMap.h. Do NOT just widen the range.\n");
 static_assert(kChargeFaultCellV > kChargeCellSetpointV && kChargeFaultCellV < kCellFaultMaxV,
               "charge fault threshold must sit between setpoint and cell OV fault");
 
@@ -195,6 +200,14 @@ void tick() {
 
 void setChargeRequest(bool on) { g_request = on; }
 
+const char *refuseReason() {
+    return chargeAllowed() ? "" : g_refuseWhy;
+}
+
+int stringCells() { return CHARGE_STRING_CELLS; }
+
+bool faultLatched() { return g_chargeFault; }
+
 bool chargeRequested() { return g_request; }
 
 void toggleChargeRequest() {
@@ -205,6 +218,10 @@ void toggleChargeRequest() {
     SERIALCONSOLE.print(F("Charge-request latch (dry-run) "));
     SERIALCONSOLE.print(g_request ? F("ON") : F("OFF"));
     SERIALCONSOLE.println(F(" — would-be Elcon frame only; no TX"));
+    if (g_request && !chargeAllowed()) {
+        SERIALCONSOLE.print(F("Charge REFUSED: "));
+        SERIALCONSOLE.println(g_refuseWhy);
+    }
 #else
     SERIALCONSOLE.print(F("Charge request "));
     SERIALCONSOLE.println(g_request ? F("ON") : F("OFF"));

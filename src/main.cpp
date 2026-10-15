@@ -40,6 +40,23 @@ void onChargerFrame(const CAN_message_t &msg) {
     KellyDecode::onFrame(msg);  // listen-only; BMS_CAP_KELLY_RX gates unpack
 }
 
+void printHelp() {
+    SERIALCONSOLE.println(F("=== KEYS (single key, no Enter; click the terminal first) ==="));
+    SERIALCONSOLE.println(F("  d  cells per module, LOW-LIVE diagnostic, temps (UNVERIFIED)"));
+    SERIALCONSOLE.println(F("  s  CAN ID histogram          r  reset sniffer counters"));
+    SERIALCONSOLE.println(F("  c  toggle candump (every frame)"));
+    SERIALCONSOLE.println(F("  k  toggle 0x200 keep-alive (BICMs stop reporting without it)"));
+    SERIALCONSOLE.println(F("  b  balance status + would-be 0x300/0x310 (PRINT-ONLY)"));
+    SERIALCONSOLE.println(F("  e  toggle dead-man -> contactor sequence (PRINT-ONLY, coils stay LOW)"));
+    SERIALCONSOLE.println(F("  p  contactor state, wanted vs driven pins"));
+    SERIALCONSOLE.println(F("  g  toggle charge request; shows refusal reason + would-be Elcon frame"));
+    SERIALCONSOLE.println(F("  y  Kelly CAN2 RX counts/raw"));
+    SERIALCONSOLE.println(F("  j  one STATUS_SCHEMA v1 JSON line (hub format)"));
+    SERIALCONSOLE.println(F("  h/?  this page"));
+    SERIALCONSOLE.println(F("Auto report every 10 s. Watchdog ~2 s: a hung loop resets the Teensy."));
+    warnCapsCompileTime();
+}
+
 void runCommand(char c) {
     if (c >= 'A' && c <= 'Z') {
         c = static_cast<char>(c - 'A' + 'a');
@@ -90,21 +107,15 @@ void runCommand(char c) {
                 break;
             case '?':
             case 'h':
-                SERIALCONSOLE.println(
-                    F("Keys (no Enter): c=candump s=IDs d=cells b=balance k=keep-alive r=reset"));
-                SERIALCONSOLE.println(
-                    F("  e=dead-man(PRINT-ONLY)  p=contactors(PRINT-ONLY)  g=charge(PRINT-ONLY)"));
-                SERIALCONSOLE.println(
-                    F("  y=Kelly CAN2 RX (count/raw; unpack FLAG=0)  j=hub JSON once  ?=help"));
-                SERIALCONSOLE.println(
-                    F("Stats also print automatically every 10 seconds."));
-                warnCapsCompileTime();
+                printHelp();
                 break;
             default:
                 // Refuse mistaken "enable flag" / unknown attempts — caps are not runtime.
+                SERIALCONSOLE.print(F("Unknown key '"));
+                SERIALCONSOLE.print(c);
+                SERIALCONSOLE.println(F("' — ignored. Press h or ? for the key list."));
                 SERIALCONSOLE.println(
-                    F("Unknown key — refuse. Flags are compile-time; serial cannot enable TX/drive."));
-                warnCapsCompileTime();
+                    F("  (Flags are compile-time; no key can enable balance/charge/contactor output.)"));
                 break;
     }
 }

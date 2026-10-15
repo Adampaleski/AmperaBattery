@@ -4,6 +4,8 @@
 #include "BmsCapabilities.h"
 #include "Config.h"
 #include "ContactorSeq.h"
+#include "ChargeTx.h"
+#include "Watchdog.h"
 
 // Teensy 4.1 Serial4: RX pin 16, TX pin 17 @ 115200 8N1 → ESP32 UART2 hub.
 // Payload: one STATUS_SCHEMA v1 JSON object per line (teryx-ev-hub docs/STATUS_SCHEMA.md).
@@ -63,6 +65,12 @@ void printBms(Print &out) {
         out.print(BicmDecode::moduleOk(m));
         out.print(F(",\"alarm\":"));
         printBool(out, BicmDecode::moduleAlarm(m));
+        out.print(F(",\"live\":"));
+        out.print(BicmDecode::moduleLive(m));
+        out.print(F(",\"expected\":"));
+        out.print(BicmDecode::moduleExpected(m));
+        out.print(F(",\"lowLive\":"));
+        printBool(out, BicmDecode::moduleLowLive(m));  // report-only
         out.print('}');
     }
     out.print(F("],\"packA\":null,\"socPct\":null"));
@@ -90,7 +98,11 @@ void printBms(Print &out) {
     printBool(out, stable);
     out.print(F(",\"balancing\":false,\"balanceEnabled\":"));
     printBool(out, BMS_CAP_BALANCE_TX != 0);
-    out.print('}');
+    out.print(F(",\"temps\":{\"verified\":"));
+    printBool(out, TEMPS_VERIFIED != 0);
+    out.print(F(",\"raw\":"));
+    BicmDecode::printTempsJson(out);
+    out.print(F("}}"));
 }
 #else
 void printBms(Print &out) {
@@ -236,6 +248,13 @@ void printCharge(Print &out) {
     printBool(out, false);
     out.print(F(",\"faultText\":"));
     printNull(out);
+    const char *why = ChargeTx::refuseReason();
+    out.print(F(",\"refuseReason\":"));
+    if (why && why[0]) printQuoted(out, why); else printNull(out);
+    out.print(F(",\"stringCells\":"));
+    out.print(ChargeTx::stringCells());
+    out.print(F(",\"faultLatched\":"));
+    printBool(out, ChargeTx::faultLatched());
     out.print('}');
 }
 
@@ -311,6 +330,8 @@ void printFrame(Print &out) {
     out.print(uptimeSec);
     out.print(F(",\"uptimeSec\":"));
     out.print(uptimeSec);
+    out.print(F(",\"lastReset\":"));
+    printQuoted(out, Watchdog::lastResetWasWatchdog() ? "watchdog" : "normal");
     out.print(',');
 
     printBms(out);
