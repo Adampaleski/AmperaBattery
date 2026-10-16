@@ -6,7 +6,7 @@ still 0 and `TELEMETRY_ONLY=1`.
 
 | # | Assumption | Where | How to verify |
 |---|-----------|-------|---------------|
-| 1 | Elcon/TC charger is a 3.3 kW **144 V-class** unit, usable output **100–180 V** (`ELCON_MIN_V`/`ELCON_MAX_V`, overridable with `-D`). The build fails if 4.10 V × string cells falls outside that range. | `include/Config.h`, `src/ChargeTx.cpp` | Read the nameplate, then set the build flags. |
+| 1 | Charger is Elcon **HK-LF-144-46** (config CAN3865), nameplate output **100–202 V, 46 A DC** (confirmed from label 2026-10-15). Current request 5 A, guarded <= 8 A for a 120 V outlet. | `include/Config.h` | CAN3865 ID set still to be confirmed by sniffing before power-up. |
 | 2 | Elcon protocol: 0x1806E5F4, extended ID, 250 k, V/I ×0.1 big-endian, byte4 0 = charge / 1 = stop. The charger stops itself about 5 s after frames stop. Same layout as Tom's VoltBMSV2 `chargercomms()`. | `include/ElconCharger.h` | Test into a dummy load (checklist below). |
 | 3 | **Module 2 is a 12S block** (per Adam). Seeing only 8 live cells points to a dropped frame or a loose plug, not a 8S block. | `include/FactoryCellMap.h` | `d` LOW-LIVE line, reseat the plug, meter the taps. |
 | 4 | Factory frame layout (IDs 0x460–0x47E, channels per frame, 12-bit 1.25 mV/LSB) is taken from Tom de Bree's `candecode()`, with his `<<` precedence bug fixed. | `include/FactoryCellMap.h`, `src/BicmDecodeFactory.cpp` | Partly proven: M1 and M2 cells read sensibly. |

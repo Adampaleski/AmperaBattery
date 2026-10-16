@@ -26,7 +26,7 @@ static_assert(CHARGE_STRING_CELLS == 0 ||
                    kChargeCellSetpointV * CHARGE_STRING_CELLS <= ELCON_MAX_V),
               "\n\n*** CHARGE VOLTAGE OUT OF CHARGER RANGE ***\n"
               "kChargeCellSetpointV x CHARGE_STRING_CELLS (e.g. 4.10 V x 36 = 147.6 V) is outside\n"
-              "ELCON_MIN_V..ELCON_MAX_V (default 100..180 V, an ASSUMED 144 V-class Elcon).\n"
+              "ELCON_MIN_V..ELCON_MAX_V (default 100..202 V, an Elcon HK-LF-144-46 nameplate).\n"
               "FIX: read the Elcon nameplate output range, then set\n"
               "  -D ELCON_MIN_V=<min>f -D ELCON_MAX_V=<max>f  in platformio.ini build_flags,\n"
               "or correct the string cell count in FactoryCellMap.h. Do NOT just widen the range.\n");

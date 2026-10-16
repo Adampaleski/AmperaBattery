@@ -70,7 +70,12 @@ constexpr float kBalanceHysteresis  = 0.04f;
 constexpr float    kChargeCellSetpointV   = 4.10f;  // stop charge when ANY cell >= this
 constexpr float    kChargeFaultCellV      = 4.12f;  // latch charge fault (until reboot)
 constexpr uint32_t kCellStaleMs           = 3000;   // cell older than this = not fresh
-constexpr uint16_t kChargeCurrentDeciA    = 50;   // 5.0 A DC, 0.1 A units
+constexpr uint16_t kChargeCurrentDeciA    = 50;   // 5.0 A DC, 0.1 A units (keep <= ~8 A on a 120 V/15 A outlet)
+#ifndef ELCON_MAX_A
+#define ELCON_MAX_A 46.0f    // nameplate max output current
+#endif
+static_assert(kChargeCurrentDeciA <= (uint16_t)(ELCON_MAX_A * 10.0f), "charge current request exceeds Elcon nameplate max (ELCON_MAX_A)");
+static_assert(kChargeCurrentDeciA <= 80, "charge current > 8 A: only on a 240 V circuit sized for it; raise this guard deliberately");
 
 // Temperatures are NOT decoded/verified yet. Charge is refused unless this is 1.
 // Only set 1 after the 0x7E0+ temp byte layout is verified at the bench AND
@@ -89,7 +94,7 @@ constexpr uint16_t kChargeCurrentDeciA    = 50;   // 5.0 A DC, 0.1 A units
 #define ELCON_MIN_V 100.0f
 #endif
 #ifndef ELCON_MAX_V
-#define ELCON_MAX_V 180.0f
+#define ELCON_MAX_V 202.0f   // nameplate: Elcon HK-LF-144-46, CAN3865, 100-202 V / 46 A DC (2026-10-15)
 #endif
 
 // Contactor / precharge timing (coil drive gated by BMS_CAP_CONTACTOR_DRV).
