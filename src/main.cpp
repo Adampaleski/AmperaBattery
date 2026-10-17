@@ -13,6 +13,13 @@
 #include "KellyDecode.h"
 #include "HubStatus.h"
 #include "Watchdog.h"
+#include "Settings.h"
+#include "StringConfig.h"
+#if DUAL_STRING
+#include "Can1Bus.h"
+#include "Link.h"
+#include "StringMon.h"
+#endif
 
 namespace {
 
@@ -33,11 +40,23 @@ void warnCapsCompileTime() {
 void onCanFrame(const CAN_message_t &msg) {
     BicmSniffer::onFrame(msg);
     BicmDecode::onFrame(msg);
+#if DUAL_STRING
+    StringMon::onFrame(0, msg);  // CAN3 = string 1
+#endif
 }
+
+#if DUAL_STRING
+void onCan1Frame(const CAN_message_t &msg) {
+    StringMon::onFrame(1, msg);  // CAN1 = string 2
+}
+#endif
 
 void onChargerFrame(const CAN_message_t &msg) {
     ChargeTx::onFrame(msg);
     KellyDecode::onFrame(msg);  // listen-only; BMS_CAP_KELLY_RX gates unpack
+#if DUAL_STRING
+    Link::onFrame(msg);
+#endif
 }
 
 void printHelp() {
@@ -53,6 +72,10 @@ void printHelp() {
     SERIALCONSOLE.println(F("  y  Kelly CAN2 RX counts/raw"));
     SERIALCONSOLE.println(F("  j  one STATUS_SCHEMA v1 JSON line (hub format)"));
     SERIALCONSOLE.println(F("  h/?  this page"));
+    SERIALCONSOLE.println(F("=== SETTINGS (type, then Enter; saved to EEPROM) ==="));
+    SERIALCONSOLE.println(F("  V4.05  charge ceiling V/cell (3.90-4.15)   L3.30  low cutoff V/cell (3.00-3.50)"));
+    SERIALCONSOLE.println(F("  W10    balance deadband mV (2-50)          X      restore defaults"));
+    SERIALCONSOLE.println(F("  U145.0 SIMULATE HV bus volts for the dry-run precharge (U0 = off)"));
     SERIALCONSOLE.println(F("Auto report every 10 s. Watchdog ~2 s: a hung loop resets the Teensy."));
     warnCapsCompileTime();
 }
@@ -85,9 +108,17 @@ void runCommand(char c) {
                 break;
             case 'd':
                 BicmDecode::printDecodeDetails();
+#if DUAL_STRING
+                StringMon::print();
+                Link::print();
+                Can1Bus::printStatus();
+#endif
                 break;
             case 'b':
                 BalanceTx::printStatus();
+#if DUAL_STRING
+                StringMon::printBalancePlan();
+#endif
                 break;
             case 'e':
                 BmsApp::handleSerial();
@@ -120,9 +151,36 @@ void runCommand(char c) {
     }
 }
 
+// Uppercase V/L/W/X/U start a settings line (ended by Enter); every other key
+// is a single-key command as before.
+char     g_line[24];
+uint8_t  g_lineLen = 0;
+bool     g_inLine  = false;
+uint32_t g_lineMs  = 0;
+
 void dispatchSerial() {
     while (SERIALCONSOLE.available()) {
-        runCommand(static_cast<char>(SERIALCONSOLE.read()));
+        const char c = static_cast<char>(SERIALCONSOLE.read());
+        if (!g_inLine && (c == 'V' || c == 'L' || c == 'W' || c == 'X' || c == 'U')) {
+            g_inLine = true;
+            g_lineLen = 0;
+        }
+        if (g_inLine) {
+            g_lineMs = millis();
+            if (c == '\r' || c == '\n') {
+                g_line[g_lineLen] = 0;
+                g_inLine = false;
+                Settings::handleLine(g_line);
+            } else if (g_lineLen < sizeof(g_line) - 1) {
+                g_line[g_lineLen++] = c;
+            }
+            continue;
+        }
+        runCommand(c);
+    }
+    if (g_inLine && millis() - g_lineMs > 10000) {
+        g_inLine = false;
+        SERIALCONSOLE.println(F("Settings line timed out (press Enter after e.g. V4.05)"));
     }
 }
 
@@ -223,8 +281,28 @@ void setup() {
     SERIALCONSOLE.println(F("Keys: c s d b k r e p g y j ?  (no Enter — click terminal first)"));
     SERIALCONSOLE.println(F("b/e/p/g = PRINT-ONLY dry-runs. ID list + cells every 10 s."));
 
+    Settings::begin();  // prints ceiling / low cutoff / deadband from EEPROM
+#if DUAL_STRING
+    SERIALCONSOLE.print(F("DUAL-STRING 36S 4P  role="));
+    SERIALCONSOLE.println(ROLE_IS_A ? F("A (master: contactor SM, listens to B)") : F("B (reports to A, no contactors)"));
+    SERIALCONSOLE.println(F("  CAN3 30/31 @125k = string 1   CAN1 22/23 @125k = string 2   CAN2 0/1 @250k = Elcon+Kelly+link"));
+    SERIALCONSOLE.print(F("  string1 circuits=0x"));
+    SERIALCONSOLE.print(static_cast<uint32_t>(STRING1_CIRCUITS), HEX);
+    SERIALCONSOLE.print(F("  string2 circuits=0x"));
+    SERIALCONSOLE.print(static_cast<uint32_t>(STRING2_CIRCUITS), HEX);
+    SERIALCONSOLE.print(F("  each "));
+    SERIALCONSOLE.print(STRING_EXPECT_S);
+    SERIALCONSOLE.println(F("S  (bit n = circuit n, see StringConfig.h)"));
+    SERIALCONSOLE.println(F("  pins: PRE=12 MAIN+=11 MAIN-=21  OUT5=2 OUT6=3 (moved off 22/23)  B fault=4 (disabled)"));
+#endif
     CanBus::begin();
     CanBus::setFrameHandler(onCanFrame);
+#if DUAL_STRING
+    Can1Bus::begin();
+    Can1Bus::setFrameHandler(onCan1Frame);
+    StringMon::begin();
+    Link::begin();
+#endif
     ChargerCan::begin();
     ChargerCan::setFrameHandler(onChargerFrame);
     BicmSniffer::begin();
@@ -242,6 +320,11 @@ void loop() {
     Watchdog::feed();  // ONLY feed point
     CanBus::tick();
     ChargerCan::tick();
+#if DUAL_STRING
+    Can1Bus::tick();
+    StringMon::tick();
+    Link::tick();
+#endif
     BicmSniffer::tick();
     BicmDecode::tick();
     BalanceTx::tick();
@@ -257,6 +340,11 @@ void loop() {
         SERIALCONSOLE.println(F("--- auto report (10s) ---"));
         BicmSniffer::printIdStats();
         BicmDecode::printDecodeDetails();
+#if DUAL_STRING
+        StringMon::print();
+        Link::print();
+        StringMon::printBalancePlan();
+#endif
         BalanceTx::printStatus();
         ContactorSeq::printStatus();
         ChargeTx::printStatus();

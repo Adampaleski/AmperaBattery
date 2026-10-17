@@ -3,6 +3,12 @@
 #include "BicmDecode.h"
 #include "BmsCapabilities.h"
 #include "Config.h"
+#include "Settings.h"
+#include "StringConfig.h"
+#if DUAL_STRING
+#include "Link.h"
+#include "StringMon.h"
+#endif
 
 namespace ContactorSeq {
 
@@ -14,6 +20,33 @@ bool g_sawStablePack    = false;
 uint32_t g_stateMs      = 0;
 uint32_t g_lastPrintMs  = 0;
 const char *g_faultWhy  = "";
+uint8_t g_retries       = 0;
+
+#if DUAL_STRING
+uint32_t g_blockPrintMs = 0;
+uint8_t systemFaults() {
+    uint8_t f = (StringMon::summary(0).faults | StringMon::summary(1).faults) & StringMon::kFaultMask;
+#if ROLE_IS_A
+    f |= Link::remoteFaults();
+#endif
+    return f;
+}
+// Lowest string voltage across every string in the 4P bank (0 = unknown).
+float lowestStringV() {
+    float lo = 0.0f;
+    auto take = [&](const StringMon::Summary &s) {
+        if (s.cells != s.expected || s.v <= 0.0f) { lo = -1.0f; return; }
+        if (lo >= 0.0f && (lo == 0.0f || s.v < lo)) lo = s.v;
+    };
+    take(StringMon::summary(0));
+    take(StringMon::summary(1));
+#if ROLE_IS_A
+    take(Link::remote(0));
+    take(Link::remote(1));
+#endif
+    return lo > 0.0f ? lo : 0.0f;
+}
+#endif
 
 bool driveEnabled() {
 #if TELEMETRY_ONLY
@@ -113,9 +146,13 @@ void openAll(const char *why) {
 }
 
 void checkPackFaults() {
-    if (g_state == State::Open || g_state == State::Fault) {
+    if (g_state == State::Open || g_state == State::Fault || g_state == State::Lockout) {
         return;
     }
+#if DUAL_STRING
+    if (systemFaults()) enter(State::Fault, "string fault (see STRING/REMOTE lines)");
+    return;
+#endif
     if (!BicmDecode::packStable()) {
         if (g_sawStablePack) {
             enter(State::Fault, "pack lost");
@@ -177,7 +214,88 @@ void begin() {
     }
 }
 
+#if DUAL_STRING
+namespace {
+float busV() {
+    if (Settings::simBusV() > 0.0f) return Settings::simBusV();
+#if HV_ANALOG_ENABLE
+    return readHvBusV();
+#else
+    return 0.0f;  // no bus measurement: precharge can never pass (fails safe)
+#endif
+}
+
+void tickDual() {
+#if !ROLE_IS_A
+    // Role B never sequences contactors; A owns them. Stay open.
+    if (g_state != State::Open) enter(State::Open, "role B");
+    applyPins(outputsFor(State::Open));
+    return;
+#endif
+    if (!g_deadman && g_state != State::Open && g_state != State::Fault && g_state != State::Lockout) {
+        openAll("deadman");
+    }
+    checkPackFaults();
+    const uint32_t now = millis(), elapsed = now - g_stateMs;
+    switch (g_state) {
+        case State::Open:
+            if (!g_deadman) break;
+            if (systemFaults()) {
+                if (now - g_blockPrintMs >= 2000) {
+                    g_blockPrintMs = now;
+                    SERIALCONSOLE.print(F("CONTACTOR close blocked: faults "));
+                    StringMon::printFaults(systemFaults());
+                    SERIALCONSOLE.println();
+                }
+                break;
+            }
+            g_retries = 0;
+            enter(State::Precharge, "deadman");
+            break;
+        case State::Precharge: {
+            const float lo = lowestStringV(), hv = busV();
+            const bool gate = lo > 0.0f && hv >= lo * kPrechargeRatio;
+            if (elapsed >= kPcDualMinMs && gate) { enter(State::MainClose, "bus >= 95% lowest string"); break; }
+            if (elapsed >= kPcDualTimeoutMs) {
+                if (g_retries < kPcDualMaxRetries) { g_retries++; enter(State::RetryWait, "precharge timeout (3 s)"); }
+                else enter(State::Lockout, "precharge failed after 2 retries");
+                break;
+            }
+            if (now - g_lastPrintMs >= 500) {
+                g_lastPrintMs = now;
+                SERIALCONSOLE.print(F("CONTACTOR Precharge t="));
+                SERIALCONSOLE.print(elapsed);
+                SERIALCONSOLE.print(F("ms bus="));
+                SERIALCONSOLE.print(hv, 1);
+                SERIALCONSOLE.print(F("V need>="));
+                SERIALCONSOLE.print(lo * kPrechargeRatio, 1);
+                SERIALCONSOLE.print(F("V (95% of lowest string "));
+                SERIALCONSOLE.print(lo, 1);
+                SERIALCONSOLE.print(F("V) retry="));
+                SERIALCONSOLE.print(g_retries);
+                SERIALCONSOLE.println(F("  PRINT-ONLY"));
+            }
+            break;
+        }
+        case State::RetryWait:
+            if (elapsed >= kPcDualRetryWaitMs) enter(State::Precharge, "retry");
+            break;
+        case State::MainClose:
+            if (elapsed >= kPrechargeOverlapMs) enter(State::Closed, "mains in, precharge out");
+            break;
+        default:
+            break;
+    }
+    applyPins(outputsFor(g_state));
+}
+}  // namespace
+#endif
+
 void tick() {
+#if DUAL_STRING
+    tickDual();
+    return;
+#endif
     if (!g_deadman && g_state != State::Open && g_state != State::Fault) {
         openAll("deadman");
     }
@@ -237,6 +355,8 @@ void tick() {
             break;
 
         case State::Fault:
+        case State::RetryWait:
+        case State::Lockout:
             applyPins(outputsFor(State::Fault));
             break;
     }
@@ -247,7 +367,8 @@ void tick() {
 void setDeadman(bool on) {
     g_deadman = on;
     if (!on) {
-        if (g_state == State::Fault) {
+        g_retries = 0;
+        if (g_state == State::Fault || g_state == State::Lockout || g_state == State::RetryWait) {
             openAll("reset");
         } else if (g_state != State::Open) {
             openAll("deadman");
@@ -289,6 +410,10 @@ const char *stateName(State s) {
             return "Closed";
         case State::Fault:
             return "Fault";
+        case State::RetryWait:
+            return "RetryWait";
+        case State::Lockout:
+            return "Lockout";
         default:
             return "?";
     }
@@ -343,6 +468,13 @@ void printStatus() {
     SERIALCONSOLE.print(F("V  pack="));
     SERIALCONSOLE.print(BicmDecode::packVoltage(), 1);
     SERIALCONSOLE.println(F("V"));
+#elif DUAL_STRING
+    SERIALCONSOLE.print(F("  dual-string gate: bus>=95% lowest string ("));
+    SERIALCONSOLE.print(lowestStringV(), 1);
+    SERIALCONSOLE.print(F("V) & >=300ms, 3s timeout, retries "));
+    SERIALCONSOLE.print(g_retries);
+    SERIALCONSOLE.print(F("/2 @30s  bus_src="));
+    SERIALCONSOLE.println(Settings::simBusV() > 0.0f ? F("SIM (U cmd)") : F("none (HV_ANALOG_ENABLE=0) -> precharge will time out"));
 #else
     SERIALCONSOLE.println(F("  gate=timer 5s (HV_ANALOG_ENABLE=0)"));
 #endif

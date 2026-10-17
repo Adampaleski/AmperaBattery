@@ -6,6 +6,7 @@
 #include "ChargerCan.h"
 #include "Config.h"
 #include "ContactorSeq.h"
+#include "Settings.h"
 #if FACTORY_BUS_DECODE
 #include "FactoryCellMap.h"
 #endif
@@ -30,6 +31,10 @@ static_assert(CHARGE_STRING_CELLS == 0 ||
               "FIX: read the Elcon nameplate output range, then set\n"
               "  -D ELCON_MIN_V=<min>f -D ELCON_MAX_V=<max>f  in platformio.ini build_flags,\n"
               "or correct the string cell count in FactoryCellMap.h. Do NOT just widen the range.\n");
+static_assert(CHARGE_STRING_CELLS == 0 ||
+                  (Settings::kCeilMin * CHARGE_STRING_CELLS >= ELCON_MIN_V &&
+                   Settings::kCeilMax * CHARGE_STRING_CELLS <= ELCON_MAX_V),
+              "Settings ceiling bounds (3.90-4.15 V) x string cells fall outside the Elcon window");
 static_assert(kChargeFaultCellV > kChargeCellSetpointV && kChargeFaultCellV < kCellFaultMaxV,
               "charge fault threshold must sit between setpoint and cell OV fault");
 
@@ -72,11 +77,13 @@ void checkChargeFault() {
         return;
     }
     const float mx = BicmDecode::maxCellVoltage();  // fresh cells only
-    if (mx >= kChargeFaultCellV) {
+    if (mx >= Settings::chargeFaultV()) {
         g_chargeFault = true;
         SERIALCONSOLE.print(F("*** CHARGE FAULT LATCHED: cell "));
         SERIALCONSOLE.print(mx, 3);
-        SERIALCONSOLE.println(F(" V >= 4.12 V — charge refused until reboot ***"));
+        SERIALCONSOLE.print(F(" V >= "));
+        SERIALCONSOLE.print(Settings::chargeFaultV(), 2);
+        SERIALCONSOLE.println(F(" V — charge refused until reboot ***"));
     }
 }
 
@@ -91,7 +98,7 @@ bool chargeAllowed() {
         return false;
     }
     if (g_chargeFault) {
-        g_refuseWhy = "charge fault latched (cell >= 4.12 V)";
+        g_refuseWhy = "charge fault latched (cell >= ceiling+0.05 V)";
         return false;
     }
     if (!g_request) {
@@ -115,8 +122,8 @@ bool chargeAllowed() {
         return false;
     }
     const float mx = BicmDecode::maxCellVoltage();
-    if (mx <= 0.0f || mx >= kChargeCellSetpointV) {
-        g_refuseWhy = "a cell reached 4.10 V";
+    if (mx <= 0.0f || mx >= Settings::ceilingV()) {
+        g_refuseWhy = "a cell reached the charge ceiling (V setting)";
         return false;
     }
     g_refuseWhy = "";
@@ -154,7 +161,7 @@ void begin() {
 void packControl(uint8_t buf[8], bool enable) {
     memset(buf, 0, ElconCharger::kCtlLen);
 
-    const float demand = kChargeCellSetpointV * static_cast<float>(CHARGE_STRING_CELLS);
+    const float demand = Settings::ceilingV() * static_cast<float>(CHARGE_STRING_CELLS);
     const uint16_t volts = static_cast<uint16_t>(demand * 10.0f + 0.5f);
     buf[0] = static_cast<uint8_t>((volts >> 8) & 0xFF);
     buf[1] = static_cast<uint8_t>(volts & 0xFF);
@@ -263,7 +270,7 @@ void printStatus() {
     printHexPayload(buf, ElconCharger::kCtlLen);
     SERIALCONSOLE.println();
     SERIALCONSOLE.print(F("  demand "));
-    SERIALCONSOLE.print(kChargeCellSetpointV * static_cast<float>(CHARGE_STRING_CELLS), 1);
+    SERIALCONSOLE.print(Settings::ceilingV() * static_cast<float>(CHARGE_STRING_CELLS), 1);
     SERIALCONSOLE.print(F("V / "));
     SERIALCONSOLE.print(kChargeCurrentDeciA / 10);
     SERIALCONSOLE.print(F("."));

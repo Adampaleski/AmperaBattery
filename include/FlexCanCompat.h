@@ -41,3 +41,4 @@ private:
 using FlexCanCompat = FlexCanCompatT<CAN3>;
 extern FlexCanCompat Can0;
 extern FlexCanCompatT<CAN2> CanCharger;
+extern FlexCanCompatT<CAN1> CanString2;  // pins 22/23, string 2 BICMs (dual-string build)

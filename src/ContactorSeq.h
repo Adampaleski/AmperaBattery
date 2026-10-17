@@ -10,6 +10,8 @@ enum class State : uint8_t {
     MainClose,
     Closed,
     Fault,
+    RetryWait,  // dual-string: precharge timed out, waiting 30 s before retry
+    Lockout,    // dual-string: precharge failed after max retries; dead-man off to clear
 };
 
 struct Outputs {

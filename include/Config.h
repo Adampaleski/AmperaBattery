@@ -4,7 +4,8 @@
 
 #define SERIALCONSOLE Serial
 
-// CAN bus (BICM internal network on K16 X2) — CAN3 pins 30/31
+// CAN bus (BICM internal network on K16 X2) — CAN3 pins 30/31 (string 1).
+// Dual-string build: CAN1 pins 22/23 @125k = string 2 (same factory IDs, own bus).
 constexpr uint32_t kCanBitrate        = 125000;
 constexpr uint32_t kKeepAliveIntervalMs = 1000;
 constexpr uint32_t kCanRecoveryNoRxMs   = 12000;
@@ -103,6 +104,13 @@ constexpr uint32_t kPrechargeTimeMs       = 5000;
 constexpr uint32_t kPrechargeOverlapMs    = 100;
 constexpr float    kPrechargeRatio        = 0.95f;
 constexpr float    kPrechargeMinBusV      = 80.0f;
+// Dual-string precharge (Sparky, 2026-10-17): close main when HV bus >= 95% of
+// the LOWEST string voltage AND precharge has run >= 300 ms; not there within
+// 3 s -> fault; max 2 retries, 30 s apart, then lockout. Print-only state machine.
+constexpr uint32_t kPcDualMinMs       = 300;
+constexpr uint32_t kPcDualTimeoutMs   = 3000;
+constexpr uint32_t kPcDualRetryWaitMs = 30000;
+constexpr uint8_t  kPcDualMaxRetries  = 2;
 constexpr float    kCellFaultMinV         = 2.50f;
 constexpr float    kCellFaultMaxV         = 4.25f;
 constexpr float    kHvAdcVref             = 3.3f;
@@ -119,8 +127,15 @@ constexpr int OUT1 = 11;
 constexpr int OUT2 = 12;
 constexpr int OUT3 = 20;
 constexpr int OUT4 = 21;
-constexpr int OUT5 = 22;
-constexpr int OUT6 = 23;
+// OUT5/OUT6 moved off 22/23 (2026-10-17): pins 22/23 are now CAN1 TX/RX
+// (string 2 BICM bus @125k on the dual-string build). Nothing drives 22/23.
+constexpr int OUT5 = 2;   // was 22
+constexpr int OUT6 = 3;   // was 23
+// Role B optional hard-wired fault output (DISABLED unless B_FAULT_PIN_ENABLE=1).
+// Level: HIGH = healthy, LOW = fault (fail-safe: unpowered/broken wire = fault).
+constexpr int B_FAULT_OUT = 4;
+constexpr int CAN1_TX = 22;  // string 2 BICM bus (CAN1), SN65HVD230 #3
+constexpr int CAN1_RX = 23;
 constexpr int OUT7 = 5;
 constexpr int OUT8 = 6;
 
