@@ -1,0 +1,92 @@
+<!doctype html>
+<!-- Teryx cell viewer. Repo copy (tools/cells.html) of ~/teryx-cells/cells.html.
+     Reads the Teensy 'd' output either live (Web Serial, Chrome/Edge) or pasted.
+     Parses BOTH formats:
+       board view  : "  M4 18S present  12 cells reporting  V=43.80V" + circuit lines
+       string view : "STRING 1 (CAN3) 36S cells=36/36 V=... min=... max=... spread=..mV  OK 0x00"
+                     "  exp M1 30S c1-6 460/470 age=..ms gapmax=..ms reporting"
+                     "  cells: 3.650 3.651 ..."
+                     "REMOTE B STRING 1 cells=36 V=... min=... max=... hb=.. age=..ms  OK 0x00"
+     Read-only: it only reads the serial port (sends 'd' every 5 s when live). -->
+<html><head><meta charset="utf-8"><title>Teryx cells</title>
+<style>
+body{font:14px system-ui,sans-serif;background:#111;color:#ddd;margin:16px}
+h2{margin:18px 0 6px} .card{background:#1c1c1c;border-radius:8px;padding:10px;margin:8px 0}
+.ok{color:#5c5}.bad{color:#f55}.dim{color:#777}.cells{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.c{background:#2a2a2a;border-radius:4px;padding:3px 5px;min-width:52px;text-align:center;font-family:monospace}
+.c.lo{outline:2px solid #49f}.c.hi{outline:2px solid #fa3}.c.none{color:#555}
+textarea{width:100%;height:120px;background:#000;color:#9f9;font-family:monospace}
+button{padding:6px 12px;margin-right:6px}
+</style></head><body>
+<h1>Teryx cells</h1>
+<button id="conn">Connect Teensy (Web Serial)</button><button id="parse">Parse pasted text</button>
+<span id="stat" class="dim"></span>
+<textarea id="raw" placeholder="...or paste a 'd' dump here"></textarea>
+<div id="strings"></div><div id="boards"></div>
+<script>
+const $=id=>document.getElementById(id);
+const num=s=>s==null||s==='-'?null:parseFloat(s);
+
+function parse(text){
+  const lines=text.split(/\r?\n/); const out={strings:[],remote:[],boards:[],settings:''};
+  let curS=null,curB=null;
+  for(const L of lines){
+    let m;
+    if(m=L.match(/^STRINGS role=(\w)\s+(.*)$/)){out.role=m[1];out.settings=m[2];continue;}
+    if(m=L.match(/^STRING (\d) \((\w+)\) (\d+)S cells=(\d+)\/(\d+) V=(\S+) min=(\S+) max=(\S+) spread=(\S+?)(?:mV)?\s+(OK|FAULT) (.*)$/)){
+      curS={n:+m[1],bus:m[2],S:+m[3],cells:+m[4],exp:+m[5],v:num(m[6]),min:num(m[7]),max:num(m[8]),spread:num(m[9]),ok:m[10]==='OK',faults:m[11],circ:[],vals:[]};
+      out.strings.push(curS);curB=null;continue;}
+    if(curS&&(m=L.match(/^\s+(exp|xtra) (M\d \d+S) c(\d+)-(\d+) (\w+)\/(\w+) age=(\S+)ms gapmax=(\d+)ms (\S+)/))){
+      curS.circ.push({exp:m[1]==='exp',board:m[2],range:`c${m[3]}-${m[4]}`,ids:`${m[5]}/${m[6]}`,age:m[7],gap:+m[8],st:m[9]});continue;}
+    if(curS&&(m=L.match(/^\s+cells:(.*)$/))){curS.vals=m[1].trim().split(/\s+/).map(num);curS=null;continue;}
+    if(m=L.match(/^REMOTE B STRING (\d) cells=(\d+) V=(\S+) min=(\S+) max=(\S+) hb=(\d+) age=(\S+)ms\s+(OK|FAULT) (.*)$/)){
+      out.remote.push({n:+m[1],cells:+m[2],v:num(m[3]),min:num(m[4]),max:num(m[5]),hb:+m[6],age:m[7],ok:m[8]==='OK',faults:m[9]});continue;}
+    if(m=L.match(/^\s+M(\d) (\d+)S (present|ABSENT)\s+(\d+) cells reporting\s+V=(\S+?)V?(\s+ALARM)?$/)){
+      curB={m:+m[1],S:+m[2],present:m[3]==='present',n:+m[4],v:num(m[5]),alarm:!!m[6],circ:[]};out.boards.push(curB);curS=null;continue;}
+    if(curB&&(m=L.match(/^\s+c(\d+)-(\d+) \((\d)S\) (\w+)\/(\w+) n=(\d+)\/(\d+)\s+(\S+?)(?::\s*(.*?))?(?:\s+=\s+(\S+)V)?$/))){
+      const vals=m[9]?m[9].trim().split(/\s+/).map(x=>x.replace('!','')).map(x=>x==='?!'?null:num(x)):[];
+      curB.circ.push({range:`c${m[1]}-${m[2]}`,S:+m[3],ids:`${m[4]}/${m[5]}`,st:m[8],vals,sum:num(m[10])});continue;}
+  }
+  return out;
+}
+function cellsHtml(vals){
+  const v=vals.filter(x=>x!=null); const lo=Math.min(...v),hi=Math.max(...v);
+  return '<div class="cells">'+vals.map((x,i)=>x==null?`<span class="c none">${i+1}<br>-</span>`:
+    `<span class="c ${x===lo?'lo':''} ${x===hi?'hi':''}">${i+1}<br>${x.toFixed(3)}</span>`).join('')+'</div>';
+}
+function render(d){
+  let h='';
+  if(d.strings.length){
+    h+=`<h2>Strings ${d.role?'(Teensy '+d.role+')':''}</h2><div class="dim">${d.settings}</div>`;
+    for(const s of d.strings){
+      h+=`<div class="card"><b>String ${s.n}</b> (${s.bus}) ${s.cells}/${s.exp} cells &nbsp; V=${s.v??'-'} &nbsp; min=${s.min??'-'} max=${s.max??'-'} spread=${s.spread??'-'} mV
+       &nbsp; <span class="${s.ok?'ok':'bad'}">${s.ok?'OK':'FAULT'} ${s.faults}</span>
+       <div class="dim">${s.circ.map(c=>`${c.exp?'':'(extra) '}${c.board} ${c.range} ${c.ids}: <span class="${c.st==='reporting'?'ok':(c.exp?'bad':'dim')}">${c.st}</span> gap ${c.gap} ms`).join(' &middot; ')}</div>
+       ${cellsHtml(s.vals)}</div>`;}
+    for(const r of d.remote)
+      h+=`<div class="card"><b>Teensy B string ${r.n}</b> ${r.cells} cells V=${r.v} min=${r.min} max=${r.max} hb=${r.hb} age=${r.age} ms <span class="${r.ok?'ok':'bad'}">${r.ok?'OK':'FAULT'} ${r.faults}</span></div>`;
+  }
+  $('strings').innerHTML=h; h='';
+  if(d.boards.length){
+    h+='<h2>Boards (CAN3)</h2>';
+    for(const b of d.boards){
+      h+=`<div class="card"><b>M${b.m} ${b.S}S</b> ${b.present?'':'<span class="bad">ABSENT</span>'} ${b.n} cells reporting V=${b.v??'-'} ${b.alarm?'<span class="bad">ALARM</span>':''}`;
+      for(const c of b.circ) h+=`<div>${c.range} (${c.S}S) ${c.ids} <span class="${c.st==='reporting'?'ok':c.st.startsWith('silent(empty)')?'dim':'bad'}">${c.st}</span> ${c.sum!=null?'= '+c.sum+' V':''}${c.vals.length?cellsHtml(c.vals):''}</div>`;
+      h+='</div>';}
+  }
+  $('boards').innerHTML=h;
+}
+$('parse').onclick=()=>render(parse($('raw').value));
+let buf='';
+$('conn').onclick=async()=>{
+  if(!('serial' in navigator)){$('stat').textContent='Web Serial needs Chrome/Edge; paste instead.';return;}
+  const port=await navigator.serial.requestPort(); await port.open({baudRate:115200});
+  $('stat').textContent='connected';
+  const w=port.writable.getWriter(); setInterval(()=>w.write(new TextEncoder().encode('d')),5000);
+  const r=port.readable.pipeThrough(new TextDecoderStream()).getReader();
+  for(;;){const {value,done}=await r.read(); if(done)break; buf+=value;
+    const i=buf.lastIndexOf('legend:'); // board view ends with legend; strings follow
+    if(buf.length>60000) buf=buf.slice(-30000);
+    const last=buf.lastIndexOf('DECODE FACTORY-BUS'); if(last>=0) render(parse(buf.slice(last)));}
+};
+</script></body></html>
