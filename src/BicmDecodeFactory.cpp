@@ -66,11 +66,51 @@ uint8_t mapOf(uint8_t m, uint8_t ch) {
     return kFactoryMaps[m][ch - 1];
 }
 
+// ---- per-circuit status (circuit i = frames 2i and 2i+1) ----
+enum class CircState : uint8_t { Empty, Reporting, Partial, Lost };
+
+const FactoryFrameDef &circFrame(int i, int k) { return kFactoryFrames[2 * i + k]; }
+uint8_t circModule(int i)  { return circFrame(i, 0).module; }
+uint8_t circFirstCh(int i) { return circFrame(i, 0).firstCh; }
+uint8_t circCells(int i)   { return circFrame(i, 0).count + circFrame(i, 1).count; }
+
+bool frameFresh(int fi) { return g_frameCount[fi] && fresh(g_frameLastMs[fi], true); }
+
+CircState circState(int i) {
+    const bool everA = g_frameCount[2 * i] != 0, everB = g_frameCount[2 * i + 1] != 0;
+    if (!everA && !everB) return CircState::Empty;
+    const bool fa = frameFresh(2 * i), fb = frameFresh(2 * i + 1);
+    if (fa && fb) return CircState::Reporting;
+    if (fa || fb) return CircState::Partial;
+    return CircState::Lost;
+}
+
+// Circuit index for a (module, ch), -1 if none.
+int circOf(uint8_t m, uint8_t ch) {
+    for (int i = 0; i < kFactoryCircuitCount; i++)
+        if (circModule(i) == m && ch >= circFirstCh(i) && ch < circFirstCh(i) + circCells(i))
+            return i;
+    return -1;
+}
+
+const __FlashStringHelper *circName(CircState st) {
+    switch (st) {
+        case CircState::Reporting: return F("reporting");
+        case CircState::Partial:   return F("PARTIAL");
+        case CircState::Lost:      return F("SILENT-LOST");
+        default:                   return F("silent(empty)");
+    }
+}
+
 void updateStability() {
     bool ok = !anyAlarm();
+    int nOk = 0;
     for (int c = 1; c <= FACTORY_PACK_CELLS && ok; c++) {
-        if (channelState(g_cellMod[c], g_cellCh[c]) != ChState::Ok) ok = false;
+        const ChState st = channelState(g_cellMod[c], g_cellCh[c]);
+        if (st == ChState::Ok) nOk++;
+        else if (st != ChState::NoData && st != ChState::NotWired) ok = false;
     }
+    if (nOk == 0) ok = false;
     if (ok) {
         if (g_stableTicks < 255) g_stableTicks++;
     } else {
@@ -133,7 +173,8 @@ void tick() {
 ChState channelState(uint8_t m, uint8_t ch) {
     if (mapOf(m, ch) == 0) return ChState::NotWired;
     const Channel &c = g_ch[m][ch];
-    if (!fresh(c.lastMs, c.seen)) return ChState::Alarm;  // wired but stale/never
+    if (!c.seen) return ChState::NoData;                   // circuit never sent: empty, not alarm
+    if (!fresh(c.lastMs, c.seen)) return ChState::Alarm;  // sent before, now stale
     return validV(c.v) ? ChState::Ok : ChState::Alarm;
 }
 
@@ -162,12 +203,13 @@ int moduleOk(uint8_t m) {
     return n;
 }
 
+// Sum of the OK cells in this board's reporting circuits (whole circuits only).
+// 0 if any cell in a non-empty circuit is in alarm.
 float moduleVoltage(uint8_t m) {
-    const int w = moduleWired(m);
-    if (w == 0 || moduleOk(m) != w) return 0.0f;
+    if (m < 1 || m > kFactoryModules || moduleAlarm(m)) return 0.0f;
     float s = 0.0f;
     for (int ch = 1; ch <= kFactoryChannels[m]; ch++)
-        if (mapOf(m, ch)) s += g_ch[m][ch].v;
+        if (channelState(m, ch) == ChState::Ok) s += g_ch[m][ch].v;
     return s;
 }
 
@@ -195,7 +237,13 @@ int moduleLive(uint8_t m) {
 
 int moduleExpected(uint8_t m) {
     if (m < 1 || m > kFactoryModules) return 0;
-    return factoryExpectedLive(m);
+    if (kFactoryExpectOverride[m] >= 0) return kFactoryExpectOverride[m];
+    int n = 0;  // mapped channels in circuits that have ever sent a frame
+    for (int ch = 1; ch <= kFactoryChannels[m]; ch++) {
+        const int i = circOf(m, static_cast<uint8_t>(ch));
+        if (mapOf(m, ch) && i >= 0 && circState(i) != CircState::Empty) n++;
+    }
+    return n;
 }
 
 bool moduleLowLive(uint8_t m) {
@@ -210,7 +258,9 @@ void printLowLiveWarnings() {
         if (!moduleLowLive(m)) continue;
         SERIALCONSOLE.print(F("  M"));
         SERIALCONSOLE.print(m);
-        SERIALCONSOLE.print(F(" LOW-LIVE: "));
+        SERIALCONSOLE.print(' ');
+        SERIALCONSOLE.print(kFactorySeries[m]);
+        SERIALCONSOLE.print(F("S LOW-LIVE: "));
         SERIALCONSOLE.print(moduleLive(m));
         SERIALCONSOLE.print('/');
         SERIALCONSOLE.print(moduleExpected(m));
@@ -218,7 +268,7 @@ void printLowLiveWarnings() {
         int missing = 0;
         for (int i = 0; i < kFactoryFrameCount; i++) {
             if (kFactoryFrames[i].module != m) continue;
-            if (g_frameCount[i] && fresh(g_frameLastMs[i], true)) continue;
+            if (frameFresh(i) || !g_frameCount[i]) continue;  // never-sent = empty, not missing
             SERIALCONSOLE.print(' ');
             SERIALCONSOLE.print(F("0x"));
             SERIALCONSOLE.print(kFactoryFrames[i].id, HEX);
@@ -387,61 +437,67 @@ float maxCellVoltage() {
 
 void printDecodeDetails() {
     SERIALCONSOLE.println();
-    SERIALCONSOLE.print(F("DECODE FACTORY-BUS  modules_present="));
+    SERIALCONSOLE.print(F("DECODE FACTORY-BUS  boards_present="));
     SERIALCONSOLE.print(moduleCount());
     SERIALCONSOLE.print(F("/4  cells_ok="));
     SERIALCONSOLE.print(seriesCellCount());
-    SERIALCONSOLE.print(F("/"));
-    SERIALCONSOLE.print(FACTORY_PACK_CELLS);
     SERIALCONSOLE.print(F("  stable="));
     SERIALCONSOLE.print(g_packStable ? F("Y") : F("N"));
     SERIALCONSOLE.print(F("  ALARM="));
     SERIALCONSOLE.println(anyAlarm() ? F("YES") : F("no"));
 
     for (int m = 1; m <= kFactoryModules; m++) {
-        const int w = moduleWired(m);
+        int okCells = 0;
+        for (int ch = 1; ch <= kFactoryChannels[m]; ch++)
+            if (channelState(m, ch) == ChState::Ok) okCells++;
         SERIALCONSOLE.print(F("  M"));
         SERIALCONSOLE.print(m);
-        SERIALCONSOLE.print(modulePresent(m) ? F(" present") : F(" ABSENT "));
-        SERIALCONSOLE.print(F("  wired="));
-        SERIALCONSOLE.print(w);
-        SERIALCONSOLE.print(F("/"));
-        SERIALCONSOLE.print(kFactoryChannels[m]);
-        SERIALCONSOLE.print(F("  ok="));
-        SERIALCONSOLE.print(moduleOk(m));
-        SERIALCONSOLE.print(F("  live="));
-        SERIALCONSOLE.print(moduleLive(m));
-        SERIALCONSOLE.print('/');
-        SERIALCONSOLE.print(moduleExpected(m));
-        SERIALCONSOLE.print(F("  V="));
+        SERIALCONSOLE.print(' ');
+        SERIALCONSOLE.print(kFactorySeries[m]);
+        SERIALCONSOLE.print(modulePresent(m) ? F("S present  ") : F("S ABSENT   "));
+        SERIALCONSOLE.print(okCells);
+        SERIALCONSOLE.print(F(" cells reporting  V="));
         const float mv = moduleVoltage(m);
-        if (w && mv > 0.0f) SERIALCONSOLE.print(mv, 2); else SERIALCONSOLE.print('-');
+        if (mv > 0.0f) { SERIALCONSOLE.print(mv, 2); SERIALCONSOLE.print('V'); }
+        else SERIALCONSOLE.print('-');
         SERIALCONSOLE.println(moduleAlarm(m) ? F("  ALARM") : F(""));
-        SERIALCONSOLE.print(F("     frames:"));
-        for (int i = 0; i < kFactoryFrameCount; i++) {
-            if (kFactoryFrames[i].module != m) continue;
-            SERIALCONSOLE.print(F(" "));
-            SERIALCONSOLE.print(kFactoryFrames[i].id, HEX);
-            SERIALCONSOLE.print('=');
-            SERIALCONSOLE.print(g_frameCount[i]);
-        }
-        SERIALCONSOLE.println();
-        if (!modulePresent(m) && w == 0) continue;
-        SERIALCONSOLE.print(F("     ch:"));
-        for (int ch = 1; ch <= kFactoryChannels[m]; ch++) {
-            SERIALCONSOLE.print(' ');
-            const ChState st = channelState(m, ch);
-            if (st == ChState::NotWired) {
-                SERIALCONSOLE.print('-');
-            } else if (!g_ch[m][ch].seen) {
-                SERIALCONSOLE.print(F("?!"));
-            } else {
-                SERIALCONSOLE.print(g_ch[m][ch].v, 3);
-                if (st == ChState::Alarm) SERIALCONSOLE.print('!');
+
+        for (int i = 0; i < kFactoryCircuitCount; i++) {
+            if (circModule(i) != m) continue;
+            const CircState st = circState(i);
+            const uint8_t first = circFirstCh(i), n = circCells(i);
+            SERIALCONSOLE.print(F("     c"));
+            SERIALCONSOLE.print(first);
+            SERIALCONSOLE.print('-');
+            SERIALCONSOLE.print(first + n - 1);
+            SERIALCONSOLE.print(F(" ("));
+            SERIALCONSOLE.print(n);
+            SERIALCONSOLE.print(F("S) "));
+            SERIALCONSOLE.print(circFrame(i, 0).id, HEX);
+            SERIALCONSOLE.print('/');
+            SERIALCONSOLE.print(circFrame(i, 1).id, HEX);
+            SERIALCONSOLE.print(F(" n="));
+            SERIALCONSOLE.print(g_frameCount[2 * i]);
+            SERIALCONSOLE.print('/');
+            SERIALCONSOLE.print(g_frameCount[2 * i + 1]);
+            SERIALCONSOLE.print(F("  "));
+            SERIALCONSOLE.print(circName(st));
+            if (st != CircState::Empty) {
+                SERIALCONSOLE.print(':');
+                float sum = 0.0f; bool all = true;
+                for (uint8_t ch = first; ch < first + n; ch++) {
+                    SERIALCONSOLE.print(' ');
+                    const ChState cs = channelState(m, ch);
+                    if (cs == ChState::NotWired) { SERIALCONSOLE.print('-'); all = false; continue; }
+                    if (!g_ch[m][ch].seen)       { SERIALCONSOLE.print(F("?!")); all = false; continue; }
+                    SERIALCONSOLE.print(g_ch[m][ch].v, 3);
+                    if (cs == ChState::Alarm) { SERIALCONSOLE.print('!'); all = false; }
+                    else sum += g_ch[m][ch].v;
+                }
+                if (all) { SERIALCONSOLE.print(F("  = ")); SERIALCONSOLE.print(sum, 2); SERIALCONSOLE.print('V'); }
             }
-            if (ch % 10 == 0 && ch < kFactoryChannels[m]) SERIALCONSOLE.print(F("\n        "));
+            SERIALCONSOLE.println();
         }
-        SERIALCONSOLE.println();
     }
 #if FACTORY_SERIES_STRING
     SERIALCONSOLE.print(F("  series string total: "));
@@ -449,11 +505,11 @@ void printDecodeDetails() {
     if (pv > 0.0f) { SERIALCONSOLE.print(pv, 2); SERIALCONSOLE.println(F("V")); }
     else SERIALCONSOLE.println(F("- (not all cells OK)"));
 #else
-    SERIALCONSOLE.println(F("  (map is not one series string: no pack total)"));
+    SERIALCONSOLE.println(F("  (boards are separate strings: no pack total; charge refused)"));
 #endif
     printLowLiveWarnings();
     printTemps();
-    SERIALCONSOLE.println(F("  legend: - not wired   ! alarm (<0.5/>4.3 V or stale >3 s)   ?! wired, never seen"));
+    SERIALCONSOLE.println(F("  legend: silent(empty) = never sent, no alarm   SILENT-LOST/PARTIAL/! = alarm (stale >3 s or <0.5/>4.3 V)"));
 }
 
 void handleSerial(char c) {

@@ -25,9 +25,14 @@
 //   * Unplug unused sense groups as whole connectors (6/12-cell group), not taps.
 //   * Meter every tap against this table before plugging a BICM in.
 //
-// DEFAULT (placeholder until Adam locks 30S vs 36S):
-//   module 1: all 30 channels wired -> pack cells 1-30
-//   modules 2/3/4: unwired.
+// DEFAULT (bench discovery map, Oct 17 2026): EVERY channel on every board is
+// mapped so any circuit that sends frames is decoded and shown.
+//   M1 30S -> cells  1-30   M2 24S -> cells 31-54
+//   M3 24S -> cells 55-78   M4 18S -> cells 79-96
+// Pack-cell numbers here are display slots only: the boards are SEPARATE
+// strings (FACTORY_SERIES_STRING 0), so there is no pack total and charging
+// stays refused. A circuit that never sent a frame is shown as 'empty' (not
+// an alarm); one that sent frames and then stopped is an alarm.
 // Example 36S (30 + 6 on module 4's 6-cell group, per Sparky): set
 //   FACTORY_PACK_CELLS 36, FACTORY_SERIES_STRING 1, and in kFactoryMapM4 put
 //   31..36 on whichever six channels the 6-cell group lands on (bench-verify!).
@@ -35,7 +40,7 @@
 
 #include <stdint.h>
 
-#define FACTORY_PACK_CELLS    54
+#define FACTORY_PACK_CELLS    96
 #define FACTORY_SERIES_STRING 0   // bench: M1 30S and M2 24S are SEPARATE sections, never paralleled
 
 // Cells in ONE series string (the charger voltage basis). 0 = no single
@@ -64,13 +69,13 @@ constexpr uint8_t kFactoryMapM2[24] = {
 };
 
 constexpr uint8_t kFactoryMapM3[24] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66,
+    67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78,
 };
 
 constexpr uint8_t kFactoryMapM4[18] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
+    79, 80, 81, 82, 83, 84, 85, 86, 87,
+    88, 89, 90, 91, 92, 93, 94, 95, 96,
 };
 
 // Example: M2 used as ONE 12S group (Adam: module 2 block is 12S). Which 12
@@ -83,7 +88,8 @@ constexpr uint8_t kFactoryMapM4[18] = {
 // (and set FACTORY_PACK_CELLS to 42 if M1 keeps all 30.)
 
 // Expected LIVE channels per module, for the report-only LOW-LIVE diagnostic.
-// -1 (default) = derive from the map (count of non-zero channels).
+// -1 (default) = mapped channels in circuits that have sent at least one frame
+// (empty circuits are not expected). Override to force a count.
 // Override when a module is plugged but intentionally not mapped, e.g.
 //   -D FACTORY_EXPECT_LIVE_M2=12
 #ifndef FACTORY_EXPECT_LIVE_M1
@@ -124,6 +130,13 @@ constexpr FactoryFrameDef kFactoryFrames[] = {
 constexpr int kFactoryFrameCount = sizeof(kFactoryFrames) / sizeof(kFactoryFrames[0]);
 
 constexpr uint8_t kFactoryChannels[kFactoryModules + 1] = {0, 30, 24, 24, 18};
+constexpr uint8_t kFactorySeries[kFactoryModules + 1]   = {0, 30, 24, 24, 18};  // label 'M4 18S'
+
+// Isolated sense circuits (one L9763 each). A circuit = one 0x46x/0x47x frame
+// pair = kFactoryFrames[2*i] and [2*i+1]. 6-cell circuits are 3+3, 8-cell 4+4.
+//   M1 30S 6/8/8/8   M2 24S 8/8/8   M3 24S 8/8/8   M4 18S 6/6/6
+constexpr int kFactoryCircuitCount = kFactoryFrameCount / 2;  // 13
+static_assert(kFactoryFrameCount % 2 == 0, "frames must come in 0x46x/0x47x pairs");
 
 constexpr const uint8_t *kFactoryMaps[kFactoryModules + 1] = {
     nullptr, kFactoryMapM1, kFactoryMapM2, kFactoryMapM3, kFactoryMapM4,
