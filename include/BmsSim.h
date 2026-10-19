@@ -179,7 +179,7 @@ Result scenario(const char *name, const char *expect, uint32_t limitMs, bool cha
     return r;
 }
 
-constexpr int kScenarios = 13;
+constexpr int kScenarios = 14;
 
 inline int runAll(Result out[kScenarios]) {
     using namespace BmsCore;
@@ -246,6 +246,24 @@ inline int runAll(Result out[kScenarios]) {
     out[n++] = scenario("welded contactor (bus live after open)", "WELDED + charger off <= 2.5 s", 2500, true,
         [](World &w) { w.welded = true; w.keyOn = false; w.chargeReq = false; },
         [](World &w) { return (w.core.out().latched & F_WELDED) && !w.core.out().chargeEnable && w.allOpen(); });
+    // Sensor cross-check (sim only): 500 A discharge, DHAB mounted discharge -> -420 A side.
+    // DHAB ch2 clamps (~455 A, saturation 450-490 A unverified); ISA IVT-S 1000 A model reads true.
+    {
+        Result r{"DHAB saturates >450 A, IVT-S reads true", "DHAB invalid/off >10%, IVT within 1%", 0, -1, false, ""};
+        CurrentCal c; c.off2Frac = 3.0f / 5.0f; c.invert = true;  // discharge reads negative on the sensor
+        const float trueA = 500.0f;
+        float a1, a2, vs; dhabPinVolts(c, trueA, 5.0f, a1, a2, vs);
+        bool ok = false; const float dh = dhabAmps(c, a1, a2, vs, &ok);
+        float ivt = trueA; if (ivt > 1000) ivt = 1000; if (ivt < -1000) ivt = -1000;  // IVT-S +-1000 A
+        const bool dhBad = !ok || (dh - trueA > 50 || trueA - dh > 50);
+        const bool ivtOk = (ivt - trueA < 5 && trueA - ivt < 5);
+        float b1, b2, bv; bool ok2 = false; dhabPinVolts(c, 300.0f, 5.0f, b1, b2, bv);
+        const float dh300 = dhabAmps(c, b1, b2, bv, &ok2);  // in range: should agree
+        const bool agree300 = ok2 && dh300 - 300 < 10 && 300 - dh300 < 10;
+        r.pass = dhBad && ivtOk && agree300; r.gotMs = 0;
+        snprintf(r.note, sizeof r.note, "500A: DHAB %s %.0f A, IVT %.0f A; 300A: DHAB %.0f A", ok ? "ok" : "SAT", dh, ivt, dh300);
+        out[n++] = r;
+    }
     return n;
 }
 

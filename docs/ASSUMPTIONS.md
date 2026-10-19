@@ -19,3 +19,8 @@ still 0 and `TELEMETRY_ONLY=1`.
 | 11 | Precharge is a 5 s timer only (`HV_ANALOG_ENABLE=0`), the same as Tom's. Not acceptable for live use. | `src/ContactorSeq.cpp` | Use the HV divider and voltage-based gate. |
 | 12 | Kelly KLS layout is little-endian (RPM, current, battery V, error); it's listen-only. | `src/KellyDecode.cpp` | Compare with the Kelly PC software. |
 | 13 | No current sensor and no SOC. `packA` and `socPct` stay null. | — | Hardware still to come. |
+
+## Current sensing (2026-10-19)
+- Kelly peak discharge assumed 550 A in the simulator.
+- Main sensor: ISA IVT-S 1000 A (IVT-S-1K-U3-I-CAN1-12/24), ±1000 A, CAN (ships at 500 kbps vs CAN2 250k, may need its own bus). Not owned.
+- LEM DHAB S/44 (pins 1 +5V, 2 GND, 3 high out, 4 low out; Vero BMS manual): cross-check and low current only. Saturates ~450–490 A (unverified).
