@@ -7,6 +7,10 @@
 #include "Config.h"
 #include "ContactorSeq.h"
 #include "Settings.h"
+#include "StringConfig.h"
+#if DUAL_STRING
+#include "BmsCore.h"
+#endif
 #if FACTORY_BUS_DECODE
 #include "FactoryCellMap.h"
 #endif
@@ -14,7 +18,9 @@
 // Charger voltage basis = cells in ONE series string of the ACTIVE map,
 // never PACK_S_CELLS (which can span separate, unparalleled sections).
 // 0 = no single string defined -> charging is impossible (always refused).
-#if FACTORY_BUS_DECODE
+#if DUAL_STRING
+#define CHARGE_STRING_CELLS STRING_EXPECT_S  // one 42S string (24S+18S); strings are paralleled
+#elif FACTORY_BUS_DECODE
 #define CHARGE_STRING_CELLS FACTORY_STRING_CELLS
 #elif K112_PACK_DECODE && (PACK_S_CELLS == 36)
 #define CHARGE_STRING_CELLS 36
@@ -89,6 +95,23 @@ void checkChargeFault() {
 
 // Default is REFUSE. Every condition must positively pass.
 bool chargeAllowed() {
+#if DUAL_STRING
+#if ROLE_IS_A
+    // BmsCore decides (ContactorSeq steps it): faults, temps (TEMPS_VERIFIED),
+    // contactors Closed, limit %, taper. Adapted from Tom VoltBMSV2.ino
+    // currentlimit() 2591-2672 (hard zeros + linear taper to chargecurrentend).
+    const BmsCore::Outputs &o = ContactorSeq::coreOut();
+    if (o.chargeEnable) { g_refuseWhy = ""; return true; }
+    if (o.chargeWhy && o.chargeWhy[0] && strcmp(o.chargeWhy, "fault") != 0) { g_refuseWhy = o.chargeWhy; return false; }
+    const uint32_t f = (o.faults | o.latched) & BmsCore::kChargeFaults;
+    g_refuseWhy = "fault";
+    for (int b = 0; b < 13; b++) if (f & (1u << b)) { g_refuseWhy = BmsCore::faultName(1u << b); break; }
+    return false;
+#else
+    g_refuseWhy = "role B: Teensy A owns the charger";
+    return false;
+#endif
+#endif
     if (CHARGE_STRING_CELLS == 0) {
         g_refuseWhy = "no single series string in map (charge impossible)";
         return false;
@@ -166,7 +189,12 @@ void packControl(uint8_t buf[8], bool enable) {
     buf[0] = static_cast<uint8_t>((volts >> 8) & 0xFF);
     buf[1] = static_cast<uint8_t>(volts & 0xFF);
 
+#if DUAL_STRING && ROLE_IS_A
+    const float coreA = ContactorSeq::coreOut().chargeA;  // tapered (BmsCore)
+    const uint16_t amps = enable ? static_cast<uint16_t>(coreA * 10.0f + 0.5f) : 0;
+#else
     const uint16_t amps = enable ? kChargeCurrentDeciA : 0;
+#endif
     buf[2] = static_cast<uint8_t>((amps >> 8) & 0xFF);
     buf[3] = static_cast<uint8_t>(amps & 0xFF);
 
@@ -276,7 +304,11 @@ void printStatus() {
     SERIALCONSOLE.print(F("."));
     SERIALCONSOLE.print(kChargeCurrentDeciA % 10);
     SERIALCONSOLE.println(F("A  (Elcon V/I 0.1 BE, ctl 0=charge 1=stop)"));
-    SERIALCONSOLE.println(F("  winding unread — 72/96 V box cannot finish 36S; 312 V will not start drained 36S"));
+    SERIALCONSOLE.print(F("  limit "));
+    SERIALCONSOLE.print(Settings::chargePct());
+    SERIALCONSOLE.print(F("% -> "));
+    SERIALCONSOLE.print(Settings::ceilingV(), 3);
+    SERIALCONSOLE.println(F(" V/cell (P setting; 42S clamped to KELLY_MAX_V/42). Elcon HK-LF-144-46 100-202 V"));
 #if !BMS_CAP_CHARGE_TX
     SERIALCONSOLE.println(
         F("  PRINT-ONLY — frame above is NOT written to CAN2 (BMS_CAP_CHARGE_TX=0)"));
@@ -307,7 +339,17 @@ void printStatus() {
             SERIALCONSOLE.print('-');
         }
         SERIALCONSOLE.print(F("  age="));
-        SERIALCONSOLE.println(millis() - g_stMs);
+        SERIALCONSOLE.print(millis() - g_stMs);
+        if (g_stLen >= 5) {
+            const uint8_t st = g_st[4];
+            if (st & ElconCharger::kStHwFail)      SERIALCONSOLE.print(F(" HW-FAIL"));
+            if (st & ElconCharger::kStOverTemp)    SERIALCONSOLE.print(F(" CHG-OVERTEMP"));
+            if (st & ElconCharger::kStInputVolt)   SERIALCONSOLE.print(F(" AC-INPUT"));
+            if (st & ElconCharger::kStBattOpen)    SERIALCONSOLE.print(F(" BATT-NOT-SEEN"));
+            if (st & ElconCharger::kStCommTimeout) SERIALCONSOLE.print(F(" COMM-TIMEOUT"));
+            if (!(st & 0x1F))                      SERIALCONSOLE.print(F(" ok"));
+        }
+        SERIALCONSOLE.println();
     }
 }
 

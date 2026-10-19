@@ -33,7 +33,13 @@ const char *stateName(State s);
 
 Outputs intended();
 Outputs driven();
-uint32_t coreFaults();  // BmsCore fault bits (dual role A), 0 otherwise  // all false unless BMS_CAP_CONTACTOR_DRV && !TELEMETRY_ONLY
+uint32_t coreFaults();
+#if defined(DUAL_STRING) && DUAL_STRING && (!defined(TEENSY_ROLE) || TEENSY_ROLE == 0)
+}  // namespace ContactorSeq
+#include "BmsCore.h"
+namespace ContactorSeq {
+const BmsCore::Outputs &coreOut();
+#endif  // BmsCore fault bits (dual role A), 0 otherwise  // all false unless BMS_CAP_CONTACTOR_DRV && !TELEMETRY_ONLY
 
 void printStatus();
 

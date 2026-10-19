@@ -240,7 +240,7 @@ void configureCore() {
     BmsCore::Config &c = g_core.cfg;
     c.lowCutV        = Settings::lowCutoffV();
     c.cellMaxV       = kCellFaultMaxV;
-    c.chargePct      = 80;  // P setting (EEPROM) arrives with the charger commit
+    c.chargePct      = Settings::chargePct();
     c.stringCells    = STRING_EXPECT_S;
     c.busMaxV        = KELLY_MAX_V;
     c.chargeMaxA     = kChargeCurrentDeciA / 10.0f;
