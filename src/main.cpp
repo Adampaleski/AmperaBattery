@@ -1,3 +1,4 @@
+#include "KellyLimit.h"
 #include <Arduino.h>
 #include "Config.h"
 #include "CanBus.h"
@@ -131,6 +132,7 @@ void runCommand(char c) {
                 break;
             case 'y':
                 KellyDecode::printStatus();
+                KellyLimit::printStatus();
                 break;
             case 'j':
                 SERIALCONSOLE.println(F("--- hub STATUS_SCHEMA v1 (USB one-shot) ---"));

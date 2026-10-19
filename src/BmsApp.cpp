@@ -1,6 +1,7 @@
 #include "BmsApp.h"
 #include "Config.h"
 #include "ContactorSeq.h"
+#include "KellyLimit.h"
 
 namespace BmsApp {
 
@@ -41,6 +42,7 @@ void begin() {
 
 void tick() {
     ContactorSeq::tick();
+    KellyLimit::tick();
 }
 
 void handleSerial() {
