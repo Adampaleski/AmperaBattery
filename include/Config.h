@@ -55,6 +55,12 @@ constexpr uint16_t kCanScanMaxIds = 64;
 #define BICM_CELLS_PER_MODULE 6
 #endif
 
+// Factory Volt gen1 pack current sensor (LEM DHAB S/44) on A0/A1 + 5 V sense on A11.
+// 0 = not fitted: pins untouched, current reads "not fitted" (I<amps> can simulate).
+#ifndef CURRENT_SENSE_ENABLE
+#define CURRENT_SENSE_ENABLE 0
+#endif
+
 #ifndef HV_ANALOG_ENABLE
 #define HV_ANALOG_ENABLE 0
 #endif
@@ -153,4 +159,8 @@ constexpr int MAIN_POS  = OUT1;  // pin 11
 constexpr int PRECHARGE = OUT2;  // pin 12 — TE EV11 / K1KABNA
 constexpr int MAIN_NEG  = OUT4;  // pin 21
 constexpr int HV_SENSE  = 24;    // A10, optional HV-bus divider
+// LEM DHAB S/44 (CURRENT_SENSE_ENABLE=1). Every input through 10k/18k divider + 100 nF.
+constexpr int CUR_LO    = 14;    // A0  DHAB pin 4 (ch1, +-20 A, 100 mV/A)
+constexpr int CUR_HI    = 15;    // A1  DHAB pin 3 (ch2, -420..+230 A, 6.15 mV/A)
+constexpr int CUR_VC    = 25;    // A11 DHAB 5 V supply (ratiometric reference)
 }  // namespace Pins

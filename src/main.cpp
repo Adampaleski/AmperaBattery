@@ -1,3 +1,4 @@
+#include "CurrentSense.h"
 #include "KellyLimit.h"
 #include <Arduino.h>
 #include "Config.h"
@@ -74,9 +75,10 @@ void printHelp() {
     SERIALCONSOLE.println(F("  j  one STATUS_SCHEMA v1 JSON line (hub format)"));
     SERIALCONSOLE.println(F("  h/?  this page"));
     SERIALCONSOLE.println(F("=== SETTINGS (type, then Enter; saved to EEPROM) ==="));
-    SERIALCONSOLE.println(F("  V4.05  charge ceiling V/cell (3.90-4.15)   L3.30  low cutoff V/cell (3.00-3.50)"));
+    SERIALCONSOLE.println(F("  P80    charge limit % (50-100; 80=3.95 V, 100=4.10 V/cell)   L3.30  low cutoff V/cell (3.00-3.50)"));
     SERIALCONSOLE.println(F("  W10    balance deadband mV (2-50)          X      restore defaults"));
     SERIALCONSOLE.println(F("  U145.0 SIMULATE HV bus volts for the dry-run precharge (U0 = off)"));
+    SERIALCONSOLE.println(F("  I120   SIMULATE pack amps (I0 = off)       Z      zero current sensor (no current flowing)"));
     SERIALCONSOLE.println(F("Auto report every 10 s. Watchdog ~2 s: a hung loop resets the Teensy."));
     warnCapsCompileTime();
 }
@@ -126,6 +128,7 @@ void runCommand(char c) {
                 break;
             case 'p':
                 ContactorSeq::printStatus();
+                CurrentSense::printStatus();
                 break;
             case 'g':
                 ChargeTx::toggleChargeRequest();

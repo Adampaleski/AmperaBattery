@@ -40,7 +40,7 @@ static_assert(CHARGE_STRING_CELLS == 0 ||
 static_assert(CHARGE_STRING_CELLS == 0 ||
                   (Settings::kCeilMin * CHARGE_STRING_CELLS >= ELCON_MIN_V &&
                    Settings::kCeilMax * CHARGE_STRING_CELLS <= ELCON_MAX_V),
-              "Settings ceiling bounds (3.90-4.15 V) x string cells fall outside the Elcon window");
+              "Settings ceiling bounds (3.725-4.10 V) x string cells fall outside the Elcon window");
 static_assert(kChargeFaultCellV > kChargeCellSetpointV && kChargeFaultCellV < kCellFaultMaxV,
               "charge fault threshold must sit between setpoint and cell OV fault");
 

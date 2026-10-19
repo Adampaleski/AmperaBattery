@@ -2,6 +2,7 @@
 #include "Config.h"
 #include "ContactorSeq.h"
 #include "KellyLimit.h"
+#include "CurrentSense.h"
 
 namespace BmsApp {
 
@@ -37,10 +38,12 @@ void initPins() {
 
 void begin() {
     initPins();
+    CurrentSense::begin();
     ContactorSeq::begin();
 }
 
 void tick() {
+    CurrentSense::tick();
     ContactorSeq::tick();
     KellyLimit::tick();
 }

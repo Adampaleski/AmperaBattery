@@ -3,6 +3,7 @@
 #include <EEPROM.h>
 #include <stdlib.h>
 #include "Config.h"
+#include "CurrentSense.h"
 #include "BmsCore.h"
 #include "StringConfig.h"
 
@@ -133,6 +134,17 @@ bool handleLine(const char *line) {
         case 'X':
             defaults(); save();
             SERIALCONSOLE.print(F("SETTINGS defaults restored: ")); print(); return true;
+        case 'Z':
+            SERIALCONSOLE.println(CurrentSense::calibrateZero()
+                ? F("CURRENT zero calibrated and saved (do this with contactors OPEN / no current)")
+                : F("CURRENT zero refused: sensor not fitted/enabled or reading implausible"));
+            CurrentSense::printStatus();
+            return true;
+        case 'I':
+            // Bench dry-run only: pretend pack current is v amps (I0 = off).
+            CurrentSense::setSimAmps(num ? v : 0.0f, num && v != 0.0f);
+            CurrentSense::printStatus();
+            return true;
         case 'U':
             // Bench dry-run only: pretend the HV bus reads v volts (0 = off). Never drives anything.
             g_simBus = (num && v > 0.0f && v < 400.0f) ? v : 0.0f;
@@ -144,7 +156,7 @@ bool handleLine(const char *line) {
     }
     SERIALCONSOLE.print(F("Bad settings line '"));
     SERIALCONSOLE.print(line);
-    SERIALCONSOLE.println(F("' (use P80 / L3.30 / W10 / X / U145.0 then Enter)"));
+    SERIALCONSOLE.println(F("' (use P80 / L3.30 / W10 / X / U145.0 / I120 / Z then Enter)"));
     return true;
 }
 }  // namespace Settings
