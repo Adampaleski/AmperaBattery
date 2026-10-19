@@ -169,7 +169,7 @@ select{background:var(--card2);color:var(--tx);border:0;border-radius:10px;paddi
   <div class="dwrap"><svg id="dia" viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg"></svg>
   <div class="legend"><span><i style="border-color:#f5f5f7"></i>HV live</span><span><i style="border-color:#3e6ae1"></i>CAN</span>
     <span><i style="border-color:#e82127;border-top-style:dashed"></i>silent bus / fault</span><span><i style="border-color:#5a5a60;border-top-style:dotted"></i>wiring TBD</span>
-    <span><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="#e82127" opacity=".75"/></svg> not owned / unverified</span><span class="dim">Tap any part for details</span></div></div>
+    <span><svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="#e82127" opacity=".75"/></svg> not owned</span><span class="dim"><span style="color:#ff9f0a">UNVERIFIED</span> = pinout/spec not yet confirmed · wire gauges are our choice (unverified) · Tap any part for details</span></div></div>
 </section>
 <!-- ======================= FAULTS ======================= -->
 <section id="t-faults">
@@ -241,16 +241,18 @@ function renderStrings(plan){
 const NS='http://www.w3.org/2000/svg';
 const PARTS={};  // id -> {title, sub, kv(), owned}
 function el(tag,attrs,parent,txt){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(txt!=null)e.textContent=txt;(parent||$('dia')).appendChild(e);return e;}
+const UNV={kelly:'Control-connector pinouts unverified',mainpos:'EV200 coil leads unverified',mainneg:'EV200 coil leads unverified',dhab:'DHAB S/44 pin order unverified; +230 A range may be short for 400 A peak',prerelay:'EV11 vs EV100 unverified'};
+function ubadge(id,x,y,g){const t=UNV[id]||(id.startsWith('xcvr')||id.startsWith('sn')?'SN65HVD230 pin table unverified':null);if(!t)return;el('text',{x,y,fill:'#ff9f0a','font-size':9,'font-weight':600},g,'UNVERIFIED');PARTS[id]&&(PARTS[id].unv=t);}
 function part(id,x,y,w,h,title,sub,info){const g=el('g',{class:'hit'+(info.owned===false?' unowned':''),id:'p-'+id});el('rect',{class:'box',x,y,width:w,height:h,rx:10},g);
   el('text',{class:'lbl',x:x+12,y:y+20},g,title);if(sub)el('text',{class:'sub',x:x+12,y:y+36},g,sub);
   if(info.owned===false)el('circle',{class:'udot',cx:x+w-10,cy:y+10,r:4},g);
-  PARTS[id]=Object.assign({title},info);g.addEventListener('click',e=>{e.stopPropagation();openSheet(id);});return g;}
+  PARTS[id]=Object.assign({title},info);ubadge(id,x+w-78,y+h-6,g);g.addEventListener('click',e=>{e.stopPropagation();openSheet(id);});return g;}
 function contactor(id,x,y,title,info){const g=el('g',{class:'hit cnt open'+(info.owned===false?' unowned':''),id:'p-'+id});
   el('rect',{class:'box',x:x-14,y:y-34,width:118,height:62,rx:10},g);
   el('circle',{cx:x+12,cy:y+8,r:4,fill:'#8e8e93'},g);el('circle',{cx:x+78,cy:y+8,r:4,fill:'#8e8e93'},g);
   el('line',{class:'cbar',x1:x+12,y1:y+8,x2:x+78,y2:y+8},g);
   el('text',{class:'lbl',x:x-2,y:y-14},g,title);if(info.owned===false)el('circle',{class:'udot',cx:x+94,cy:y-24,r:4},g);
-  PARTS[id]=Object.assign({title},info);g.addEventListener('click',e=>{e.stopPropagation();openSheet(id);});return g;}
+  PARTS[id]=Object.assign({title},info);ubadge(id,x+30,y+24,g);g.addEventListener('click',e=>{e.stopPropagation();openSheet(id);});return g;}
 const path=(d,cls,id)=>el('path',{d,class:cls,...(id?{id}:{})});
 function buildDiagram(){
   const svg=$('dia');svg.innerHTML='';
@@ -299,6 +301,9 @@ function buildDiagram(){
   path('M1044 330 H1160','hv','hvMP2');
   // DHAB
   part('dhab',1160,300,108,60,'LEM DHAB S/44','Volt current sensor',{owned:true,kv:()=>({'Part':'LEM DHAB S/44 (factory Volt gen1)','Type':'open-loop Hall, 5 V, ±20 A / −420…+230 A','Pins':'1 +5V · 2 GND · 3 hi → A1 · 4 lo → A0','Divider':'10k/18k + 100 nF · 5 V ref → A11','Reading':(S.packA).toFixed(1)+' A','Gate':'CURRENT_SENSE_ENABLE=0'})});
+  el('defs',{},null).innerHTML='<marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ff9f0a"/></marker>';
+  el('line',{x1:1160,y1:372,x2:1268,y2:372,stroke:'#ff9f0a','stroke-width':2,'marker-end':'url(#ah)'});
+  [['Mount: DISCHARGE → −420 A side (covers 400 A Kelly peak)',386],['regen/charge → +230 A side · FW flips sign (TODO)',398],['UNVERIFIED until datasheet · fallback ≥500 A LEM (HASS 500-S)',410]].forEach(([t,y])=>el('text',{x:1118,y,fill:'#ff9f0a','font-size':9},null,t));
   path('M1268 330 H1300','hv','hvL0');path('M1300 120 V620','hv','loadbus');
   path('M800 330 H930 M1044 330 H1300','flow','mainflow');
   // loads
@@ -358,7 +363,7 @@ function renderDiagram(){
   tog('linkAB','dead',!S.linkUp);tog('p-teensyA','fault',S.state==='Fault'||S.state==='Lockout');tog('p-kelly','fault',S.kellyLimp&&S.state!=='Open');
   if(sel)fillSheet(sel);
 }
-function fillSheet(id){const p=PARTS[id];if(!p)return;$('shT').textContent=p.title;$('shS').innerHTML=p.owned===false?'<span class="red">Not owned / unverified</span>':'';
+function fillSheet(id){const p=PARTS[id];if(!p)return;$('shT').textContent=p.title;$('shS').innerHTML=p.owned===false?'<span class="red">Not owned</span>':'';if(p.unv)$('shS').innerHTML+=' <span style="color:#ff9f0a">UNVERIFIED: '+p.unv+'</span>';
   const kv=p.kv?p.kv():{};$('shKV').innerHTML=Object.entries(kv).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');}
 function openSheet(id){document.querySelectorAll('#dia .sel').forEach(e=>e.classList.remove('sel'));sel=id;$('p-'+id)?.classList.add('sel');fillSheet(id);$('sheet').classList.add('on');}
 function closeSheet(){sel=null;$('sheet').classList.remove('on');document.querySelectorAll('#dia .sel').forEach(e=>e.classList.remove('sel'));}
