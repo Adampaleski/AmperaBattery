@@ -189,7 +189,7 @@ const WASM_B64="AGFzbQEAAAABrQEcYAN/f38Bf2AAAGABfwF/YAJ/fwF/YAR/fn5/AGAFf39/f38B
 const $=id=>document.getElementById(id);
 const STR=[{n:"String 1",t:"A",bus:"CAN3",pins:"30/31",big:"M2",boards:[0,1]},{n:"String 2",t:"A",bus:"CAN1",pins:"22/23",big:"M3",boards:[2,3]},
            {n:"String 3",t:"B",bus:"CAN3",pins:"30/31",big:"M2",boards:[4,5]},{n:"String 4",t:"B",bus:"CAN1",pins:"22/23",big:"M3",boards:[6,7]}];
-const BOARDS=[];STR.forEach((s,si)=>{BOARDS.push({s:si,n:s.big+" 24S",cells:24,owned:true});BOARDS.push({s:si,n:"M4 18S · 12S used",cells:12,empty:6,owned:si===0});});
+const BOARDS=[];STR.forEach((s,si)=>{BOARDS.push({s:si,n:s.big+" 24S",cells:24,owned:true});BOARDS.push({s:si,n:"M4 18S · 12S used",cells:12,empty:6,owned:si<2});});
 let X,S=null,userLog=[],hideBefore=-1,simNow=0,keyOn=false,chgOn=false,speed=1,last=performance.now(),acc=0,sel=null;
 const cs=p=>{const m=new Uint8Array(X.memory.buffer);let e=p;while(m[e])e++;return new TextDecoder().decode(m.subarray(p,e));};
 const fmtT=ms=>{const s=ms/1000,m=Math.floor(s/60);return String(m).padStart(2,'0')+':'+(s-m*60).toFixed(2).padStart(5,'0');};
