@@ -258,7 +258,7 @@ function buildDiagram(){
   svg.addEventListener('click',()=>closeSheet());
   const SY=[40,235,475,670];
   // Teensys
-  [['A',70],['B',505]].forEach(([t,y])=>part('teensy'+t,24,y,160,250,'Teensy 4.1 '+t,t==='A'?'master · contactors':'strings 3–4 → link',
+  [['A',70],['B',505]].forEach(([t,y])=>part('teensy'+t,24,y,160,250,'BMS BRAIN · Teensy 4.1 '+t,t==='A'?'S1 CAN3 · S2 CAN1 · master':'S3 CAN3 · S4 CAN1 → link',
     {owned:true,sub:t==='A'?'Role A (TEENSY_ROLE 0)':'Role B (TEENSY_ROLE 1)',kv:()=>t==='A'?{
       'CAN3':'pins 30/31 · 125k · String 1','CAN1':'pins 22/23 · 125k · String 2','CAN2':'pins 0/1 · 250k · Elcon, Kelly, link',
       'Contactors':'11 main+ · 12 precharge · 21 main−','Kelly':'OUT3 20 limp · OUT5 2 derate · OUT6 3 regen','Current':'A0/A1 + A11 (5 V ref)',
@@ -267,11 +267,11 @@ function buildDiagram(){
   el('text',{class:'tiny',x:36,y:158},null,'A0/A1 DHAB · A11 5V ref');
   // strings
   STR.forEach((s,si)=>{const y=SY[si],t=s.t==='A'?70:505;
-    const xc=part('xcvr'+si,212,y+52,82,44,'SN65HVD230',s.bus,{owned:false,kv:()=>({'Part':'TI SN65HVD230 3.3 V CAN transceiver','Bus':`${s.bus} · Teensy ${s.t} pins ${s.pins} · 125 kbit/s`,'Status':busDead(si)?'BUS SILENT':'ok','Owned':'not confirmed — order/verify'})});
+    const xc=part('xcvr'+si,212,y+52,82,44,'SN65HVD230',s.bus,{owned:true,kv:()=>({'Part':'TI SN65HVD230 3.3 V CAN transceiver','Bus':`${s.bus} · Teensy ${s.t} pins ${s.pins} · 125 kbit/s`,'Status':busDead(si)?'BUS SILENT':'ok','Owned':'yes'})});
     path(`M184 ${t+(si%2?190:60)} H198 V${y+74} H212`,'can','canT'+si);
     path(`M294 ${y+74} H316`,'can','canS'+si);
     el('text',{class:'tiny',x:192,y:y+46},null,`${s.bus} ${s.pins}`);
-    const g=part('str'+si,316,y,330,164,`${s.n} · Teensy ${s.t} ${s.bus}`,'',{owned:true,kv:()=>stringKV(si)});
+    const g=part('str'+si,316,y,330,164,`${s.n} · Volt BICMs ${s.big} 24S + M4 18S(12S) · Teensy ${s.t} ${s.bus}`,'',{owned:true,kv:()=>stringKV(si)});
     // boards inside
     s.boards.forEach((bi,k)=>{const b=BOARDS[bi],bx=k?526:330,bw=k?106:186;
       const bg=el('g',{class:'hit'+(b.owned?'':' unowned'),id:'p-board'+bi},g);el('rect',{class:'box',x:bx,y:y+44,width:bw,height:78,rx:8},bg);
@@ -309,7 +309,7 @@ function buildDiagram(){
   path('M1290 442 H1300','tbd','');
   path('M1300 442 H1308','hv','hvE');
   part('aev2',1206,540,84,44,'AEV14012','optional',{owned:true,kv:()=>({'Part':'Volt AEV14012 contactor (factory, owned)','Use':'optional isolation of the DC-DC branch'})});
-  path('M1290 562 H1300','tbd','');part('dcdc',1308,532,86,60,'DC-DC','12 V',{owned:true,kv:()=>({'Part':'HV → 12 V DC-DC','Feed':'after main+'})});
+  path('M1290 562 H1300','tbd','');part('dcdc',1308,532,86,60,'Elcon DC-DC','12 V',{owned:true,kv:()=>({'Part':'Elcon HV → 12 V DC-DC','Feed':'after main+'})});
   path('M1300 562 H1308','hv','hvD');
   // main-
   path('M834 760 H930','hv','hvMN1');
@@ -320,6 +320,13 @@ function buildDiagram(){
   el('text',{class:'sub',x:420,y:852},null,'CAN2 · pins 0/1 · 250 kbit/s · Elcon + Kelly (broadcast only) + A↔B link');
   path('M1390 480 V150 H1394','can','can2k');
   path('M184 625 H200 V190 H184','can','linkAB');el('text',{class:'tiny',x:196,y:410,transform:'rotate(-90 196 410)'},null,'A ↔ B link 0x6A0–0x6A8');
+
+  // Connectivity: Teensy A Serial4 -> ESP32 -> tablet (Wi-Fi)
+  el('path',{d:'M184 120 L200 120 L200 40 L1150 40 L1150 690',fill:'none',stroke:'#8e8e93','stroke-dasharray':'2 4'});
+  el('text',{class:'sub',x:1158,y:676},null,'Serial4 TX17/RX16 · 115200');
+  part('esp32',1100,690,110,60,'ESP32','Wi-Fi/ETH/BT hub',{owned:true,kv:()=>({'Part':'ESP32 connectivity hub (teryx-ev-hub esp32-gateway)','Link':'Teensy A Serial4 TX17→GPIO16, RX16←GPIO17, 115200 8N1, common GND','Data':'STATUS_SCHEMA v1 JSON','Owned':'yes'})});
+  el('line',{x1:1210,y1:720,x2:1260,y2:720,stroke:'#8e8e93','stroke-dasharray':'6 4'});
+  part('tablet',1260,690,130,60,'Surface 3 (Linux)','head unit · Wi-Fi',{owned:true,kv:()=>({'Part':'Microsoft Surface 3 tablet running Linux (head unit)','Link':'Wi-Fi to ESP32','Shows':'BMS status dashboard','Owned':'yes'})});
   // Kelly TBD wires from Teensy A
   path('M104 70 V18 H1351 V98','tbd','kellytbd');el('text',{class:'tiny',x:560,y:14},null,'OUT3 pin 20 limp · OUT5 pin 2 derate · OUT6 pin 3 regen → Kelly — wiring TBD (not owned/verified)');
   el('circle',{class:'udot',cx:552,cy:11,r:3.5});
