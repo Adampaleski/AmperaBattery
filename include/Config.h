@@ -98,6 +98,13 @@ static_assert(kChargeCurrentDeciA <= 80, "charge current > 8 A: only on a 240 V 
 #define ELCON_MAX_V 202.0f   // nameplate: Elcon HK-LF-144-46, CAN3865, 100-202 V / 46 A DC (2026-10-15)
 #endif
 
+// Kelly KLS controller max bus voltage ("168 V version" -- VERIFY on the label
+// and in the Kelly config's over-voltage setting). BmsCore clamps the charge
+// ceiling to KELLY_MAX_V / string cells: 42S -> 4.00 V/cell even at 100 %.
+#ifndef KELLY_MAX_V
+#define KELLY_MAX_V 168.0f
+#endif
+
 // Contactor / precharge timing (coil drive gated by BMS_CAP_CONTACTOR_DRV).
 constexpr uint32_t kPrechargeMinMs        = 200;
 constexpr uint32_t kPrechargeTimeMs       = 5000;

@@ -5,7 +5,10 @@
 #include "Config.h"
 #include "Settings.h"
 #include "StringConfig.h"
+#include "ChargeTx.h"
+#include "CurrentSense.h"
 #if DUAL_STRING
+#include "BmsCore.h"
 #include "Link.h"
 #include "StringMon.h"
 #endif
@@ -23,7 +26,6 @@ const char *g_faultWhy  = "";
 uint8_t g_retries       = 0;
 
 #if DUAL_STRING
-uint32_t g_blockPrintMs = 0;
 uint8_t systemFaults() {
     uint8_t f = (StringMon::summary(0).faults | StringMon::summary(1).faults) & StringMon::kFaultMask;
 #if ROLE_IS_A
@@ -31,6 +33,7 @@ uint8_t systemFaults() {
 #endif
     return f;
 }
+#if !ROLE_IS_A
 // Lowest string voltage across every string in the 4P bank (0 = unknown).
 float lowestStringV() {
     float lo = 0.0f;
@@ -47,6 +50,7 @@ float lowestStringV() {
     return lo > 0.0f ? lo : 0.0f;
 }
 #endif
+#endif
 
 bool driveEnabled() {
 #if TELEMETRY_ONLY
@@ -61,6 +65,7 @@ Outputs outputsFor(State s) {
     switch (s) {
         case State::Precharge:
             o.precharge = true;
+            o.mainNeg   = true;  // Tom VoltBMSV2.ino 1195-1198: NEG closes first, then precharge
             break;
         case State::MainClose:
             o.precharge = true;
@@ -216,6 +221,7 @@ void begin() {
 
 #if DUAL_STRING
 namespace {
+#if ROLE_IS_A
 float busV() {
     if (Settings::simBusV() > 0.0f) return Settings::simBusV();
 #if HV_ANALOG_ENABLE
@@ -224,6 +230,44 @@ float busV() {
     return 0.0f;  // no bus measurement: precharge can never pass (fails safe)
 #endif
 }
+#endif
+
+#if ROLE_IS_A
+BmsCore::Core g_core;
+int g_logShown = 0;
+
+void configureCore() {
+    BmsCore::Config &c = g_core.cfg;
+    c.lowCutV        = Settings::lowCutoffV();
+    c.cellMaxV       = kCellFaultMaxV;
+    c.chargePct      = 80;  // P setting (EEPROM) arrives with the charger commit
+    c.stringCells    = STRING_EXPECT_S;
+    c.busMaxV        = KELLY_MAX_V;
+    c.chargeMaxA     = kChargeCurrentDeciA / 10.0f;
+    c.stringSilentMs = STRING_SILENT_MS;
+    c.linkStaleMs    = LINK_STALE_MS;
+    c.pcMinMs        = kPcDualMinMs;
+    c.pcTimeoutMs    = kPcDualTimeoutMs;
+    c.pcRetryWaitMs  = kPcDualRetryWaitMs;
+    c.pcMaxRetries   = kPcDualMaxRetries;
+    c.pcRatio        = kPrechargeRatio;
+    c.overlapMs      = kPrechargeOverlapMs;
+}
+
+BmsCore::StringIn toCore(const StringMon::Summary &s, bool remote) {
+    BmsCore::StringIn o;
+    o.used = true;
+    o.remote = remote;
+    o.expected = s.expected;
+    o.cellsOk = s.cells;
+    o.sumV = s.v;
+    o.minV = s.minV;
+    o.maxV = s.maxV;
+    if (s.faults & (StringMon::kFSilent | StringMon::kFNoData)) o.oldestAgeMs = 0xFFFFFFFFu;  // -> F_SILENT
+    if (s.faults & (StringMon::kFCellBad | StringMon::kFCount)) o.cellsOk = 0;                // -> F_COUNT
+    return o;
+}
+#endif
 
 void tickDual() {
 #if !ROLE_IS_A
@@ -231,62 +275,48 @@ void tickDual() {
     if (g_state != State::Open) enter(State::Open, "role B");
     applyPins(outputsFor(State::Open));
     return;
+#else
+    configureCore();
+    BmsCore::Inputs in;
+    in.nowMs = millis();
+    in.s[0] = toCore(StringMon::summary(0), false);
+    in.s[1] = toCore(StringMon::summary(1), false);
+    in.s[2] = toCore(Link::remote(0), true);
+    in.s[3] = toCore(Link::remote(1), true);
+    in.linkFresh = !(Link::remoteFaults() & StringMon::kFLinkStale);
+    in.tempsValid = TEMPS_VERIFIED != 0;  // 0: charge refused (F_TEMP_INVALID), drive unaffected
+    in.currentValid = CurrentSense::valid();
+    in.packA = CurrentSense::amps();
+    const float hv = busV();
+    in.busValid = hv > 0.0f || HV_ANALOG_ENABLE;
+    in.busV = hv;
+    in.keyOn = g_deadman;
+    in.chargeReq = ChargeTx::chargeRequested();
+    const BmsCore::Outputs &o = g_core.step(in);
+    // Print new core events (timestamped fault/transition log).
+    const int n = g_core.logCount();
+    if (g_logShown > n) g_logShown = 0;
+    for (int i = g_logShown; i < n; i++) {
+        const BmsCore::Event &e = g_core.logAt(i);
+        SERIALCONSOLE.print(F("BMS t="));
+        SERIALCONSOLE.print(e.ms);
+        SERIALCONSOLE.print(F("ms "));
+        SERIALCONSOLE.print(e.text);
+        SERIALCONSOLE.println(driveEnabled() ? F("") : F("  [PRINT-ONLY, coils not driven]"));
+    }
+    g_logShown = n >= BmsCore::kLogSize ? BmsCore::kLogSize : n;
+    const State ns = static_cast<State>(static_cast<uint8_t>(o.state));
+    if (ns != g_state) {
+        g_state = ns;
+        g_stateMs = millis();
+        if (ns == State::Fault) g_faultWhy = "see BMS log";
+    }
+    Outputs w;
+    w.precharge = o.pre;
+    w.mainPos = o.mainPos;
+    w.mainNeg = o.mainNeg;
+    applyPins(w);  // hard-gated: FETs LOW unless BMS_CAP_CONTACTOR_DRV && !TELEMETRY_ONLY
 #endif
-    if (!g_deadman && g_state != State::Open && g_state != State::Fault && g_state != State::Lockout) {
-        openAll("deadman");
-    }
-    checkPackFaults();
-    const uint32_t now = millis(), elapsed = now - g_stateMs;
-    switch (g_state) {
-        case State::Open:
-            if (!g_deadman) break;
-            if (systemFaults()) {
-                if (now - g_blockPrintMs >= 2000) {
-                    g_blockPrintMs = now;
-                    SERIALCONSOLE.print(F("CONTACTOR close blocked: faults "));
-                    StringMon::printFaults(systemFaults());
-                    SERIALCONSOLE.println();
-                }
-                break;
-            }
-            g_retries = 0;
-            enter(State::Precharge, "deadman");
-            break;
-        case State::Precharge: {
-            const float lo = lowestStringV(), hv = busV();
-            const bool gate = lo > 0.0f && hv >= lo * kPrechargeRatio;
-            if (elapsed >= kPcDualMinMs && gate) { enter(State::MainClose, "bus >= 95% lowest string"); break; }
-            if (elapsed >= kPcDualTimeoutMs) {
-                if (g_retries < kPcDualMaxRetries) { g_retries++; enter(State::RetryWait, "precharge timeout (3 s)"); }
-                else enter(State::Lockout, "precharge failed after 2 retries");
-                break;
-            }
-            if (now - g_lastPrintMs >= 500) {
-                g_lastPrintMs = now;
-                SERIALCONSOLE.print(F("CONTACTOR Precharge t="));
-                SERIALCONSOLE.print(elapsed);
-                SERIALCONSOLE.print(F("ms bus="));
-                SERIALCONSOLE.print(hv, 1);
-                SERIALCONSOLE.print(F("V need>="));
-                SERIALCONSOLE.print(lo * kPrechargeRatio, 1);
-                SERIALCONSOLE.print(F("V (95% of lowest string "));
-                SERIALCONSOLE.print(lo, 1);
-                SERIALCONSOLE.print(F("V) retry="));
-                SERIALCONSOLE.print(g_retries);
-                SERIALCONSOLE.println(F("  PRINT-ONLY"));
-            }
-            break;
-        }
-        case State::RetryWait:
-            if (elapsed >= kPcDualRetryWaitMs) enter(State::Precharge, "retry");
-            break;
-        case State::MainClose:
-            if (elapsed >= kPrechargeOverlapMs) enter(State::Closed, "mains in, precharge out");
-            break;
-        default:
-            break;
-    }
-    applyPins(outputsFor(g_state));
 }
 }  // namespace
 #endif
@@ -419,13 +449,25 @@ const char *stateName(State s) {
     }
 }
 
+#if DUAL_STRING && ROLE_IS_A
+Outputs intended() {
+    Outputs w;
+    const BmsCore::Outputs &o = g_core.out();
+    w.precharge = o.pre; w.mainPos = o.mainPos; w.mainNeg = o.mainNeg;
+    return w;
+}
+const BmsCore::Outputs &coreOut() { return g_core.out(); }
+uint32_t coreFaults() { return g_core.out().faults | g_core.out().latched; }
+#else
 Outputs intended() { return outputsFor(g_state); }
+uint32_t coreFaults() { return 0; }
+#endif
 
 Outputs driven() {
     if (!driveEnabled()) {
         return Outputs{};
     }
-    return outputsFor(g_state);
+    return intended();
 }
 
 void printStatus() {
@@ -469,11 +511,19 @@ void printStatus() {
     SERIALCONSOLE.print(BicmDecode::packVoltage(), 1);
     SERIALCONSOLE.println(F("V"));
 #elif DUAL_STRING
-    SERIALCONSOLE.print(F("  dual-string gate: bus>=95% lowest string ("));
+    SERIALCONSOLE.print(F("  BmsCore gate: bus>=95% lowest string ("));
+#if ROLE_IS_A
+    SERIALCONSOLE.print(g_core.out().lowestStringV, 1);
+#else
     SERIALCONSOLE.print(lowestStringV(), 1);
-    SERIALCONSOLE.print(F("V) & >=300ms, 3s timeout, retries "));
-    SERIALCONSOLE.print(g_retries);
-    SERIALCONSOLE.print(F("/2 @30s  bus_src="));
+#endif
+    SERIALCONSOLE.print(F("V) & >=300ms, 3s timeout, 2 retries @30s, weld check 2 s after open"));
+#if ROLE_IS_A
+    SERIALCONSOLE.print(F("  faults=0x"));
+    SERIALCONSOLE.print(coreFaults(), HEX);
+    for (int b = 0; b < 13; b++) if (coreFaults() & (1u << b)) { SERIALCONSOLE.print(' '); SERIALCONSOLE.print(BmsCore::faultName(1u << b)); }
+#endif
+    SERIALCONSOLE.print(F("  bus_src="));
     SERIALCONSOLE.println(Settings::simBusV() > 0.0f ? F("SIM (U cmd)") : F("none (HV_ANALOG_ENABLE=0) -> precharge will time out"));
 #else
     SERIALCONSOLE.println(F("  gate=timer 5s (HV_ANALOG_ENABLE=0)"));

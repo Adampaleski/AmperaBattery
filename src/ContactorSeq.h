@@ -32,7 +32,8 @@ State state();
 const char *stateName(State s);
 
 Outputs intended();
-Outputs driven();  // all false unless BMS_CAP_CONTACTOR_DRV && !TELEMETRY_ONLY
+Outputs driven();
+uint32_t coreFaults();  // BmsCore fault bits (dual role A), 0 otherwise  // all false unless BMS_CAP_CONTACTOR_DRV && !TELEMETRY_ONLY
 
 void printStatus();
 

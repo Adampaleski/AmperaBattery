@@ -283,7 +283,7 @@ void setup() {
 
     Settings::begin();  // prints ceiling / low cutoff / deadband from EEPROM
 #if DUAL_STRING
-    SERIALCONSOLE.print(F("DUAL-STRING 36S 4P  role="));
+    SERIALCONSOLE.print(F("DUAL-STRING 4P  role="));
     SERIALCONSOLE.println(ROLE_IS_A ? F("A (master: contactor SM, listens to B)") : F("B (reports to A, no contactors)"));
     SERIALCONSOLE.println(F("  CAN3 30/31 @125k = string 1   CAN1 22/23 @125k = string 2   CAN2 0/1 @250k = Elcon+Kelly+link"));
     SERIALCONSOLE.print(F("  string1 circuits=0x"));

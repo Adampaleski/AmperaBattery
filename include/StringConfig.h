@@ -38,14 +38,19 @@
 #define M4_C2    CIRC(11)   // 0x46D/47D middle 6S
 #define M4_C3    CIRC(12)   // 0x46E/47E top 6S
 
+#define M4_ALL   (M4_C1 | M4_C2 | M4_C3)
+// Adam 10/19: strings are 24S + 18S = 42S. One board of each type per bus
+// (fixed BICM IDs), so string 1 (CAN3) = M2 24S + M4 18S and string 2 (CAN1)
+// = M3 24S + its own M4 18S. Old 36S layout: -D STRING1_CIRCUITS="(M1_ALL|M4_C1)"
+// -D STRING2_CIRCUITS="(M2_ALL|M4_C2|M4_C3)" -D STRING_EXPECT_S=36
 #ifndef STRING1_CIRCUITS
-#define STRING1_CIRCUITS (M1_ALL | M4_C1)          // M1 30S full + M4 6S bottom = 36S
+#define STRING1_CIRCUITS (M2_ALL | M4_ALL)         // 24S + 18S = 42S
 #endif
 #ifndef STRING2_CIRCUITS
-#define STRING2_CIRCUITS (M2_ALL | M4_C2 | M4_C3)  // 24S + M4 12S (middle+top) = 36S
+#define STRING2_CIRCUITS (M3_ALL | M4_ALL)         // 24S + 18S = 42S (second M4 on CAN1)
 #endif
 #ifndef STRING_EXPECT_S
-#define STRING_EXPECT_S 36                         // every string must total this (compile check)
+#define STRING_EXPECT_S 42                         // every string must total this (compile check)
 #endif
 #ifndef STRING_SILENT_MS
 #define STRING_SILENT_MS 2000                      // two missed 1 s keep-alives -> FAULT (crew OK 10/17; confirm vs d gapmax)

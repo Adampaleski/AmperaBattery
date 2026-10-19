@@ -461,8 +461,10 @@ inline void dhabPinVolts(const CurrentCal &c, float amps, float vc, float &adc1,
     if (c.invert) amps = -amps;
     float v1 = c.off1Frac * vc + c.g1VperA * s * amps;
     float v2 = c.off2Frac * vc + c.g2VperA * s * amps;
-    if (v1 < 0.25f * s) v1 = 0.25f * s; if (v1 > 4.75f * s) v1 = 4.75f * s;
-    if (v2 < 0.25f * s) v2 = 0.25f * s; if (v2 > 4.75f * s) v2 = 4.75f * s;
+    if (v1 < 0.25f * s) v1 = 0.25f * s;
+    if (v1 > 4.75f * s) v1 = 4.75f * s;
+    if (v2 < 0.25f * s) v2 = 0.25f * s;
+    if (v2 > 4.75f * s) v2 = 4.75f * s;
     adc1 = v1 * c.divider; adc2 = v2 * c.divider; supplyAdc = vc * c.divider;
 }
 // Zero calibration ('Z' with no current flowing): store offsets as fractions of Vc.
