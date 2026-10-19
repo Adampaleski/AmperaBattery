@@ -39,6 +39,7 @@ struct World {
     bool     tempsValid = true;   // sim assumes verified temps
     bool     keyOn = false, chargeReq = false;
     bool     chargerOnline = true;
+    float    busForce = -1;       // interactive page: >= 0 forces the HV bus reading (volts)
     float    chargeSoakA = 0;     // internal: current from the charger into the pack
 
     void reset() {
@@ -46,7 +47,7 @@ struct World {
         in = BmsCore::Inputs{};
         now = 0; busV = 0; preOpenCircuit = false; welded = false; linkUp = true; linkLastMs = 0;
         packA = 0; tMin = 20; tMax = 22; tempsValid = true; keyOn = false; chargeReq = false; chargeSoakA = 0;
-        currentFitted = true;
+        currentFitted = true; busForce = -1;
         for (int b = 0; b < kBoards; b++) {
             silent[b] = false; lastSeen[b] = 0;
             for (int c = 0; c < 24; c++) cell[b][c] = 3.80f + 0.002f * static_cast<float>((c * 7 + b * 3) % 5);
@@ -106,6 +107,7 @@ struct World {
         if (neg && pos) busV = pack;
         else if (neg && o.pre && !preOpenCircuit) busV += (pack - busV) * (1.0f - expf(-dt / (preR * capF)));
         else busV *= expf(-dt / bleedTau);
+        if (busForce >= 0) busV = busForce;
         // charger pushes its requested current into the bank (sim only)
         chargeSoakA = (o.chargeEnable && chargerOnline && neg && pos) ? o.chargeA : 0;
         if (chargeSoakA > 0) {
