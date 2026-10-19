@@ -3,6 +3,7 @@
 #include "StringMon.h"
 #include "Config.h"
 #include "FactoryCellMap.h"
+#include "FactoryBalancePlan.h"
 #include "Settings.h"
 #include "StringConfig.h"
 
@@ -32,6 +33,10 @@ struct Bus {
 Bus      g_bus[kStrings];
 Summary  g_sum[kStrings];
 uint8_t  g_prevFaults[kStrings] = {};
+// Print-only bleed cycle counter: advances every FactoryBalance::kCycleMs
+// (200 ms) like the OEM BECM frame set would. Nothing is transmitted.
+uint32_t g_balCycle   = 0;
+uint32_t g_balCycleMs = 0;
 
 float decodeCell(uint8_t msb, uint8_t lsb) {
     return static_cast<uint16_t>(((msb & 0x0F) << 8) | lsb) * 0.00125f;
@@ -126,6 +131,10 @@ void onFrame(uint8_t s, const CAN_message_t &msg) {
 }
 
 void tick() {
+    if (millis() - g_balCycleMs >= FactoryBalance::kCycleMs) {
+        g_balCycleMs = millis();
+        g_balCycle++;
+    }
     for (int s = 0; s < kStrings; s++) {
         evaluate(s);
         const uint8_t nowF = g_sum[s].faults & kFaultMask;
@@ -229,43 +238,53 @@ void print() {
     }
 }
 
-void printBalancePlan() {
-    const float db = Settings::deadbandV();
-    SERIALCONSOLE.print(F("BALANCE PLAN (PRINT-ONLY, nothing transmitted)  deadband="));
-    SERIALCONSOLE.print(static_cast<int>(db * 1000 + 0.5f));
-    SERIALCONSOLE.println(F("mV  target = string min + deadband"));
+// Build the per-bus planner input for string s (its expected circuits only;
+// extra circuits on the bus are never bled).
+static FactoryBalance::PlanInput balanceInput(int s) {
+    FactoryBalance::PlanInput in;
+    const Bus &b = g_bus[s];
     const uint32_t now = millis();
+    for (int i = 0; i < kFactoryCircuitCount; i++) {
+        if (!(kMasks[s] & (1UL << i))) continue;
+        in.use[i]   = 1;
+        in.group[i] = 0;  // one series string per bus
+        in.fresh[i] = (frameState(b, 2 * i, now) == 1 && frameState(b, 2 * i + 1, now) == 1) ? 1 : 0;
+        const int na = kFactoryFrames[2 * i].count;
+        for (int c = 0; c < na; c++) in.v[i][c] = b.v[2 * i][c];
+        for (int c = 0; c < kFactoryFrames[2 * i + 1].count; c++) in.v[i][na + c] = b.v[2 * i + 1][c];
+    }
+    in.deadbandV  = Settings::deadbandV();
+    in.lowCutoffV = Settings::lowCutoffV();
+    in.minBleedV  = kBalanceMinVoltage;
+    return in;
+}
+static_assert(kFactoryCircuitCount == FactoryBalance::kCircuits, "circuit tables differ");
+
+static void printLine(const char *s) { SERIALCONSOLE.println(s); }
+
+void printBalancePlan() {
+    SERIALCONSOLE.print(F("BALANCE PLAN (PRINT-ONLY, nothing transmitted)  live cycle="));
+    SERIALCONSOLE.print(g_balCycle);
+    SERIALCONSOLE.print(F(" ("));
+    SERIALCONSOLE.print(FactoryBalance::kindName(FactoryBalance::cycleKind(g_balCycle)));
+    SERIALCONSOLE.println(F(")  map=Tom VoltBMSV2 factory 0x300/0x310 (FactoryBalanceMap.h)"));
     for (int s = 0; s < kStrings; s++) {
         const Summary &r = g_sum[s];
-        SERIALCONSOLE.print(F("  STRING "));
-        SERIALCONSOLE.print(s + 1);
+        char name[40];
+        snprintf(name, sizeof name, "STRING %d (%s) %dS", s + 1, kBusName[s], r.expected);
         if (r.cells != r.expected || (r.faults & kFaultMask)) {
+            SERIALCONSOLE.print(F("  "));
+            SERIALCONSOLE.print(name);
             SERIALCONSOLE.print(F(": no plan (string not complete/faulted) "));
             printFaults(r.faults);
-            SERIALCONSOLE.println();
+            SERIALCONSOLE.println(F(" -> 0x300/0x310 would be all 00"));
             continue;
         }
-        const float target = r.minV + db;
-        SERIALCONSOLE.print(F(": min="));
-        SERIALCONSOLE.print(r.minV, 3);
-        SERIALCONSOLE.print(F(" target="));
-        SERIALCONSOLE.print(target, 3);
-        SERIALCONSOLE.print(F("  would bleed:"));
-        int n = 0;
-        const Bus &b = g_bus[s];
-        forEachCell(s, [&](int idx, int, int f, float v) {
-            if (frameState(b, f, now) != 1 || v <= target) return;
-            SERIALCONSOLE.print(F(" c"));
-            SERIALCONSOLE.print(idx + 1);
-            SERIALCONSOLE.print(F("(+"));
-            SERIALCONSOLE.print(static_cast<int>((v - r.minV) * 1000 + 0.5f));
-            SERIALCONSOLE.print(F("mV)"));
-            n++;
-        });
-        if (!n) SERIALCONSOLE.print(F(" none"));
-        SERIALCONSOLE.println();
+        const FactoryBalance::PlanInput in = balanceInput(s);
+        const FactoryBalance::Plan p = FactoryBalance::evaluate(in);
+        FactoryBalance::printPlan(printLine, in, p, name);
     }
-    SERIALCONSOLE.println(F("  (+mV = above string min; bleed would stop at target. BMS_CAP_BALANCE_TX=0)"));
+    SERIALCONSOLE.println(F("  (+mV = above string min. TX OFF: BMS_CAP_BALANCE_TX=0, FACTORY_BALANCE_MAP_VERIFIED=0)"));
 }
 }  // namespace StringMon
 

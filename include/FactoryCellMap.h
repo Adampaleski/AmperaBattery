@@ -53,8 +53,11 @@
 #define FACTORY_STRING_CELLS 0
 #endif
 
-// No bench-verified 0x300/0x310 bleed-bit map exists for factory-strapped
-// modules. Balance stays OFF on this build until one is verified.
+// Factory 0x300/0x310 bleed map: include/FactoryBalanceMap.h, taken from Tom's
+// VoltBMSV2 (BMSModuleManager.cpp 108-198) + swoozle's forum table. It is NOT
+// bench-verified on Adam's boards, and factory bleed TX is not implemented:
+// 'b' only PRINTS the plan and the frames it would send. Stays 0 until a
+// one-cell bench test (cell drops on 'd') is done and signed off.
 #define FACTORY_BALANCE_MAP_VERIFIED 0
 
 constexpr uint8_t kFactoryMapM1[30] = {

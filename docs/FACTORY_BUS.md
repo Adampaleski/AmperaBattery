@@ -36,3 +36,23 @@ is **report only**. It doesn't trip any alarm or fault. After that comes the tem
 5. **Elcon test (Sparky):** charger into the pack or a dummy load with a **1 A** request at a voltage a few volts **under** the pack voltage. Confirm the charger obeys, that a stop frame (byte4=1) stops it, and that it shuts off by itself within about 5 s when frames stop (unplug the Teensy).
 6. **Balance:** with a verified map only, one bit at a time, and a meter on the cell.
 7. **Contactors:** lamp or relay board in place of the coils, and the HV divider for precharge.
+
+## Balance (bleed) plan — PRINT-ONLY (Oct 19 2026)
+
+- Map: `include/FactoryBalanceMap.h`, from Tom de Bree's VoltBMSV2
+  (`BMSModuleManager.cpp` 108-198, MIT) + swoozle's diyelectriccar table.
+  0x300 (8 bytes) = circuits 0x460-0x466 + 0x468; 0x310 (5 bytes) = 0x469,
+  0x46A, 0x46C-0x46E. 8-cell circuits use bits 0-7, 6-cell circuits bits 0-5.
+  Trigger = 0x200 `02 00 00`; frame set every 200 ms.
+- Planner: `include/FactoryBalancePlan.h`. Odd board channels / even channels /
+  odd / even / blank sample cycle; never adjacent cells, never a whole circuit.
+  Deadband = `W`, no plan below low cutoff `L`, bleed floor 3.90 V.
+- `b` prints the plan per board and the exact `WOULD TX` frames. Nothing is
+  sent: `BMS_CAP_BALANCE_TX=0`, `FACTORY_BALANCE_MAP_VERIFIED=0`, and the
+  factory path in `BalanceTx::sendQueuedBeforeKeepAlive()` returns early.
+- PC test: `g++ -std=c++17 -Iinclude scripts/test_factory_balance.cpp -o tfb && ./tfb`
+  (cross-checks the encoder byte-for-byte against a transcription of Tom's code).
+- **Bus constraint:** IDs are fixed by the board straps, so each CAN bus can hold
+  at most one M1, one M2, one M3 and one M4. A second M4 18S (or second M2/M3)
+  must be on its own bus (CAN3 vs CAN1, or the other Teensy).
+- Before any live bleed: one-cell bench test (one cell, 10 s, watch it drop on `d`).

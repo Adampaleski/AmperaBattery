@@ -65,7 +65,7 @@ void printHelp() {
     SERIALCONSOLE.println(F("  s  CAN ID histogram          r  reset sniffer counters"));
     SERIALCONSOLE.println(F("  c  toggle candump (every frame)"));
     SERIALCONSOLE.println(F("  k  toggle 0x200 keep-alive (BICMs stop reporting without it)"));
-    SERIALCONSOLE.println(F("  b  balance status + would-be 0x300/0x310 (PRINT-ONLY)"));
+    SERIALCONSOLE.println(F("  b  balance plan per board + WOULD TX 0x300/0x310/0x200 (PRINT-ONLY)"));
     SERIALCONSOLE.println(F("  e  toggle dead-man -> contactor sequence (PRINT-ONLY, coils stay LOW)"));
     SERIALCONSOLE.println(F("  p  contactor state, wanted vs driven pins"));
     SERIALCONSOLE.println(F("  g  toggle charge request; shows refusal reason + would-be Elcon frame"));

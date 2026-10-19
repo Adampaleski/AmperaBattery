@@ -7,6 +7,9 @@
 #include "K112BalanceMap.h"
 #if FACTORY_BUS_DECODE
 #include "FactoryCellMap.h"
+#include "FactoryBalancePlan.h"
+#include "Settings.h"
+#include "StringConfig.h"
 #endif
 
 // Balance is only possible with a verified bleed-bit map for the active decode.
@@ -42,6 +45,42 @@ void printHexPayload(const uint8_t *buf, uint8_t len) {
         }
     }
 }
+
+#if FACTORY_BUS_DECODE && !DUAL_STRING
+void printLine(const char *s) { SERIALCONSOLE.println(s); }
+
+// Single-bus factory build: every reporting circuit on CAN3. Each board is
+// its own min group unless FACTORY_SERIES_STRING (then one group).
+void printFactoryPlan() {
+    using namespace FactoryBalance;
+    PlanInput in;
+    for (int i = 0; i < kCircuits; i++) {
+        const uint8_t m = kCircuit[i].module;
+        uint8_t wired = 0, seen = 0, alarm = 0;
+        for (int b = 0; b < kCircuit[i].cells; b++) {
+            const uint8_t ch = static_cast<uint8_t>(kCircuit[i].firstCh + b);
+            const BicmDecode::ChState st = BicmDecode::channelState(m, ch);
+            if (st == BicmDecode::ChState::NotWired) continue;
+            wired |= static_cast<uint8_t>(1u << b);
+            if (st != BicmDecode::ChState::NoData) seen = 1;
+            if (st == BicmDecode::ChState::Alarm) alarm = 1;
+            in.v[i][b] = BicmDecode::channelVoltage(m, ch);
+        }
+        if (!wired || !seen) continue;  // empty circuit: not part of the plan
+        in.use[i]   = 1;
+        in.wired[i] = wired;
+        in.fresh[i] = alarm ? 0 : 1;
+        in.group[i] = FACTORY_SERIES_STRING ? 0 : m;
+    }
+    in.deadbandV  = Settings::deadbandV();
+    in.lowCutoffV = Settings::lowCutoffV();
+    in.minBleedV  = kBalanceMinVoltage;
+    SERIALCONSOLE.print(F("BALANCE PLAN (PRINT-ONLY, nothing transmitted)  groups="));
+    SERIALCONSOLE.println(FACTORY_SERIES_STRING ? F("one series string") : F("per board (g1=M1..g4=M4)"));
+    const Plan p = evaluate(in);
+    printPlan(printLine, in, p, "BUS CAN3");
+}
+#endif
 
 }  // namespace
 
@@ -133,7 +172,9 @@ void tick() {
 }
 
 void sendQueuedBeforeKeepAlive() {
-#if !BMS_CAP_BALANCE_TX || !BALANCE_MAP_OK
+#if FACTORY_BUS_DECODE
+    return;  // factory-ID bleed TX is NOT implemented: print-only planner ('b') only
+#elif !BMS_CAP_BALANCE_TX || !BALANCE_MAP_OK
     return;  // no verified map -> never put 0x300/0x310 on the bus
 #else
     uint8_t buf300[8];
@@ -171,8 +212,13 @@ void printStatus() {
     SERIALCONSOLE.println(
         F("*** BALANCE PRINT-ONLY  FLAG=0  DRIVE=OFF  CAN NOT fired ***"));
 #endif
-#if FACTORY_BUS_DECODE && !BALANCE_MAP_OK
-    SERIALCONSOLE.println(F("BALANCE OFF — no verified factory balance map (FACTORY_BALANCE_MAP_VERIFIED=0)"));
+#if FACTORY_BUS_DECODE
+    (void)marked;
+    SERIALCONSOLE.println(
+        F("BALANCE TX OFF — factory map from Tom's VoltBMSV2 is NOT bench-verified (FACTORY_BALANCE_MAP_VERIFIED=0)"));
+#if !DUAL_STRING
+    printFactoryPlan();
+#endif
     return;
 #endif
     SERIALCONSOLE.print(F("BALANCE map=K112-36S  FLAG="));

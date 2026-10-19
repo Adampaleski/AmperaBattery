@@ -6,7 +6,9 @@
 // K112 36S (one 24S KICM + one 12S KICM) → 0x300 / 0x310 bleed bits.
 //
 // Frame FORMAT (IDs, DLC, bitmask-in-bytes) is from VoltBMSV2 / OEM capture:
-//   0x300 DLC=8, 0x310 DLC=5, each byte bits 0–5 = one 6-cell group.
+//   0x300 DLC=8, 0x310 DLC=5, one byte per sense circuit. Bits 0-5 holds ONLY
+//   for 6-cell circuits; 8-cell circuits use bits 0-7 (see FactoryBalanceMap.h,
+//   which is the map for factory-strapped boards).
 // Empirical 6S pair (swoozle / diyelectriccar): 0x46x → bits 0-2 (0x01,0x02,0x04),
 // 0x47x → bits 3-5 (0x08,0x10,0x20) of the SAME byte. Then the next 0x200#02.00.00
 // triggers ~130 ms / ~100 mA bleed.
