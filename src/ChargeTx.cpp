@@ -19,7 +19,7 @@
 // never PACK_S_CELLS (which can span separate, unparalleled sections).
 // 0 = no single string defined -> charging is impossible (always refused).
 #if DUAL_STRING
-#define CHARGE_STRING_CELLS STRING_EXPECT_S  // one 42S string (24S+18S); strings are paralleled
+#define CHARGE_STRING_CELLS STRING_EXPECT_S  // one 36S string (24S + M4 12S); strings are paralleled
 #elif FACTORY_BUS_DECODE
 #define CHARGE_STRING_CELLS FACTORY_STRING_CELLS
 #elif K112_PACK_DECODE && (PACK_S_CELLS == 36)
@@ -41,6 +41,12 @@ static_assert(CHARGE_STRING_CELLS == 0 ||
                   (Settings::kCeilMin * CHARGE_STRING_CELLS >= ELCON_MIN_V &&
                    Settings::kCeilMax * CHARGE_STRING_CELLS <= ELCON_MAX_V),
               "Settings ceiling bounds (3.725-4.10 V) x string cells fall outside the Elcon window");
+#if DUAL_STRING
+// 36S x 4.10 V = 147.6 V must sit below the Kelly with margin (168 - 5 = 163 V),
+// so P100 really charges to 4.10 V/cell and the pack clamp never bites.
+static_assert(Settings::kCeilMax * STRING_EXPECT_S <= KELLY_MAX_V - KELLY_MARGIN_V,
+              "full charge (4.10 V x STRING_EXPECT_S) exceeds KELLY_MAX_V - KELLY_MARGIN_V");
+#endif
 static_assert(kChargeFaultCellV > kChargeCellSetpointV && kChargeFaultCellV < kCellFaultMaxV,
               "charge fault threshold must sit between setpoint and cell OV fault");
 
@@ -308,7 +314,7 @@ void printStatus() {
     SERIALCONSOLE.print(Settings::chargePct());
     SERIALCONSOLE.print(F("% -> "));
     SERIALCONSOLE.print(Settings::ceilingV(), 3);
-    SERIALCONSOLE.println(F(" V/cell (P setting; 42S clamped to KELLY_MAX_V/42). Elcon HK-LF-144-46 100-202 V"));
+    SERIALCONSOLE.println(F(" V/cell (P setting; 36S x 4.10 = 147.6 V max). Elcon HK-LF-144-46 100-202 V"));
 #if !BMS_CAP_CHARGE_TX
     SERIALCONSOLE.println(
         F("  PRINT-ONLY — frame above is NOT written to CAN2 (BMS_CAP_CHARGE_TX=0)"));

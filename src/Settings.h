@@ -19,7 +19,7 @@ constexpr int   kDbMin   = 2,     kDbMax   = 50,    kDbDef   = 10;
 
 void  begin();          // load from EEPROM (defaults if blank/corrupt) and print
 int   chargePct();      // P setting, 50..100 (default 80)
-float ceilingV();       // charge stop: any cell >= this (pct map, clamped to KELLY_MAX_V / string cells)
+float ceilingV();       // charge stop: any cell >= this (pct map; pack clamp KELLY_MAX_V - KELLY_MARGIN_V)
 // Current-sensor zero offsets as fraction of the 5 V supply (0 = datasheet default).
 float curOff1Frac();
 float curOff2Frac();

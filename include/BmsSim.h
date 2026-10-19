@@ -2,9 +2,10 @@
 // Plant model + scripted fault scenarios around BmsCore (pure C++).
 // Used by scripts/sim_bms.cpp (PC) and tools/bms_sim (wasm in the browser).
 //
-// Bank modelled: Teensy A owns string 1 = M2 24S + M4 18S (CAN3) and sees
-// string 2 = M3 24S + M4 18S over the link from Teensy B (42S each, 2P here;
-// one board of each type per bus because the BICM IDs are fixed).
+// Bank modelled: Teensy A owns string 1 = M2 24S + M4 c1-12 (CAN3) and sees
+// string 2 = M3 24S + M4 c1-12 over the link from Teensy B (36S each, 2P here;
+// one board of each type per bus because the BICM IDs are fixed). The M4 top
+// circuit (0x46E, c13-18) is empty by design: not modelled as cells, never planned.
 #include <math.h>
 #include "BmsCore.h"
 #include "FactoryBalancePlan.h"
@@ -12,9 +13,10 @@
 namespace BmsSim {
 
 enum Board { B_M2 = 0, B_M4A, B_M3, B_M4B, kBoards };
-constexpr int kBoardCells[kBoards] = {24, 18, 24, 18};
-constexpr const char *kBoardLabel[kBoards] = {"M2 24S (A, string 1)", "M4 18S (A, string 1)",
-                                              "M3 24S (B, string 2)", "M4 18S (B, string 2)"};
+constexpr int kBoardCells[kBoards] = {24, 12, 24, 12};   // cells USED (M4: c1-12 only)
+constexpr int kStringCells = 36;
+constexpr const char *kBoardLabel[kBoards] = {"M2 24S (A, string 1)", "M4 18S, 12S used (A, string 1)",
+                                              "M3 24S (B, string 2)", "M4 18S, 12S used (B, string 2)"};
 constexpr int kBoardString[kBoards] = {0, 0, 1, 1};
 
 struct World {
@@ -65,7 +67,7 @@ struct World {
         in.nowMs = now;
         for (int s = 0; s < 2; s++) {
             BmsCore::StringIn &si = in.s[s];
-            si.used = true; si.remote = (s == 1); si.expected = 42;
+            si.used = true; si.remote = (s == 1); si.expected = kStringCells;
             float mn = 9, mx = 0, sum = 0; int ok = 0; uint32_t oldest = 0;
             for (int b = 0; b < kBoards; b++) {
                 if (kBoardString[b] != s) continue;
@@ -122,11 +124,12 @@ struct World {
 
     bool allOpen() const { const auto &o = core.out(); return !o.pre && !o.mainPos && !o.mainNeg; }
 
-    // Balance plan for Teensy A's string-1 bus (M2 circuits 4-6, M4 circuits 10-12).
+    // Balance plan for Teensy A's string-1 bus (M2 circuits 4-6, M4 circuits
+    // 10-11 = 0x46C/0x46D). Circuit 12 (0x46E) is empty by design: never used.
     FactoryBalance::PlanInput balanceInput(float deadbandV) const {
         FactoryBalance::PlanInput p;
-        const int circ[6] = {4, 5, 6, 10, 11, 12};
-        for (int k = 0; k < 6; k++) {
+        const int circ[5] = {4, 5, 6, 10, 11};
+        for (int k = 0; k < 5; k++) {
             const int i = circ[k];
             const int b = k < 3 ? B_M2 : B_M4A;
             p.use[i] = 1; p.fresh[i] = (now - lastSeen[b]) <= 2000; p.group[i] = 0;
@@ -178,7 +181,7 @@ inline int runAll(Result out[kScenarios]) {
     out[n++] = scenario("healthy: key on -> closed + charging", "Closed & charger on <= 3.5 s", 3500, false,
         [](World &w) { w.keyOn = false; w.run(2500); w.keyOn = true; w.chargeReq = true; },
         [](World &w) { return w.core.out().state == CState::Closed && w.core.out().chargeEnable; });
-    out[n++] = scenario("board silent (M4 18S, string 1)", "open + charger off <= 2.5 s", 2500, true,
+    out[n++] = scenario("board silent (M4 12S, string 1)", "open + charger off <= 2.5 s", 2500, true,
         [](World &w) { w.silent[B_M4A] = true; }, openAndNoCharge);
     out[n++] = scenario("cell high 4.30 V (M2 ch7)", "open + charger off <= 0.2 s", 200, true,
         [](World &w) { w.cell[B_M2][6] = 4.30f; }, openAndNoCharge);

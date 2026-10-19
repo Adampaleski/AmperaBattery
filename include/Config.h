@@ -106,7 +106,10 @@ static_assert(kChargeCurrentDeciA <= 80, "charge current > 8 A: only on a 240 V 
 
 // Kelly KLS controller max bus voltage ("168 V version" -- VERIFY on the label
 // and in the Kelly config's over-voltage setting). BmsCore clamps the charge
-// ceiling to KELLY_MAX_V / string cells: 42S -> 4.00 V/cell even at 100 %.
+// pack charge voltage to KELLY_MAX_V - KELLY_MARGIN_V (36S x 4.10 = 147.6 V: never reached).
+#ifndef KELLY_MARGIN_V
+#define KELLY_MARGIN_V 5.0f   // charger never asked above KELLY_MAX_V - this
+#endif
 #ifndef KELLY_MAX_V
 #define KELLY_MAX_V 168.0f
 #endif

@@ -78,6 +78,7 @@ void evaluate(int s) {
         const bool exp = kMasks[s] & (1UL << i);
         const int sa = frameState(b, 2 * i, now), sb = frameState(b, 2 * i + 1, now);
         if (!exp) {
+            // Empty-by-design (M4 top 0x46E): silent is normal. Any other extra = info only.
             if (sa == 1 || sb == 1) r.faults |= kFExtra;
             continue;
         }
@@ -205,10 +206,11 @@ void print() {
         SERIALCONSOLE.println();
         for (int i = 0; i < kFactoryCircuitCount; i++) {
             const bool exp = kMasks[s] & (1UL << i);
+            const bool empty = !exp && (STRING_EMPTY_CIRCUITS & (1UL << i));
             const int fa = 2 * i, fb = 2 * i + 1;
-            if (!exp && !b.count[fa] && !b.count[fb]) continue;
+            if (!exp && !empty && !b.count[fa] && !b.count[fb]) continue;
             const int sa = frameState(b, fa, now), sb = frameState(b, fb, now);
-            SERIALCONSOLE.print(exp ? F("  exp ") : F("  xtra "));
+            SERIALCONSOLE.print(exp ? F("  exp ") : (empty ? F("  empty ") : F("  xtra ")));
             SERIALCONSOLE.print(modName(kFactoryFrames[fa].module));
             SERIALCONSOLE.print(F(" c"));
             SERIALCONSOLE.print(kFactoryFrames[fa].firstCh);
@@ -223,7 +225,9 @@ void print() {
             SERIALCONSOLE.print(F("ms gapmax="));
             SERIALCONSOLE.print(b.maxGap[fa] > b.maxGap[fb] ? b.maxGap[fa] : b.maxGap[fb]);
             SERIALCONSOLE.print(F("ms "));
-            if (sa == 1 && sb == 1) SERIALCONSOLE.print(F("reporting"));
+            if (empty && sa != 1 && sb != 1) SERIALCONSOLE.print(F("empty by design (not used)"));
+            else if (empty) SERIALCONSOLE.print(F("REPORTING but empty by design - check M4 wiring (info, not a fault)"));
+            else if (sa == 1 && sb == 1) SERIALCONSOLE.print(F("reporting"));
             else if (sa == 0 && sb == 0) SERIALCONSOLE.print(exp ? F("NO-DATA") : F("silent"));
             else SERIALCONSOLE.print(exp ? F("SILENT") : F("silent"));
             SERIALCONSOLE.println();

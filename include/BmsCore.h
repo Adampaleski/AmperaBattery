@@ -76,8 +76,9 @@ struct Config {
     float    taperBandV     = 0.05f;   // current tapers over the last 50 mV (Tom ChargeHys/map)
     float    chargeMaxA     = 5.0f;    // kChargeCurrentDeciA (outlet-limited)
     float    chargeEndA     = 1.0f;    // current at the ceiling before stop (Tom chargecurrentend 5 A on a big charger)
-    int      stringCells    = 42;      // charger V basis: cells in ONE series string (24S+18S)
-    float    busMaxV        = 168.0f;  // Kelly KLS "168 V" (VERIFY label): ceiling clamped to busMaxV/stringCells
+    int      stringCells    = 36;      // charger V basis: cells in ONE series string (24S + M4 12S)
+    float    busMaxV        = 168.0f;  // Kelly KLS "168 V" (VERIFY label)
+    float    busMarginV     = 5.0f;    // general pack clamp: ceiling x cells <= busMaxV - margin
     // temps
     float    overTempC      = 55.0f;   // drive: open contactors above
     float    chargeMaxTempC = 45.0f;
@@ -184,8 +185,9 @@ public:
         if (!started_) { started_ = true; stMs_ = now; openSinceMs_ = now; }
         Outputs o;
         o.ceilingV = ceilingForPct(cfg.chargePct);
-        if (cfg.stringCells > 0 && o.ceilingV * cfg.stringCells > cfg.busMaxV)
-            o.ceilingV = cfg.busMaxV / static_cast<float>(cfg.stringCells);  // 42S: 4.00 V max
+        // General pack-voltage clamp (safety net). 36S x 4.10 V = 147.6 V < 163 V: inactive.
+        if (cfg.stringCells > 0 && o.ceilingV * cfg.stringCells > cfg.busMaxV - cfg.busMarginV)
+            o.ceilingV = (cfg.busMaxV - cfg.busMarginV) / static_cast<float>(cfg.stringCells);
         o.lowestStringV = lowestString(in);
         uint32_t f = evalFaults(in, o.lowestStringV, o.ceilingV);
 

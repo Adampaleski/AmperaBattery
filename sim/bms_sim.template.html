@@ -16,6 +16,7 @@ h1{margin:0 0 6px} h2{margin:14px 0 6px;font-size:17px} .card{background:#1c1c1c
 .c input{writing-mode:vertical-lr;direction:rtl;width:18px;height:70px;margin:2px 0}
 .c.lo{outline:2px solid #49f}.c.hi{outline:2px solid #fa3}.c.bleed{background:#3a2a10}
 .board.silent{opacity:.45}
+.c.empty{width:auto;padding:4px 8px;color:#777;border:1px dashed #555;background:#181818}
 .coil{display:inline-block;padding:6px 10px;border-radius:6px;margin-right:6px;background:#333;font-weight:600;font-family:monospace}
 .coil.on{background:#2d6b2d;color:#fff}
 .state{font-size:24px;font-weight:700;font-family:monospace}
@@ -29,7 +30,8 @@ table{border-collapse:collapse;font-size:12px;width:100%} td,th{border-bottom:1p
 .kv{font-family:monospace}
 </style></head><body>
 <h1>Teryx BMS simulator</h1>
-<div class="dim">Teensy A view: string 1 = M2 24S + M4 18S (local CAN3), string 2 = M3 24S + M4 18S (via link from Teensy B), 42S each, 2P.
+<div class="dim">Teensy A view: string 1 = M2 24S + M4 18S board, 12S used (local CAN3); string 2 = M3 24S + M4 18S board, 12S used (via link from Teensy B).
+36S per string, 2P. Full = 4.10 V/cell = 147.6 V (Kelly 168 V). M4 top circuit 0x46E (c13-18) is empty by design.
 Logic = firmware BmsCore compiled to WebAssembly. Nothing here touches hardware.</div>
 
 <div class="card row">
@@ -86,7 +88,7 @@ Logic = firmware BmsCore compiled to WebAssembly. Nothing here touches hardware.
     <div id="log"></div>
   </div>
   <div class="card">
-    <h2>Balance plan (string 1 bus) <label class="dim" style="font-size:13px">deadband <input id="db" type="number" min="2" max="50" value="10" style="width:50px"> mV</label></h2>
+    <h2>Balance plan (string 1 bus; 0x46E never planned) <label class="dim" style="font-size:13px">deadband <input id="db" type="number" min="2" max="50" value="10" style="width:50px"> mV</label></h2>
     <pre id="plan"></pre>
   </div>
   <div class="card">
@@ -101,8 +103,8 @@ Logic = firmware BmsCore compiled to WebAssembly. Nothing here touches hardware.
 
 <script>
 const WASM_B64="@@WASM_B64@@";
-const BOARDS=[{n:"M2 24S",s:"string 1 (A, local)",cells:24},{n:"M4 18S",s:"string 1 (A, local)",cells:18},
-              {n:"M3 24S",s:"string 2 (B, via link)",cells:24},{n:"M4 18S",s:"string 2 (B, via link)",cells:18}];
+const BOARDS=[{n:"M2 24S",s:"string 1 (A, local)",cells:24},{n:"M4 18S (12S used: 0x46C+0x46D)",s:"string 1 (A, local)",cells:12,empty:6},
+              {n:"M3 24S",s:"string 2 (B, via link)",cells:24},{n:"M4 18S (12S used: 0x46C+0x46D)",s:"string 2 (B, via link)",cells:12,empty:6}];
 const $=id=>document.getElementById(id);
 let X,mem,running=true,userLog=[],logHideBefore=-1;
 const cs=p=>{const m=new Uint8Array(X.memory.buffer);let e=p;while(m[e])e++;return new TextDecoder().decode(m.subarray(p,e));};
@@ -118,6 +120,7 @@ function buildBoards(){
       <label>all <input type="range" id="all${bi}" min="3.0" max="4.35" step="0.005" value="3.80"> <span id="allv${bi}" class="kv">3.800</span></label>
       <span id="bsum${bi}" class="kv dim"></span></div><div class="cells">`;
     for(let c=0;c<b.cells;c++) h+=`<span class="c" id="cc${bi}_${c}">${c+1}<br><input type="range" id="cell${bi}_${c}" min="3.0" max="4.35" step="0.001"><br><span id="cv${bi}_${c}">-</span></span>`;
+    if(b.empty) h+=`<span class="c empty" title="0x46E/0x47E: not wired into the string, never a fault, never balanced">c${b.cells+1}-${b.cells+b.empty}<br><br>empty<br>by<br>design<br>0x46E</span>`;
     h+='</div></div>';
   });
   $('boards').innerHTML=h;

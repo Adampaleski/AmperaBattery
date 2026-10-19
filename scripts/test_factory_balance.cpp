@@ -181,7 +181,28 @@ int main() {
         check(low && stale, "gates");
     }
 
-    printf("\n== SAMPLE: one bus, M2 24S + M4 18S, one series string (group 0)\n");
+    {
+        // Adam 10/19 layout: M2 24S + M4 c1-12 (0x46C/0x46D). 0x46E is empty by design:
+        // not in the plan even with a high reading there -> 0x310[4] must stay 00 every cycle.
+        PlanInput in;
+        for (int i = 4; i <= 6; i++) { in.use[i] = in.fresh[i] = 1; for (int b = 0; b < 8; b++) in.v[i][b] = 3.95f; }
+        for (int i = 10; i <= 11; i++) { in.use[i] = in.fresh[i] = 1; for (int b = 0; b < 6; b++) in.v[i][b] = 3.95f; }
+        in.v[10][2] = 4.00f; in.v[11][3] = 4.00f;
+        for (int b = 0; b < 6; b++) in.v[12][b] = 4.10f;   // garbage on the empty circuit: ignored
+        in.deadbandV = 0.010f; in.lowCutoffV = 3.30f; in.minBleedV = 3.90f;
+        const Plan p = evaluate(in);
+        bool top = true, got = false;
+        for (uint32_t cyc = 0; cyc < 10; cyc++) {
+            uint8_t b300[kLen300], b310[kLen310];
+            cycleFrames(p, cyc, b300, b310);
+            if (b310[4]) top = false;
+            if (b310[2] || b310[3]) got = true;
+        }
+        printf("%s M4 12S layout: 0x46E (0x310[4]) never planned; 0x46C/0x46D still bleed\n", top && got && p.status == kOk ? "ok  " : "FAIL");
+        check(top && got && p.status == kOk, "m4 12s");
+    }
+
+    printf("\n== SAMPLE: one bus, M2 24S + M4 12S (c1-12; 0x46E empty by design), one series string\n");
     PlanInput in;
     const float m2[24] = {3.951f, 3.953f, 3.982f, 3.976f, 3.955f, 3.958f, 3.954f, 3.957f,
                           3.956f, 3.952f, 3.989f, 3.960f, 3.955f, 3.957f, 3.953f, 3.954f,
@@ -189,7 +210,7 @@ int main() {
     const float m4[18] = {3.957f, 3.955f, 3.954f, 3.956f, 3.985f, 3.956f, 3.954f, 3.953f, 3.958f,
                           3.955f, 3.957f, 3.956f, 3.954f, 3.979f, 3.975f, 3.956f, 3.955f, 3.957f};
     for (int i = 4; i <= 6; i++) { in.use[i] = in.fresh[i] = 1; for (int b = 0; b < 8; b++) in.v[i][b] = m2[(i - 4) * 8 + b]; }
-    for (int i = 10; i <= 12; i++) { in.use[i] = in.fresh[i] = 1; for (int b = 0; b < 6; b++) in.v[i][b] = m4[(i - 10) * 6 + b]; }
+    for (int i = 10; i <= 11; i++) { in.use[i] = in.fresh[i] = 1; for (int b = 0; b < 6; b++) in.v[i][b] = m4[(i - 10) * 6 + b]; }
     in.deadbandV = 0.010f; in.lowCutoffV = 3.30f; in.minBleedV = 3.90f;
     Plan p = evaluate(in);
     printPlan(line, in, p, "BUS CAN3");

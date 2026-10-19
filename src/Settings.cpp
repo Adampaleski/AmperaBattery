@@ -72,7 +72,7 @@ int   chargePct()    { return g.pct; }
 float ceilingV() {
     float v = BmsCore::ceilingForPct(g.pct);
 #if DUAL_STRING
-    const float clamp = KELLY_MAX_V / static_cast<float>(STRING_EXPECT_S);
+    const float clamp = (KELLY_MAX_V - KELLY_MARGIN_V) / static_cast<float>(STRING_EXPECT_S);
     if (v > clamp) v = clamp;
 #endif
     return v;

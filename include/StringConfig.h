@@ -1,5 +1,5 @@
 #pragma once
-// Dual-string (36S 4P on two Teensy 4.1s) configuration. Build-time only.
+// Dual-string (36S 4P on two Teensy 4.1s: 24S board + M4 12S per string) configuration. Build-time only.
 //
 //   Each Teensy:  CAN3 (30/31) @125k = string 1   CAN1 (22/23) @125k = string 2
 //                 CAN2 (0/1)   @250k = Elcon + Kelly + inter-Teensy link
@@ -39,18 +39,24 @@
 #define M4_C3    CIRC(12)   // 0x46E/47E top 6S
 
 #define M4_ALL   (M4_C1 | M4_C2 | M4_C3)
-// Adam 10/19: strings are 24S + 18S = 42S. One board of each type per bus
-// (fixed BICM IDs), so string 1 (CAN3) = M2 24S + M4 18S and string 2 (CAN1)
-// = M3 24S + its own M4 18S. Old 36S layout: -D STRING1_CIRCUITS="(M1_ALL|M4_C1)"
-// -D STRING2_CIRCUITS="(M2_ALL|M4_C2|M4_C3)" -D STRING_EXPECT_S=36
+#define M4_12S   (M4_C1 | M4_C2)  // bottom + middle 6S (0x46C + 0x46D)
+// Adam 10/19 (corrected 06:22): each string = full 24S board + ONLY the first
+// 12S of an M4 18S board = 36S. 36 x 4.10 V = 147.6 V (< 168 V Kelly).
+// One board of each type per bus (fixed BICM IDs):
+//   string 1 (CAN3) = M2 24S + M4 c1-12   string 2 (CAN1) = M3 24S + M4 c1-12
+// The M4 top circuit (0x46E/0x47E, c13-18) is EMPTY BY DESIGN: not expected,
+// never a fault (silent is normal), never in the balance plan.
 #ifndef STRING1_CIRCUITS
-#define STRING1_CIRCUITS (M2_ALL | M4_ALL)         // 24S + 18S = 42S
+#define STRING1_CIRCUITS (M2_ALL | M4_12S)         // 24S + 12S = 36S
 #endif
 #ifndef STRING2_CIRCUITS
-#define STRING2_CIRCUITS (M3_ALL | M4_ALL)         // 24S + 18S = 42S (second M4 on CAN1)
+#define STRING2_CIRCUITS (M3_ALL | M4_12S)         // 24S + 12S = 36S (second M4 on CAN1)
+#endif
+#ifndef STRING_EMPTY_CIRCUITS
+#define STRING_EMPTY_CIRCUITS (M4_C3)              // shown as "empty by design", never alarmed
 #endif
 #ifndef STRING_EXPECT_S
-#define STRING_EXPECT_S 42                         // every string must total this (compile check)
+#define STRING_EXPECT_S 36                         // every string must total this (compile check)
 #endif
 #ifndef STRING_SILENT_MS
 #define STRING_SILENT_MS 2000                      // two missed 1 s keep-alives -> FAULT (crew OK 10/17; confirm vs d gapmax)

@@ -5,7 +5,7 @@ All BMS decisions (contactors, charger request, Kelly outputs, faults) live in
 
 | Where | File | How |
 |---|---|---|
-| Teensy A (dual build) | `src/ContactorSeq.cpp` | `g_core.step()` every loop; pins via `applyPins()` (gated) |
+| Teensy A (dual build, 2 strings x 36S) | `src/ContactorSeq.cpp` | `g_core.step()` every loop; pins via `applyPins()` (gated) |
 | PC test | `scripts/sim_bms.cpp` + `include/BmsSim.h` | `zig c++ -std=c++17 -Iinclude scripts/sim_bms.cpp` |
 | Browser | `tools/bms_sim.html` | same headers -> wasm32 (`scripts/build_bms_sim_html.sh`), embedded base64, opens from file:// |
 
@@ -34,14 +34,19 @@ Drive faults latch until key-off with the cause gone. CHARGE-OV latches until re
 ## Charge limit (P setting, EEPROM)
 `ceiling = 4.10 V - 0.0075 V x (100 - pct)`, pct 50..100, default 80.
 
-| P | V/cell | 42S pack |
+| P | V/cell | 36S pack |
 |---|---|---|
-| 50 | 3.725 | 156.5 V |
-| 80 | 3.950 | 165.9 V |
-| 90 | 4.025 | 169.1 V -> **clamped 4.000 / 168.0 V** |
-| 100 | 4.100 | 172.2 V -> **clamped 4.000 / 168.0 V** |
+| 50 | 3.725 | 134.1 V |
+| 80 | 3.950 | 142.2 V |
+| 90 | 4.025 | 144.9 V |
+| 100 | 4.100 | **147.6 V (full)** |
 
-The clamp is `KELLY_MAX_V / STRING_EXPECT_S` (168 / 42). **42S x 4.10 V = 172.2 V exceeds a 168 V Kelly**: verify the controller label/max voltage before going above P86.
+String layout (Adam 10/19, corrected 06:22): each string = full 24S board (M2 or M3) + only the first 12S of an M4 18S
+(0x46C bottom + 0x46D middle). **36S per string, 4.10 V/cell = 147.6 V, below the 168 V Kelly**, so P100 really charges to 4.10 V.
+The M4 top circuit 0x46E/0x47E (c13-18) is **empty by design**: not expected, silent is normal (never a PARTIAL/SILENT fault),
+never in the balance plan (host test: 0x310[4] stays 00), shown as "empty by design" in `d` and in the simulator.
+The old per-cell clamp is gone. A general pack clamp remains as a safety net: charge request <= `KELLY_MAX_V - KELLY_MARGIN_V`
+(168 - 5 = 163 V); with 36S it never acts (compile-time `static_assert` in ChargeTx.cpp).
 Taper: linear from `chargeMaxA` (5 A) at ceiling - 50 mV to `chargeEndA` (1 A) at the ceiling, stop at the ceiling, restart below ceiling - 50 mV
 (adapted from Tom `currentlimit()` VoltBMSV2.ino 2591-2672). Any charge fault -> stop frame.
 

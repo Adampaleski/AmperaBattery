@@ -30,7 +30,7 @@ Each bus needs its own transceiver (SN65HVD230) and 120 ohm termination at both 
 ## String config (include/StringConfig.h)
 `STRING1_CIRCUITS` / `STRING2_CIRCUITS` are circuit bitmasks (circuit numbers in that file).
 M4 6S mode = one of `M4_C1/M4_C2/M4_C3`; 12S mode = two. Each string must total
-`STRING_EXPECT_S` (36) or the build fails. Example: `-D STRING2_CIRCUITS="(M3_ALL|M4_C1|M4_C2)"`.
+`STRING_EXPECT_S` (36) or the build fails. Default (Adam 10/19): string 1 = `M2_ALL|M4_12S`, string 2 = `M3_ALL|M4_12S` (24S + M4 c1-12; M4 top 0x46E empty by design, `STRING_EMPTY_CIRCUITS`). Example: `-D STRING2_CIRCUITS="(M3_ALL|M4_C1|M4_C2)"`.
 An expected circuit with no fresh frame for > `STRING_SILENT_MS` (1000 ms) = FAULT.
 
 ## Link IDs (CAN2, 29-bit extended)

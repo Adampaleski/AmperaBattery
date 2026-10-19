@@ -243,6 +243,7 @@ void configureCore() {
     c.chargePct      = Settings::chargePct();
     c.stringCells    = STRING_EXPECT_S;
     c.busMaxV        = KELLY_MAX_V;
+    c.busMarginV     = KELLY_MARGIN_V;
     c.chargeMaxA     = kChargeCurrentDeciA / 10.0f;
     c.stringSilentMs = STRING_SILENT_MS;
     c.linkStaleMs    = LINK_STALE_MS;
