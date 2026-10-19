@@ -2,22 +2,26 @@
 // Plant model + scripted fault scenarios around BmsCore (pure C++).
 // Used by scripts/sim_bms.cpp (PC) and tools/bms_sim (wasm in the browser).
 //
-// Bank modelled: Teensy A owns string 1 = M2 24S + M4 c1-12 (CAN3) and sees
-// string 2 = M3 24S + M4 c1-12 over the link from Teensy B (36S each, 2P here;
-// one board of each type per bus because the BICM IDs are fixed). The M4 top
-// circuit (0x46E, c13-18) is empty by design: not modelled as cells, never planned.
+// Bank modelled (36S 4P, Teensy A's view): 4 strings, each 24S board + M4 c1-12.
+//   s0 = Teensy A CAN3: M2 24S + M4   s1 = Teensy A CAN1: M3 24S + M4   (local)
+//   s2 = Teensy B CAN3: M2 24S + M4   s3 = Teensy B CAN1: M3 24S + M4   (via link)
+// One board of each type per bus (fixed BICM IDs). The M4 top circuit (0x46E,
+// c13-18) is empty by design: not modelled as cells, never planned.
 #include <math.h>
 #include "BmsCore.h"
 #include "FactoryBalancePlan.h"
 
 namespace BmsSim {
 
-enum Board { B_M2 = 0, B_M4A, B_M3, B_M4B, kBoards };
-constexpr int kBoardCells[kBoards] = {24, 12, 24, 12};   // cells USED (M4: c1-12 only)
+enum Board { A3_M2 = 0, A3_M4, A1_M3, A1_M4, B3_M2, B3_M4, B1_M3, B1_M4, kBoards };
+constexpr int kStrings = 4;
+constexpr int kBoardCells[kBoards] = {24, 12, 24, 12, 24, 12, 24, 12};   // cells USED (M4: c1-12 only)
 constexpr int kStringCells = 36;
-constexpr const char *kBoardLabel[kBoards] = {"M2 24S (A, string 1)", "M4 18S, 12S used (A, string 1)",
-                                              "M3 24S (B, string 2)", "M4 18S, 12S used (B, string 2)"};
-constexpr int kBoardString[kBoards] = {0, 0, 1, 1};
+constexpr const char *kBoardLabel[kBoards] = {"A CAN3 M2 24S", "A CAN3 M4 12S", "A CAN1 M3 24S", "A CAN1 M4 12S",
+                                              "B CAN3 M2 24S", "B CAN3 M4 12S", "B CAN1 M3 24S", "B CAN1 M4 12S"};
+constexpr int kBoardString[kBoards] = {0, 0, 1, 1, 2, 2, 3, 3};
+// legacy names used by scenarios
+constexpr Board B_M2 = A3_M2, B_M4A = A3_M4, B_M3 = B1_M3;
 
 struct World {
     BmsCore::Core core;
@@ -65,9 +69,9 @@ struct World {
     void buildInputs() {
         in = BmsCore::Inputs{};
         in.nowMs = now;
-        for (int s = 0; s < 2; s++) {
+        for (int s = 0; s < kStrings; s++) {
             BmsCore::StringIn &si = in.s[s];
-            si.used = true; si.remote = (s == 1); si.expected = kStringCells;
+            si.used = true; si.remote = (s >= 2); si.expected = kStringCells;
             float mn = 9, mx = 0, sum = 0; int ok = 0; uint32_t oldest = 0;
             for (int b = 0; b < kBoards; b++) {
                 if (kBoardString[b] != s) continue;
@@ -104,7 +108,8 @@ struct World {
         if (linkUp) linkLastMs = now;
         const BmsCore::Outputs &o = core.out();
         const bool neg = o.mainNeg || welded, pos = o.mainPos || welded;
-        const float pack = stringV(0) < stringV(1) ? stringV(0) : stringV(1);
+        float pack = stringV(0);
+        for (int s = 1; s < kStrings; s++) if (stringV(s) < pack) pack = stringV(s);
         const float dt = dtMs * 0.001f;
         if (neg && pos) busV = pack;
         else if (neg && o.pre && !preOpenCircuit) busV += (pack - busV) * (1.0f - expf(-dt / (preR * capF)));
@@ -126,12 +131,14 @@ struct World {
 
     // Balance plan for Teensy A's string-1 bus (M2 circuits 4-6, M4 circuits
     // 10-11 = 0x46C/0x46D). Circuit 12 (0x46E) is empty by design: never used.
-    FactoryBalance::PlanInput balanceInput(float deadbandV) const {
+    // String s: CAN3 strings (0, 2) use M2 circuits 4-6, CAN1 strings (1, 3) M3 circuits 7-9.
+    FactoryBalance::PlanInput balanceInput(float deadbandV, int s = 0) const {
         FactoryBalance::PlanInput p;
-        const int circ[5] = {4, 5, 6, 10, 11};
+        const int base = (s & 1) ? 7 : 4;
+        const int circ[5] = {base, base + 1, base + 2, 10, 11};
         for (int k = 0; k < 5; k++) {
             const int i = circ[k];
-            const int b = k < 3 ? B_M2 : B_M4A;
+            const int b = 2 * s + (k < 3 ? 0 : 1);
             p.use[i] = 1; p.fresh[i] = (now - lastSeen[b]) <= 2000; p.group[i] = 0;
             for (int bit = 0; bit < FactoryBalance::kCircuit[i].cells; bit++)
                 p.v[i][bit] = cell[b][FactoryBalance::kCircuit[i].firstCh - 1 + bit];

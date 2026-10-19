@@ -69,7 +69,10 @@ EXPORT const char *sim_state_json() {
     b.f(",\"faults\":%u,\"latched\":%u,\"busV\":%.2f,\"lowestStringV\":%.2f", static_cast<unsigned>(o.faults),
         static_cast<unsigned>(o.latched), g_w.busV, o.lowestStringV);
     b.f(",\"packA\":%.2f,\"chargerA\":%.2f", g_w.in.packA, g_w.chargeSoakA);
-    b.f(",\"stringV\":[%.2f,%.2f]", g_w.stringV(0), g_w.stringV(1));
+    b.f(",\"stringV\":[%.2f,%.2f,%.2f,%.2f]", g_w.stringV(0), g_w.stringV(1), g_w.stringV(2), g_w.stringV(3));
+    b.f(",\"silent\":[");
+    for (int i = 0; i < kBoards; i++) b.f("%s%d", i ? "," : "", g_w.silent[i] ? 1 : 0);
+    b.f("],\"linkUp\":%d,\"welded\":%d,\"preOpen\":%d,\"keyOn\":%d,\"chargeReq\":%d,\"tMin\":%.1f,\"tMax\":%.1f", g_w.linkUp, g_w.welded, g_w.preOpenCircuit, g_w.keyOn, g_w.chargeReq, g_w.tMin, g_w.tMax);
     b.f(",\"faultNames\":[");
     for (int i = 0; i < 13; i++) { if (i) b.f(","); b.str(BmsCore::faultName(1u << i)); }
     b.f("],\"cfg\":{\"chargePct\":%d,\"stringCells\":%d,\"busMaxV\":%.1f,\"lowCutV\":%.3f,\"cellMaxV\":%.3f,"
@@ -84,11 +87,14 @@ EXPORT unsigned sim_log_ms(int i) { return g_w.core.logAt(i).ms; }
 EXPORT const char *sim_log_text(int i) { return g_w.core.logAt(i).text; }
 
 // Balance plan for Teensy A's string-1 bus, exact would-be 0x300/0x310 bytes.
-EXPORT const char *sim_plan_text() {
-    const FactoryBalance::PlanInput in = g_w.balanceInput(g_deadband);
+EXPORT const char *sim_plan_text(int s) {
+    if (s < 0 || s >= kStrings) s = 0;
+    static const char *kName[kStrings] = {"Teensy A CAN3 (M2 + M4)", "Teensy A CAN1 (M3 + M4)",
+                                          "Teensy B CAN3 (M2 + M4)", "Teensy B CAN1 (M3 + M4)"};
+    const FactoryBalance::PlanInput in = g_w.balanceInput(g_deadband, s);
     const FactoryBalance::Plan p = FactoryBalance::evaluate(in);
     Buf b;
-    FactoryBalance::printPlan([&](const char *line) { b.f("%s\n", line); }, in, p, "CAN3 (string 1: M2 + M4)");
+    FactoryBalance::printPlan([&](const char *line) { b.f("%s\n", line); }, in, p, kName[s]);
     b.f("  (live TX gated: FACTORY_BALANCE_MAP_VERIFIED=0, BMS_CAP_BALANCE_TX=0)\n");
     return g_buf;
 }
