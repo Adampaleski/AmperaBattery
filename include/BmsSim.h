@@ -179,7 +179,34 @@ Result scenario(const char *name, const char *expect, uint32_t limitMs, bool cha
     return r;
 }
 
-constexpr int kScenarios = 14;
+// ---- split-LEM layout (sim only): LEM A = S1+S2 B-, LEM B = S3+S4 B-, I = A + B.
+// Sensor mounted discharge -> -420 A side (FW sign flip TODO); saturation ~450 A (unverified).
+enum : uint8_t { LEM_OK = 0, LEM_PAIR_IMBALANCE = 1, LEM_SENSOR_FAULT = 2 };
+struct LemRead { float a, b, total; bool okA, okB; uint8_t flags; };
+inline float lemReadOne(float trueA, bool *ok, bool dead = false) {
+    if (dead) { *ok = true; return 0; }
+    BmsCore::CurrentCal c; c.off2Frac = 3.0f / 5.0f; c.invert = true;
+    float a1, a2, vs; BmsCore::dhabPinVolts(c, trueA, 5.0f, a1, a2, vs);
+    return BmsCore::dhabAmps(c, a1, a2, vs, ok);
+}
+// imbalanceFrac: |A-B| / |A+B| above this (with total > minA) -> PAIR_IMBALANCE.
+// One near 0 / saturated (invalid) while the other is high -> SENSOR_FAULT.
+inline LemRead lemPair(float trueA, float trueB, bool deadA = false, bool deadB = false,
+                       float imbalanceFrac = 0.30f, float minA = 40.0f, float highA = 100.0f) {
+    LemRead r{};
+    r.a = lemReadOne(trueA, &r.okA, deadA); r.b = lemReadOne(trueB, &r.okB, deadB);
+    r.total = r.a + r.b;
+    auto mag = [](float x) { return x < 0 ? -x : x; };
+    const bool satA = !r.okA, satB = !r.okB;
+    const bool zeroA = mag(r.a) < 2, zeroB = mag(r.b) < 2;
+    if ((satA || zeroA) && r.okB && mag(r.b) > highA) r.flags |= LEM_SENSOR_FAULT;
+    if ((satB || zeroB) && r.okA && mag(r.a) > highA) r.flags |= LEM_SENSOR_FAULT;
+    if (satA || satB) r.flags |= LEM_SENSOR_FAULT;  // saturated / out of range
+    if (r.okA && r.okB && mag(r.total) > minA && mag(r.a - r.b) > imbalanceFrac * mag(r.total)) r.flags |= LEM_PAIR_IMBALANCE;
+    return r;
+}
+
+constexpr int kScenarios = 17;
 
 inline int runAll(Result out[kScenarios]) {
     using namespace BmsCore;
@@ -246,24 +273,23 @@ inline int runAll(Result out[kScenarios]) {
     out[n++] = scenario("welded contactor (bus live after open)", "WELDED + charger off <= 2.5 s", 2500, true,
         [](World &w) { w.welded = true; w.keyOn = false; w.chargeReq = false; },
         [](World &w) { return (w.core.out().latched & F_WELDED) && !w.core.out().chargeEnable && w.allOpen(); });
-    // Sensor cross-check (sim only): 500 A discharge, DHAB mounted discharge -> -420 A side.
-    // DHAB ch2 clamps (~455 A, saturation 450-490 A unverified); ISA IVT-S 1000 A model reads true.
-    {
-        Result r{"DHAB saturates >450 A, IVT-S reads true", "DHAB invalid/off >10%, IVT within 1%", 0, -1, false, ""};
-        CurrentCal c; c.off2Frac = 3.0f / 5.0f; c.invert = true;  // discharge reads negative on the sensor
-        const float trueA = 500.0f;
-        float a1, a2, vs; dhabPinVolts(c, trueA, 5.0f, a1, a2, vs);
-        bool ok = false; const float dh = dhabAmps(c, a1, a2, vs, &ok);
-        float ivt = trueA; if (ivt > 1000) ivt = 1000; if (ivt < -1000) ivt = -1000;  // IVT-S +-1000 A
-        const bool dhBad = !ok || (dh - trueA > 50 || trueA - dh > 50);
-        const bool ivtOk = (ivt - trueA < 5 && trueA - ivt < 5);
-        float b1, b2, bv; bool ok2 = false; dhabPinVolts(c, 300.0f, 5.0f, b1, b2, bv);
-        const float dh300 = dhabAmps(c, b1, b2, bv, &ok2);  // in range: should agree
-        const bool agree300 = ok2 && dh300 - 300 < 10 && 300 - dh300 < 10;
-        r.pass = dhBad && ivtOk && agree300; r.gotMs = 0;
-        snprintf(r.note, sizeof r.note, "500A: DHAB %s %.0f A, IVT %.0f A; 300A: DHAB %.0f A", ok ? "ok" : "SAT", dh, ivt, dh300);
-        out[n++] = r;
-    }
+    // Split-LEM scenarios (sim only).
+    auto lemRes = [](const char *name, const char *expect, bool pass, const LemRead &l) {
+        Result r{name, expect, 0, 0, pass, ""};
+        snprintf(r.note, sizeof r.note, "A %s%.0f B %s%.0f tot %.0f flags=%u", l.okA ? "" : "SAT ", l.a, l.okB ? "" : "SAT ", l.b,
+                 l.total, static_cast<unsigned>(l.flags));
+        return r;
+    };
+    { const LemRead l = lemPair(275, 275);
+      out[n++] = lemRes("split LEM: 550 A peak = 275 A each", "no saturation, total 550 A +-2%, no flags",
+                        l.okA && l.okB && l.total > 539 && l.total < 561 && l.flags == 0, l); }
+    { const LemRead l = lemPair(500, 50);
+      out[n++] = lemRes("split LEM: one LEM saturates >450 A", "SENSOR_FAULT flagged", (l.flags & LEM_SENSOR_FAULT) != 0, l); }
+    { const LemRead l = lemPair(200, 200, true, false);
+      out[n++] = lemRes("split LEM: LEM A reads 0 under load", "SENSOR_FAULT flagged", (l.flags & LEM_SENSOR_FAULT) != 0, l); }
+    { const LemRead l = lemPair(300, 120);
+      out[n++] = lemRes("split LEM: pair imbalance 300/120 A", "PAIR_IMBALANCE, no SENSOR_FAULT",
+                        (l.flags & LEM_PAIR_IMBALANCE) && !(l.flags & LEM_SENSOR_FAULT), l); }
     return n;
 }
 

@@ -24,3 +24,4 @@ still 0 and `TELEMETRY_ONLY=1`.
 - Kelly peak discharge assumed 550 A in the simulator.
 - Main sensor: ISA IVT-S 1000 A (IVT-S-1K-U3-I-CAN1-12/24), ±1000 A, CAN (ships at 500 kbps vs CAN2 250k, may need its own bus). Not owned.
 - LEM DHAB S/44 (pins 1 +5V, 2 GND, 3 high out, 4 low out; Vero BMS manual): cross-check and low current only. Saturates ~450–490 A (unverified).
+- 2026-10-19 update: Adam chose the split-LEM layout. Default = two owned DHAB S/44: LEM A on combined B− of strings 1+2 (Teensy A), LEM B on strings 3+4 (Teensy B); I = A + B; 275 A each at the 550 A peak. Each uses its factory Volt harness plug. IVT-S 1000 A is now an optional alternative only. Sim flags: PAIR_IMBALANCE (|A−B| > 30% of |A+B|, total > 40 A) and SENSOR_FAULT (one saturated/invalid, or one ~0 A while the other > 100 A).

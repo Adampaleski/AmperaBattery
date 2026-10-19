@@ -241,7 +241,7 @@ function renderStrings(plan){
 const NS='http://www.w3.org/2000/svg';
 const PARTS={};  // id -> {title, sub, kv(), owned}
 function el(tag,attrs,parent,txt){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(txt!=null)e.textContent=txt;(parent||$('dia')).appendChild(e);return e;}
-const UNV={kelly:'Control-connector pinouts unverified',mainpos:'EV200 coil leads unverified',mainneg:'EV200 coil leads unverified',dhab:'Saturation ~450–490 A unverified; now cross-check + low-current only',ivt:'Ships at 500 kbps vs our CAN2 at 250k: may need its own bus',prerelay:'EV11 vs EV100 unverified'};
+const UNV={kelly:'Control-connector pinouts unverified',mainpos:'EV200 coil leads unverified',mainneg:'EV200 coil leads unverified',lemA:'Saturation ~450–490 A unverified',lemB:'Saturation ~450–490 A unverified',ivt:'Ships at 500 kbps vs our CAN2 at 250k: may need its own bus',prerelay:'EV11 vs EV100 unverified'};
 function ubadge(id,x,y,g){const t=UNV[id]||(id.startsWith('xcvr')||id.startsWith('sn')?'SN65HVD230 pin table unverified':null);if(!t)return;el('text',{x,y,fill:'#ff9f0a',style:'fill:#ff9f0a;font-size:9px;font-weight:600'},g,'UNVERIFIED');PARTS[id]&&(PARTS[id].unv=t);}
 function part(id,x,y,w,h,title,sub,info){const g=el('g',{class:'hit'+(info.owned===false?' unowned':''),id:'p-'+id});el('rect',{class:'box',x,y,width:w,height:h,rx:10},g);
   el('text',{class:'lbl',x:x+12,y:y+20},g,title);if(sub)el('text',{class:'sub',x:x+12,y:y+36},g,sub);
@@ -300,12 +300,14 @@ function buildDiagram(){
   path('M880 330 V230 H930 M1026 230 H1046 M1136 230 H1160 V330','flow','preflow');
   path('M1044 330 H1160','hv','hvMP2');
   // DHAB
-  part('dhab',1160,300,108,60,'LEM DHAB S/44','cross-check · low A',{owned:true,kv:()=>({'Part':'LEM DHAB S/44 (factory Volt gen1)','Role':'cross-check + low current (idle drain, balancing) — no longer main sensor','Low ch':'±20 A · 100 mV/A','High ch':'−420/+230 A · 6.15 mV/A · ≈3.0 V at zero','Saturation':'≈450–490 A (unverified)','Pins':'1 +5V · 2 GND · 3 high-range out → A1 · 4 low-range out → A0 (Vero BMS manual)','Divider':'10k/18k + 100 nF · 5 V ref → A11','Reading':(S.packA).toFixed(1)+' A','Gate':'CURRENT_SENSE_ENABLE=0'})});
-  part('ivt',960,420,140,56,'ISA IVT-S 1000 A','MAIN sensor · ±1000 A · CAN',{owned:false,kv:()=>({'Part':'ISA IVT-S-1K-U3-I-CAN1-12/24','Range':'±1000 A','Interface':'CAN (ships 500 kbps)','Price':'$349 at EV West','Owned':'no — to buy','Reading':(S.packA).toFixed(1)+' A'})});
-  el('line',{x1:1030,y1:420,x2:1030,y2:352,stroke:'#8e8e93','stroke-dasharray':'2 3'});
+  const lemKV=(w,ss,t)=>()=>({'Part':'LEM DHAB S/44 (factory Volt gen1) — owned','Location':`combined B− of strings ${ss} (Teensy ${t})`,'Harness':'factory Volt plug (1 of 2): 1 +5V · 2 GND · 3 high-range out · 4 low-range out','Low ch':'±20 A · 100 mV/A','High ch':'−420/+230 A · 6.15 mV/A · ≈3.0 V at zero','Mount':'discharge on −420 A side · FW sign flip TODO','Saturation':'≈450–490 A (unverified)','Reading':(S.packA/2).toFixed(1)+' A (sim: half of total)','Total':'I = LEM A + LEM B'});
+  el('line',{x1:1150,y1:330,x2:1300,y2:330,stroke:'#d1d1d6','stroke-width':2});
+  part('lemA',866,395,112,50,'LEM A · DHAB S/44','S1+S2 B− · Teensy A',{owned:true,kv:lemKV('A','1+2','A')});
+  part('lemB',866,630,112,50,'LEM B · DHAB S/44','S3+S4 B− · Teensy B',{owned:true,kv:lemKV('B','3+4','B')});
+  part('ivt',1010,440,150,56,'ISA IVT-S 1000 A','OPTIONAL alternative',{owned:false,kv:()=>({'Part':'ISA IVT-S-1K-U3-I-CAN1-12/24','Status':'optional alternative — not in default path','Range':'±1000 A','Interface':'CAN (ships 500 kbps)','Price':'$349 at EV West','Owned':'no'})});
   el('defs',{},null).innerHTML='<marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ff9f0a"/></marker>';
-  el('line',{x1:1160,y1:372,x2:1268,y2:372,stroke:'#ff9f0a','stroke-width':2,'marker-end':'url(#ah)'});
-  [['Mount: DISCHARGE → −420 A side (550 A Kelly peak saturates it)',386],['regen/charge → +230 A side · FW flips sign (TODO)',398],['UNVERIFIED until datasheet · fallback ≥500 A LEM (HASS 500-S)',410]].forEach(([t,y])=>el('text',{x:1118,y,style:'fill:#ff9f0a;font-size:9px'},null,t));
+  el('line',{x1:866,y1:458,x2:978,y2:458,stroke:'#ff9f0a','stroke-width':2,'marker-end':'url(#ah)'});
+  [['Both LEMs: DISCHARGE → −420 A side',472],['275 A each at 550 A peak · FW sign flip TODO',484],['I total = A + B · saturation ≈450 A UNVERIFIED',496]].forEach(([t,y])=>el('text',{x:866,y,style:'fill:#ff9f0a;font-size:9px'},null,t));
   path('M1268 330 H1300','hv','hvL0');path('M1300 120 V620','hv','loadbus');
   path('M800 330 H930 M1044 330 H1300','flow','mainflow');
   // loads
