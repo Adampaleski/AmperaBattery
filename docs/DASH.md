@@ -45,7 +45,8 @@ STATUS_SCHEMA v1 (teryx-ev-hub/docs/STATUS_SCHEMA.md) plus the additive fields b
 | `drive.speedSource` | string | Tag shown next to mph (e.g. "sim model") |
 | `drive.limp`, `drive.regenOk`, `drive.powerAllowedPct` | bool/num | BMS cutback state (print-only) |
 | `energy.packKWh` | number | Usable pack energy, used for range |
-| `aux12v.loads` | `{lights,fan,seatHeat,alarm,pump}` bool | Tell-tales. All 12 V loads are PROPOSED |
+| `aux12v.loads` | `{lights,fan,pump,alarm,speakers}` bool, `seatDriver`/`seatPassenger` 0–3 | Tell-tales and seat buttons. All 12 V loads are PROPOSED |
+| `aux12v.loadA` / `loadAEstimate` | number / bool | Total 12 V load. The sim sums ESTIMATE currents: pump 3.5, fan 8, lights 10, speakers 10, alarm 0.5, seats 4.5 A × level/3 |
 | `coolant` | `{wired,pumpOn,flowOk,tempC}` | Kelly coolant loop. **No live source.** Coolant tell-tale fires on `flowOk:false` or `tempC ≥ 60` (PROPOSED threshold) |
 
 The firmware's `HubStatus` emitter doesn't send these extra fields yet. Adding them is firmware work and needs the crew to agree first.
@@ -70,7 +71,21 @@ The firmware's `HubStatus` emitter doesn't send these extra fields yet. Adding t
 - KLS-8080N in the 144 V / 550 A configuration, Sin/Cos sensor (8080NPS series), field weakening, bidirectional anti-slip.
 - W3-GT2 liquid-cooling heatsink, 35-pin plug-and-play cable, USB cable, KLS test box.
 - The 36S full charge (≈148–149 V) is inside the 72–168 V model range (order listing).
-- Coolant pump: **PROPOSED** Bosch 12 V on an unassigned FET, with no flow or coolant-temperature sensor yet.
+- Overvoltage cutout: about 173 V per earlier research, and adjustable in the Kelly software. The factory default is **UNVERIFIED**; read it from the Kelly config.
+
+## Cooling (PROPOSED)
+
+- The Kelly W3-GT2 loop uses the **stock Teryx radiator** plus a Bosch 12 V pump on an unassigned Teensy FET. The pump runs whenever the key is on.
+- The radiator fan runs through a 12 V relay driven by the Teensy (pin unassigned). It comes on at about 40 °C, using Kelly temperature (CAN 0x0CF11F05, not decoded yet) or a coolant sensor (none fitted). This replaces the earlier 45 °C placeholder.
+- There's no flow or coolant-temperature sensor yet, so the coolant tell-tale has no live source.
+- There is no cabin heater.
+
+## Seat heaters (PROPOSED)
+
+- Tesla-style buttons for driver and passenger. Each tap steps Off → Low → Med → High, lighting 1, 2 or 3 red bars; holding the button turns it off.
+- Levels would be MOSFET PWM at 33 / 66 / 100 % (PROPOSED). They're probably an aftermarket kit, and whether it's single- or two-stage is UNVERIFIED.
+- About 4–5 A per seat at 12 V on a 10 A fuse (ESTIMATE).
+- On the standalone dash the buttons are display-only. Nothing is sent, because no output is wired.
 
 ## Hardware it could run on (UNVERIFIED suggestions)
 

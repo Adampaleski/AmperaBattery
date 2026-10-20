@@ -262,11 +262,12 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
     <div class="card"><h3>Driver inputs <span class="tag">SIM</span></h3><div class="rows">
       <div class="controls"><button class="btn" id="ckey" style="display:none">Key on</button><label class="sw"><span>Throttle drives pack current (while this tab is open)</span><input type="checkbox" id="cdrive" checked><i></i></label></div>
       <div class="slider"><label>Throttle</label><input id="cthr" type="range" min="0" max="100" value="0"><b id="cthrv">0 %</b></div>
+      <div class="slider"><label>Kelly temp (SIM)</label><input id="ckt" type="range" min="10" max="90" value="25"><b id="cktv">25 °C</b></div>
       <label class="sw"><span>Brake pedal</span><input type="checkbox" id="cbrk"><i></i></label>
       <div class="controls"><span class="mut" style="font-size:18px">Gear</span><span class="seg" id="cgsel"><button data-g="L">Low</button><button data-g="M">Medium</button><button data-g="H" class="on">High</button><button data-g="R">Reverse</button></span></div>
       <div class="dim" style="font-size:18px">Pack amps = throttle × gear scale × 550 A × BMS power allowed. Gear scales (H 100%, M 70%, L 45%, R 25%) and speed caps are PROPOSED placeholders, not Kelly settings. Brake cuts throttle; regen −60 A only if BMS allows regen. Current only flows with mains closed.</div>
     </div></div>
-    <div class="card"><h3>12 V loads <span class="tag">PROPOSED</span></h3><div class="rows" id="cloads"></div></div>
+    <div class="card"><h3>12 V loads <span class="tag">PROPOSED</span></h3><div class="mut">Total ≈ <b id="cload">0 A</b> <span class="small">ESTIMATE currents; seats ~4.5 A × level/3 each (use the seat buttons on the dash)</span></div><div class="rows" id="cloads"></div></div>
   </div>
   <div class="card"><h3>State of charge <span class="tag">SIM · NOT IN FIRMWARE</span></h3><div class="rows">
     <div class="controls"><button class="btn" id="sanc">Charge to limit (anchor)</button><button class="btn" id="sdrop">LEM dropout 3 s</button>
@@ -339,6 +340,11 @@ const CSS=`
 .tdash .bot{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
 .tdash .cell{background:var(--card);border-radius:12px;padding:10px 12px;min-width:0}.tdash .cell .v{font-size:24px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tdash .trip{grid-column:span 2;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.tdash .trip .k{grid-column:1/-1}
+.tdash .seats{display:flex;align-items:center;gap:16px}.tdash .seats .sp{flex:1;text-align:center;font-size:14px;color:var(--mut)}
+.tdash .seatb{display:flex;align-items:center;gap:8px;background:var(--card);border:0;border-radius:14px;padding:6px 14px;min-height:56px;color:var(--tx);font:inherit;font-size:15px;cursor:pointer;touch-action:manipulation}
+.tdash .seatb svg{width:46px;height:46px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.tdash .seatb .st{stroke:var(--tx)}.tdash .seatb .wv{stroke:#3a3a3e;transition:stroke .15s}.tdash .seatb .wv.on{stroke:var(--red)}
+.tdash .seatb .lv{min-width:38px;text-align:left;color:var(--mut)}
+.tdash.minimal .seats{display:none}.tdash.full .seatb{min-height:44px;padding:2px 12px}.tdash.full .seatb svg{width:38px;height:38px}.tdash.full .bot{gap:8px}.tdash.full .cell{padding:6px 10px}
 .tdash .ana{display:none}.tdash.analog .ana{display:block}.tdash.analog .dig{display:none}
 .tdash .ana svg{width:100%;max-height:300px}.tdash .ana .tick{stroke:var(--mut);stroke-width:2}.tdash .ana .lbl{fill:var(--mut);font-size:16px;text-anchor:middle}
 .tdash .ana .ndl{stroke:var(--red);stroke-width:4;stroke-linecap:round;transition:transform .15s}.tdash .ana .hub{fill:var(--tx)}
@@ -415,6 +421,7 @@ function create(root,opt){
     <div class="cell"><div class="k">Pack · Kelly · motor °C</div><div class="v" data-f="tmp">—</div></div>
     <div class="cell"><div class="k">Coolant pump <span class="tag">proposed</span></div><div class="v" data-f="pump">—</div></div>
    </div>
+   <div class="seats">${['driver','passenger'].map(k=>`<button class="seatb" data-seat="${k}" title="Tap: Off→Low→Med→High · hold: off"><svg viewBox="0 0 40 40"><path class="st" d="M8 8v16h12l3 10M8 24l-3 10M11 16h7"/><path class="wv" data-w="1" d="M25 3c3 3-3 5 0 8s-3 5 0 8"/><path class="wv" data-w="2" d="M30 3c3 3-3 5 0 8s-3 5 0 8"/><path class="wv" data-w="3" d="M35 3c3 3-3 5 0 8s-3 5 0 8"/></svg><span><span class="k">${k==='driver'?'Driver':'Passenger'}</span><br><span class="lv" data-f="lv_${k}">Off</span></span></button>`).join('<span class="sp" data-f="l12"></span>')}</div>
    <div class="menu" data-f="menu"><div class="k">Style</div><div class="row" data-f="sty">${STY.map(s=>`<button data-s="${s}">${s[0].toUpperCase()+s.slice(1)}</button>`).join('')}</div>
     ${opt.sourceUI?`<div class="k">Data source</div><div class="row" data-f="srcs"><button data-src="sim">Simulator</button><button data-src="http">HTTP poll</button><button data-src="ws">WebSocket</button><button data-src="none">None</button></div>
     <input data-f="url" placeholder="http://teryx-hub.local/api/status or ws://…"><div class="row"><button data-f="apply">Apply</button></div>`:''}
@@ -427,7 +434,13 @@ function create(root,opt){
   D.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>setStyle(b.dataset.s));
   F('trst').onclick=()=>{trip={mi:0,kwh:0,reg:0};win=[];localStorage.setItem('teryxDashTrip',JSON.stringify(trip));};
   F('ack').onclick=()=>{ack=curFaultKey;F('ban').classList.remove('on');};
-  let curFaultKey='';
+  let curFaultKey='',seat={driver:0,passenger:0},seatSrc=false;const LV=['Off','Low','Med','High'];
+  const seatShow=()=>D.querySelectorAll('[data-seat]').forEach(b=>{const k=b.dataset.seat,l=seat[k];b.querySelectorAll('.wv').forEach(w=>w.classList.toggle('on',+w.dataset.w<=l));F('lv_'+k).textContent=LV[l]+(l?' '+[0,33,66,100][l]+'%':'');});
+  D.querySelectorAll('[data-seat]').forEach(b=>{let tm=null,held=false;const k=b.dataset.seat;
+    const set=l=>{seat[k]=l;seatShow();if(opt.onSeat)opt.onSeat(k,l);};
+    b.onpointerdown=()=>{held=false;tm=setTimeout(()=>{held=true;set(0);},600);};
+    b.onpointerup=()=>{clearTimeout(tm);if(!held)set((seat[k]+1)%4);};b.onpointerleave=()=>clearTimeout(tm);});
+  seatShow();
   const put=(n,val,txt)=>{const e=F(n);if(!e)return;if(val==null){e.textContent='—';e.classList.add('na');}else{e.innerHTML=txt;e.classList.remove('na');}};
   const tag=(n,t)=>{const e=F(n);if(e)e.textContent=t||'';};
   function update(s,meta){
@@ -472,6 +485,8 @@ function create(root,opt){
     const tP=live&&num(B.tempMaxC)&&B.tempsVerified!==false?B.tempMaxC:null,tK=live&&Dr.wired&&num(Dr.controllerTempC)?Dr.controllerTempC:null,tM=live&&Dr.wired&&num(Dr.motorTempC)?Dr.motorTempC:null;
     put('tmp',tP??tK??tM,[tP,tK,tM].map(x=>x!=null?x.toFixed(0):'—').join(' · '));
     const Co=(s&&s.coolant)||{};put('pump',live&&(L.pump!=null||Co.pumpOn!=null)?1:null,(Co.pumpOn??L.pump)?'ON':'off'+(Co.wired?'':' <span class="tag">cmd only · no flow sensor</span>'));
+    if(live&&L.seatDriver!=null){seat.driver=L.seatDriver|0;seat.passenger=(L.seatPassenger|0);seatShow();}
+    F('l12').innerHTML=live&&num(A.loadA)?`12 V loads ≈ ${A.loadA.toFixed(1)} A <span class="tag">${A.loadAEstimate?'estimate':''}</span><br><span class="tag">seat PWM 33/66/100 % PROPOSED · kit stages UNVERIFIED</span>`:`<span class="na">12 V load</span><br><span class="tag">seat buttons: ${opt.onSeat?'sim':'display only, no output wired (PROPOSED)'}</span>`;
     // analog needles
     const nd=(id,dl,v)=>{const n=D.querySelector('#'+id+'n');n.style.transform=`rotate(${dl.deg(v==null?-1e9:v)}deg)`;n.style.opacity=v==null?.25:1;D.querySelector('#'+id+'r').textContent=v==null?'—':Math.round(v);};
     nd('ds',spd,mph);nd('dp',pw,kw);nd('db',bt,soc);
@@ -616,7 +631,7 @@ function buildDiagram(){
   path('M1268 330 H1300','hv','hvL0');path('M1300 120 V620','hv','loadbus');
   path('M800 330 H930 M1044 330 H1300','flow','mainflow');
   // loads
-  part('kelly',1308,98,86,74,'Kelly KLS8080 NPS','550 A',{owned:true,kv:()=>({'Part':'Kelly KLS8080 NPS','Order':'SOURCED: Adam\'s Kelly order #81746 (2025-05-03, $1,214.90) — KLS-8080N, 144 V / 550 A config (model line 72–168 V), Sin/Cos sensor (8080NPS series), field weakening, bidirectional anti-slip','Included':'W3-GT2 liquid-cooling heatsink · 35-pin plug-and-play cable · Kelly USB cable · KLS test box','Voltage':'36S full charge ≈148–149 V is inside the 72–168 V model range (SOURCED: order listing #81746)','Cooling':'W3-GT2 liquid heatsink · coolant pump PROPOSED (Bosch 12 V, FET unassigned)','Limits':'phase 550 A · battery 550 A (Adam 2026-10-20, set in Kelly config tool — not yet confirmed programmed)','Motor':'Zero 75-7R · peak rating UNVERIFIED','Speed cap':'~6000 RPM ≈ 55 mph on 27" tires (plan doc)','Input capacitance':'UNVERIFIED (2 mF model only)','Logic power':'isolated 8–20 V, never pack B+','CAN2':'0x0CF11E05 / 0x0CF11F05 broadcast only — accepts no commands','Limp':'OUT3 pin 20 → low-speed input (wiring TBD)','Derate':'OUT5 pin 2 PWM → throttle (wiring TBD)','Regen':'OUT6 pin 3 → regen enable (wiring TBD)','Allowed':S.kellyPct.toFixed(0)+'%'+(S.kellyLimp?' · LIMP':'')})});
+  part('kelly',1308,98,86,74,'Kelly KLS8080 NPS','550 A',{owned:true,kv:()=>({'Part':'Kelly KLS8080 NPS','Order':'SOURCED: Adam\'s Kelly order #81746 (2025-05-03, $1,214.90) — KLS-8080N, 144 V / 550 A config (model line 72–168 V), Sin/Cos sensor (8080NPS series), field weakening, bidirectional anti-slip','Included':'W3-GT2 liquid-cooling heatsink · 35-pin plug-and-play cable · Kelly USB cable · KLS test box','Voltage':'36S full charge ≈148–149 V is inside the 72–168 V model range (SOURCED: order listing #81746)','Cooling':'W3-GT2 liquid heatsink on the stock Teryx radiator + Bosch 12 V pump (PROPOSED, on with key) · radiator fan relay at ~40 °C (PROPOSED)','Overvoltage cutout':'≈173 V per earlier research; adjustable in Kelly software; factory default UNVERIFIED (read from Kelly config)','Limits':'phase 550 A · battery 550 A (Adam 2026-10-20, set in Kelly config tool — not yet confirmed programmed)','Motor':'Zero 75-7R · peak rating UNVERIFIED','Speed cap':'~6000 RPM ≈ 55 mph on 27" tires (plan doc)','Input capacitance':'UNVERIFIED (2 mF model only)','Logic power':'isolated 8–20 V, never pack B+','CAN2':'0x0CF11E05 / 0x0CF11F05 broadcast only — accepts no commands','Limp':'OUT3 pin 20 → low-speed input (wiring TBD)','Derate':'OUT5 pin 2 PWM → throttle (wiring TBD)','Regen':'OUT6 pin 3 → regen enable (wiring TBD)','Allowed':S.kellyPct.toFixed(0)+'%'+(S.kellyLimp?' · LIMP':'')})});
   path('M1300 135 H1308','hv','hvK');
   part('aev1',1206,420,84,44,'AEV14012','optional',{owned:true,kv:()=>({'Part':'Volt AEV14012 contactor (factory, owned)','Use':'optional isolation of the charger branch','Status':'not in the control loop'})});
   part('elcon',1308,412,86,60,'Elcon','HK-LF-144-46',{owned:true,kv:()=>({'Part':'Elcon HK-LF-144-46 (100–202 V, 46 A)','CAN2':'0x1806E5F4 control · 0x18FF50E5 status','Request':S.chargeEnable?`${S.chargeV.toFixed(1)} V / ${S.chargeA.toFixed(2)} A`:'STOP','Why':S.chargeWhy||'-','Gate':'BMS_CAP_CHARGE_TX=0 → print only'})});
@@ -728,8 +743,18 @@ function wireDrive(){
 }
 /* ---------- cluster ---------- */
 const GEARS={L:{n:'Low',sc:.45,cap:25},M:{n:'Medium',sc:.70,cap:40},H:{n:'High',sc:1,cap:55},R:{n:'Reverse',sc:.25,cap:10}};
-const LOADS=[['pump','Kelly coolant pump','~2–5 A (UNVERIFIED)','PROPOSED Bosch 12 V pump for W3-GT2 heatsink · Teensy B FET (pin unassigned) · no flow sensor'],['lights','Lights','~10 A','12 V circuit off Elcon DC-DC · switch on dash; Teensy B FET out PROPOSED (pin unassigned)'],['spk','Speakers / amp','~10 A','12 V circuit off DC-DC, fused · head unit audio; no Teensy pin'],['seat','Seat heater','~5 A/seat','12 V via relay · PROPOSED Teensy B FET (pin unassigned), shed when SOC low'],['fan','Cooling fan','~8 A','12 V via FET · PROPOSED Teensy B FET (pin unassigned), auto on pack/Kelly hot'],['alarm','Alarm / buzzer','<1 A','12 V buzzer · PROPOSED Teensy A FET (pin unassigned), on any BMS fault']];
-const IOMAP=[['Coolant pump','PROPOSED Bosch 12 V pump → Kelly W3-GT2 liquid heatsink, Teensy B FET; status from FET command only, no flow/coolant-temp sensor yet','PROPOSED, pin unassigned'],['Throttle pedal','Hall pedal 0–5 V → Kelly throttle input (direct). Teensy reads it back from Kelly CAN 0x0CF11F05 b0','Kelly pin UNVERIFIED'],
+const LOADS=[['pump','Kelly coolant pump','~2–5 A ESTIMATE','PROPOSED: stock Teryx radiator + Bosch 12 V pump for W3-GT2 heatsink · runs whenever key is on · Teensy B FET (pin unassigned) · no flow sensor',3.5],
+ ['fan','Radiator fan','~8 A ESTIMATE','PROPOSED: stock radiator fan via 12 V relay driven by Teensy (pin unassigned) · auto on at ~40 °C (Kelly temp or coolant sensor)',8],
+ ['lights','Lights','~10 A ESTIMATE','12 V circuit off Elcon DC-DC · dash switch; Teensy B FET PROPOSED (pin unassigned)',10],
+ ['spk','Speakers / amp','~10 A ESTIMATE','12 V off DC-DC, fused · head unit audio; no Teensy pin',10],
+ ['alarm','Alarm / buzzer','<1 A','12 V buzzer · PROPOSED Teensy A FET (pin unassigned), on any BMS fault',0.5]];
+const SEAT_A=4.5; // ESTIMATE 4–5 A per seat at 12 V, 10 A fuse ESTIMATE
+let seatLv={driver:0,passenger:0};
+function loadsOn(){const pump=keyOn||!!cLoad.pump,kt=+$('ckt').value,fan=!!cLoad.fan||kt>=40;return {pump,fan,lights:!!cLoad.lights,spk:!!cLoad.spk,alarm:!!cLoad.alarm};}
+function loadAmps(L){return LOADS.reduce((a,l)=>a+(L[l[0]]?l[4]:0),0)+SEAT_A*(seatLv.driver+seatLv.passenger)/3;}
+const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump → Kelly W3-GT2 heatsink; on whenever key is on; Teensy B FET; no flow/coolant-temp sensor yet','PROPOSED, pin unassigned'],
+ ['Radiator fan','PROPOSED: 12 V relay driven by Teensy, on at ~40 °C from Kelly temp (CAN 0x0CF11F05) or a coolant sensor','PROPOSED, pin unassigned'],
+ ['Seat heaters (driver + passenger)','Likely aftermarket kit (single/two-stage UNVERIFIED). PROPOSED MOSFET PWM 33/66/100 % for Low/Med/High; ~4–5 A per seat, 10 A fuse (ESTIMATE)','PROPOSED, pins unassigned'],['Throttle pedal','Hall pedal 0–5 V → Kelly throttle input (direct). Teensy reads it back from Kelly CAN 0x0CF11F05 b0','Kelly pin UNVERIFIED'],
  ['Brake','Brake switch → Kelly brake input (regen); PROPOSED parallel opto tap to Teensy A GPIO','PROPOSED, pin unassigned'],
  ['Gear H/M/L','Kelly speed-switch inputs (3-speed on KLS NPS — UNVERIFIED); Teensy OUT3 pin 20 already drives limp (low-speed)','Kelly pins UNVERIFIED'],
  ['Reverse','Kelly reverse switch input; PROPOSED Teensy tap to show R on cluster and inhibit regen/charge','PROPOSED'],
@@ -747,7 +772,7 @@ function wireCluster(){
   $('cgsel').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(Math.abs(cSpd)>1&&(b.dataset.g==='R')!==(cGear==='R')){ulog('Gear change to '+GEARS[b.dataset.g].n+' refused: stop first');return;}
     cGear=b.dataset.g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));ulog('Gear '+GEARS[cGear].n);});
   $('cthr').oninput=e=>$('cthrv').textContent=e.target.value+' %';$('cthr').onchange=e=>ulog('Throttle '+e.target.value+'%');
-  $('cbrk').onchange=e=>ulog('Brake '+(e.target.checked?'on':'off'));
+  $('ckt').oninput=e=>$('cktv').textContent=e.target.value+' °C';$('cbrk').onchange=e=>ulog('Brake '+(e.target.checked?'on':'off'));
   $('ckey').onclick=()=>$('key').click();
   $('sanc').onclick=()=>{if(!keyOn)$('key').click();if(!chgOn)$('chg').click();const v=X.sim_ceiling_for_pct(+$('pct').value)+0.001;
     BOARDS.forEach((b,bi)=>{for(let c=0;c<b.cells;c++)X.sim_set_cell(bi,c,v);});socAnchorPending=true;ulog(`SoC: cells set to ${v.toFixed(3)} V (P${$('pct').value} limit), charging to anchor (sim shortcut)`);};
@@ -776,12 +801,13 @@ function simStatus(lo,hi,Q,est,closed){
     bms:{wired:true,packV:S.busV,packA:S.packA,currentVerified:false,socPct:est?Q.pct:null,socState:Q.state,socWhy:Q.why,cellMinV:lo,cellMaxV:hi,cellDeltaV:hi-lo,
       tempMinC:S.tMin,tempMaxC:S.tMax,tempsVerified:$('tvalid').checked,cells:36,lemImbalance:!!S.lemImbalance,state:S.state},
     contactors:{wired:true,precharge:cs(S.pre),mainPositive:cs(S.mainPos),mainNegative:cs(S.mainNeg),want:keyOn?'drive':'monitor',driven:false},
-    drive:{wired:true,rpm:null,speedMph:closed?Math.abs(cSpd):0,speedSource:'sim model',gear:closed?cGear:'P',motorTempC:null,controllerTempC:null,throttlePct:+$('cthr').value,
+    drive:{wired:true,rpm:null,speedMph:closed?Math.abs(cSpd):0,speedSource:'sim model',gear:closed?cGear:'P',motorTempC:null,controllerTempC:+$('ckt').value,throttlePct:+$('cthr').value,
       limp:!!S.kellyLimp,regenOk:!!S.kellyRegenOk,powerAllowedPct:S.kellyPct,faultCode:null,controller:'Kelly'},
     energy:{kWhUsed:null,whPerMi:null,rangeMiEst:null,packKWh:null,calibrated:false},
-    aux12v:{wired:false,volts:null,loads:{lights:!!cLoad.lights,fan:!!cLoad.fan||S.tMax>=45,seatHeat:!!cLoad.seat,alarm:!!cLoad.alarm,pump:!!cLoad.pump},coolant:{wired:false,pumpOn:!!cLoad.pump,flowOk:null,tempC:null}},faults:fl,events:[]};
+    aux12v:(()=>{const L=loadsOn();return {wired:false,volts:null,loadA:loadAmps(L),loadAEstimate:true,loads:{lights:L.lights,fan:L.fan,pump:L.pump,alarm:L.alarm,speakers:L.spk,seatDriver:seatLv.driver,seatPassenger:seatLv.passenger,seatHeat:seatLv.driver+seatLv.passenger>0}};})(),
+    coolant:{wired:false,pumpOn:keyOn||!!cLoad.pump,flowOk:null,tempC:null},faults:fl,events:[]};
 }
-function pushDash(st){if(!dashC)dashC=TeryxDash.create($('dashHost'),{});dashC.update(st);
+function pushDash(st){if(!dashC)dashC=TeryxDash.create($('dashHost'),{onSeat:(k,lv)=>{seatLv[k]=lv;ulog(`Seat heater ${k} ${['off','Low','Med','High'][lv]}`);}});dashC.update(st);
   try{(dashBC||(dashBC=new BroadcastChannel('teryx-dash'))).postMessage(st);}catch(e){}
   if(dashW&&!dashW.closed)try{dashW.postMessage(st,'*');}catch(e){}}
 function renderCluster(){
@@ -803,10 +829,10 @@ function renderCluster(){
   $('clR').innerHTML=gauge('Cell min / max',lo.toFixed(3)+' / '+hi.toFixed(3)+' V','BICM cell data (CAN3/CAN1)',0)+gauge('Pack temp',S.tMin.toFixed(0)+'–'+S.tMax.toFixed(0)+' °C','BICM thermistors · TEMPS_VERIFIED=0',1)+gauge('Kelly / motor temp','— / —','Kelly CAN 0x0CF11F05 · not decoded (RX off)',1)+gauge('Power allowed',S.kellyPct.toFixed(0)+' %'+(S.kellyWhy?' · '+S.kellyWhy:''),'BMS output → Kelly (print-only)',0);
   const w=[];if(S.state==='Fault'||S.state==='Lockout')w.push('BMS FAULT');S.faultNames.forEach((n,i)=>{if(S.faults&(1<<i))w.push(n);});
   if(S.kellyLimp)w.push('LIMP');if(S.kellyWhy)w.push('Derate: '+S.kellyWhy);if(lo<3.2)w.push('Low cell');if(Q.drift)w.push('SoC drift');if(Q.lemDrop||(Q.why||'').startsWith('current lost'))w.push('SoC unknown: current lost');if(S.tMax>=50)w.push('Pack hot');if(S.lemImbalance)w.push('LEM imbalance');if(!S.kellyRegenOk&&closed)w.push('Regen off');
-  if(cLoad.alarm||w.some(x=>/FAULT/.test(x)))w.push('🔔 Alarm');if(cLoad.fan||S.tMax>=45)w.push('Fan on');if(cLoad.lights)w.push('Lights');
+  if(cLoad.alarm||w.some(x=>/FAULT/.test(x)))w.push('🔔 Alarm');if(loadsOn().fan)w.push('Fan on');if(cLoad.lights)w.push('Lights');
   $('cWarn').innerHTML=w.map(x=>`<span class="chip act">${x}</span>`).join('')||'<span class="mut">No warnings</span>';
   $('ckey').textContent=keyOn?'Key off':'Key on';$('ckey').classList.toggle('on',keyOn);
-  pushDash(simStatus(lo,hi,Q,est,closed));
+  pushDash(simStatus(lo,hi,Q,est,closed));$('cload').textContent=loadAmps(loadsOn()).toFixed(1)+' A';
   $('sdet').innerHTML=`State <b>${Q.state}</b> · ${Q.why} · estimate ${est?Q.pct.toFixed(1)+' %':'unknown'} · used ${Q.usedAh.toFixed(2)} Ah · anchor ${Q.known?Q.anchorPct+' %':'—'} · sim truth ${Q.truthPct.toFixed(1)} % · capacity ${Q.capAh.toFixed(0)} Ah <span style="color:var(--warn)">SIM-ASSUMED</span>`+(Q.lemDrop?' · <span class="red">LEM dropout</span>':'');
   $('sdrop').classList.toggle('on',!!Q.lemDrop);
 }

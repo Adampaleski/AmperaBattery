@@ -34,6 +34,11 @@ const CSS=`
 .tdash .bot{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
 .tdash .cell{background:var(--card);border-radius:12px;padding:10px 12px;min-width:0}.tdash .cell .v{font-size:24px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tdash .trip{grid-column:span 2;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.tdash .trip .k{grid-column:1/-1}
+.tdash .seats{display:flex;align-items:center;gap:16px}.tdash .seats .sp{flex:1;text-align:center;font-size:14px;color:var(--mut)}
+.tdash .seatb{display:flex;align-items:center;gap:8px;background:var(--card);border:0;border-radius:14px;padding:6px 14px;min-height:56px;color:var(--tx);font:inherit;font-size:15px;cursor:pointer;touch-action:manipulation}
+.tdash .seatb svg{width:46px;height:46px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.tdash .seatb .st{stroke:var(--tx)}.tdash .seatb .wv{stroke:#3a3a3e;transition:stroke .15s}.tdash .seatb .wv.on{stroke:var(--red)}
+.tdash .seatb .lv{min-width:38px;text-align:left;color:var(--mut)}
+.tdash.minimal .seats{display:none}.tdash.full .seatb{min-height:44px;padding:2px 12px}.tdash.full .seatb svg{width:38px;height:38px}.tdash.full .bot{gap:8px}.tdash.full .cell{padding:6px 10px}
 .tdash .ana{display:none}.tdash.analog .ana{display:block}.tdash.analog .dig{display:none}
 .tdash .ana svg{width:100%;max-height:300px}.tdash .ana .tick{stroke:var(--mut);stroke-width:2}.tdash .ana .lbl{fill:var(--mut);font-size:16px;text-anchor:middle}
 .tdash .ana .ndl{stroke:var(--red);stroke-width:4;stroke-linecap:round;transition:transform .15s}.tdash .ana .hub{fill:var(--tx)}
@@ -110,6 +115,7 @@ function create(root,opt){
     <div class="cell"><div class="k">Pack · Kelly · motor °C</div><div class="v" data-f="tmp">—</div></div>
     <div class="cell"><div class="k">Coolant pump <span class="tag">proposed</span></div><div class="v" data-f="pump">—</div></div>
    </div>
+   <div class="seats">${['driver','passenger'].map(k=>`<button class="seatb" data-seat="${k}" title="Tap: Off→Low→Med→High · hold: off"><svg viewBox="0 0 40 40"><path class="st" d="M8 8v16h12l3 10M8 24l-3 10M11 16h7"/><path class="wv" data-w="1" d="M25 3c3 3-3 5 0 8s-3 5 0 8"/><path class="wv" data-w="2" d="M30 3c3 3-3 5 0 8s-3 5 0 8"/><path class="wv" data-w="3" d="M35 3c3 3-3 5 0 8s-3 5 0 8"/></svg><span><span class="k">${k==='driver'?'Driver':'Passenger'}</span><br><span class="lv" data-f="lv_${k}">Off</span></span></button>`).join('<span class="sp" data-f="l12"></span>')}</div>
    <div class="menu" data-f="menu"><div class="k">Style</div><div class="row" data-f="sty">${STY.map(s=>`<button data-s="${s}">${s[0].toUpperCase()+s.slice(1)}</button>`).join('')}</div>
     ${opt.sourceUI?`<div class="k">Data source</div><div class="row" data-f="srcs"><button data-src="sim">Simulator</button><button data-src="http">HTTP poll</button><button data-src="ws">WebSocket</button><button data-src="none">None</button></div>
     <input data-f="url" placeholder="http://teryx-hub.local/api/status or ws://…"><div class="row"><button data-f="apply">Apply</button></div>`:''}
@@ -122,7 +128,13 @@ function create(root,opt){
   D.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>setStyle(b.dataset.s));
   F('trst').onclick=()=>{trip={mi:0,kwh:0,reg:0};win=[];localStorage.setItem('teryxDashTrip',JSON.stringify(trip));};
   F('ack').onclick=()=>{ack=curFaultKey;F('ban').classList.remove('on');};
-  let curFaultKey='';
+  let curFaultKey='',seat={driver:0,passenger:0},seatSrc=false;const LV=['Off','Low','Med','High'];
+  const seatShow=()=>D.querySelectorAll('[data-seat]').forEach(b=>{const k=b.dataset.seat,l=seat[k];b.querySelectorAll('.wv').forEach(w=>w.classList.toggle('on',+w.dataset.w<=l));F('lv_'+k).textContent=LV[l]+(l?' '+[0,33,66,100][l]+'%':'');});
+  D.querySelectorAll('[data-seat]').forEach(b=>{let tm=null,held=false;const k=b.dataset.seat;
+    const set=l=>{seat[k]=l;seatShow();if(opt.onSeat)opt.onSeat(k,l);};
+    b.onpointerdown=()=>{held=false;tm=setTimeout(()=>{held=true;set(0);},600);};
+    b.onpointerup=()=>{clearTimeout(tm);if(!held)set((seat[k]+1)%4);};b.onpointerleave=()=>clearTimeout(tm);});
+  seatShow();
   const put=(n,val,txt)=>{const e=F(n);if(!e)return;if(val==null){e.textContent='—';e.classList.add('na');}else{e.innerHTML=txt;e.classList.remove('na');}};
   const tag=(n,t)=>{const e=F(n);if(e)e.textContent=t||'';};
   function update(s,meta){
@@ -167,6 +179,8 @@ function create(root,opt){
     const tP=live&&num(B.tempMaxC)&&B.tempsVerified!==false?B.tempMaxC:null,tK=live&&Dr.wired&&num(Dr.controllerTempC)?Dr.controllerTempC:null,tM=live&&Dr.wired&&num(Dr.motorTempC)?Dr.motorTempC:null;
     put('tmp',tP??tK??tM,[tP,tK,tM].map(x=>x!=null?x.toFixed(0):'—').join(' · '));
     const Co=(s&&s.coolant)||{};put('pump',live&&(L.pump!=null||Co.pumpOn!=null)?1:null,(Co.pumpOn??L.pump)?'ON':'off'+(Co.wired?'':' <span class="tag">cmd only · no flow sensor</span>'));
+    if(live&&L.seatDriver!=null){seat.driver=L.seatDriver|0;seat.passenger=(L.seatPassenger|0);seatShow();}
+    F('l12').innerHTML=live&&num(A.loadA)?`12 V loads ≈ ${A.loadA.toFixed(1)} A <span class="tag">${A.loadAEstimate?'estimate':''}</span><br><span class="tag">seat PWM 33/66/100 % PROPOSED · kit stages UNVERIFIED</span>`:`<span class="na">12 V load</span><br><span class="tag">seat buttons: ${opt.onSeat?'sim':'display only, no output wired (PROPOSED)'}</span>`;
     // analog needles
     const nd=(id,dl,v)=>{const n=D.querySelector('#'+id+'n');n.style.transform=`rotate(${dl.deg(v==null?-1e9:v)}deg)`;n.style.opacity=v==null?.25:1;D.querySelector('#'+id+'r').textContent=v==null?'—':Math.round(v);};
     nd('ds',spd,mph);nd('dp',pw,kw);nd('db',bt,soc);
