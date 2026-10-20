@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "BmsSim.h"
+#include "SocEstimator.h"
 
 int main() {
     static BmsSim::Result r[BmsSim::kScenarios];
@@ -75,5 +76,62 @@ int main() {
                    o.kellyRegenOk, o.regenWhy);
         }
     }
-    return fails + cfail + lfail + kfail;
+    // State of charge (coulomb count of the split LEM sum). capAh 100 is a
+    // TEST value only; the real bank Ah is UNVERIFIED.
+    int sfail = 0;
+    {
+        using namespace BmsCore;
+        auto soc = [](float capAh) { Soc s; SocConfig c; c.capAh = capAh; s.reset(c); return s; };
+        auto run = [](Soc &s, uint32_t &t, uint32_t ms, float a, bool valid, float minCell = 3.8f) {
+            for (uint32_t k = 0; k < ms; k += 100) {
+                t += 100; SocIn in; in.nowMs = t; in.currentValid = valid; in.packA = a; in.minCellV = minCell; s.step(in);
+            }
+        };
+        auto anchor = [](Soc &s, uint32_t &t, int pct) { t += 100; SocIn in; in.nowMs = t; in.atChargeLimit = true; in.chargePct = pct; in.currentValid = true; in.minCellV = 4.1f; s.step(in); };
+        auto rep = [&](bool ok, const char *name, const Soc &s) {
+            if (!ok) sfail++;
+            printf("%s soc %-36s known=%d used=%.3f Ah pct=%.2f drift=%d (%s)\n", ok ? "PASS" : "FAIL", name, s.out().known,
+                   s.out().usedAh, s.out().pct, s.out().drift, s.out().why);
+        };
+        // 1 boot: current flowing but no anchor -> unknown
+        { Soc s = soc(100); uint32_t t = 0; run(s, t, 5000, 50, true);
+          rep(!s.out().known && s.out().pct < 0, "boot, no anchor -> unknown", s); }
+        // 2 real Core reaches the P100 limit -> anchor 100 %
+        { static BmsSim::World w; w.reset(); w.core.cfg.chargePct = 100;
+          const bool up = BmsSim::bringUp(w, true);
+          for (int b = 0; b < BmsSim::kBoards; b++) for (int c = 0; c < 24; c++) w.cell[b][c] = 4.101f;
+          w.step(10); w.step(10);
+          Soc s = soc(100); SocIn in; in.nowMs = w.now; in.chargePct = 100; in.currentValid = true; in.minCellV = 4.1f;
+          in.atChargeLimit = strcmp(w.core.out().chargeWhy, "at charge limit") == 0; s.step(in);
+          rep(up && s.out().known && s.out().pct > 99.99f, "Core P100 'at charge limit' -> 100%", s); }
+        // 3 discharge 100 A x 36 s = 1.000 Ah -> 99.00 %
+        { Soc s = soc(100); uint32_t t = 0; anchor(s, t, 100); run(s, t, 36000, 100, true);
+          rep(s.out().usedAh > 0.995f && s.out().usedAh < 1.005f && s.out().pct > 98.99f && s.out().pct < 99.01f,
+              "100 A x 36 s -> 1.000 Ah, 99.00%", s); }
+        // 4 550 A launch 10 s then -50 A regen 36 s: 1.528 - 0.500 = 1.028 Ah
+        { Soc s = soc(100); uint32_t t = 0; anchor(s, t, 100); run(s, t, 10000, 550, true); run(s, t, 36000, -50, true);
+          rep(s.out().usedAh > 1.020f && s.out().usedAh < 1.036f, "550 A 10 s + regen -50 A 36 s", s); }
+        // 5 P80 anchor is tagged, not called 100 %
+        { Soc s = soc(100); uint32_t t = 0; anchor(s, t, 80);
+          rep(s.out().known && s.out().pct > 79.99f && s.out().pct < 80.01f && strstr(s.out().why, "not true 100") != nullptr,
+              "P80 anchor -> 80% tagged", s); }
+        // 6 1 s sensor dropout keeps the count
+        { Soc s = soc(100); uint32_t t = 0; anchor(s, t, 100); run(s, t, 1000, 0, false); run(s, t, 1000, 100, true);
+          rep(s.out().known, "1 s current dropout -> still known", s); }
+        // 7 3 s dropout loses the count
+        { Soc s = soc(100); uint32_t t = 0; anchor(s, t, 100); run(s, t, 3000, 0, false);
+          rep(!s.out().known && s.out().pct < 0, "3 s current dropout -> unknown", s); }
+        // 8 low cut reached with SoC still ~99 % -> drift flag
+        { Soc s = soc(100); uint32_t t = 0; anchor(s, t, 100); run(s, t, 3600, 100, true, 3.31f);
+          rep(s.out().drift, "min cell 3.31 V at 99% -> drift", s); }
+        // 9 no capacity configured -> counts Ah, percent unknown
+        { Soc s = soc(0); uint32_t t = 0; anchor(s, t, 100); run(s, t, 36000, 100, true);
+          rep(s.out().known && s.out().pct < 0 && s.out().usedAh > 0.99f, "capAh 0 -> Ah only, pct unknown", s); }
+        // 10 learn capacity from a full -> low-cut run (200 A x 900 s = 50 Ah)
+        { Soc s = soc(0); uint32_t t = 0; anchor(s, t, 100); run(s, t, 900000, 200, true);
+          const bool l = s.learnCapacity(); run(s, t, 100, 0, true);
+          rep(l && s.cfg.capAh > 49.9f && s.cfg.capAh < 50.1f && s.out().pct < 0.01f, "learn capacity 50 Ah from full->empty", s); }
+        printf("soc: %d/10 checks passed\n", 10 - sfail);
+    }
+    return fails + cfail + lfail + kfail + sfail;
 }

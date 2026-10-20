@@ -1,6 +1,7 @@
 #include "CurrentSense.h"
 #include <Arduino.h>
 #include "BmsCore.h"
+#include "SocEstimator.h"  // header-only; not used until CURRENT_SENSE_ENABLE
 #include "Config.h"
 #include "Settings.h"
 

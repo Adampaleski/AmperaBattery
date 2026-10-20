@@ -8,6 +8,10 @@
    - [ ] DECISION (Adam): overcurrent trip is 300 A for 500 ms and derate starts at 250 A, but the expected Kelly peak is ~550 A. Set real trip/derate from cell + fuse limits.
    - [ ] Derate hardware: pick CD4066 vs MCP4131 and RC values; confirm KLS low-speed and regen input pins/polarity from Adam's harness (UNVERIFIED).
 3. [ ] State of charge from the split Volt LEM DHAB S/44 pair.
+   - [x] 2026-10-19 10 PM: include/SocEstimator.h coulomb counter (LEM A + B sum, + = discharge), full-charge anchor from Core "at charge limit" (P<100 tagged not true 100 %), restore hook, 2 s current-loss -> unknown, low-cut drift flag, learnCapacity(); 10 SoC host checks; docs/SOC.md. No OCV table (none verified).
+   - [ ] Bank capacity Ah UNVERIFIED (capAh 0 = unknown): measure with one full -> low-cut run, then learnCapacity().
+   - [ ] Wire into BmsApp + STATUS_SCHEMA socPct (needs CURRENT_SENSE_ENABLE + split-LEM read); add SoC readout to bms_sim.html.
+   - [ ] Persist used Ah + anchor at power-off (ties to item 5).
 4. [ ] Full drive-cycle mode in the simulator.
 5. [ ] Fault log that survives power-off.
 6. [ ] Tesla-style dash on the ESP32 hub (teryx-ev-hub, never main).
