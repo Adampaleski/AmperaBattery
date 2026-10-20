@@ -15,7 +15,7 @@ Based on [Tom-evnut/AmperaBattery](https://github.com/Tom-evnut/AmperaBattery) d
 | Elcon transceiver | **Second** SN65HVD230 (required; CAN1 22/23 collides with OUT5/OUT6) |
 | Kelly KLS8080 NPS | **Same CAN2** @ 250 kbit — IDs `0x0CF11E05` / `0x0CF11F05` (RX; see docs/KELLY_CAN.md) |
 | Hub UART (ESP32) | **Serial4** pin 17 TX / 16 RX — not pins 0/1 |
-| Contactors | OUT1/pin11 = main+, OUT2/pin12 = TE EV11/K1KABNA precharge, OUT4/pin21 = main− (FET gates) |
+| Contactors | OUT1/pin11 = main+, OUT2/pin12 = Volt AEV14012 precharge, OUT4/pin21 = main− (FET gates) |
 | Termination | 120 Ω at one end of each bus |
 
 Do **not** connect pack 5V (X2 pin 9) to Teensy I/O.

@@ -46,11 +46,11 @@ VoltBMSV2 names on `Pins::OUT1..OUT8`. Teensy pin = FET gate, **not** the coil.
 | Alias | Pin | Function |
 |-------|-----|----------|
 | `OUT1` / `MAIN_POS` | 11 | B+ EV200 coil FET |
-| `OUT2` / `PRECHARGE` | 12 | TE EV11 / K1KABNA precharge coil FET (shop coil, **not** a third EV200) |
+| `OUT2` / `PRECHARGE` | 12 | Volt AEV14012 precharge coil FET (not a third EV200) |
 | `OUT4` / `MAIN_NEG` | 21 | B− EV200 coil FET |
 | `OUT3` | 20 | unused here (VoltBMS charger-enable relay; we use CAN) |
 
-Mechanic's HV kit (assumed present in the sequence, not encoded as P/Ns): 2× EV200 (B+ and B−), 1× TE EV11 / K1KABNA precharge, 50 Ω 100 W precharge resistor, Class T 200 A fuse.
+Mechanic's HV kit (assumed present in the sequence, not encoded as P/Ns): 2× TE EV200HAANA (B+ and B−, owned), 1× Volt AEV14012 precharge, 50 Ω 100 W precharge resistor, 4× Mersen A6T200 200 A Class T (owned), 1/0 string leads.
 
 Do **not** wire coils until `BMS_CAP_CONTACTOR_DRV` is intentionally set to 1. Default flag is 0; `e` only dry-runs intended pin states.
 

@@ -8,31 +8,31 @@
 <meta name="theme-color" content="#000">
 <title>Teryx BMS</title>
 <style>
-:root{--bg:#000;--card:#161618;--card2:#1e1e21;--line:#2a2a2e;--tx:#f5f5f7;--mut:#8e8e93;--dim:#5a5a60;
+:root{--bg:#000;--card:#161618;--card2:#1e1e21;--line:#2a2a2e;--tx:#f5f5f7;--mut:#c7c7cc;--dim:#a1a1a8;
 --blue:#3e6ae1;--red:#e82127;--ok:#f5f5f7;--warn:#d6a33a;--r:14px;--ease:cubic-bezier(.2,.8,.2,1)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Inter","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:18px/1.4 system-ui,-apple-system,"Inter","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
 header{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .bar{display:flex;align-items:center;gap:18px;padding:10px 20px;max-width:1500px;margin:0 auto}
-.brand{font-weight:600;letter-spacing:.14em;font-size:13px;color:var(--mut);text-transform:uppercase;white-space:nowrap}
+.brand{font-weight:600;letter-spacing:.14em;font-size:18px;color:var(--mut);text-transform:uppercase;white-space:nowrap}
 .tabs{display:flex;gap:4px;flex:1;justify-content:center}
 .tab{appearance:none;border:0;background:none;color:var(--mut);font:inherit;font-weight:500;padding:12px 18px;border-radius:10px;min-height:48px;cursor:pointer;transition:color .2s,background .2s}
 .tab.on{color:var(--tx);background:var(--card2)}
-.clock{font-variant-numeric:tabular-nums;color:var(--dim);font-size:13px;white-space:nowrap}
+.clock{font-variant-numeric:tabular-nums;color:var(--dim);font-size:18px;white-space:nowrap}
 main{max-width:1500px;margin:0 auto;padding:20px 20px 120px}
 section{display:none;animation:fade .35s var(--ease)} section.on{display:block}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .card{background:var(--card);border-radius:var(--r);padding:20px;margin-bottom:16px}
 .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
-h3{margin:0 0 14px;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+h3{margin:0 0 14px;font-size:18px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
 .mut{color:var(--mut)}.dim{color:var(--dim)}.red{color:var(--red)}.blue{color:var(--blue)}
 .hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:16px}
 .stat{background:var(--card);border-radius:var(--r);padding:18px 20px}
-.stat .k{font-size:13px;color:var(--mut)} .stat .v{font-size:40px;font-weight:300;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15;transition:color .3s}
-.stat .v small{font-size:18px;color:var(--mut);margin-left:3px} .stat .s{font-size:13px;color:var(--mut);min-height:18px}
+.stat .k{font-size:18px;color:var(--mut)} .stat .v{font-size:40px;font-weight:300;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15;transition:color .3s}
+.stat .v small{font-size:18px;color:var(--mut);margin-left:3px} .stat .s{font-size:18px;color:var(--mut);min-height:18px}
 .v.fault{color:var(--red)}
 .pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.pill{padding:6px 12px;border-radius:999px;background:var(--card2);color:var(--mut);font-size:13px;font-weight:500;transition:all .3s}
+.pill{padding:6px 12px;border-radius:999px;background:var(--card2);color:var(--mut);font-size:18px;font-weight:500;transition:all .3s}
 .pill.on{background:var(--tx);color:#000}
 .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .btn{appearance:none;border:0;border-radius:12px;background:var(--card2);color:var(--tx);font:inherit;font-weight:500;padding:0 22px;min-height:52px;cursor:pointer;transition:background .2s,transform .1s}
@@ -41,7 +41,7 @@ h3{margin:0 0 14px;font-size:13px;font-weight:600;letter-spacing:.08em;text-tran
 .seg button{appearance:none;border:0;background:none;color:var(--mut);font:inherit;min-height:44px;min-width:52px;border-radius:9px;cursor:pointer;transition:all .2s}
 .seg button.on{background:#3a3a3e;color:var(--tx)}
 .slider{display:flex;align-items:center;gap:14px;flex:1;min-width:260px}
-.slider label{color:var(--mut);font-size:14px;white-space:nowrap;min-width:92px}
+.slider label{color:var(--mut);font-size:18px;white-space:nowrap;min-width:92px}
 .slider b{font-weight:500;font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
 input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;background:#3a3a3e;outline:0;min-width:120px}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--tx);box-shadow:0 1px 6px rgba(0,0,0,.6);cursor:pointer}
@@ -56,27 +56,27 @@ input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;bac
 .strings{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(560px,1fr))}
 @media(max-width:640px){.clock{display:none}.slider{flex-wrap:wrap}#pctc{min-width:0!important;width:100%;text-align:right}.hero{grid-template-columns:1fr 1fr}.strings{grid-template-columns:1fr}.stat .v{font-size:32px}.tab{padding:10px 12px}.brand{display:none}main{padding:14px 12px 120px}.card{padding:16px}}
 .shead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
-.shead .t{font-weight:600} .shead .v{font-variant-numeric:tabular-nums;color:var(--mut);font-size:14px}
+.shead .t{font-weight:600} .shead .v{font-variant-numeric:tabular-nums;color:var(--mut);font-size:18px}
 .board{margin-top:12px;transition:opacity .3s}.board.silent{opacity:.35}
-.bhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--mut);margin-bottom:8px}
+.bhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:18px;color:var(--mut);margin-bottom:8px}
 .bhead .n{color:var(--tx);font-weight:500}
 .bars{display:flex;gap:3px;height:110px;align-items:stretch;touch-action:none}
 .cell{flex:1;min-width:10px;position:relative;background:#232326;border-radius:4px;cursor:ns-resize;overflow:hidden}
 .cell .f{position:absolute;left:0;right:0;bottom:0;background:#5d5d63;border-radius:4px;transition:height .25s var(--ease),background .3s}
 .cell.hi .f{background:#c8c8cc}.cell.lo .f{background:#3e6ae1}.cell.bad .f{background:var(--red)}.cell.bleed{box-shadow:inset 0 0 0 1.5px var(--warn)}
 .cell .n{position:absolute;top:3px;left:0;right:0;text-align:center;font-size:9px;color:var(--dim)}
-.cell.empty{flex:6.4;background:repeating-linear-gradient(135deg,#1a1a1c 0 6px,#202023 6px 12px);cursor:default;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:11px;text-align:center}
-.bfoot{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-top:6px;font-variant-numeric:tabular-nums}
-.readout{font-variant-numeric:tabular-nums;font-size:13px;color:var(--mut);min-height:18px}
+.cell.empty{flex:6.4;background:repeating-linear-gradient(135deg,#1a1a1c 0 6px,#202023 6px 12px);cursor:default;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px;text-align:center}
+.bfoot{display:flex;justify-content:space-between;font-size:18px;color:var(--dim);margin-top:6px;font-variant-numeric:tabular-nums}
+.readout{font-variant-numeric:tabular-nums;font-size:18px;color:var(--mut);min-height:18px}
 pre{background:#0b0b0c;color:#b9b9be;border-radius:10px;padding:14px;overflow:auto;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:0}
-.chip{display:inline-block;padding:8px 14px;border-radius:999px;margin:4px 6px 4px 0;font-size:14px;background:var(--card2)}
+.chip{display:inline-block;padding:8px 14px;border-radius:999px;margin:4px 6px 4px 0;font-size:18px;background:var(--card2)}
 .chip.act{background:rgba(232,33,39,.16);color:#ff6a6e}.chip.lat{background:rgba(232,33,39,.08);color:#c9898b;box-shadow:inset 0 0 0 1px rgba(232,33,39,.35)}
-.log{max-height:60vh;overflow:auto;font-size:14px}
+.log{max-height:60vh;overflow:auto;font-size:18px}
 .log div{display:flex;gap:16px;padding:10px 0;border-bottom:1px solid var(--line)}
 .log time{color:var(--dim);font-variant-numeric:tabular-nums;min-width:74px}
 .log .u{color:var(--mut)}.log .f span{color:#ff6a6e}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th{color:var(--mut);font-weight:500;text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+table{border-collapse:collapse;width:100%;font-size:18px}
+th{color:var(--mut);font-weight:500;text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);font-size:18px;text-transform:uppercase;letter-spacing:.06em}
 td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 td.pass{font-weight:600}td.fail{color:var(--red);font-weight:600}
 .big{font-size:44px;font-weight:300}
@@ -87,11 +87,11 @@ select{background:var(--card2);color:var(--tx);border:0;border-radius:10px;paddi
 .dchart .ax{stroke:#2a2a2e;stroke-width:1}.dchart .cv{fill:none;stroke:#8e8e93;stroke-width:2}
 .dchart .now{fill:var(--tx);transition:cx .25s,cy .25s}.dchart .trip{stroke:var(--red);stroke-dasharray:4 4;stroke-width:1.5}
 .dchart .ref{stroke:#5a5a60;stroke-dasharray:2 4;stroke-width:1.5}.dchart.act .cv{stroke:var(--blue)}
-.sig{display:flex;align-items:center;gap:14px;min-height:56px}.sig .p{min-width:120px;color:var(--mut);font-size:13px;font-variant-numeric:tabular-nums}
+.sig{display:flex;align-items:center;gap:14px;min-height:56px}.sig .p{min-width:120px;color:var(--mut);font-size:18px;font-variant-numeric:tabular-nums}
 .sig .n{flex:1}.sig .st{font-variant-numeric:tabular-nums;font-weight:500;min-width:84px;text-align:right}
 .duty{flex:1;height:6px;border-radius:3px;background:#2a2a2e;overflow:hidden;max-width:160px}.duty i{display:block;height:100%;background:var(--tx);transition:width .25s var(--ease)}
-.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;padding:3px 8px;border-radius:6px;background:rgba(214,163,58,.14);color:var(--warn);margin-left:6px;vertical-align:middle}
-ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{padding:6px 0}ol.chain b{color:var(--tx);font-weight:500}
+.tag{display:inline-block;font-size:18px;font-weight:600;letter-spacing:.06em;padding:3px 8px;border-radius:6px;background:rgba(214,163,58,.14);color:var(--warn);margin-left:6px;vertical-align:middle}
+ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{padding:6px 0}ol.chain b{color:var(--tx);font-weight:500}
 /* diagram */
 .dwrap{background:var(--card);border-radius:var(--r);padding:10px;overflow:auto}
 #dia{width:100%;height:auto;max-height:calc(100vh - 150px);display:block;min-width:860px;margin:0 auto}
@@ -119,20 +119,37 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{
 #dia .hatch{fill:url(#hatch)}
 #dia .vbar{transition:height .3s,y .3s,fill .3s}
 .sheet{position:fixed;left:50%;bottom:16px;transform:translate(-50%,140%);width:min(560px,calc(100% - 24px));background:rgba(30,30,33,.96);backdrop-filter:blur(14px);border-radius:18px;padding:20px 22px;z-index:9;transition:transform .35s var(--ease);box-shadow:0 10px 40px rgba(0,0,0,.6)}
-.sheet.on{transform:translate(-50%,0)}
+.sheet{visibility:hidden}.sheet.on{transform:translate(-50%,0);visibility:visible}
 .sheet h4{margin:0 0 4px;font-size:20px;font-weight:500}.sheet .x{position:absolute;right:12px;top:10px;min-height:44px;min-width:44px;font-size:22px;background:none;border:0;color:var(--mut);cursor:pointer}
-.kv{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:14px;margin-top:12px}.kv dt{color:var(--mut)}.kv dd{margin:0}
-.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:13px;color:var(--mut);padding:10px 8px 4px}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:18px;margin-top:12px}.kv dt{color:var(--mut)}.kv dd{margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:18px;color:var(--mut);padding:10px 8px 4px}
 .legend i{display:inline-block;width:22px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+#t-cluster .cl{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:16px;align-items:center;background:#000;border-radius:var(--r);padding:24px}
+#t-cluster .big{text-align:center}#t-cluster .big .n{font-size:96px;font-weight:200;line-height:1;font-variant-numeric:tabular-nums}#t-cluster .big .u{color:var(--mut);font-size:18px}
+#t-cluster .gears{display:flex;gap:14px;justify-content:center;margin-top:12px;font-size:22px;color:#48484a;font-weight:500}#t-cluster .gears .on{color:var(--tx)}
+#t-cluster .pbar{height:8px;border-radius:4px;background:var(--card2);position:relative;overflow:hidden;margin-top:14px}#t-cluster .pbar i{position:absolute;top:0;bottom:0;background:var(--tx);transition:all .2s}
+#t-cluster .g{padding:10px 0;border-bottom:1px solid #1c1c1e}#t-cluster .g .k{font-size:18px;color:var(--mut)}#t-cluster .g .v{font-size:24px;font-weight:300;font-variant-numeric:tabular-nums}
+#t-cluster .src{font-size:18px;color:#636366}#t-cluster .src.nw{color:var(--warn)}
+#t-cluster .warn{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;min-height:30px}
+.io{width:100%;border-collapse:collapse;font-size:18px}.io td{padding:8px 6px;border-bottom:1px solid #1c1c1e;vertical-align:middle}.io td:last-child{color:var(--mut);font-size:18px}
+.seg{display:inline-flex;gap:4px}.seg button{min-height:36px;min-width:44px;border-radius:8px;border:0;background:var(--card2);color:var(--tx);cursor:pointer;font-weight:500}.seg button.on{background:var(--tx);color:#000}
+@media(max-width:800px){#t-cluster .cl{grid-template-columns:1fr}}
+.fban{display:none;background:var(--red);color:#fff;padding:12px 20px;align-items:center;gap:16px;font-weight:500}.fban.on{display:flex}.fban span{flex:1}
+.fban button{min-height:44px;border-radius:10px;border:0;background:#fff;color:#000;font:inherit;font-weight:600;padding:0 18px;cursor:pointer}
+.hkey{min-height:44px;border-radius:999px;border:0;padding:0 20px;font:inherit;font-weight:600;background:var(--card2);color:var(--tx);cursor:pointer;white-space:nowrap}.hkey.on{background:#30d158;color:#000}
+.simbox{border:2px dashed var(--warn);border-radius:var(--r);padding:16px;margin:16px 0}.simbox>h2{margin:0 0 12px;font-size:18px;color:var(--warn);letter-spacing:.08em;text-transform:uppercase}
+.small{font-size:18px;color:var(--dim)} details.more{margin-top:16px}details.more>summary{cursor:pointer;font-size:20px;padding:14px 0;color:var(--mut)}
+#t-drive .hero{position:sticky;top:69px;z-index:4;background:#000;padding:8px 0}
+.set{width:100%;border-collapse:collapse}.set td{padding:10px 6px;border-bottom:1px solid #1c1c1e}.set input{width:120px;min-height:40px;background:var(--card2);border:0;border-radius:8px;color:var(--tx);font:inherit;padding:0 10px}
 </style></head><body>
 <header><div class="bar">
   <div class="brand">Teryx BMS</div>
   <nav class="tabs">
-    <button class="tab on" data-t="pack">Pack</button><button class="tab" data-t="drive">Drive</button><button class="tab" data-t="diagram">Diagram</button>
-    <button class="tab" data-t="faults">Faults <span id="fcount"></span></button><button class="tab" data-t="scen">Scenarios</button>
+    <button class="tab on" data-t="pack">Pack</button><button class="tab" data-t="drive">Drive</button><button class="tab" data-t="cluster">Cluster</button><button class="tab" data-t="diagram">Diagram</button>
+    <button class="tab" data-t="faults">Faults <span id="fcount"></span></button><button class="tab" data-t="scen">Scenarios</button><button class="tab" data-t="settings">Settings</button>
   </nav>
-  <div class="clock" id="clock"></div>
-</div></header>
+  <button class="hkey" id="hkey">Key off</button><div class="clock" id="clock"></div>
+</div><div class="fban" id="fban"><span id="fbanT"></span><button id="fack">Acknowledge</button></div></header>
 <main>
 <!-- ======================= PACK ======================= -->
 <section id="t-pack" class="on">
@@ -140,19 +157,20 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{
     <div class="stat"><div class="k">Contactors</div><div class="v" id="hState">Open</div>
       <div class="pills"><span class="pill" id="pNeg">Main −</span><span class="pill" id="pPre">Precharge</span><span class="pill" id="pPos">Main +</span></div></div>
     <div class="stat"><div class="k">HV bus</div><div class="v"><span id="hBus">0</span><small>V</small></div><div class="s" id="hBusS"></div></div>
-    <div class="stat"><div class="k">Pack current</div><div class="v"><span id="hAmp">0</span><small>A</small></div><div class="s">+ discharge · DHAB S/44</div></div>
+    <div class="stat"><div class="k">Pack current</div><div class="v"><span id="hAmp">0</span><small>A</small></div><div class="s">+ = discharge <span class="small">· LEM DHAB S/44</span></div></div>
     <div class="stat"><div class="k">Charger</div><div class="v"><span id="hChg">Off</span></div><div class="s" id="hChgS"></div></div>
-    <div class="stat"><div class="k">Kelly allowance</div><div class="v"><span id="hKel">0</span><small>%</small></div><div class="s" id="hKelS"></div></div>
+    <div class="stat"><div class="k">Power allowed <span class="small">(Kelly cutback)</span></div><div class="v"><span id="hKel">0</span><small>%</small></div><div class="s" id="hKelS"></div></div>
   </div>
+  <div class="simbox"><h2>Simulator — fake inputs, not the real pack</h2>
   <div class="card controls">
-    <button class="btn" id="key">Key on</button>
+    <button class="btn" id="key" style="display:none">Key on</button>
     <button class="btn" id="chg">Start charge</button>
     <div class="slider"><label>Charge limit</label><input id="pct" type="range" min="50" max="100" step="1" value="80"><b id="pctv">80%</b><span class="mut" id="pctc" style="min-width:150px"></span></div>
     <div class="seg" id="speed"><button data-s="0">❚❚</button><button data-s="1" class="on">1×</button><button data-s="5">5×</button><button data-s="20">20×</button></div>
     <button class="btn" id="reset">Reset</button>
   </div>
   <div class="grid">
-    <div class="card"><h3>Inject</h3><div class="rows">
+    <div class="card"><h3>Simulate a failure</h3><div class="rows">
       <label class="sw"><span>Teensy A ↔ B link</span><input type="checkbox" id="link" checked><i></i></label>
       <label class="sw danger"><span>Precharge open-circuit (timeout)</span><input type="checkbox" id="preopen"><i></i></label>
       <label class="sw danger"><span>Main contactors welded</span><input type="checkbox" id="welded"><i></i></label>
@@ -168,12 +186,13 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{
       <div class="slider"><label>HV bus</label><input id="busv" type="range" min="0" max="200" step="0.5" value="0"><b id="busvv">0 V</b></div>
     </div></div>
   </div>
+  </div>
   <h3 style="margin:24px 0 12px">Strings · 36S each · 4P · drag a cell bar up/down</h3>
   <div class="strings" id="strings"></div>
   <div class="card" style="margin-top:16px"><div class="shead"><h3 style="margin:0">Balance plan</h3>
     <div class="controls"><select id="planS"><option value="0">String 1 · A CAN3</option><option value="1">String 2 · A CAN1</option><option value="2">String 3 · B CAN3</option><option value="3">String 4 · B CAN1</option></select>
     <span class="mut">deadband</span><select id="db"><option>5</option><option selected>10</option><option>20</option></select><span class="mut">mV</span></div></div>
-    <pre id="plan"></pre><div class="dim" style="margin-top:8px;font-size:13px">Print-only: FACTORY_BALANCE_MAP_VERIFIED=0, BMS_CAP_BALANCE_TX=0. M4 top 0x46E is never planned.</div></div>
+    <pre id="plan"></pre><div class="dim" style="margin-top:8px;font-size:18px">Print-only: FACTORY_BALANCE_MAP_VERIFIED=0, BMS_CAP_BALANCE_TX=0. M4 top 0x46E is never planned.</div></div>
 </section>
 <!-- ======================= DRIVE ======================= -->
 <section id="t-drive">
@@ -183,22 +202,26 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{
     <div class="stat"><div class="k">Pack current</div><div class="v"><span id="dAmp">0</span><small>A</small></div><div class="s" id="dAmpS"></div></div>
     <div class="stat"><div class="k">Lowest cell</div><div class="v"><span id="dMin">0</span><small>V</small></div><div class="s" id="dMinS"></div></div>
   </div>
+  <div class="simbox"><h2>Simulator</h2>
   <div class="grid">
     <div class="card"><h3>Try it</h3><div class="rows">
-      <div class="controls"><button class="btn" id="dkey">Key on</button><span class="mut" style="font-size:14px">Contactors must be closed before the Kelly gets any power.</span></div>
+      <div class="controls"><button class="btn" id="dkey" style="display:none">Key on</button><span class="mut">Use the Key switch at the top. Contactors must close before the Kelly gets power.</span></div>
       <div class="slider"><label>Pack current</label><input id="damps" type="range" min="-100" max="800" step="5" value="0"><b id="dampsv">0 A</b></div>
       <div class="slider"><label>Hottest temp</label><input id="dtmax" type="range" min="-20" max="70" value="22"><b id="dtmaxv">22 °C</b></div>
       <div class="slider"><label>Coldest temp</label><input id="dtmin" type="range" min="-20" max="70" value="20"><b id="dtminv">20 °C</b></div>
       <div class="slider"><label>Weakest cell</label><input id="dcell" type="range" min="2.95" max="4.12" step="0.005" value="3.80"><b id="dcellv">3.800 V</b></div>
       <div class="slider"><label>LEM split</label><input id="dlem" type="range" min="20" max="80" step="1" value="50"><b id="dlemv">50 / 50</b></div>
       <div class="slider"><label>Low cut (L)</label><input id="dlcut" type="range" min="3.00" max="3.50" step="0.01" value="3.30"><b id="dlcutv">3.30 V</b></div>
-      <div class="dim" style="font-size:13px">Weakest cell drives String 1 · M2 cell 7. LEM split = % of pack current through LEM A (strings 1+2). Low cut is a what-if: at 3.30 V the mains open before the 3.2 V sag derate can start. Sliders are shared with the Pack tab.</div>
+      <div class="dim" style="font-size:18px">Weakest cell drives String 1 · M2 cell 7. LEM split = % of pack current through LEM A (strings 1+2). Low cut is a what-if: at 3.30 V the mains open before the 3.2 V sag derate can start. Sliders are shared with the Pack tab.</div>
     </div></div>
+    </div></div>
+  <details class="more"><summary>Details: Kelly signals, cutback charts, wiring</summary>
+  <div class="grid">
     <div class="card"><h3>Signals to the Kelly <span class="tag">PRINT-ONLY</span></h3><div class="rows">
       <div class="sig"><span class="p">OUT3 · pin 20</span><span class="n">Limp (low-speed input)</span><span class="st" id="sLimp">—</span></div>
       <div class="sig"><span class="p">OUT5 · pin 2</span><span class="n">Derate PWM</span><span class="duty"><i id="sDutyB" style="width:0"></i></span><span class="st" id="sDuty">—</span></div>
       <div class="sig"><span class="p">OUT6 · pin 3</span><span class="n">Regen allowed</span><span class="st" id="sReg">—</span></div>
-      <div class="dim" style="font-size:13px">BMS_CAP_KELLY_LIMIT_DRV=0 and TELEMETRY_ONLY=1: the Teensy only prints these. The Kelly's CAN is broadcast-only, so cutback has to go through its digital inputs and throttle line.</div>
+      <div class="dim" style="font-size:18px">BMS_CAP_KELLY_LIMIT_DRV=0 and TELEMETRY_ONLY=1: the Teensy only prints these. The Kelly's CAN is broadcast-only, so cutback has to go through its digital inputs and throttle line.</div>
     </div></div>
   </div>
   <div class="grid">
@@ -214,10 +237,40 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{
       <li><b>Regen.</b> OUT6 (pin 3) HIGH = regen allowed, through a PC817 in series with the KLS regen or brake-switch input. Which KLS input does regen on this controller is unverified.</li>
       <li><b>Hard stop.</b> Real faults still open the EV200 mains through the contactor sequence; cutback is the soft layer in front of that.</li>
     </ol>
-    <div class="dim" style="margin-top:10px;font-size:13px">Full notes: docs/KELLY_CUTBACK.md.</div>
+    <div class="dim" style="margin-top:10px;font-size:18px">Full notes: docs/KELLY_CUTBACK.md.</div>
   </div>
+</details>
 </section>
 <!-- ======================= DIAGRAM ======================= -->
+<section id="t-cluster">
+  <div class="cl">
+    <div id="clL"></div>
+    <div class="big"><div class="n" id="cSpd">0</div><div class="u">mph · <span class="src nw">SIM model · real source: Kelly CAN 0x0CF11E05 RPM × gearing (16/32, 27" tire) — Kelly RX not enabled (BMS_CAP_KELLY_RX=0)</span></div>
+      <div class="gears" id="cGear"></div>
+      <div class="pbar"><i id="cPw"></i></div><div class="u" style="margin-top:6px"><span id="cKw">0</span> kW · <span class="src">pack V × (LEM A + LEM B)</span></div>
+      <div class="warn" id="cWarn"></div></div>
+    <div id="clR"></div>
+  </div>
+  <div class="grid" style="margin-top:16px">
+    <div class="card"><h3>Driver inputs <span class="tag">SIM</span></h3><div class="rows">
+      <div class="controls"><button class="btn" id="ckey" style="display:none">Key on</button><label class="sw"><span>Throttle drives pack current (while this tab is open)</span><input type="checkbox" id="cdrive" checked><i></i></label></div>
+      <div class="slider"><label>Throttle</label><input id="cthr" type="range" min="0" max="100" value="0"><b id="cthrv">0 %</b></div>
+      <label class="sw"><span>Brake pedal</span><input type="checkbox" id="cbrk"><i></i></label>
+      <div class="controls"><span class="mut" style="font-size:18px">Gear</span><span class="seg" id="cgsel"><button data-g="L">Low</button><button data-g="M">Medium</button><button data-g="H" class="on">High</button><button data-g="R">Reverse</button></span></div>
+      <div class="dim" style="font-size:18px">Pack amps = throttle × gear scale × 550 A × BMS power allowed. Gear scales (H 100%, M 70%, L 45%, R 25%) and speed caps are PROPOSED placeholders, not Kelly settings. Brake cuts throttle; regen −60 A only if BMS allows regen. Current only flows with mains closed.</div>
+    </div></div>
+    <div class="card"><h3>12 V loads <span class="tag">PROPOSED</span></h3><div class="rows" id="cloads"></div></div>
+  </div>
+  <div class="card"><h3>Where each signal comes from <span class="tag">PIN MAP</span></h3><table class="io" id="ciomap"></table></div>
+</section>
+<section id="t-settings">
+  <div class="card"><h3>Settings <span class="tag">SIM ONLY</span></h3>
+    <div class="mut">These change the simulator only and are saved in this browser (localStorage). They never change firmware, the Kelly or any flag. Firmware defaults stay as committed until Adam approves a change.</div>
+    <table class="set" id="setT"></table>
+    <div class="controls" style="margin-top:14px"><button class="btn" id="setSave">Save…</button><button class="btn" id="setDef">Restore defaults…</button></div>
+    <div class="mut" style="margin-top:10px">Read-only rows come from the firmware build (BmsCore config) and can only change in code.</div>
+  </div>
+</section>
 <section id="t-diagram">
   <div class="dwrap"><svg id="dia" viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg"></svg>
   <div class="legend"><span><i style="border-color:#f5f5f7"></i>HV live</span><span><i style="border-color:#3e6ae1"></i>CAN</span>
@@ -294,7 +347,7 @@ function renderStrings(plan){
 const NS='http://www.w3.org/2000/svg';
 const PARTS={};  // id -> {title, sub, kv(), owned}
 function el(tag,attrs,parent,txt){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(txt!=null)e.textContent=txt;(parent||$('dia')).appendChild(e);return e;}
-const UNV={kelly:'Control-connector pinouts unverified',mainpos:'EV200 coil leads unverified',mainneg:'EV200 coil leads unverified',lemA:'Saturation ~450–490 A unverified',lemB:'Saturation ~450–490 A unverified',ivt:'Ships at 500 kbps vs our CAN2 at 250k: may need its own bus',prerelay:'EV11 vs EV100 unverified'};
+const UNV={kelly:'Control-connector pinouts unverified',mainpos:'EV200 coil leads unverified',mainneg:'EV200 coil leads unverified',lemA:'Saturation ~450–490 A unverified',lemB:'Saturation ~450–490 A unverified',ivt:'Ships at 500 kbps vs our CAN2 at 250k: may need its own bus',prerelay:'AEV14012 coil leads unverified'};
 function ubadge(id,x,y,g){const t=UNV[id]||(id.startsWith('xcvr')||id.startsWith('sn')?'SN65HVD230 pin table unverified':null);if(!t)return;el('text',{x,y,fill:'#ff9f0a',style:'fill:#ff9f0a;font-size:9px;font-weight:600'},g,'UNVERIFIED');PARTS[id]&&(PARTS[id].unv=t);}
 function part(id,x,y,w,h,title,sub,info){const g=el('g',{class:'hit'+(info.owned===false?' unowned':''),id:'p-'+id});el('rect',{class:'box',x,y,width:w,height:h,rx:10},g);
   el('text',{class:'lbl',x:x+12,y:y+20},g,title);if(sub)el('text',{class:'sub',x:x+12,y:y+36},g,sub);
@@ -336,7 +389,7 @@ function buildDiagram(){
       PARTS['board'+bi]={title:`${b.n}`,kv:()=>boardKV(bi),owned:b.owned};bg.addEventListener('click',e=>{e.stopPropagation();openSheet('board'+bi);});});
     el('text',{class:'sub',x:330,y:y+150,id:'stV'+si},g,'');
     // HV: + via fuse to B+, − to B−
-    part('fuse'+si,680,y+40,74,40,'Fuse','150 A T',{owned:false,kv:()=>({'Part':'Mersen A6T150 (Class T, 150 A, 600 VAC/300 VDC)','Where':s.n+' positive lead','Owned':'no — to order'})});
+    part('fuse'+si,680,y+40,74,40,'Fuse','A6T200 200 A',{owned:true,kv:()=>({'Part':'Mersen A6T200 (Class T, 200 A, 300 V class — check body marking on arrival)','Where':s.n+' positive lead · 1/0 lead + 1/0 tinned lugs','Load':'≈140 A/string at 550 A launch, ≈185 A if uneven','Owned':'yes — 4 bought 2026-10-20 ($36.20 ea)'})});
     path(`M646 ${y+60} H680`,'hv','hvS'+si);path(`M754 ${y+60} H800`,'hv','hvF'+si);
     path(`M646 ${y+140} H834`,'hv','hvN'+si);
   });
@@ -345,10 +398,10 @@ function buildDiagram(){
   el('text',{class:'sub',x:782,y:90},null,'B+');el('text',{class:'sub',x:842,y:176},null,'B−');
   // main+ with precharge in parallel
   path('M800 330 H930','hv','hvMP1');
-  contactor('mainpos',940,322,'Main + EV200',{owned:false,kv:()=>({'Part':'TE/Kilovac EV200 (crew decision)','Coil':'Teensy A pin 11 → 12 V FET','Wanted':S.mainPos?'CLOSED':'open','Owned':'no — to buy (unverified)','Gate':'BMS_CAP_CONTACTOR_DRV=0 → coil not driven'})});
+  contactor('mainpos',940,322,'Main + EV200HAANA',{owned:true,kv:()=>({'Part':'TE EV200HAANA 1-1618002-8, 12–24 V economized coil (owned, open-box) · on B+','Coil':'Teensy A pin 11 → 12 V FET','Wanted':S.mainPos?'CLOSED':'open','Owned':'no — to buy (unverified)','Gate':'BMS_CAP_CONTACTOR_DRV=0 → coil not driven'})});
   path('M880 330 V230 H930','wire','pcw1');
-  part('prerelay',930,206,96,48,'Precharge','relay · pin 12',{owned:true,kv:()=>({'Part':'TE EV11 / K1KABNA (shop)','Coil':'Teensy A pin 12','Wanted':S.pre?'CLOSED':'open','Sequence':'main− + pre → bus ≥95% (≥300 ms, ≤3 s) → main+ → pre off'})});
-  part('preres',1046,206,90,48,'50 Ω','resistor',{owned:true,kv:()=>({'Part':'50 Ω precharge resistor','τ (2 mF model)':'0.1 s','Status':S.pre?(S.preOpen?'OPEN CIRCUIT (injected)':'charging bus'):'idle'})});
+  part('prerelay',930,206,96,48,'Precharge','relay · pin 12',{owned:true,kv:()=>({'Part':'Volt AEV14012 (Panasonic, 120 A cont, 12 V coil 0.353 A, not economized)','Coil':'Teensy A pin 12','Wanted':S.pre?'CLOSED':'open','Sequence':'main− + pre → bus ≥95% (≥300 ms, ≤3 s) → main+ → pre off'})});
+  part('preres',1046,206,90,48,'50 Ω','resistor',{owned:true,kv:()=>({'Part':'50 Ω precharge resistor','τ (2 mF model)':'0.1 s — Kelly capacitance 2 mF is UNVERIFIED (measure by timed precharge)','Status':S.pre?(S.preOpen?'OPEN CIRCUIT (injected)':'charging bus'):'idle'})});
   path('M1026 230 H1046','wire','pcw2');path('M1136 230 H1160 V330','wire','pcw3');
   path('M880 330 V230 H930 M1026 230 H1046 M1136 230 H1160 V330','flow','preflow');
   path('M1044 330 H1160','hv','hvMP2');
@@ -364,7 +417,7 @@ function buildDiagram(){
   path('M1268 330 H1300','hv','hvL0');path('M1300 120 V620','hv','loadbus');
   path('M800 330 H930 M1044 330 H1300','flow','mainflow');
   // loads
-  part('kelly',1308,98,86,74,'Kelly KLS','168 V',{owned:true,kv:()=>({'Part':'Kelly KLS (168 V version, verify label)','CAN2':'0x0CF11E05 / 0x0CF11F05 broadcast only — accepts no commands','Limp':'OUT3 pin 20 → low-speed input (wiring TBD)','Derate':'OUT5 pin 2 PWM → throttle (wiring TBD)','Regen':'OUT6 pin 3 → regen enable (wiring TBD)','Allowed':S.kellyPct.toFixed(0)+'%'+(S.kellyLimp?' · LIMP':'')})});
+  part('kelly',1308,98,86,74,'Kelly KLS8080 NPS','550 A',{owned:true,kv:()=>({'Part':'Kelly KLS8080 NPS','Voltage class':'UNVERIFIED — read sticker (120 V class max 144 V would trip on a full 36S ≈149 V)','Limits':'phase 550 A · battery 550 A (Adam 2026-10-20, set in Kelly config tool — not yet confirmed programmed)','Motor':'Zero 75-7R · peak rating UNVERIFIED','Speed cap':'~6000 RPM ≈ 55 mph on 27" tires (plan doc)','Input capacitance':'UNVERIFIED (2 mF model only)','Logic power':'isolated 8–20 V, never pack B+','CAN2':'0x0CF11E05 / 0x0CF11F05 broadcast only — accepts no commands','Limp':'OUT3 pin 20 → low-speed input (wiring TBD)','Derate':'OUT5 pin 2 PWM → throttle (wiring TBD)','Regen':'OUT6 pin 3 → regen enable (wiring TBD)','Allowed':S.kellyPct.toFixed(0)+'%'+(S.kellyLimp?' · LIMP':'')})});
   path('M1300 135 H1308','hv','hvK');
   part('aev1',1206,420,84,44,'AEV14012','optional',{owned:true,kv:()=>({'Part':'Volt AEV14012 contactor (factory, owned)','Use':'optional isolation of the charger branch','Status':'not in the control loop'})});
   part('elcon',1308,412,86,60,'Elcon','HK-LF-144-46',{owned:true,kv:()=>({'Part':'Elcon HK-LF-144-46 (100–202 V, 46 A)','CAN2':'0x1806E5F4 control · 0x18FF50E5 status','Request':S.chargeEnable?`${S.chargeV.toFixed(1)} V / ${S.chargeA.toFixed(2)} A`:'STOP','Why':S.chargeWhy||'-','Gate':'BMS_CAP_CHARGE_TX=0 → print only'})});
@@ -375,7 +428,7 @@ function buildDiagram(){
   path('M1300 562 H1308','hv','hvD');
   // main-
   path('M834 760 H930','hv','hvMN1');
-  contactor('mainneg',940,752,'Main − EV200',{owned:false,kv:()=>({'Part':'TE/Kilovac EV200 (crew decision)','Coil':'Teensy A pin 21 → 12 V FET','Wanted':S.mainNeg?'CLOSED':'open','Owned':'no — to buy (unverified)'})});
+  contactor('mainneg',940,752,'Main − EV200HAANA',{owned:true,kv:()=>({'Part':'TE EV200HAANA 1-1618002-8, 12–24 V economized coil (owned, open-box) · on B−','Coil':'Teensy A pin 21 → 12 V FET','Wanted':S.mainNeg?'CLOSED':'open','Owned':'no — to buy (unverified)'})});
   path('M1044 760 H1300 V640','hv','hvMN2');el('text',{class:'tiny',x:1150,y:752},null,'to Kelly / Elcon / DC-DC B−');
   // CAN2 shared bus
   path('M24 190 H12 V860 H1390 V480','can','can2');path('M24 625 H12','can','can2b');path('M1390 150 V172','can','');
@@ -400,7 +453,7 @@ function strFaults(si){const out=[];STR[si].boards.forEach(bi=>{if(S.silent[bi])
   if(Math.max(...v)>S.cfg.cellMaxV)out.push(BOARDS[bi].n+' cell high');if(Math.min(...v)<S.cfg.lowCutV)out.push(BOARDS[bi].n+' cell low');});
   if(si>=2&&!S.linkUp)out.push('link lost');return out;}
 function stringKV(si){const s=STR[si],v=s.boards.flatMap(cellsOf);return {'Layout':`${s.big} 24S + M4 c1–12 = 36S (0x46E empty)`,'Bus':`Teensy ${s.t} ${s.bus} pins ${s.pins} · 125k`,
-  'Voltage':S.stringV[si].toFixed(2)+' V','Cells':`${Math.min(...v).toFixed(3)} – ${Math.max(...v).toFixed(3)} V`,'Fuse':'Mersen A6T150 (not owned)','Status':strFaults(si).join(', ')||'ok'};}
+  'Voltage':S.stringV[si].toFixed(2)+' V','Cells':`${Math.min(...v).toFixed(3)} – ${Math.max(...v).toFixed(3)} V`,'Fuse':'Mersen A6T200 200 A (owned)','Status':strFaults(si).join(', ')||'ok'};}
 function boardKV(bi){const b=BOARDS[bi],v=cellsOf(bi);return {'Board':b.n+(b.empty?' (c13–18 / 0x46E empty by design)':''),'Circuits':b.empty?'0x46C + 0x46D (6S + 6S)':(b.n.startsWith('M2')?'0x464–0x466':'0x468–0x46A'),
   'Sum':v.reduce((a,x)=>a+x,0).toFixed(2)+' V','Range':`${Math.min(...v).toFixed(3)} – ${Math.max(...v).toFixed(3)} V`,'CAN':S.silent[bi]?'SILENT':'reporting','Owned':b.owned?'yes':'no — extra M4 needed (unverified)'};}
 function renderDiagram(){
@@ -474,6 +527,85 @@ function wireDrive(){
   $('dlcut').oninput=e=>X.sim_set_low_cut(+e.target.value);
   $('dlcut').onchange=e=>ulog(`Low cut (what-if) ${(+e.target.value).toFixed(2)} V`);
 }
+/* ---------- cluster ---------- */
+const GEARS={L:{n:'Low',sc:.45,cap:25},M:{n:'Medium',sc:.70,cap:40},H:{n:'High',sc:1,cap:55},R:{n:'Reverse',sc:.25,cap:10}};
+const LOADS=[['lights','Lights','~10 A','12 V circuit off Elcon DC-DC · switch on dash; Teensy B FET out PROPOSED (pin unassigned)'],['spk','Speakers / amp','~10 A','12 V circuit off DC-DC, fused · head unit audio; no Teensy pin'],['seat','Seat heater','~5 A/seat','12 V via relay · PROPOSED Teensy B FET (pin unassigned), shed when SOC low'],['fan','Cooling fan','~8 A','12 V via FET · PROPOSED Teensy B FET (pin unassigned), auto on pack/Kelly hot'],['alarm','Alarm / buzzer','<1 A','12 V buzzer · PROPOSED Teensy A FET (pin unassigned), on any BMS fault']];
+const IOMAP=[['Throttle pedal','Hall pedal 0–5 V → Kelly throttle input (direct). Teensy reads it back from Kelly CAN 0x0CF11F05 b0','Kelly pin UNVERIFIED'],
+ ['Brake','Brake switch → Kelly brake input (regen); PROPOSED parallel opto tap to Teensy A GPIO','PROPOSED, pin unassigned'],
+ ['Gear H/M/L','Kelly speed-switch inputs (3-speed on KLS NPS — UNVERIFIED); Teensy OUT3 pin 20 already drives limp (low-speed)','Kelly pins UNVERIFIED'],
+ ['Reverse','Kelly reverse switch input; PROPOSED Teensy tap to show R on cluster and inhibit regen/charge','PROPOSED'],
+ ['Speed','Kelly CAN 0x0CF11E05 RPM (b0–b1) × 16/32 sprockets × 27" tire','needs BMS_CAP_KELLY_RX=1 after candump'],
+ ['Pack V','BICM cell sums (CAN3/CAN1 @125k); Kelly bus V on CAN 0x0CF11E05 b4–b5 as cross-check','BICM wired; Kelly RX off'],
+ ['Pack A','LEM A (A0) + LEM B (A1), 5 V ref A11 — sign flip + zero cal TODO','CURRENT_SENSE_ENABLE=0'],
+ ['Cell min/max','Volt BICMs M2/M3/M4 over CAN3 (30/31) and CAN1 (22/23)','live on bench'],
+ ['Pack temps','BICM thermistors','TEMPS_VERIFIED=0'],
+ ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
+ ['SOC / range','Estimated from min cell V here; real SOC needs coulomb count on LEM','not built'],
+ ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → Surface 3 head unit','schema exists']];
+let cGear='H',cSpd=0,cLoad={};
+function gauge(k,v,src,nw){return `<div class="g"><div class="k">${k}</div><div class="v">${v}</div><div class="src${nw?' nw':''}">${src}</div></div>`;}
+function wireCluster(){
+  $('cgsel').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(Math.abs(cSpd)>1&&(b.dataset.g==='R')!==(cGear==='R')){ulog('Gear change to '+GEARS[b.dataset.g].n+' refused: stop first');return;}
+    cGear=b.dataset.g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));ulog('Gear '+GEARS[cGear].n);});
+  $('cthr').oninput=e=>$('cthrv').textContent=e.target.value+' %';$('cthr').onchange=e=>ulog('Throttle '+e.target.value+'%');
+  $('cbrk').onchange=e=>ulog('Brake '+(e.target.checked?'on':'off'));
+  $('ckey').onclick=()=>$('key').click();
+  $('cloads').innerHTML=LOADS.map(([id,n,a,src])=>`<label class="sw"><span>${n} <span class="dim">· ${a}</span><br><span class="src nw" style="font-size:18px">${src}</span></span><input type="checkbox" id="ld_${id}"><i></i></label>`).join('');
+  LOADS.forEach(([id,n])=>$('ld_'+id).onchange=e=>{cLoad[id]=e.target.checked;ulog(n+(e.target.checked?' on':' off'));});
+  $('ciomap').innerHTML='<tr><td><b>Signal</b></td><td><b>Source / wiring</b></td><td><b>Status</b></td></tr>'+IOMAP.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+}
+function clusterTick(dt){ // runs every loop, drives pack amps when enabled
+  const closed=S.state==='Closed',g=GEARS[cGear],thr=+$('cthr').value/100,brk=$('cbrk').checked;
+  let a=0;
+  if(closed&&!brk)a=thr*g.sc*550*S.kellyPct/100;
+  if(closed&&brk&&Math.abs(cSpd)>1&&S.kellyRegenOk)a=-60;
+  const cap=g.cap*(S.kellyLimp?.4:1);
+  if($('cdrive').checked&&$('t-cluster').classList.contains('on')){X.sim_set_pack_amps(a);if(Math.abs(+$('amps').value-a)>2){$('amps').value=Math.round(a);$('ampsv').textContent=Math.round(a)+' A';$('damps').value=Math.round(a);$('dampsv').textContent=Math.round(a)+' A';}}
+  const kw=S.busV*S.packA/1000,dir=cGear==='R'?-1:1;
+  let acc=(Math.max(0,kw)/120)*12*(1-Math.abs(cSpd)/Math.max(1,cap))-(brk?15:0)-1.0-(kw<0?3:0); // mph/s toy model
+  let s=Math.abs(cSpd)+acc*dt;s=Math.max(0,Math.min(cap,s));cSpd=dir*s;
+}
+function renderCluster(){
+  const all=BOARDS.flatMap((b,i)=>cellsOf(i)),lo=Math.min(...all),hi=Math.max(...all),c=S.cfg;
+  const soc=Math.max(0,Math.min(100,(lo-3.0)/(4.15-3.0)*100)),kw=S.busV*S.packA/1000,closed=S.state==='Closed';
+  $('cSpd').textContent=Math.abs(cSpd).toFixed(0);
+  $('cGear').innerHTML=['P','R','L','M','H'].map(x=>`<span class="${(x==='P'&&!closed)||(closed&&x===cGear)?'on':''}">${x}</span>`).join('');
+  $('cKw').textContent=kw.toFixed(1);const pw=$('cPw');if(kw>=0){pw.style.left='20%';pw.style.width=Math.min(80,kw/82*80)+'%';pw.style.background='var(--tx)';}else{pw.style.left=(20+kw/20*20)+'%';pw.style.width=(-kw/20*20)+'%';pw.style.background='#30d158';}
+  const kwh=(soc/100)*36*3.6*45*4/1000; // 4 strings × 45 Ah × 36 × 3.6 V nominal
+  const range=kwh/0.35; // PROPOSED 350 Wh/mi
+  $('clL').innerHTML=gauge('Battery',soc.toFixed(0)+' %','ESTIMATE from lowest cell V (no coulomb count yet)',1)+gauge('Range',range.toFixed(0)+' mi','SIM: SOC × ~23 kWh ÷ 350 Wh/mi (assumed)',1)+gauge('Pack',S.busV.toFixed(1)+' V · '+S.packA.toFixed(0)+' A','V: BICM cell sum · A: LEM A + LEM B (CURRENT_SENSE_ENABLE=0)',1)+gauge('LEM A / B',S.lemA.toFixed(0)+' / '+S.lemB.toFixed(0)+' A','LEM A0/A1 · sign + zero cal TODO',1);
+  $('clR').innerHTML=gauge('Cell min / max',lo.toFixed(3)+' / '+hi.toFixed(3)+' V','BICM cell data (CAN3/CAN1)',0)+gauge('Pack temp',S.tMin.toFixed(0)+'–'+S.tMax.toFixed(0)+' °C','BICM thermistors · TEMPS_VERIFIED=0',1)+gauge('Kelly / motor temp','— / —','Kelly CAN 0x0CF11F05 · not decoded (RX off)',1)+gauge('Power allowed',S.kellyPct.toFixed(0)+' %'+(S.kellyWhy?' · '+S.kellyWhy:''),'BMS output → Kelly (print-only)',0);
+  const w=[];if(S.state==='Fault'||S.state==='Lockout')w.push('BMS FAULT');S.faultNames.forEach((n,i)=>{if(S.faults&(1<<i))w.push(n);});
+  if(S.kellyLimp)w.push('LIMP');if(S.kellyWhy)w.push('Derate: '+S.kellyWhy);if(lo<3.2)w.push('Low cell');if(S.tMax>=50)w.push('Pack hot');if(S.lemImbalance)w.push('LEM imbalance');if(!S.kellyRegenOk&&closed)w.push('Regen off');
+  if(cLoad.alarm||w.some(x=>/FAULT/.test(x)))w.push('🔔 Alarm');if(cLoad.fan||S.tMax>=45)w.push('Fan on');if(cLoad.lights)w.push('Lights');
+  $('cWarn').innerHTML=w.map(x=>`<span class="chip act">${x}</span>`).join('')||'<span class="mut">No warnings</span>';
+  $('ckey').textContent=keyOn?'Key off':'Key on';$('ckey').classList.toggle('on',keyOn);
+}
+/* ---------- settings (sim only) ---------- */
+const SETS=[['lowCut','Low-cell cut','V','cfg.lowCutV',v=>X.sim_set_low_cut(v),'dlcut'],['chargePct','Charge limit','%','cfg.chargePct',v=>X.sim_set_charge_pct(v),'pct'],['deadband','Balance deadband','mV',null,v=>X.sim_set_deadband_mv(v),'db']];
+const RO=[['Overcurrent trip','cfg.overA','A'],['Instant trip','kcfg.instantTripA','A'],['Trip delay','kcfg.overcurrentMs','ms'],['Max discharge (Kelly)','kcfg.maxDischargeA','A'],['Sag derate start','dcfg.sagStartV','V'],['Sag derate zero','dcfg.sagZeroV','V'],['LEM imbalance','dcfg.imbalanceA','A'],['Imbalance delay','dcfg.imbalanceMs','ms'],['Imbalance cut to','dcfg.imbalancePct','%'],['Heat derate','kcfg.derateTempC','°C'],['Over-temp trip','cfg.overTempC','°C'],['Cell max','cfg.cellMaxV','V']];
+const getp=(o,p)=>p.split('.').reduce((a,k)=>a?.[k],o);
+let DEF=null;
+function curSet(id){const s=SETS.find(x=>x[0]===id);return s[3]?getp(S,s[3]):+$('db').value;}
+function buildSettings(){if(!DEF)DEF=Object.fromEntries(SETS.map(s=>[s[0],curSet(s[0])]));
+  $('setT').innerHTML='<tr><td><b>Setting</b></td><td><b>Current</b></td><td><b>New</b></td></tr>'+SETS.map(s=>`<tr><td>${s[1]}</td><td id="sc_${s[0]}">${curSet(s[0])} ${s[2]}</td><td><input id="sn_${s[0]}" type="number" step="any" value="${curSet(s[0])}"> ${s[2]}</td></tr>`).join('')+
+   RO.map(r=>`<tr><td>${r[0]} <span class="small">${r[1]}</span></td><td>${getp(S,r[1])} ${r[2]}</td><td class="small">read-only (firmware)</td></tr>`).join('');}
+function applySet(id,v){const s=SETS.find(x=>x[0]===id);s[4](v);const el=$(s[5]);if(el){el.value=v;el.dispatchEvent(new Event('input'));el.dispatchEvent(new Event('change'));}}
+function wireSettings(){
+  $('setSave').onclick=()=>{const ch=SETS.map(s=>[s,+$('sn_'+s[0]).value]).filter(([s,v])=>v!==curSet(s[0]));
+    if(!ch.length){alert('Nothing changed.');return;}
+    if(!confirm('Save these SIM-ONLY changes?\n\n'+ch.map(([s,v])=>`${s[1]}: ${curSet(s[0])} → ${v} ${s[2]}`).join('\n')+'\n\nFirmware is not changed.'))return;
+    const st=JSON.parse(localStorage.getItem('teryxSimSettings')||'{}');ch.forEach(([s,v])=>{st[s[0]]=v;applySet(s[0],v);ulog(`Setting ${s[1]} = ${v} ${s[2]} (sim)`);});
+    localStorage.setItem('teryxSimSettings',JSON.stringify(st));setTimeout(buildSettings,100);};
+  $('setDef').onclick=()=>{if(!confirm('Restore firmware defaults and clear saved sim settings?'))return;localStorage.removeItem('teryxSimSettings');SETS.forEach(s=>applySet(s[0],DEF[s[0]]));ulog('Settings restored to defaults');setTimeout(buildSettings,100);};
+  document.querySelector('.tab[data-t="settings"]').addEventListener('click',()=>setTimeout(buildSettings,30));
+}
+function loadSettings(){S=JSON.parse(cs(X.sim_state_json()));DEF=Object.fromEntries(SETS.map(s=>[s[0],curSet(s[0])]));
+  const st=JSON.parse(localStorage.getItem('teryxSimSettings')||'{}');for(const k in st)if(SETS.find(s=>s[0]===k))applySet(k,st[k]);}
+let ackMask=0;
+function renderBanner(){const m=(S.faults|S.latched)>>>0;if(m===0)ackMask=0;const show=m&~ackMask;
+  $('fban').classList.toggle('on',!!show);if(show)$('fbanT').textContent='⚠ Fault: '+S.faultNames.filter((n,i)=>m&(1<<i)).join(', ')+' — contactors open. See Faults tab.';
+  $('hkey').textContent=keyOn?'Key ON':'Key off';$('hkey').classList.toggle('on',keyOn);}
 function render(){
   S=JSON.parse(cs(X.sim_state_json()));simNow=S.t;$('clock').textContent='sim '+fmtT(S.t);
   const bad=S.state==='Fault'||S.state==='Lockout';$('hState').textContent=S.state;$('hState').classList.toggle('fault',bad);
@@ -493,15 +625,17 @@ function render(){
   if($('t-pack').classList.contains('on'))renderStrings(plan);
   if($('t-diagram').classList.contains('on'))renderDiagram();
   if($('t-drive').classList.contains('on'))renderDrive();
+  if($('t-cluster').classList.contains('on'))renderCluster();
+  renderBanner();
 }
 function loop(){const t=performance.now();acc+=(t-last)*speed;last=t;
-  if(acc>=10){const ms=Math.min(Math.floor(acc/10)*10,5000);X.sim_step(ms);acc-=ms;if(acc>1000)acc=0;}render();}
+  if(acc>=10){const ms=Math.min(Math.floor(acc/10)*10,5000);X.sim_step(ms);if(S)clusterTick(ms/1000);acc-=ms;if(acc>1000)acc=0;}render();}
 function wire(){
   $('key').onclick=()=>{keyOn=!keyOn;X.sim_set_key(keyOn?1:0);ulog('Key '+(keyOn?'on':'off'));};
   $('chg').onclick=()=>{chgOn=!chgOn;X.sim_set_charge(chgOn?1:0);ulog('Charge request '+(chgOn?'on':'off'));};
   $('pct').oninput=e=>{X.sim_set_charge_pct(+e.target.value);$('pctv').textContent=e.target.value+'%';};$('pct').onchange=e=>ulog('Charge limit '+e.target.value+'%');
   document.querySelectorAll('#speed button').forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll('#speed button').forEach(x=>x.classList.toggle('on',x===b));});
-  $('reset').onclick=()=>{X.sim_reset();X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);keyOn=chgOn=false;userLog=[];hideBefore=-1;
+  $('reset').onclick=()=>{if(!confirm('Reset the simulator? Cells, faults and the log go back to start.'))return;X.sim_reset();X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);keyOn=chgOn=false;userLog=[];hideBefore=-1;
     ['link','charger_on','curfit','tvalid'].forEach(i=>$(i).checked=true);['preopen','welded','busf'].forEach(i=>$(i).checked=false);
     BOARDS.forEach((b,bi)=>$('sil'+bi).checked=false);$('dcell').value=3.80;$('dcellv').textContent='3.800 V';[['tmin',20],['tmax',22],['amps',0],['dlem',50],['dlcut',3.30]].forEach(([i,v])=>{$(i).value=v;$(i).dispatchEvent(new Event('input'));});};
   const tog=(id,fn,txt)=>$(id).onchange=e=>{fn(e.target.checked?1:0);ulog(txt+(e.target.checked?' on':' off'));};
@@ -523,7 +657,7 @@ function wire(){
   const bytes=Uint8Array.from(atob(WASM_B64),c=>c.charCodeAt(0));
   const {instance}=await WebAssembly.instantiate(bytes,{});
   X=instance.exports;X._initialize();X.sim_reset();
-  buildStrings();buildDiagram();wire();wireDrive();last=performance.now();setInterval(loop,50);loop();
+  buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireSettings();loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
   if(location.hash){const t=document.querySelector(`.tab[data-t="${location.hash.slice(1)}"]`);if(t)t.click();}
 })();
 </script></body></html>

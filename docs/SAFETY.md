@@ -39,7 +39,7 @@ The Teensy sends master keep-alive (`0x200#02.00.00`) so slaves wake up. That is
 
 `e` is a dead-man: it must be on before the sequence will *intend* to close coils. Any dead-man off, cell over/under (if a stable pack is present), or `TELEMETRY_ONLY` forces intended/driven outputs open. Physical FET gates are driven only if `BMS_CAP_CONTACTOR_DRV=1` **and** `TELEMETRY_ONLY=0`.
 
-OUT2 is the shop **TE EV11 / K1KABNA** precharge coil, not a third EV200. Pin map is unchanged (OUT1 main+, OUT2 precharge, OUT4 main−).
+OUT2 is the **Volt AEV14012** precharge coil, not a third EV200. Pin map is unchanged (OUT1 main+, OUT2 precharge, OUT4 main−).
 
 ## Charger
 

@@ -11,14 +11,14 @@ No JK BMS. The two Teensy 4.1s are the BMS; Volt BICMs do the sensing. Per strin
 | Volt BICM M4 18S x2 | bottom+middle circuits (0x46C/0x46D) = 12S; 0x46E empty | yes |
 | Volt BICM M4 18S x2 (extra) | needed for 4 strings | NO (red) |
 | SN65HVD230 transceiver x4 | 3.3 V CAN, one per BICM bus | yes |
-| Kelly KLS controller | CAN2 broadcast only | yes |
+| Kelly KLS8080 NPS controller | CAN2 broadcast only; phase + battery 550 A; voltage class UNVERIFIED (read sticker) | yes |
 | Elcon charger HK-LF-144-46 | CAN2 250k | yes |
 | Elcon DC-DC 12 V | after main+ | yes |
 | ESP32 hub | Wi-Fi/Ethernet/BT; STATUS_SCHEMA v1 JSON from Teensy A Serial4 TX17/RX16 @115200 | yes |
 | Surface 3 tablet (Linux) head unit | Wi-Fi to ESP32 | yes |
-| EV200 main + |  | NO (red) |
-| EV200 main - |  | NO (red) |
-| Mersen A6T150 Class T x4 | one per string | NO (red) |
-| Precharge relay + 50 ohm resistor |  | yes |
+| TE EV200HAANA main + | B+, 12–24 V economized coil | yes (bought 2026-10-20) |
+| TE EV200HAANA main − | B−, 12–24 V economized coil | yes (bought 2026-10-20) |
+| Mersen A6T200 200 A Class T x4 | one per string, 1/0 leads | yes (bought 2026-10-20) |
+| Precharge relay Volt AEV14012 + 50 ohm resistor | resistor vs Kelly capacitance (2 mF UNVERIFIED) | yes |
 | LEM DHAB S/44 | Volt current sensor | yes |
 | Volt AEV14012 x2 | optional charger / DC-DC branch | yes |
