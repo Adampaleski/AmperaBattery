@@ -153,6 +153,8 @@ struct Outputs {
     float    kellyPct = 0;                 // throttle/discharge allowance 0..100
     bool     kellyLimp = false;            // assert low-speed input
     bool     kellyRegenOk = false;
+    const char *kellyWhy = "";             // active limiter ("" = full power)
+    const char *regenWhy = "";             // why regen is inhibited ("" = allowed)
     uint32_t faults  = 0;                  // active now
     uint32_t latched = 0;                  // latched (drive faults until key-off + clear)
     const char *chargeWhy = "";
@@ -378,26 +380,36 @@ private:
     }
 
     void kellyLogic(const Inputs &in, Outputs &o, uint32_t f) {
-        if (st_ != CState::Closed || (f & kDriveFaults)) { o.kellyPct = 0; o.kellyLimp = true; o.kellyRegenOk = false; return; }
+        if (st_ != CState::Closed || (f & kDriveFaults)) {
+            o.kellyPct = 0; o.kellyLimp = true; o.kellyRegenOk = false;
+            o.kellyWhy = (f & kDriveFaults) ? "drive fault" : "contactors open";
+            o.regenWhy = o.kellyWhy;
+            return;
+        }
         float pct = 100;
+        const char *why = "";
         float minCell = 9, maxCell = 0;
         for (int i = 0; i < kMaxStrings; i++) if (in.s[i].used) {
             if (in.s[i].minV < minCell) minCell = in.s[i].minV;
             if (in.s[i].maxV > maxCell) maxCell = in.s[i].maxV;
         }
         const float lv0 = cfg.lowCutV, lv1 = cfg.lowCutV + cfg.derateLowV;
-        if (minCell < lv1) { const float k = (minCell - lv0) / (lv1 - lv0); const float p = k * 100; if (p < pct) pct = p; }
+        if (minCell < lv1) { const float k = (minCell - lv0) / (lv1 - lv0); const float p = k * 100; if (p < pct) { pct = p; why = "low cell"; } }
         if (in.tempsValid && in.tMaxC > cfg.derateTempC) {
             const float k = (cfg.overTempC - in.tMaxC) / (cfg.overTempC - cfg.derateTempC);
-            const float p = k * 100; if (p < pct) pct = p;
+            const float p = k * 100; if (p < pct) { pct = p; why = "pack hot"; }
         }
         if (in.currentValid && in.packA > cfg.maxDischargeA) {
-            const float p = 100 * cfg.maxDischargeA / in.packA; if (p < pct) pct = p;
+            const float p = 100 * cfg.maxDischargeA / in.packA; if (p < pct) { pct = p; why = "discharge amps"; }
         }
         if (pct < 0) pct = 0;
         o.kellyPct = pct;
         o.kellyLimp = pct < 100;
-        o.kellyRegenOk = maxCell < kCeil100V - 0.02f && (!in.tempsValid || in.tMinC >= cfg.chargeMinTempC);
+        o.kellyWhy = why;
+        const bool full = maxCell >= kCeil100V - 0.02f;
+        const bool cold = in.tempsValid && in.tMinC < cfg.chargeMinTempC;
+        o.kellyRegenOk = !full && !cold;
+        o.regenWhy = full ? "cells full" : (cold ? "pack cold" : "");
     }
 
     void enter(CState s, uint32_t now, const char *why) {

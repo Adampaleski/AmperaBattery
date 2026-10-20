@@ -1,6 +1,7 @@
 // PC run of the BMS core fault scenarios (same code as the Teensy + browser).
 //   /workspace/tmp/zigvenv/bin/python -m ziglang c++ -std=c++17 -Iinclude scripts/sim_bms.cpp -o /tmp/sim && /tmp/sim
 #include <stdio.h>
+#include <string.h>
 #include "BmsSim.h"
 
 int main() {
@@ -45,5 +46,34 @@ int main() {
         printf("%s pack clamp still active for a hypothetical 42S: %.3f V/cell = %.1f V\n", clampOk ? "PASS" : "FAIL",
                w.core.out().ceilingV, w.core.out().ceilingV * 42);
     }
-    return fails + cfail + lfail;
+    // Kelly cutback: each limiter alone, at its 50% point, must win and name itself.
+    int kfail = 0;
+    {
+        static BmsSim::World w;
+        struct K { const char *name; int what; float val; float wantPct; const char *why; bool regen; };
+        const K ks[] = {
+            {"full power, healthy",          0, 0,      100, "",               true},
+            {"low cell 3.375 V (halfway)",   1, 3.375f,  50, "low cell",       true},
+            {"pack hot 52.5 C (halfway)",    2, 52.5f,   50, "pack hot",       true},
+            {"500 A draw (250 A target)",    3, 500.f,   50, "discharge amps", true},
+            {"cells full 4.09 V: no regen",  4, 4.09f,  100, "",               false},
+            {"pack cold -2 C: no regen",     5, -2.f,   100, "",               false},
+        };
+        for (const K &k : ks) {
+            w.reset(); BmsSim::bringUp(w, false);
+            if (k.what == 1) w.cell[0][5] = k.val;
+            if (k.what == 2) w.tMax = k.val;
+            if (k.what == 3) w.packA = k.val;
+            if (k.what == 4) w.cell[1][3] = k.val;
+            if (k.what == 5) { w.tMin = k.val; }
+            w.step(10); w.step(10);
+            const auto &o = w.core.out();
+            const bool ok = o.state == BmsCore::CState::Closed && o.kellyPct > k.wantPct - 1.5f && o.kellyPct < k.wantPct + 1.5f &&
+                            strcmp(o.kellyWhy, k.why) == 0 && o.kellyRegenOk == k.regen;
+            if (!ok) kfail++;
+            printf("%s kelly %-30s %5.1f%% why='%s' regen=%d (%s)\n", ok ? "PASS" : "FAIL", k.name, o.kellyPct, o.kellyWhy,
+                   o.kellyRegenOk, o.regenWhy);
+        }
+    }
+    return fails + cfail + lfail + kfail;
 }

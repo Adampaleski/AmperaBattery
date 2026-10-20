@@ -33,6 +33,11 @@ void printStatus() {
     SERIALCONSOLE.print(g_limp ? F("ON") : F("off"));
     SERIALCONSOLE.print(F("  regen_ok(OUT6/3)="));
     SERIALCONSOLE.println(g_regen ? F("yes") : F("no"));
+    const BmsCore::Outputs &o = ContactorSeq::coreOut();
+    SERIALCONSOLE.print(F("  limited by: "));
+    SERIALCONSOLE.print(o.kellyWhy[0] ? o.kellyWhy : "nothing (full power)");
+    SERIALCONSOLE.print(F("  regen blocked by: "));
+    SERIALCONSOLE.println(o.regenWhy[0] ? o.regenWhy : "nothing");
     SERIALCONSOLE.println(F("  KLS CAN is broadcast-only (0x0CF11E05/0x0CF11F05): limits use digital inputs, not CAN"));
 }
 #else

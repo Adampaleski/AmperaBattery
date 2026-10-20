@@ -81,6 +81,17 @@ td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 td.pass{font-weight:600}td.fail{color:var(--red);font-weight:600}
 .big{font-size:44px;font-weight:300}
 select{background:var(--card2);color:var(--tx);border:0;border-radius:10px;padding:10px 12px;font:inherit;min-height:44px}
+/* drive */
+.dchart{width:100%;height:auto;display:block}
+.dchart text{font:11px system-ui,-apple-system,"Inter",sans-serif;fill:var(--dim)}
+.dchart .ax{stroke:#2a2a2e;stroke-width:1}.dchart .cv{fill:none;stroke:#8e8e93;stroke-width:2}
+.dchart .now{fill:var(--tx);transition:cx .25s,cy .25s}.dchart .trip{stroke:var(--red);stroke-dasharray:4 4;stroke-width:1.5}
+.dchart .ref{stroke:#5a5a60;stroke-dasharray:2 4;stroke-width:1.5}.dchart.act .cv{stroke:var(--blue)}
+.sig{display:flex;align-items:center;gap:14px;min-height:56px}.sig .p{min-width:120px;color:var(--mut);font-size:13px;font-variant-numeric:tabular-nums}
+.sig .n{flex:1}.sig .st{font-variant-numeric:tabular-nums;font-weight:500;min-width:84px;text-align:right}
+.duty{flex:1;height:6px;border-radius:3px;background:#2a2a2e;overflow:hidden;max-width:160px}.duty i{display:block;height:100%;background:var(--tx);transition:width .25s var(--ease)}
+.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;padding:3px 8px;border-radius:6px;background:rgba(214,163,58,.14);color:var(--warn);margin-left:6px;vertical-align:middle}
+ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{padding:6px 0}ol.chain b{color:var(--tx);font-weight:500}
 /* diagram */
 .dwrap{background:var(--card);border-radius:var(--r);padding:10px;overflow:auto}
 #dia{width:100%;height:auto;max-height:calc(100vh - 150px);display:block;min-width:860px;margin:0 auto}
@@ -117,7 +128,7 @@ select{background:var(--card2);color:var(--tx);border:0;border-radius:10px;paddi
 <header><div class="bar">
   <div class="brand">Teryx BMS</div>
   <nav class="tabs">
-    <button class="tab on" data-t="pack">Pack</button><button class="tab" data-t="diagram">Diagram</button>
+    <button class="tab on" data-t="pack">Pack</button><button class="tab" data-t="drive">Drive</button><button class="tab" data-t="diagram">Diagram</button>
     <button class="tab" data-t="faults">Faults <span id="fcount"></span></button><button class="tab" data-t="scen">Scenarios</button>
   </nav>
   <div class="clock" id="clock"></div>
@@ -164,6 +175,45 @@ select{background:var(--card2);color:var(--tx);border:0;border-radius:10px;paddi
     <span class="mut">deadband</span><select id="db"><option>5</option><option selected>10</option><option>20</option></select><span class="mut">mV</span></div></div>
     <pre id="plan"></pre><div class="dim" style="margin-top:8px;font-size:13px">Print-only: FACTORY_BALANCE_MAP_VERIFIED=0, BMS_CAP_BALANCE_TX=0. M4 top 0x46E is never planned.</div></div>
 </section>
+<!-- ======================= DRIVE ======================= -->
+<section id="t-drive">
+  <div class="hero">
+    <div class="stat"><div class="k">Power allowed</div><div class="v"><span id="dPct">0</span><small>%</small></div><div class="s" id="dWhy"></div></div>
+    <div class="stat"><div class="k">Regen</div><div class="v" id="dReg">Off</div><div class="s" id="dRegS"></div></div>
+    <div class="stat"><div class="k">Pack current</div><div class="v"><span id="dAmp">0</span><small>A</small></div><div class="s" id="dAmpS"></div></div>
+    <div class="stat"><div class="k">Lowest cell</div><div class="v"><span id="dMin">0</span><small>V</small></div><div class="s" id="dMinS"></div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h3>Try it</h3><div class="rows">
+      <div class="controls"><button class="btn" id="dkey">Key on</button><span class="mut" style="font-size:14px">Contactors must be closed before the Kelly gets any power.</span></div>
+      <div class="slider"><label>Pack current</label><input id="damps" type="range" min="-100" max="600" step="5" value="0"><b id="dampsv">0 A</b></div>
+      <div class="slider"><label>Hottest temp</label><input id="dtmax" type="range" min="-20" max="70" value="22"><b id="dtmaxv">22 °C</b></div>
+      <div class="slider"><label>Coldest temp</label><input id="dtmin" type="range" min="-20" max="70" value="20"><b id="dtminv">20 °C</b></div>
+      <div class="slider"><label>Weakest cell</label><input id="dcell" type="range" min="3.20" max="4.12" step="0.005" value="3.80"><b id="dcellv">3.800 V</b></div>
+      <div class="dim" style="font-size:13px">Weakest cell drives String 1 · M2 cell 7. Sliders are shared with the Pack tab.</div>
+    </div></div>
+    <div class="card"><h3>Signals to the Kelly <span class="tag">PRINT-ONLY</span></h3><div class="rows">
+      <div class="sig"><span class="p">OUT3 · pin 20</span><span class="n">Limp (low-speed input)</span><span class="st" id="sLimp">—</span></div>
+      <div class="sig"><span class="p">OUT5 · pin 2</span><span class="n">Derate PWM</span><span class="duty"><i id="sDutyB" style="width:0"></i></span><span class="st" id="sDuty">—</span></div>
+      <div class="sig"><span class="p">OUT6 · pin 3</span><span class="n">Regen allowed</span><span class="st" id="sReg">—</span></div>
+      <div class="dim" style="font-size:13px">BMS_CAP_KELLY_LIMIT_DRV=0 and TELEMETRY_ONLY=1: the Teensy only prints these. The Kelly's CAN is broadcast-only, so cutback has to go through its digital inputs and throttle line.</div>
+    </div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h3>Low-cell cutback</h3><svg class="dchart" id="chV" viewBox="0 0 320 150"></svg></div>
+    <div class="card"><h3>Heat cutback</h3><svg class="dchart" id="chT" viewBox="0 0 320 150"></svg></div>
+    <div class="card"><h3>Current cutback</h3><svg class="dchart" id="chA" viewBox="0 0 320 150"></svg></div>
+  </div>
+  <div class="card"><h3>Wiring design <span class="tag">KELLY SIDE UNVERIFIED</span></h3>
+    <ol class="chain">
+      <li><b>Limp.</b> OUT3 (Teensy pin 20) drives a PC817 opto whose transistor pulls the KLS low-speed switch input to its RTN. Max speed in limp is set in the Kelly config tool and caps speed, not battery amps. KLS pin number: read it off Adam's harness or the KLS manual.</li>
+      <li><b>Derate.</b> OUT5 (pin 2) PWM, duty = allowance %. Planned: RC filter to a DC level that scales the throttle wiper (CD4066 analog switch or MCP4131 digital pot). Part choice and values not picked yet.</li>
+      <li><b>Regen.</b> OUT6 (pin 3) HIGH = regen allowed, through a PC817 in series with the KLS regen or brake-switch input. Which KLS input does regen on this controller is unverified.</li>
+      <li><b>Hard stop.</b> Real faults still open the EV200 mains through the contactor sequence; cutback is the soft layer in front of that.</li>
+    </ol>
+    <div class="dim" style="margin-top:10px;font-size:13px">Full notes: docs/KELLY_CUTBACK.md.</div>
+  </div>
+</section>
 <!-- ======================= DIAGRAM ======================= -->
 <section id="t-diagram">
   <div class="dwrap"><svg id="dia" viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -178,7 +228,7 @@ select{background:var(--card2);color:var(--tx);border:0;border-radius:10px;paddi
 </section>
 <!-- ======================= SCENARIOS ======================= -->
 <section id="t-scen">
-  <div class="card"><div class="shead"><div><div class="big" id="scSum">—</div><div class="mut">13 scripted faults · same code as scripts/sim_bms.cpp · your live world is untouched</div></div>
+  <div class="card"><div class="shead"><div><div class="big" id="scSum">—</div><div class="mut"><span id="scN">All</span> scripted faults · same code as scripts/sim_bms.cpp · your live world is untouched</div></div>
     <button class="btn primary" id="runsc">Run scenarios</button></div><div id="sc"></div></div>
 </section>
 </main>
@@ -374,6 +424,45 @@ function closeSheet(){sel=null;$('sheet').classList.remove('on');document.queryS
 $('sheetx').onclick=closeSheet;
 
 /* ---------- render ---------- */
+/* ---------- drive: Kelly cutback ---------- */
+function chart(id,x0,x1,f,xn,marks,unit,dec){
+  const W=320,H=150,L=34,R=10,T=10,B=26,px=x=>L+(x-x0)/(x1-x0)*(W-L-R),py=p=>T+(1-Math.max(0,Math.min(100,p))/100)*(H-T-B);
+  let d='';for(let i=0;i<=80;i++){const x=x0+(x1-x0)*i/80;d+=(i?'L':'M')+px(x).toFixed(1)+' '+py(f(x)).toFixed(1);}
+  const xc=Math.max(x0,Math.min(x1,xn));
+  $(id).innerHTML=`<line class="ax" x1="${L}" y1="${py(0)}" x2="${W-R}" y2="${py(0)}"/><line class="ax" x1="${L}" y1="${py(100)}" x2="${W-R}" y2="${py(100)}"/>
+   <text x="${L-6}" y="${py(100)+4}" text-anchor="end">100%</text><text x="${L-6}" y="${py(0)+4}" text-anchor="end">0</text>
+   ${marks.map(m=>`<line class="${m.c}" x1="${px(m.x)}" y1="${T}" x2="${px(m.x)}" y2="${py(0)}"/><text x="${px(m.x)+(m.a==='end'?-4:4)}" y="${T+10}" text-anchor="${m.a||'start'}" style="fill:${m.c==='trip'?'#e82127':'#8e8e93'}">${m.t}</text>`).join('')}
+   <path class="cv" d="${d}"/><text x="${L}" y="${H-6}">${x0.toFixed(dec)} ${unit}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${x1.toFixed(dec)} ${unit}</text>
+   <circle class="now" r="6" cx="${px(xc)}" cy="${py(f(xc))}"/>`;
+}
+let dMinCell=0;
+function renderDrive(){
+  const c=S.cfg,k=S.kcfg,closed=S.state==='Closed';
+  $('dPct').textContent=S.kellyPct.toFixed(0);$('dPct').parentElement.classList.toggle('fault',!closed);
+  $('dWhy').textContent=S.kellyWhy?'limited by '+S.kellyWhy:'full power';
+  $('dReg').textContent=S.kellyRegenOk?'Allowed':'Off';$('dRegS').textContent=S.kellyRegenOk?'cells have headroom':S.regenWhy;
+  $('dAmp').textContent=S.packA.toFixed(0);$('dAmpS').textContent=`derate above ${k.maxDischargeA} A · trip ${c.overA} A for ${k.overcurrentMs} ms`;
+  let mn=9;for(let b=0;b<BOARDS.length;b++)for(let i=0;i<BOARDS[b].cells;i++){const v=X.sim_get_cell(b,i);if(v<mn)mn=v;}dMinCell=mn;
+  $('dMin').textContent=mn.toFixed(3);$('dMinS').textContent=`derate below ${(c.lowCutV+k.derateLowV).toFixed(2)} V · cut ${c.lowCutV.toFixed(2)} V`;
+  $('dkey').textContent=keyOn?'Key off':'Key on';$('dkey').classList.toggle('on',keyOn);
+  $('sLimp').textContent=S.kellyLimp?'ON':'off';$('sLimp').classList.toggle('red',S.kellyLimp);
+  const duty=Math.round(S.kellyPct*2.55);$('sDuty').textContent=duty+' / 255';$('sDutyB').style.width=S.kellyPct+'%';
+  $('sReg').textContent=S.kellyRegenOk?'HIGH':'LOW';
+  const lv0=c.lowCutV,lv1=c.lowCutV+k.derateLowV;
+  chart('chV',3.2,3.7,v=>v>=lv1?100:(v-lv0)/(lv1-lv0)*100,mn,[{x:lv0,c:'trip',t:'cut'}],'V',1);
+  chart('chT',20,c.overTempC+5,t=>t<=k.derateTempC?100:(c.overTempC-t)/(c.overTempC-k.derateTempC)*100,S.tMax,[{x:c.overTempC,c:'trip',t:'open',a:'end'}],'°C',0);
+  chart('chA',0,600,a=>a<=k.maxDischargeA?100:100*k.maxDischargeA/a,Math.max(0,S.packA),[{x:c.overA,c:'trip',t:'trip'},{x:550,c:'ref',t:'550 A peak',a:'end'}],'A',0);
+  const w=S.kellyWhy;[['chV','low cell'],['chT','pack hot'],['chA','discharge amps']].forEach(([i,r])=>$(i).classList.toggle('act',w===r));
+}
+function wireDrive(){
+  $('dkey').onclick=()=>$('key').click();
+  const mirror=(src,dst,fmt)=>{$(src).oninput=e=>{$(dst).value=e.target.value;$(dst).dispatchEvent(new Event('input'));$(src+'v').textContent=fmt(e.target.value);};
+    $(src).onchange=()=>$(dst).dispatchEvent(new Event('change'));
+    $(dst).addEventListener('input',()=>{$(src).value=$(dst).value;$(src+'v').textContent=fmt($(dst).value);});};
+  mirror('damps','amps',v=>v+' A');mirror('dtmax','tmax',v=>v+' °C');mirror('dtmin','tmin',v=>v+' °C');
+  $('dcell').oninput=e=>{X.sim_set_cell(0,6,+e.target.value);$('dcellv').textContent=(+e.target.value).toFixed(3)+' V';};
+  $('dcell').onchange=e=>ulog(`String 1 M2 cell 7 = ${(+e.target.value).toFixed(3)} V`);
+}
 function render(){
   S=JSON.parse(cs(X.sim_state_json()));simNow=S.t;$('clock').textContent='sim '+fmtT(S.t);
   const bad=S.state==='Fault'||S.state==='Lockout';$('hState').textContent=S.state;$('hState').classList.toggle('fault',bad);
@@ -392,6 +481,7 @@ function render(){
   const plan=cs(X.sim_plan_text(+$('planS').value));$('plan').textContent=plan;
   if($('t-pack').classList.contains('on'))renderStrings(plan);
   if($('t-diagram').classList.contains('on'))renderDiagram();
+  if($('t-drive').classList.contains('on'))renderDrive();
 }
 function loop(){const t=performance.now();acc+=(t-last)*speed;last=t;
   if(acc>=10){const ms=Math.min(Math.floor(acc/10)*10,5000);X.sim_step(ms);acc-=ms;if(acc>1000)acc=0;}render();}
@@ -402,7 +492,7 @@ function wire(){
   document.querySelectorAll('#speed button').forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll('#speed button').forEach(x=>x.classList.toggle('on',x===b));});
   $('reset').onclick=()=>{X.sim_reset();X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);keyOn=chgOn=false;userLog=[];hideBefore=-1;
     ['link','charger_on','curfit','tvalid'].forEach(i=>$(i).checked=true);['preopen','welded','busf'].forEach(i=>$(i).checked=false);
-    BOARDS.forEach((b,bi)=>$('sil'+bi).checked=false);[['tmin',20],['tmax',22],['amps',0]].forEach(([i,v])=>{$(i).value=v;$(i).dispatchEvent(new Event('input'));});};
+    BOARDS.forEach((b,bi)=>$('sil'+bi).checked=false);$('dcell').value=3.80;$('dcellv').textContent='3.800 V';[['tmin',20],['tmax',22],['amps',0]].forEach(([i,v])=>{$(i).value=v;$(i).dispatchEvent(new Event('input'));});};
   const tog=(id,fn,txt)=>$(id).onchange=e=>{fn(e.target.checked?1:0);ulog(txt+(e.target.checked?' on':' off'));};
   tog('link',X.sim_set_link,'Teensy link');tog('preopen',X.sim_set_precharge_open,'Precharge open-circuit');tog('welded',X.sim_set_welded,'Welded contactors');
   tog('charger_on',X.sim_set_charger_online,'Charger online');tog('curfit',X.sim_set_current_fitted,'Current sensor');tog('tvalid',X.sim_set_temps_valid,'Temps valid');
@@ -414,7 +504,7 @@ function wire(){
   $('db').onchange=e=>X.sim_set_deadband_mv(+e.target.value);
   $('clrlog').onclick=()=>hideBefore=simNow;
   $('runsc').onclick=()=>{const t0=performance.now(),r=JSON.parse(cs(X.sim_run_scenarios())),ok=r.filter(x=>x.pass).length;
-    $('scSum').innerHTML=`${ok}/${r.length} <span class="mut" style="font-size:18px">passed · ${(performance.now()-t0).toFixed(0)} ms</span>`;$('scSum').classList.toggle('red',ok!==r.length);
+    $('scN').textContent=r.length;$('scSum').innerHTML=`${ok}/${r.length} <span class="mut" style="font-size:18px">passed · ${(performance.now()-t0).toFixed(0)} ms</span>`;$('scSum').classList.toggle('red',ok!==r.length);
     $('sc').innerHTML='<table><tr><th>Scenario</th><th>Expect</th><th>ms</th><th>Result</th><th class="hide-sm">End state</th></tr>'+
       r.map(x=>`<tr><td>${x.name}</td><td class="mut">${x.expect}</td><td>${x.gotMs}</td><td class="${x.pass?'pass':'fail'}">${x.pass?'Pass':'Fail'}</td><td class="dim">${x.note}</td></tr>`).join('')+'</table>';};
 }
@@ -422,7 +512,7 @@ function wire(){
   const bytes=Uint8Array.from(atob(WASM_B64),c=>c.charCodeAt(0));
   const {instance}=await WebAssembly.instantiate(bytes,{});
   X=instance.exports;X._initialize();X.sim_reset();
-  buildStrings();buildDiagram();wire();last=performance.now();setInterval(loop,50);loop();
+  buildStrings();buildDiagram();wire();wireDrive();last=performance.now();setInterval(loop,50);loop();
   if(location.hash){const t=document.querySelector(`.tab[data-t="${location.hash.slice(1)}"]`);if(t)t.click();}
 })();
 </script></body></html>
