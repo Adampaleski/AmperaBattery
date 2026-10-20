@@ -43,6 +43,8 @@ EXPORT void sim_set_silent(int b, int on) { if (b >= 0 && b < kBoards) g_w.silen
 EXPORT void sim_set_temps(float mn, float mx) { g_w.tMin = mn; g_w.tMax = mx; }
 EXPORT void sim_set_temps_valid(int on) { g_w.tempsValid = on; }
 EXPORT void sim_set_pack_amps(float a) { g_w.packA = a; }
+EXPORT void sim_set_lem_share(float pctA) { g_w.lemShareA = pctA / 100.0f; }  // % of total through LEM A
+EXPORT void sim_set_low_cut(float v) { g_w.core.cfg.lowCutV = v; }             // L setting (what-if)
 EXPORT void sim_set_current_fitted(int on) { g_w.currentFitted = on; }
 EXPORT void sim_set_bus_force(float v) { g_w.busForce = v; }   // < 0 = plant model
 EXPORT void sim_set_link(int up) { g_w.linkUp = up; }
@@ -68,6 +70,9 @@ EXPORT const char *sim_state_json() {
     b.f(",\"kellyPct\":%.1f,\"kellyLimp\":%d,\"kellyRegenOk\":%d", o.kellyPct, o.kellyLimp, o.kellyRegenOk);
     b.f(",\"kellyWhy\":"); b.str(o.kellyWhy ? o.kellyWhy : "");
     b.f(",\"regenWhy\":"); b.str(o.regenWhy ? o.regenWhy : "");
+    b.f(",\"lemA\":%.1f,\"lemB\":%.1f,\"lemDiffA\":%.1f,\"lemImbalance\":%d", g_w.in.lemA, g_w.in.lemB, o.lemDiffA, o.lemImbalance);
+    b.f(",\"dcfg\":{\"sagStartV\":%.3f,\"sagZeroV\":%.3f,\"imbalanceA\":%.0f,\"imbalanceMs\":%u,\"imbalancePct\":%.0f}",
+        c.sagStartV, c.sagZeroV, c.imbalanceA, static_cast<unsigned>(c.imbalanceMs), c.imbalancePct);
     b.f(",\"kcfg\":{\"derateLowV\":%.3f,\"derateTempC\":%.1f,\"maxDischargeA\":%.0f,\"overcurrentMs\":%u,\"instantTripA\":%.0f,\"ceil100V\":%.3f}",
         c.derateLowV, c.derateTempC, c.maxDischargeA, static_cast<unsigned>(c.overcurrentMs), c.instantTripA, BmsCore::kCeil100V);
     b.f(",\"faults\":%u,\"latched\":%u,\"busV\":%.2f,\"lowestStringV\":%.2f", static_cast<unsigned>(o.faults),

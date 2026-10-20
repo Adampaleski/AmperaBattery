@@ -107,6 +107,14 @@ struct Config {
     float    weldMinV       = 30.0f;   // ... and below this absolute floor never counts
     // Kelly
     float    derateLowV     = 0.15f;   // start derating 150 mV above lowCutV
+    // Derates (Adam, 2026-10-20). Soft layer in front of the trips.
+    // NOTE: with lowCutV 3.30 V (instant CELL-LOW trip) the sag curve below
+    // 3.30 V cannot act yet -- the mains open first. Decision pending (Adam).
+    float    sagStartV      = 3.20f;   // weakest cell under load: cell-sag derate starts
+    float    sagZeroV       = 3.00f;   // ... and reaches 0 % here
+    float    imbalanceA     = 100.0f;  // |LEM A - LEM B| above this ...
+    uint32_t imbalanceMs    = 1000;    // ... for this long -> derate + warn
+    float    imbalancePct   = 50.0f;   // allowance while imbalanced. PLACEHOLDER: level not set by Adam
 };
 
 // --------------------------------------------------------------- inputs
@@ -130,6 +138,8 @@ struct Inputs {
     float    tMinC = 20, tMaxC = 20;
     bool     currentValid = false;
     float    packA        = 0;     // + = discharge
+    bool     lemSplitValid= false; // both halves read (LEM A on Teensy A, LEM B over the link)
+    float    lemA = 0, lemB = 0;   // strings 1+2 and 3+4, + = discharge
     bool     busValid     = false; // HV bus sense present
     float    busV         = 0;
     bool     keyOn        = false; // dead-man / key / drive request
@@ -159,6 +169,8 @@ struct Outputs {
     bool     kellyRegenOk = false;
     const char *kellyWhy = "";             // active limiter ("" = full power)
     const char *regenWhy = "";             // why regen is inhibited ("" = allowed)
+    bool     lemImbalance = false;         // |A - B| > imbalanceA for imbalanceMs (warn + derate)
+    float    lemDiffA = 0;                 // |A - B| now (0 when split not valid)
     uint32_t faults  = 0;                  // active now
     uint32_t latched = 0;                  // latched (drive faults until key-off + clear)
     const char *chargeWhy = "";
@@ -176,6 +188,7 @@ public:
     void reset() {
         st_ = CState::Open; stMs_ = 0; retries_ = 0; latched_ = 0; chargeOvLatched_ = false;
         welded_ = false; ocSinceMs_ = 0; ocActive_ = false; full_ = false; openSinceMs_ = 0;
+        imbSinceMs_ = 0; imbOver_ = false; imbOn_ = false;
         logHead_ = 0; logCount_ = 0; prevFaults_ = 0; out_ = Outputs{}; started_ = false;
     }
 
@@ -268,7 +281,8 @@ public:
         if (chargeOvLatched_) f |= F_CHARGE_OV;
         chargeLogic(in, o, f);
 
-        // ---- Kelly limits
+        // ---- LEM pair imbalance timer, then Kelly limits
+        imbalanceLogic(in, o);
         kellyLogic(in, o, f);
 
         o.faults = f;
@@ -291,7 +305,8 @@ public:
 
 private:
     CState   st_ = CState::Open;
-    uint32_t stMs_ = 0, openSinceMs_ = 0, ocSinceMs_ = 0;
+    uint32_t stMs_ = 0, openSinceMs_ = 0, ocSinceMs_ = 0, imbSinceMs_ = 0;
+    bool     imbOver_ = false, imbOn_ = false;
     uint8_t  retries_ = 0;
     uint32_t latched_ = 0, prevFaults_ = 0;
     bool     welded_ = false, chargeOvLatched_ = false, ocActive_ = false, full_ = false, started_ = false;
@@ -387,6 +402,23 @@ private:
         o.chargeA = 0;
     }
 
+    // Split LEM: strings 1+2 and 3+4 should share current about equally.
+    // |A - B| > imbalanceA continuously for imbalanceMs -> warn + derate.
+    // Clears as soon as the difference drops back under imbalanceA.
+    void imbalanceLogic(const Inputs &in, Outputs &o) {
+        const bool closed = st_ == CState::Closed;
+        float d = in.lemA - in.lemB; if (d < 0) d = -d;
+        o.lemDiffA = in.lemSplitValid ? d : 0;
+        const bool over = closed && in.lemSplitValid && d > cfg.imbalanceA;
+        if (over && !imbOver_) imbSinceMs_ = in.nowMs;
+        imbOver_ = over;
+        const bool on = over && in.nowMs - imbSinceMs_ >= cfg.imbalanceMs;
+        if (on && !imbOn_) logf(in.nowMs, "LEM imbalance: A %.0f / B %.0f A, derate %.0f%%", in.lemA, in.lemB, cfg.imbalancePct);
+        if (!on && imbOn_) logf(in.nowMs, "LEM imbalance cleared");
+        imbOn_ = on;
+        o.lemImbalance = on;
+    }
+
     void kellyLogic(const Inputs &in, Outputs &o, uint32_t f) {
         if (st_ != CState::Closed || (f & kDriveFaults)) {
             o.kellyPct = 0; o.kellyLimp = true; o.kellyRegenOk = false;
@@ -403,10 +435,15 @@ private:
         }
         const float lv0 = cfg.lowCutV, lv1 = cfg.lowCutV + cfg.derateLowV;
         if (minCell < lv1) { const float k = (minCell - lv0) / (lv1 - lv0); const float p = k * 100; if (p < pct) { pct = p; why = "low cell"; } }
+        if (cfg.sagStartV > cfg.sagZeroV && minCell < cfg.sagStartV) {
+            const float k = (minCell - cfg.sagZeroV) / (cfg.sagStartV - cfg.sagZeroV);
+            const float p = k * 100; if (p < pct) { pct = p; why = "cell sag"; }
+        }
         if (in.tempsValid && in.tMaxC > cfg.derateTempC) {
             const float k = (cfg.overTempC - in.tMaxC) / (cfg.overTempC - cfg.derateTempC);
             const float p = k * 100; if (p < pct) { pct = p; why = "pack hot"; }
         }
+        if (o.lemImbalance && cfg.imbalancePct < pct) { pct = cfg.imbalancePct; why = "LEM imbalance"; }
         if (cfg.maxDischargeA > 0 && in.currentValid && in.packA > cfg.maxDischargeA) {
             const float p = 100 * cfg.maxDischargeA / in.packA; if (p < pct) { pct = p; why = "discharge amps"; }
         }

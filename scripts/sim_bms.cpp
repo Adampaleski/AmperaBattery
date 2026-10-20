@@ -103,6 +103,53 @@ int main() {
         }
         printf("trip: %d/6 checks passed\n", 6 - tfail);
     }
+    // Derates (Adam 2026-10-20): LEM imbalance > 100 A for 1 s; cell sag 3.2 -> 3.0 V.
+    int dfail = 0;
+    {
+        static BmsSim::World w;
+        auto rep = [&](bool ok, const char *name) {
+            if (!ok) dfail++;
+            const auto &o = w.core.out();
+            printf("%s derate %-40s %5.1f%% why='%s' imb=%d diff=%.0f A state=%s\n", ok ? "PASS" : "FAIL", name, o.kellyPct,
+                   o.kellyWhy, o.lemImbalance, o.lemDiffA, BmsCore::stateName(o.state));
+        };
+        auto ms = [&](uint32_t t) { for (uint32_t k = 0; k < t; k += 10) w.step(10); };
+        const float pct50 = w.core.cfg.imbalancePct;  // PLACEHOLDER level
+        // 1 even split at the 550 A launch: no derate
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 550; ms(2000);
+        rep(w.core.out().kellyPct > 99.9f && !w.core.out().lemImbalance, "550 A even 275/275 for 2 s: full power");
+        // 2 340/210 A (130 A apart) for 0.9 s: not yet
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 550; w.lemShareA = 340.f / 550.f; ms(900);
+        rep(w.core.out().kellyPct > 99.9f && !w.core.out().lemImbalance, "340/210 A for 0.9 s: not yet");
+        // 3 same for 1.1 s: derate + warn, contactors stay closed
+        ms(200);
+        { const auto &o = w.core.out();
+          rep(o.lemImbalance && o.kellyPct > pct50 - 0.1f && o.kellyPct < pct50 + 0.1f && strcmp(o.kellyWhy, "LEM imbalance") == 0 &&
+              o.state == BmsCore::CState::Closed, "340/210 A for 1.1 s: derate + warn, closed"); }
+        // 4 back to even: clears
+        w.lemShareA = 0.5f; ms(20);
+        rep(!w.core.out().lemImbalance && w.core.out().kellyPct > 99.9f, "back to 275/275: clears");
+        // 5 90 A apart for 5 s: under threshold
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 300; w.lemShareA = 195.f / 300.f; ms(5000);
+        rep(!w.core.out().lemImbalance && w.core.out().kellyPct > 99.9f, "195/105 A (90 A) for 5 s: no derate");
+        // 6 imbalance timer restarts if it dips under 100 A
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 550; w.lemShareA = 340.f / 550.f; ms(700);
+        w.lemShareA = 0.5f; ms(20); w.lemShareA = 340.f / 550.f; ms(700);
+        rep(!w.core.out().lemImbalance, "130 A 0.7 s, dip, 0.7 s: timer restarts");
+        // 7 sag at the default L 3.30 V: CELL-LOW opens before sag can act (decision pending)
+        w.reset(); BmsSim::bringUp(w, false); w.cell[0][6] = 3.25f; ms(20);
+        rep(w.core.out().state == BmsCore::CState::Fault && (w.core.out().latched & BmsCore::F_CELL_LOW),
+            "L 3.30, cell 3.25 V: CELL-LOW opens first");
+        // 8 what-if L 3.00 V: cell 3.10 V -> sag curve 50 %
+        w.reset(); w.core.cfg.lowCutV = 3.00f; BmsSim::bringUp(w, false); w.cell[0][6] = 3.10f; ms(20);
+        { const auto &o = w.core.out();
+          rep(o.state == BmsCore::CState::Closed && o.kellyPct > 49 && o.kellyPct < 51 && strcmp(o.kellyWhy, "cell sag") == 0,
+              "what-if L 3.00: cell 3.10 V -> sag 50%"); }
+        // 9 what-if L 3.00: cell 3.25 V -> sag curve not started (> 3.2)
+        w.cell[0][6] = 3.25f; ms(20);
+        rep(strcmp(w.core.out().kellyWhy, "cell sag") != 0, "what-if L 3.00: cell 3.25 V -> no sag derate");
+        printf("derate: %d/9 checks passed\n", 9 - dfail);
+    }
     // State of charge (coulomb count of the split LEM sum). capAh 100 is a
     // TEST value only; the real bank Ah is UNVERIFIED.
     int sfail = 0;
@@ -160,5 +207,5 @@ int main() {
           rep(l && s.cfg.capAh > 49.9f && s.cfg.capAh < 50.1f && s.out().pct < 0.01f, "learn capacity 50 Ah from full->empty", s); }
         printf("soc: %d/10 checks passed\n", 10 - sfail);
     }
-    return fails + cfail + lfail + kfail + tfail + sfail;
+    return fails + cfail + lfail + kfail + tfail + sfail + dfail;
 }

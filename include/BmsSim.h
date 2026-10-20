@@ -40,6 +40,7 @@ struct World {
     bool     linkUp = true;
     uint32_t linkLastMs = 0;
     float    packA = 0;
+    float    lemShareA = 0.5f;    // fraction of packA through LEM A (strings 1+2); 0.5 = even split
     bool     currentFitted = true;
     float    tMin = 20, tMax = 22;
     bool     tempsValid = true;   // sim assumes verified temps
@@ -52,7 +53,7 @@ struct World {
         core.reset();
         in = BmsCore::Inputs{};
         now = 0; busV = 0; preOpenCircuit = false; welded = false; linkUp = true; linkLastMs = 0;
-        packA = 0; tMin = 20; tMax = 22; tempsValid = true; keyOn = false; chargeReq = false; chargeSoakA = 0;
+        packA = 0; lemShareA = 0.5f; tMin = 20; tMax = 22; tempsValid = true; keyOn = false; chargeReq = false; chargeSoakA = 0;
         currentFitted = true; busForce = -1;
         for (int b = 0; b < kBoards; b++) {
             silent[b] = false; lastSeen[b] = 0;
@@ -97,6 +98,7 @@ struct World {
         in.linkFresh = in.linkAgeMs <= core.cfg.linkStaleMs;
         in.tempsValid = tempsValid; in.tMinC = tMin; in.tMaxC = tMax;
         in.currentValid = currentFitted; in.packA = packA - chargeSoakA;
+        in.lemSplitValid = currentFitted; in.lemA = in.packA * lemShareA; in.lemB = in.packA - in.lemA;
         in.busValid = true; in.busV = busV;
         in.keyOn = keyOn; in.chargeReq = chargeReq;
     }

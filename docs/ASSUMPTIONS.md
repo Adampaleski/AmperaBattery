@@ -28,7 +28,7 @@ still 0 and `TELEMETRY_ONLY=1`.
 
 ## Power path (2026-10-20, see docs/TERYX_MAIN_POWER_PATH.md)
 - Primary sensing: dual LEM A + LEM B, I = A + B. ISA IVT-S optional.
-- Trips: 650 A for 100 ms or 750 A instantly (replaces 300 A/500 ms and the 250 A derate). Derates: imbalance > 100 A for 1 s; cell sag 3.2 → 3.0 V; heat off until TEMPS_VERIFIED. Trips are in code (2026-10-20, sim only); derates not yet.
+- Trips: 650 A for 100 ms or 750 A instantly (replaces 300 A/500 ms and the 250 A derate). Derates: imbalance > 100 A for 1 s; cell sag 3.2 → 3.0 V; heat off until TEMPS_VERIFIED. Trips and the imbalance + sag derates are in code (2026-10-20, sim only). Imbalance cut level 50 % is a placeholder; sag curve is blocked by the 3.30 V instant low cut until Adam decides.
 - Kelly phase/battery limits 550 A.
 - Mains: two used TE EV200 (pack + / −). Volt AEV14012s only on charger/DC-DC/precharge.
 - Fuses: 4× Mersen A6T200 200 A Class T, planned; size to be confirmed vs 650 A trip (Sparky).

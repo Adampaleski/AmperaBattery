@@ -189,8 +189,10 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{
       <div class="slider"><label>Pack current</label><input id="damps" type="range" min="-100" max="800" step="5" value="0"><b id="dampsv">0 A</b></div>
       <div class="slider"><label>Hottest temp</label><input id="dtmax" type="range" min="-20" max="70" value="22"><b id="dtmaxv">22 °C</b></div>
       <div class="slider"><label>Coldest temp</label><input id="dtmin" type="range" min="-20" max="70" value="20"><b id="dtminv">20 °C</b></div>
-      <div class="slider"><label>Weakest cell</label><input id="dcell" type="range" min="3.20" max="4.12" step="0.005" value="3.80"><b id="dcellv">3.800 V</b></div>
-      <div class="dim" style="font-size:13px">Weakest cell drives String 1 · M2 cell 7. Sliders are shared with the Pack tab.</div>
+      <div class="slider"><label>Weakest cell</label><input id="dcell" type="range" min="2.95" max="4.12" step="0.005" value="3.80"><b id="dcellv">3.800 V</b></div>
+      <div class="slider"><label>LEM split</label><input id="dlem" type="range" min="20" max="80" step="1" value="50"><b id="dlemv">50 / 50</b></div>
+      <div class="slider"><label>Low cut (L)</label><input id="dlcut" type="range" min="3.00" max="3.50" step="0.01" value="3.30"><b id="dlcutv">3.30 V</b></div>
+      <div class="dim" style="font-size:13px">Weakest cell drives String 1 · M2 cell 7. LEM split = % of pack current through LEM A (strings 1+2). Low cut is a what-if: at 3.30 V the mains open before the 3.2 V sag derate can start. Sliders are shared with the Pack tab.</div>
     </div></div>
     <div class="card"><h3>Signals to the Kelly <span class="tag">PRINT-ONLY</span></h3><div class="rows">
       <div class="sig"><span class="p">OUT3 · pin 20</span><span class="n">Limp (low-speed input)</span><span class="st" id="sLimp">—</span></div>
@@ -200,7 +202,8 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{
     </div></div>
   </div>
   <div class="grid">
-    <div class="card"><h3>Low-cell cutback</h3><svg class="dchart" id="chV" viewBox="0 0 320 150"></svg></div>
+    <div class="card"><h3>Low-cell + sag cutback</h3><svg class="dchart" id="chV" viewBox="0 0 320 150"></svg></div>
+    <div class="card"><h3>LEM imbalance <span class="tag">LEVEL PLACEHOLDER</span></h3><svg class="dchart" id="chI" viewBox="0 0 320 150"></svg><div class="dim" id="dImb" style="font-size:13px;margin-top:6px"></div></div>
     <div class="card"><h3>Heat cutback</h3><svg class="dchart" id="chT" viewBox="0 0 320 150"></svg></div>
     <div class="card"><h3>Current trip</h3><svg class="dchart" id="chA" viewBox="0 0 320 150"></svg></div>
   </div>
@@ -350,7 +353,7 @@ function buildDiagram(){
   path('M880 330 V230 H930 M1026 230 H1046 M1136 230 H1160 V330','flow','preflow');
   path('M1044 330 H1160','hv','hvMP2');
   // DHAB
-  const lemKV=(w,ss,t)=>()=>({'Part':'LEM DHAB S/44 (factory Volt gen1) — owned','Location':`combined B− of strings ${ss} (Teensy ${t})`,'Harness':'factory Volt plug (1 of 2): 1 +5V · 2 GND · 3 high-range out · 4 low-range out','Low ch':'±20 A · 100 mV/A','High ch':'−420/+230 A · 6.15 mV/A · ≈3.0 V at zero','Mount':'discharge on −420 A side · FW sign flip TODO','Saturation':'≈450–490 A (unverified)','Reading':(S.packA/2).toFixed(1)+' A (sim: half of total)','Total':'I = LEM A + LEM B'});
+  const lemKV=(w,ss,t)=>()=>({'Part':'LEM DHAB S/44 (factory Volt gen1) — owned','Location':`combined B− of strings ${ss} (Teensy ${t})`,'Harness':'factory Volt plug (1 of 2): 1 +5V · 2 GND · 3 high-range out · 4 low-range out','Low ch':'±20 A · 100 mV/A','High ch':'−420/+230 A · 6.15 mV/A · ≈3.0 V at zero','Mount':'discharge on −420 A side · FW sign flip TODO','Saturation':'≈450–490 A (unverified)','Reading':(w==='A'?S.lemA:S.lemB).toFixed(1)+' A (sim: LEM split slider)','Pair':`|A − B| ${S.lemDiffA.toFixed(0)} A`+(S.lemImbalance?' · IMBALANCE derate':''),'Total':'I = LEM A + LEM B'});
   el('line',{x1:1150,y1:330,x2:1300,y2:330,stroke:'#d1d1d6','stroke-width':2});
   part('lemA',866,395,112,50,'LEM A · DHAB S/44','S1+S2 B− · Teensy A',{owned:true,kv:lemKV('A','1+2','A')});
   part('lemB',866,630,112,50,'LEM B · DHAB S/44','S3+S4 B− · Teensy B',{owned:true,kv:lemKV('B','3+4','B')});
@@ -443,16 +446,20 @@ function renderDrive(){
   $('dReg').textContent=S.kellyRegenOk?'Allowed':'Off';$('dRegS').textContent=S.kellyRegenOk?'cells have headroom':S.regenWhy;
   $('dAmp').textContent=S.packA.toFixed(0);$('dAmpS').textContent=(k.maxDischargeA>0?`derate above ${k.maxDischargeA} A · `:'no BMS cap · ')+`trip ${c.overA} A for ${k.overcurrentMs} ms, ${k.instantTripA} A instant`;
   let mn=9;for(let b=0;b<BOARDS.length;b++)for(let i=0;i<BOARDS[b].cells;i++){const v=X.sim_get_cell(b,i);if(v<mn)mn=v;}dMinCell=mn;
-  $('dMin').textContent=mn.toFixed(3);$('dMinS').textContent=`derate below ${(c.lowCutV+k.derateLowV).toFixed(2)} V · cut ${c.lowCutV.toFixed(2)} V`;
+  $('dMin').textContent=mn.toFixed(3);$('dMinS').textContent=`derate below ${(c.lowCutV+k.derateLowV).toFixed(2)} V · sag ${S.dcfg.sagStartV.toFixed(1)}→${S.dcfg.sagZeroV.toFixed(1)} V · cut ${c.lowCutV.toFixed(2)} V`;
   $('dkey').textContent=keyOn?'Key off':'Key on';$('dkey').classList.toggle('on',keyOn);
   $('sLimp').textContent=S.kellyLimp?'ON':'off';$('sLimp').classList.toggle('red',S.kellyLimp);
   const duty=Math.round(S.kellyPct*2.55);$('sDuty').textContent=duty+' / 255';$('sDutyB').style.width=S.kellyPct+'%';
   $('sReg').textContent=S.kellyRegenOk?'HIGH':'LOW';
-  const lv0=c.lowCutV,lv1=c.lowCutV+k.derateLowV;
-  chart('chV',3.2,3.7,v=>v>=lv1?100:(v-lv0)/(lv1-lv0)*100,mn,[{x:lv0,c:'trip',t:'cut'}],'V',1);
+  const lv0=c.lowCutV,lv1=c.lowCutV+k.derateLowV,d=S.dcfg;
+  const lowF=v=>v>=lv1?100:(v-lv0)/(lv1-lv0)*100,sagF=v=>v>=d.sagStartV?100:(v-d.sagZeroV)/(d.sagStartV-d.sagZeroV)*100;
+  chart('chV',2.9,3.7,v=>v<lv0?0:Math.min(lowF(v),sagF(v)),mn,[{x:lv0,c:'trip',t:'cut '+lv0.toFixed(2),dy:26},{x:d.sagStartV,c:'ref',t:'sag '+d.sagStartV.toFixed(1),a:'end'}],'V',1);
+  chart('chI',0,200,x=>x>d.imbalanceA?d.imbalancePct:100,S.lemDiffA,[{x:d.imbalanceA,c:'ref',t:d.imbalanceA+' A for '+(d.imbalanceMs/1000)+' s',a:'end'}],'A',0);
+  $('dImb').textContent=`LEM A ${S.lemA.toFixed(0)} A · LEM B ${S.lemB.toFixed(0)} A · |A − B| ${S.lemDiffA.toFixed(0)} A`+(S.lemImbalance?` · DERATED to ${d.imbalancePct}%`:'')+`. Derate level ${d.imbalancePct}% is a placeholder until Adam picks it.`;
+  $('dlcutv').textContent=c.lowCutV.toFixed(2)+' V';
   chart('chT',20,c.overTempC+5,t=>t<=k.derateTempC?100:(c.overTempC-t)/(c.overTempC-k.derateTempC)*100,S.tMax,[{x:c.overTempC,c:'trip',t:'open',a:'end'}],'°C',0);
   chart('chA',0,800,a=>(k.maxDischargeA<=0||a<=k.maxDischargeA)?100:100*k.maxDischargeA/a,Math.max(0,Math.abs(S.packA)),[{x:550,c:'ref',t:'Kelly 550',a:'end',dy:52},{x:c.overA,c:'trip',t:c.overA+' A · '+k.overcurrentMs+' ms',a:'end',dy:26},{x:k.instantTripA,c:'trip',t:k.instantTripA+' A instant',a:'end'}],'A',0);
-  const w=S.kellyWhy;[['chV','low cell'],['chT','pack hot'],['chA','discharge amps']].forEach(([i,r])=>$(i).classList.toggle('act',w===r));
+  const w=S.kellyWhy;[['chV',['low cell','cell sag']],['chI',['LEM imbalance']],['chT',['pack hot']],['chA',['discharge amps']]].forEach(([i,r])=>$(i).classList.toggle('act',r.includes(w)));
 }
 function wireDrive(){
   $('dkey').onclick=()=>$('key').click();
@@ -462,6 +469,10 @@ function wireDrive(){
   mirror('damps','amps',v=>v+' A');mirror('dtmax','tmax',v=>v+' °C');mirror('dtmin','tmin',v=>v+' °C');
   $('dcell').oninput=e=>{X.sim_set_cell(0,6,+e.target.value);$('dcellv').textContent=(+e.target.value).toFixed(3)+' V';};
   $('dcell').onchange=e=>ulog(`String 1 M2 cell 7 = ${(+e.target.value).toFixed(3)} V`);
+  $('dlem').oninput=e=>{const a=+e.target.value;X.sim_set_lem_share(a);$('dlemv').textContent=a+' / '+(100-a);};
+  $('dlem').onchange=e=>ulog(`LEM split ${e.target.value} / ${100-e.target.value}`);
+  $('dlcut').oninput=e=>X.sim_set_low_cut(+e.target.value);
+  $('dlcut').onchange=e=>ulog(`Low cut (what-if) ${(+e.target.value).toFixed(2)} V`);
 }
 function render(){
   S=JSON.parse(cs(X.sim_state_json()));simNow=S.t;$('clock').textContent='sim '+fmtT(S.t);
@@ -492,7 +503,7 @@ function wire(){
   document.querySelectorAll('#speed button').forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll('#speed button').forEach(x=>x.classList.toggle('on',x===b));});
   $('reset').onclick=()=>{X.sim_reset();X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);keyOn=chgOn=false;userLog=[];hideBefore=-1;
     ['link','charger_on','curfit','tvalid'].forEach(i=>$(i).checked=true);['preopen','welded','busf'].forEach(i=>$(i).checked=false);
-    BOARDS.forEach((b,bi)=>$('sil'+bi).checked=false);$('dcell').value=3.80;$('dcellv').textContent='3.800 V';[['tmin',20],['tmax',22],['amps',0]].forEach(([i,v])=>{$(i).value=v;$(i).dispatchEvent(new Event('input'));});};
+    BOARDS.forEach((b,bi)=>$('sil'+bi).checked=false);$('dcell').value=3.80;$('dcellv').textContent='3.800 V';[['tmin',20],['tmax',22],['amps',0],['dlem',50],['dlcut',3.30]].forEach(([i,v])=>{$(i).value=v;$(i).dispatchEvent(new Event('input'));});};
   const tog=(id,fn,txt)=>$(id).onchange=e=>{fn(e.target.checked?1:0);ulog(txt+(e.target.checked?' on':' off'));};
   tog('link',X.sim_set_link,'Teensy link');tog('preopen',X.sim_set_precharge_open,'Precharge open-circuit');tog('welded',X.sim_set_welded,'Welded contactors');
   tog('charger_on',X.sim_set_charger_online,'Charger online');tog('curfit',X.sim_set_current_fitted,'Current sensor');tog('tvalid',X.sim_set_temps_valid,'Temps valid');
