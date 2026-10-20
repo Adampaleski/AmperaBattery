@@ -15,6 +15,7 @@
 #include "KellyDecode.h"
 #include "HubStatus.h"
 #include "Watchdog.h"
+#include "BenchBleedRun.h"
 #include "Settings.h"
 #include "StringConfig.h"
 #if DUAL_STRING
@@ -74,6 +75,10 @@ void printHelp() {
     SERIALCONSOLE.println(F("  y  Kelly CAN2 RX counts/raw"));
     SERIALCONSOLE.println(F("  j  one STATUS_SCHEMA v1 JSON line (hub format)"));
     SERIALCONSOLE.println(F("  h/?  this page"));
+#if BENCH_BLEED_TEST
+    SERIALCONSOLE.println(F("  bleed M C + Enter  BENCH: bleed ONE cell (module M ch C) 10 s; x aborts"));
+    SERIALCONSOLE.println(F("  b + Enter          balance plan (in this build b needs Enter)"));
+#endif
     SERIALCONSOLE.println(F("=== SETTINGS (type, then Enter; saved to EEPROM) ==="));
     SERIALCONSOLE.println(F("  P80    charge limit % (50-100; 80=3.95 V, 100=4.10 V/cell)   L3.30  low cutoff V/cell (3.00-3.50)"));
     SERIALCONSOLE.println(F("  W10    balance deadband mV (2-50)          X      restore defaults"));
@@ -166,6 +171,18 @@ uint32_t g_lineMs  = 0;
 void dispatchSerial() {
     while (SERIALCONSOLE.available()) {
         const char c = static_cast<char>(SERIALCONSOLE.read());
+#if BENCH_BLEED_TEST
+        // x / X aborts a running bleed immediately (before any other parsing).
+        if (BenchBleedRun::active() && (c == 'x' || c == 'X')) {
+            g_inLine = false;
+            BenchBleedRun::abort("x pressed");
+            continue;
+        }
+        if (!g_inLine && c == 'b') {  // "bleed M C" + Enter; bare "b" + Enter = balance plan
+            g_inLine = true;
+            g_lineLen = 0;
+        }
+#endif
         if (!g_inLine && (c == 'V' || c == 'L' || c == 'W' || c == 'X' || c == 'U')) {
             g_inLine = true;
             g_lineLen = 0;
@@ -175,6 +192,11 @@ void dispatchSerial() {
             if (c == '\r' || c == '\n') {
                 g_line[g_lineLen] = 0;
                 g_inLine = false;
+#if BENCH_BLEED_TEST
+                if (g_line[0] == 'b') {
+                    if (!BenchBleedRun::handleLine(g_line)) runCommand('b');
+                } else
+#endif
                 Settings::handleLine(g_line);
             } else if (g_lineLen < sizeof(g_line) - 1) {
                 g_line[g_lineLen++] = c;
@@ -215,6 +237,9 @@ void setup() {
     SERIALCONSOLE.println(Watchdog::lastResetRaw(), HEX);
     SERIALCONSOLE.println(
         F("*** BUILD: MONITOR / DRY-RUN — FLAG=0  DRIVE=OFF  no live bleed/charge/coil ***"));
+#if BENCH_BLEED_TEST
+    SERIALCONSOLE.println(F("*** BENCH BLEED TEST BUILD: 'bleed <module> <ch>' + Enter bleeds ONE cell for 10 s (x = abort). 'b' + Enter = balance plan. ***"));
+#endif
     SERIALCONSOLE.print(F("Pack: "));
     SERIALCONSOLE.print(PACK_S_CELLS);
     SERIALCONSOLE.print(F("S"));
@@ -338,6 +363,7 @@ void loop() {
     BmsApp::tick();
     HubStatus::tick();
     dispatchSerial();
+    BenchBleedRun::tick();
 
     static uint32_t autoReportMs = 0;
     if (millis() - autoReportMs >= 10000) {
