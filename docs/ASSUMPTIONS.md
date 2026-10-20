@@ -22,6 +22,14 @@ still 0 and `TELEMETRY_ONLY=1`.
 
 ## Current sensing (2026-10-19)
 - Kelly peak discharge assumed 550 A in the simulator.
-- Main sensor: ISA IVT-S 1000 A (IVT-S-1K-U3-I-CAN1-12/24), ±1000 A, CAN (ships at 500 kbps vs CAN2 250k, may need its own bus). Not owned.
-- LEM DHAB S/44 (pins 1 +5V, 2 GND, 3 high out, 4 low out; Vero BMS manual): cross-check and low current only. Saturates ~450–490 A (unverified).
+- ISA IVT-S 1000 A (IVT-S-1K-U3-I-CAN1-12/24) is **optional only** (no longer the main sensor); ships at 500 kbps vs CAN2 250k, may need its own bus. Not owned.
+- LEM DHAB S/44 (pins 1 +5V, 2 GND, 3 high out, 4 low out; Vero BMS manual): primary sensing as the LEM A + B pair (below). Saturates ~450–490 A (unverified).
 - 2026-10-19 update: Adam chose the split-LEM layout. Default = two owned DHAB S/44: LEM A on combined B− of strings 1+2 (Teensy A), LEM B on strings 3+4 (Teensy B); I = A + B; 275 A each at the 550 A peak. Each uses its factory Volt harness plug. IVT-S 1000 A is now an optional alternative only. Sim flags: PAIR_IMBALANCE (|A−B| > 30% of |A+B|, total > 40 A) and SENSOR_FAULT (one saturated/invalid, or one ~0 A while the other > 100 A).
+
+## Power path (2026-10-20, see docs/TERYX_MAIN_POWER_PATH.md)
+- Primary sensing: dual LEM A + LEM B, I = A + B. ISA IVT-S optional.
+- Trips: 650 A for 100 ms or 750 A instantly (replaces 300 A/500 ms and the 250 A derate). Derates: imbalance > 100 A for 1 s; cell sag 3.2 → 3.0 V; heat off until TEMPS_VERIFIED. Not yet in code.
+- Kelly phase/battery limits 550 A.
+- Mains: two used TE EV200 (pack + / −). Volt AEV14012s only on charger/DC-DC/precharge.
+- Fuses: 4× Mersen A6T200 200 A Class T, planned; size to be confirmed vs 650 A trip (Sparky).
+- Strings: 36S from 24S + 18S BICM boards; no 30S.

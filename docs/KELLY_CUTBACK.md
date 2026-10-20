@@ -10,7 +10,7 @@ The KLS CAN protocol is broadcast-only (`0x0CF11E05`, `0x0CF11F05`). The control
 |---|---|---|---|
 | Low cell | weakest cell below `lowCutV + derateLowV` (3.45 V) | `lowCutV` (3.30 V), where the contactors open | `derateLowV = 0.15` |
 | Pack hot | hottest sensor above `derateTempC` (50 °C) | `overTempC` (55 °C), where the contactors open | |
-| Discharge amps | pack current above `maxDischargeA` (250 A) | never 0; allowance = 250 / I | `maxDischargeA = 250` |
+| Discharge amps | pack current above `maxDischargeA` (250 A) | never 0; allowance = 250 / I | `maxDischargeA = 250` (**superseded 2026-10-20**: no BMS current cap; Kelly limits 550 A. Code not yet changed.) |
 
 The lowest of the three wins. `Outputs.kellyWhy` names it (`low cell`, `pack hot`, `discharge amps`, or empty for full power). With the contactors open or a drive fault active, allowance is 0 % and limp is on.
 
@@ -35,9 +35,17 @@ Pins are only written when `BMS_CAP_KELLY_LIMIT_DRV=1` and `TELEMETRY_ONLY=0`. B
 3. **Regen:** OUT6 HIGH turns on a PC817 placed in series with the KLS regen or brake-switch input, so a LOW (or a dead Teensy) inhibits regen. **UNVERIFIED:** which KLS input enables regen on this controller and its polarity.
 4. **Fail-safe:** with the Teensy unpowered, all three outputs are LOW. That means no limp (full Kelly power) and no regen. The contactors are open in that case, so there is no traction power anyway.
 
-## Open decision
+## Decision (Adam, 2026-10-20) — firmware not yet updated
 
-`overcurrentA = 300 A` for 500 ms opens the contactors, and derate starts at 250 A. Adam's expected Kelly peak in the 36S build is about 550 A (four 150 A Class T fuses, about 137 A per string at 550 A). As configured, a full-throttle pull past 300 A for half a second would drop the pack. The trip and derate levels need to be set from the real cell and fuse limits before driving.
+The code still has `overcurrentA = 300 A` for 500 ms and the 250 A derate. Both are replaced by:
+
+- Kelly settings: phase current 550 A, battery current 550 A. The BMS does not cap current in normal driving.
+- Hard trip (opens contactors): total LEM A + LEM B above **650 A for 100 ms**, or above **750 A instantly**.
+- Derates: LEM imbalance |A − B| > 100 A for 1 s; cell sag starting at 3.2 V, reaching 0 % at 3.0 V; heat derate coded but **off until `TEMPS_VERIFIED`**.
+- String fuses: 4× Mersen A6T200 200 A Class T, planned; size to be confirmed vs 650 A trip (Sparky).
+- Mains: two used TE EV200 (pack + and −). Volt AEV14012s only on charger/DC-DC/precharge.
+
+The low-cell and pack-hot rows above show current code values, not these targets.
 
 ## Simulator
 

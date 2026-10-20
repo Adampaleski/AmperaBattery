@@ -80,7 +80,7 @@ Teensy wiring (`src/CurrentSense.*`, Teensy pins are 3.3 V max):
 Firmware: 16x oversample + IIR (~0.1 s), ch1 below 18 A else ch2, supply outside 4.5-5.5 V -> invalid. `Z` = zero-cal with no current (saved to EEPROM), `I<amps>` = bench simulation.
 
 **Finding the second sensor:** in the Volt pack it sits at the front end with the BECM/contactor box (the "front of the pack" junction area where the slave harness and current sensor meet the BECM). Look for a small black rectangular Hall sensor (~5-6 cm) with one HV cable passing through its window, a 4-pin connector, and a LEM label reading DHAB S/44. It is usually on the main HV cable leading out of the contactor/junction box; follow the 4-wire harness (colours above) from the BECM.
-Recommend a CAB300 / Isabellenhütte IVT-S **only if** the DHAB is missing or damaged — the DHAB covers -420..+230 A, which is enough for the Kelly.
+Primary sensing (2026-10-20) is the dual LEM A + LEM B pair (~275 A each at the 550 A Kelly peak). CAB300 / ISA IVT-S is **optional**, e.g. if a DHAB is missing or damaged.
 
 ## Temperatures
 Tom decodes BICM temps from 0x7Ex bytes 6-7 (big-endian) x -0.0324 + 150 degC (VoltBMSV2 BMSModule.cpp 67-68); his resting capture gives 16.0-17.3 degC.
@@ -89,11 +89,19 @@ Implemented as `BmsCore::bicmTempC`, but **unverified on our boards**, so `TEMPS
 ## Parts list (shop)
 | Item | Qty | Why |
 |---|---|---|
-| Factory LEM DHAB S/44 (already owned) | 1 (+1 spare) | pack current |
+| Factory LEM DHAB S/44 (already owned) | 2 (LEM A + LEM B) | pack current, primary |
 | 10 k + 18 k 1 % resistors, 100 nF X7R | 3 sets | DHAB dividers/filters |
 | 5 V regulator (e.g. 7805 / small buck, >= 100 mA) | 1 | DHAB supply if not on the board |
 | PC817 opto or 2N7000 MOSFET + 1 k | 3 | Kelly low-speed / regen inputs |
 | Digital pot (MCP4131 10 k) or analog switch (CD4066) | 1 | throttle derate (optional) |
 | CAN transceivers (SN65HVD230) | as needed | CAN1/2/3 if not on the carrier |
 | 10 k NTC | 0-2 | only if BICM temps prove unusable |
-| CAB300 / IVT-S | 0 | fallback only |
+| CAB300 / IVT-S | 0 | optional only |
+| Used TE EV200 | 2 | main contactors, pack + / − |
+| Mersen A6T200 200 A Class T | 4 | string fuses — planned; size to be confirmed vs 650 A trip (Sparky) |
+| Volt AEV14012 (owned) | — | charger / DC-DC / precharge branches only |
+
+## Current trips and derates (decided 2026-10-20, not yet in code)
+- Hard trip on LEM A + LEM B: 650 A for 100 ms, or 750 A instantly. Replaces 300 A/500 ms and the 250 A derate.
+- Derates: LEM imbalance > 100 A for 1 s; cell sag from 3.2 V to 3.0 V; heat derate off until `TEMPS_VERIFIED`.
+- Kelly phase and battery limits 550 A. Two used EV200 mains. 36S strings from 24S + 18S BICM boards (no 30S).

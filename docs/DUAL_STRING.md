@@ -6,8 +6,8 @@ All BMS_CAP flags 0, TELEMETRY_ONLY=1: contactors, charge and balance are PRINT-
 ## Buses (each Teensy)
 | Bus | Pins | Rate | Use |
 |---|---|---|---|
-| CAN3 | 30/31 | 125k 11-bit | string 1: M1 30S (6/8/8/8) + M4 18S bottom 6S (0x46C) |
-| CAN1 | 22/23 | 125k 11-bit | string 2: M2 or M3 24S + M4 18S 12S (0x46D+0x46E default) |
+| CAN3 | 30/31 | 125k 11-bit | string 1: **NEEDS REMAP** — old M1 30S (6/8/8/8) + M4 6S entry superseded (no 30S). 36S from 24S + 18S BICM boards; StringConfig default is `M2_ALL|M4_12S` |
+| CAN1 | 22/23 | 125k 11-bit | string 2: 24S (M3) + 12S of an 18S M4 board; StringConfig default `M3_ALL|M4_12S`. Which 18S board each string uses: **to confirm** |
 | CAN2 | 0/1 | 250k 29-bit | Elcon + Kelly + inter-Teensy link |
 
 Keep-alive 0x200 is sent on CAN3 and CAN1 (BICMs stop reporting without it).
@@ -60,3 +60,10 @@ Dead-man on, no faults -> Precharge. Main closes when bus >= 95% of the LOWEST s
 voltage (all 4 strings, local + B) AND >= 300 ms. Not within 3 s -> RetryWait 30 s; max 2
 retries, then Lockout (dead-man off clears). Bus voltage source: `U` simulation, else the
 HV divider if `HV_ANALOG_ENABLE=1`, else none (precharge times out = fails safe).
+
+## HV facts (2026-10-20, see docs/TERYX_MAIN_POWER_PATH.md)
+- Strings are 36S, built from 24S + 18S BICM boards. No 30S module.
+- Sensing: dual LEM A (strings 1+2, Teensy A) + LEM B (strings 3+4, Teensy B) is primary; ISA IVT-S optional.
+- Trips: 650 A for 100 ms or 750 A instantly on LEM A + B. Derates: imbalance > 100 A for 1 s; cell sag 3.2 → 3.0 V; heat off until TEMPS_VERIFIED.
+- Mains: two used TE EV200 (pack + / −); Volt AEV14012s only on charger/DC-DC/precharge.
+- Fuses: 4× Mersen A6T200 200 A Class T, planned; size to be confirmed vs 650 A trip (Sparky).
