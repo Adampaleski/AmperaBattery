@@ -269,6 +269,12 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
     </div></div>
     <div class="card"><h3>12 V loads <span class="tag">PROPOSED</span></h3><div class="mut">Total ≈ <b id="cload">0 A</b> <span class="small">ESTIMATE currents; seats ~4.5 A × level/3 each (use the seat buttons on the dash)</span></div><div class="rows" id="cloads"></div></div>
   </div>
+  <div class="card"><h3>Drive cycle <span class="tag">SIM PROFILE · NOT LOGGED DATA</span></h3><div class="rows">
+    <div class="controls"><span class="seg" id="dcsel"></span><button class="btn primary" id="dcgo">Start</button></div>
+    <div class="pbar"><i id="dcbar"></i></div>
+    <div class="readout" id="dcdet"></div>
+    <div class="dim" style="font-size:18px">Plays scripted throttle, brake and gear into the driver inputs above, so pack current, cutback, regen, trips and SoC all come from the real BmsCore. Turns the key on if needed and keeps driving on any tab. Stops early if the mains open. Profiles are made up for testing, not logged Teryx drives; speed and distance come from the toy speed model (PROPOSED gear caps). Use 5× or 20× for the long climb.</div>
+  </div></div>
   <div class="card"><h3>State of charge <span class="tag">SIM · NOT IN FIRMWARE</span></h3><div class="rows">
     <div class="controls"><button class="btn" id="sanc">Charge to limit (anchor)</button><button class="btn" id="sdrop">LEM dropout 3 s</button>
       <label class="sw" style="flex:1;min-width:260px"><span>Cells drain with current (sim plant)</span><input type="checkbox" id="sdrain" checked><i></i></label></div>
@@ -305,6 +311,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 <div class="sheet" id="sheet"><button class="x" id="sheetx">×</button><h4 id="shT"></h4><div class="mut" id="shS"></div><dl class="kv" id="shKV"></dl></div>
 
 <script>@@DASH_JS@@</script>
+<script>@@CYCLES_JS@@</script>
 <script>
 const WASM_B64="@@WASM_B64@@";
 const $=id=>document.getElementById(id);
@@ -583,13 +590,67 @@ function wireCluster(){
   LOADS.forEach(([id,n])=>$('ld_'+id).onchange=e=>{cLoad[id]=e.target.checked;ulog(n+(e.target.checked?' on':' off'));});
   $('ciomap').innerHTML='<tr><td><b>Signal</b></td><td><b>Source / wiring</b></td><td><b>Status</b></td></tr>'+IOMAP.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
 }
+// ---- Drive cycle (sim only): plays DRIVE_CYCLES (sim/drive_cycles.js) into the driver inputs.
+let dc=null,dcSel='trail',dcLast=null;
+function dcLowCell(){let lo=9;for(let b=0;b<8;b++)for(let c=0;c<X.sim_board_cells(b);c++)lo=Math.min(lo,X.sim_get_cell(b,c));return lo;}
+function dcFaultText(){const f=[];S.faultNames.forEach((n,i)=>{if((S.faults|S.latched)&(1<<i))f.push(n);});return f.join(', ');}
+function dcSetGear(g){cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));}
+function wireCycle(){
+  $('dcsel').innerHTML=Object.entries(DRIVE_CYCLES).map(([k,p])=>`<button data-c="${k}"${k===dcSel?' class="on"':''}>${p.name}</button>`).join('');
+  $('dcsel').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(dc)return;dcSel=b.dataset.c;dcLast=null;$('dcsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));dcShow();});
+  $('dcgo').onclick=()=>dc?dcStop('stopped by you'):dcStart();dcShow();
+}
+function dcStart(){
+  const P=DRIVE_CYCLES[dcSel];if(!keyOn)$('key').click();$('cdrive').checked=true;
+  dc={k:dcSel,name:P.name,len:cycleLen(P),t:0,t0:S.t,dist:0,whOut:0,whIn:0,peakA:0,peakRegenA:0,minCell:dcLowCell(),minKelly:100,minWhy:'',wasClosed:false,
+      soc0:S.soc.known?S.soc.pct:null,trips:0,label:''};
+  ulog('Drive cycle "'+P.name+'" started (sim profile)');dcShow();
+}
+function dcStop(why){
+  if(!dc)return;dc.why=why;dc.soc1=S.soc.known?S.soc.pct:null;dcLast=dc;dc=null;
+  $('cthr').value=0;$('cthrv').textContent='0 %';$('cbrk').checked=false;
+  ulog('Drive cycle "'+dcLast.name+'" ended: '+why);dcShow();
+}
+function dcStep(dt){
+  if(!dc)return;
+  if(S.t<dc.t0){dc=null;dcLast=null;dcShow();return;}           // sim reset
+  const closed=S.state==='Closed';
+  if(closed)dc.wasClosed=true;
+  else if(dc.wasClosed){dcStop('mains opened ('+(dcFaultText()||S.state)+')');return;}
+  else if(dc.t>8){dcStop('mains never closed ('+(dcFaultText()||S.state)+')');return;}
+  dc.t+=dt;const c=cycleAt(DRIVE_CYCLES[dc.k],dc.t);
+  if(c.done){dcStop('complete, mains stayed closed');return;}
+  let hold=false;
+  if(c.gear!==cGear){if(Math.abs(cSpd)>1&&(c.gear==='R')!==(cGear==='R'))hold=true;else dcSetGear(c.gear);}  // stop before R
+  $('cthr').value=Math.round(hold?0:c.thr);$('cthrv').textContent=$('cthr').value+' %';$('cbrk').checked=c.brk||hold;dc.label=c.label;dc.seg=c.i;
+  dc.dist+=Math.abs(cSpd)*dt/3600;const wh=S.busV*S.packA*dt/3600;if(wh>0)dc.whOut+=wh;else dc.whIn-=wh;
+  dc.peakA=Math.max(dc.peakA,S.packA);dc.peakRegenA=Math.min(dc.peakRegenA,S.packA);dc.minCell=Math.min(dc.minCell,dcLowCell());
+  if(closed&&S.kellyPct<dc.minKelly){dc.minKelly=S.kellyPct;dc.minWhy=S.kellyWhy||'';}
+}
+function dcStats(d){
+  const net=d.whOut-d.whIn,soc=(d.soc0!=null&&(d.soc1!=null||S.soc.known))?(d.soc0.toFixed(1)+' → '+(d.soc1!=null?d.soc1:S.soc.pct).toFixed(1)+' %'):'unknown (no full-charge anchor yet)';
+  return [['Distance',d.dist.toFixed(2)+' mi <span class="src">toy speed model</span>'],['Energy out / regen',d.whOut.toFixed(0)+' Wh / '+d.whIn.toFixed(0)+' Wh'],
+    ['Net consumption',d.dist>0.01?(net/d.dist).toFixed(0)+' Wh/mi':'—'],['Peak discharge / regen',d.peakA.toFixed(0)+' A / '+(-d.peakRegenA).toFixed(0)+' A <span class="src">trip 650 A for 100 ms, 750 A instant</span>'],
+    ['Lowest cell',d.minCell.toFixed(3)+' V <span class="src">low cut '+S.cfg.lowCutV.toFixed(2)+' V</span>'],['Lowest power allowed',d.minKelly.toFixed(0)+' %'+(d.minWhy?' · '+d.minWhy:'')],['SoC estimate',soc]]
+    .map(([k,v])=>`<div><span class="mut">${k}</span> <b>${v}</b></div>`).join('');
+}
+function dcShow(){
+  if(!$('dcdet'))return;$('dcgo').textContent=dc?'Stop':'Start';$('dcgo').classList.toggle('primary',!dc);
+  const P=DRIVE_CYCLES[dc?dc.k:dcSel];
+  if(dc){$('dcbar').style.width=(100*dc.t/dc.len).toFixed(1)+'%';
+    $('dcdet').innerHTML=`<div><b>${P.name}</b> · step ${dc.seg+1}/${P.seg.length}: <b>${dc.label}</b> · ${fmtT(dc.t*1000)} of ${fmtT(dc.len*1000)}</div>`+dcStats(dc);}
+  else if(dcLast){$('dcbar').style.width='100%';
+    $('dcdet').innerHTML=`<div><b>${dcLast.name}</b> ended: <b>${dcLast.why}</b> after ${fmtT(dcLast.t*1000)}</div>`+dcStats(dcLast);}
+  else{$('dcbar').style.width='0%';$('dcdet').innerHTML=`<div><b>${P.name}</b> · ${P.note} · ${fmtT(cycleLen(P)*1000)} sim time</div>`;}
+}
 function clusterTick(dt){ // runs every loop, drives pack amps when enabled
+  dcStep(dt);
   const closed=S.state==='Closed',g=GEARS[cGear],thr=+$('cthr').value/100,brk=$('cbrk').checked;
   let a=0;
   if(closed&&!brk)a=thr*g.sc*550*S.kellyPct/100;
   if(closed&&brk&&Math.abs(cSpd)>1&&S.kellyRegenOk)a=-60;
   const cap=g.cap*(S.kellyLimp?.4:1);
-  if($('cdrive').checked&&$('t-cluster').classList.contains('on')){X.sim_set_pack_amps(a);if(Math.abs(+$('amps').value-a)>2){$('amps').value=Math.round(a);$('ampsv').textContent=Math.round(a)+' A';$('damps').value=Math.round(a);$('dampsv').textContent=Math.round(a)+' A';}}
+  if($('cdrive').checked&&($('t-cluster').classList.contains('on')||dc)){X.sim_set_pack_amps(a);if(Math.abs(+$('amps').value-a)>2){$('amps').value=Math.round(a);$('ampsv').textContent=Math.round(a)+' A';$('damps').value=Math.round(a);$('dampsv').textContent=Math.round(a)+' A';}}
   const kw=S.busV*S.packA/1000,dir=cGear==='R'?-1:1;
   let acc=(Math.max(0,kw)/120)*12*(1-Math.abs(cSpd)/Math.max(1,cap))-(brk?15:0)-1.0-(kw<0?3:0); // mph/s toy model
   let s=Math.abs(cSpd)+acc*dt;s=Math.max(0,Math.min(cap,s));cSpd=dir*s;
@@ -685,7 +746,7 @@ function render(){
   renderBanner();
 }
 function loop(){const t=performance.now();acc+=(t-last)*speed;last=t;
-  if(acc>=10){const ms=Math.min(Math.floor(acc/10)*10,5000);X.sim_step(ms);if(S)clusterTick(ms/1000);acc-=ms;if(acc>1000)acc=0;}render();}
+  if(acc>=10){const ms=Math.min(Math.floor(acc/10)*10,5000);X.sim_step(ms);if(S)clusterTick(ms/1000);acc-=ms;if(acc>1000)acc=0;}render();if(dc)dcShow();}
 function wire(){
   $('key').onclick=()=>{keyOn=!keyOn;X.sim_set_key(keyOn?1:0);ulog('Key '+(keyOn?'on':'off'));};
   $('chg').onclick=()=>{chgOn=!chgOn;X.sim_set_charge(chgOn?1:0);ulog('Charge request '+(chgOn?'on':'off'));};
@@ -713,7 +774,7 @@ function wire(){
   const bytes=Uint8Array.from(atob(WASM_B64),c=>c.charCodeAt(0));
   const {instance}=await WebAssembly.instantiate(bytes,{});
   X=instance.exports;X._initialize();X.sim_reset();
-  buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireSettings();$('dashWin').onclick=()=>{dashW=window.open(location.href.replace(/bms_sim\.html.*$|index\.html.*$/,'dash.html')+'?src=sim','teryxdash');};loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
+  buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireCycle();wireSettings();$('dashWin').onclick=()=>{dashW=window.open(location.href.replace(/bms_sim\.html.*$|index\.html.*$/,'dash.html')+'?src=sim','teryxdash');};loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
   if(location.hash){const t=document.querySelector(`.tab[data-t="${location.hash.slice(1)}"]`);if(t)t.click();}
 })();
 </script></body></html>
