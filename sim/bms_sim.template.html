@@ -130,6 +130,9 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 #t-cluster .pbar{height:8px;border-radius:4px;background:var(--card2);position:relative;overflow:hidden;margin-top:14px}#t-cluster .pbar i{position:absolute;top:0;bottom:0;background:var(--tx);transition:all .2s}
 #t-cluster .g{padding:10px 0;border-bottom:1px solid #1c1c1e}#t-cluster .g .k{font-size:18px;color:var(--mut)}#t-cluster .g .v{font-size:24px;font-weight:300;font-variant-numeric:tabular-nums}
 #t-cluster .src{font-size:18px;color:#636366}#t-cluster .src.nw{color:var(--warn)}
+#t-cluster .soc .v{display:flex;align-items:baseline;gap:10px}#t-cluster .soc .st{font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:6px;background:var(--card2);color:var(--mut)}
+#t-cluster .soc .st.counting{color:var(--tx)}#t-cluster .soc .st.anchored{background:var(--tx);color:#000}#t-cluster .soc .st.unknown{color:var(--warn)}
+#t-cluster .soc .err{font-size:16px;color:var(--dim);font-variant-numeric:tabular-nums;margin-top:2px}
 #t-cluster .warn{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;min-height:30px}
 .io{width:100%;border-collapse:collapse;font-size:18px}.io td{padding:8px 6px;border-bottom:1px solid #1c1c1e;vertical-align:middle}.io td:last-child{color:var(--mut);font-size:18px}
 .seg{display:inline-flex;gap:4px}.seg button{min-height:36px;min-width:44px;border-radius:8px;border:0;background:var(--card2);color:var(--tx);cursor:pointer;font-weight:500}.seg button.on{background:var(--tx);color:#000}
@@ -261,6 +264,12 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
     </div></div>
     <div class="card"><h3>12 V loads <span class="tag">PROPOSED</span></h3><div class="rows" id="cloads"></div></div>
   </div>
+  <div class="card"><h3>State of charge <span class="tag">SIM · NOT IN FIRMWARE</span></h3><div class="rows">
+    <div class="controls"><button class="btn" id="sanc">Charge to limit (anchor)</button><button class="btn" id="sdrop">LEM dropout 3 s</button>
+      <label class="sw" style="flex:1;min-width:260px"><span>Cells drain with current (sim plant)</span><input type="checkbox" id="sdrain" checked><i></i></label></div>
+    <div class="readout" id="sdet"></div>
+    <div class="dim" style="font-size:18px">Estimate = the firmware's own <b>BmsCore::Soc</b> (include/SocEstimator.h) run on LEM A + LEM B, + = discharge. It is unknown at boot and only becomes known at a full-charge anchor (Core "at charge limit"); current invalid for more than 2 s makes it unknown again. <span style="color:var(--warn)">SIM-ASSUMED capacity 180 Ah</span> (4 strings × 45 Ah, the sim's range assumption); the real bank Ah is UNVERIFIED and is 0 = unknown in code. Sim truth = lowest cell on a SIM-ASSUMED linear map 3.30 V = 0 % → 4.10 V = 100 % (no verified OCV curve). Not wired in firmware: CURRENT_SENSE_ENABLE=0.</div>
+  </div></div>
   <div class="card"><h3>Where each signal comes from <span class="tag">PIN MAP</span></h3><table class="io" id="ciomap"></table></div>
 </section>
 <section id="t-settings">
@@ -540,9 +549,9 @@ const IOMAP=[['Throttle pedal','Hall pedal 0–5 V → Kelly throttle input (dir
  ['Cell min/max','Volt BICMs M2/M3/M4 over CAN3 (30/31) and CAN1 (22/23)','live on bench'],
  ['Pack temps','BICM thermistors','TEMPS_VERIFIED=0'],
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
- ['SOC / range','Estimated from min cell V here; real SOC needs coulomb count on LEM','not built'],
+ ['SOC / range','BmsCore::Soc coulomb count on LEM A + LEM B, full-charge anchor (docs/SOC.md); range = SoC × SIM-ASSUMED 23.3 kWh ÷ 350 Wh/mi','sim only · capAh UNVERIFIED · CURRENT_SENSE_ENABLE=0'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → Surface 3 head unit','schema exists']];
-let cGear='H',cSpd=0,cLoad={};
+let cGear='H',cSpd=0,cLoad={},socAnchorPending=false;
 function gauge(k,v,src,nw){return `<div class="g"><div class="k">${k}</div><div class="v">${v}</div><div class="src${nw?' nw':''}">${src}</div></div>`;}
 function wireCluster(){
   $('cgsel').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(Math.abs(cSpd)>1&&(b.dataset.g==='R')!==(cGear==='R')){ulog('Gear change to '+GEARS[b.dataset.g].n+' refused: stop first');return;}
@@ -550,6 +559,10 @@ function wireCluster(){
   $('cthr').oninput=e=>$('cthrv').textContent=e.target.value+' %';$('cthr').onchange=e=>ulog('Throttle '+e.target.value+'%');
   $('cbrk').onchange=e=>ulog('Brake '+(e.target.checked?'on':'off'));
   $('ckey').onclick=()=>$('key').click();
+  $('sanc').onclick=()=>{if(!keyOn)$('key').click();if(!chgOn)$('chg').click();const v=X.sim_ceiling_for_pct(+$('pct').value)+0.001;
+    BOARDS.forEach((b,bi)=>{for(let c=0;c<b.cells;c++)X.sim_set_cell(bi,c,v);});socAnchorPending=true;ulog(`SoC: cells set to ${v.toFixed(3)} V (P${$('pct').value} limit), charging to anchor (sim shortcut)`);};
+  $('sdrop').onclick=()=>{X.sim_lem_dropout(3000);ulog('LEM A + B dropout 3 s (sim)');};
+  $('sdrain').onchange=e=>{X.sim_set_soc_drain(e.target.checked?1:0);ulog('Cell drain with current '+(e.target.checked?'on':'off'));};
   $('cloads').innerHTML=LOADS.map(([id,n,a,src])=>`<label class="sw"><span>${n} <span class="dim">· ${a}</span><br><span class="src nw" style="font-size:18px">${src}</span></span><input type="checkbox" id="ld_${id}"><i></i></label>`).join('');
   LOADS.forEach(([id,n])=>$('ld_'+id).onchange=e=>{cLoad[id]=e.target.checked;ulog(n+(e.target.checked?' on':' off'));});
   $('ciomap').innerHTML='<tr><td><b>Signal</b></td><td><b>Source / wiring</b></td><td><b>Status</b></td></tr>'+IOMAP.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
@@ -566,20 +579,29 @@ function clusterTick(dt){ // runs every loop, drives pack amps when enabled
   let s=Math.abs(cSpd)+acc*dt;s=Math.max(0,Math.min(cap,s));cSpd=dir*s;
 }
 function renderCluster(){
-  const all=BOARDS.flatMap((b,i)=>cellsOf(i)),lo=Math.min(...all),hi=Math.max(...all),c=S.cfg;
-  const soc=Math.max(0,Math.min(100,(lo-3.0)/(4.15-3.0)*100)),kw=S.busV*S.packA/1000,closed=S.state==='Closed';
+  const all=BOARDS.flatMap((b,i)=>cellsOf(i)),lo=Math.min(...all),hi=Math.max(...all),c=S.cfg,Q=S.soc;
+  const kw=S.busV*S.packA/1000,closed=S.state==='Closed',est=Q.known&&Q.pct>=0;
+  if(socAnchorPending&&Q.state==='anchored'){socAnchorPending=false;if(chgOn)$('chg').click();ulog(`SoC anchored at ${Q.anchorPct}% — charge stopped (sim shortcut)`);}
   $('cSpd').textContent=Math.abs(cSpd).toFixed(0);
   $('cGear').innerHTML=['P','R','L','M','H'].map(x=>`<span class="${(x==='P'&&!closed)||(closed&&x===cGear)?'on':''}">${x}</span>`).join('');
   $('cKw').textContent=kw.toFixed(1);const pw=$('cPw');if(kw>=0){pw.style.left='20%';pw.style.width=Math.min(80,kw/82*80)+'%';pw.style.background='var(--tx)';}else{pw.style.left=(20+kw/20*20)+'%';pw.style.width=(-kw/20*20)+'%';pw.style.background='#30d158';}
-  const kwh=(soc/100)*36*3.6*45*4/1000; // 4 strings × 45 Ah × 36 × 3.6 V nominal
+  const kwh=est?(Q.pct/100)*36*3.6*Q.capAh/1000:0; // SIM-ASSUMED 180 Ah (4 × 45 Ah) × 36 × 3.6 V nominal
   const range=kwh/0.35; // PROPOSED 350 Wh/mi
-  $('clL').innerHTML=gauge('Battery',soc.toFixed(0)+' %','ESTIMATE from lowest cell V (no coulomb count yet)',1)+gauge('Range',range.toFixed(0)+' mi','SIM: SOC × ~23 kWh ÷ 350 Wh/mi (assumed)',1)+gauge('Pack',S.busV.toFixed(1)+' V · '+S.packA.toFixed(0)+' A','V: BICM cell sum · A: LEM A + LEM B (CURRENT_SENSE_ENABLE=0)',1)+gauge('LEM A / B',S.lemA.toFixed(0)+' / '+S.lemB.toFixed(0)+' A','LEM A0/A1 · sign + zero cal TODO',1);
+  const err=est?Q.pct-Q.truthPct:null;
+  const socV=(est?Q.pct.toFixed(0)+' %':'—')+`<span class="st ${Q.state}">${Q.state}</span>`;
+  const socSrc=(est?`${Q.usedAh.toFixed(1)} Ah used since ${Q.anchorPct}% anchor · `:`<span style="color:var(--warn)">${Q.why==='no anchor yet'?'unknown until full-charge anchor':Q.why}</span> · `)+
+    'BmsCore::Soc coulomb count on LEM A+B; not wired in firmware, CURRENT_SENSE_ENABLE 0 · SIM-ASSUMED capacity '+Q.capAh.toFixed(0)+' Ah'+(Q.drift?' · <span class="red">DRIFT: low cut but SoC high</span>':'');
+  const socErr=`sim truth ${Q.truthPct.toFixed(1)} %`+(est?` · error ${err>=0?'+':''}${err.toFixed(1)} %`:' · error —');
+  $('clL').innerHTML=`<div class="g soc"><div class="k">Battery</div><div class="v">${socV}</div><div class="src nw">${socSrc}</div><div class="err">${socErr}</div></div>`+
+    gauge('Range',est?range.toFixed(0)+' mi':'—','SoC × SIM-ASSUMED '+(36*3.6*Q.capAh/1000).toFixed(1)+' kWh ÷ 350 Wh/mi (PROPOSED)',1)+gauge('Pack',S.busV.toFixed(1)+' V · '+S.packA.toFixed(0)+' A','V: BICM cell sum · A: LEM A + LEM B (CURRENT_SENSE_ENABLE=0)',1)+gauge('LEM A / B',S.lemA.toFixed(0)+' / '+S.lemB.toFixed(0)+' A','LEM A0/A1 · sign + zero cal TODO',1);
   $('clR').innerHTML=gauge('Cell min / max',lo.toFixed(3)+' / '+hi.toFixed(3)+' V','BICM cell data (CAN3/CAN1)',0)+gauge('Pack temp',S.tMin.toFixed(0)+'–'+S.tMax.toFixed(0)+' °C','BICM thermistors · TEMPS_VERIFIED=0',1)+gauge('Kelly / motor temp','— / —','Kelly CAN 0x0CF11F05 · not decoded (RX off)',1)+gauge('Power allowed',S.kellyPct.toFixed(0)+' %'+(S.kellyWhy?' · '+S.kellyWhy:''),'BMS output → Kelly (print-only)',0);
   const w=[];if(S.state==='Fault'||S.state==='Lockout')w.push('BMS FAULT');S.faultNames.forEach((n,i)=>{if(S.faults&(1<<i))w.push(n);});
-  if(S.kellyLimp)w.push('LIMP');if(S.kellyWhy)w.push('Derate: '+S.kellyWhy);if(lo<3.2)w.push('Low cell');if(S.tMax>=50)w.push('Pack hot');if(S.lemImbalance)w.push('LEM imbalance');if(!S.kellyRegenOk&&closed)w.push('Regen off');
+  if(S.kellyLimp)w.push('LIMP');if(S.kellyWhy)w.push('Derate: '+S.kellyWhy);if(lo<3.2)w.push('Low cell');if(Q.drift)w.push('SoC drift');if(Q.lemDrop||(Q.why||'').startsWith('current lost'))w.push('SoC unknown: current lost');if(S.tMax>=50)w.push('Pack hot');if(S.lemImbalance)w.push('LEM imbalance');if(!S.kellyRegenOk&&closed)w.push('Regen off');
   if(cLoad.alarm||w.some(x=>/FAULT/.test(x)))w.push('🔔 Alarm');if(cLoad.fan||S.tMax>=45)w.push('Fan on');if(cLoad.lights)w.push('Lights');
   $('cWarn').innerHTML=w.map(x=>`<span class="chip act">${x}</span>`).join('')||'<span class="mut">No warnings</span>';
   $('ckey').textContent=keyOn?'Key off':'Key on';$('ckey').classList.toggle('on',keyOn);
+  $('sdet').innerHTML=`State <b>${Q.state}</b> · ${Q.why} · estimate ${est?Q.pct.toFixed(1)+' %':'unknown'} · used ${Q.usedAh.toFixed(2)} Ah · anchor ${Q.known?Q.anchorPct+' %':'—'} · sim truth ${Q.truthPct.toFixed(1)} % · capacity ${Q.capAh.toFixed(0)} Ah <span style="color:var(--warn)">SIM-ASSUMED</span>`+(Q.lemDrop?' · <span class="red">LEM dropout</span>':'');
+  $('sdrop').classList.toggle('on',!!Q.lemDrop);
 }
 /* ---------- settings (sim only) ---------- */
 const SETS=[['lowCut','Low-cell cut','V','cfg.lowCutV',v=>X.sim_set_low_cut(v),'dlcut'],['chargePct','Charge limit','%','cfg.chargePct',v=>X.sim_set_charge_pct(v),'pct'],['deadband','Balance deadband','mV',null,v=>X.sim_set_deadband_mv(v),'db']];
@@ -635,7 +657,7 @@ function wire(){
   $('chg').onclick=()=>{chgOn=!chgOn;X.sim_set_charge(chgOn?1:0);ulog('Charge request '+(chgOn?'on':'off'));};
   $('pct').oninput=e=>{X.sim_set_charge_pct(+e.target.value);$('pctv').textContent=e.target.value+'%';};$('pct').onchange=e=>ulog('Charge limit '+e.target.value+'%');
   document.querySelectorAll('#speed button').forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll('#speed button').forEach(x=>x.classList.toggle('on',x===b));});
-  $('reset').onclick=()=>{if(!confirm('Reset the simulator? Cells, faults and the log go back to start.'))return;X.sim_reset();X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);keyOn=chgOn=false;userLog=[];hideBefore=-1;
+  $('reset').onclick=()=>{if(!confirm('Reset the simulator? Cells, faults and the log go back to start.'))return;X.sim_reset();X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);keyOn=chgOn=false;userLog=[];hideBefore=-1;socAnchorPending=false;X.sim_set_soc_drain($('sdrain').checked?1:0);
     ['link','charger_on','curfit','tvalid'].forEach(i=>$(i).checked=true);['preopen','welded','busf'].forEach(i=>$(i).checked=false);
     BOARDS.forEach((b,bi)=>$('sil'+bi).checked=false);$('dcell').value=3.80;$('dcellv').textContent='3.800 V';[['tmin',20],['tmax',22],['amps',0],['dlem',50],['dlcut',3.30]].forEach(([i,v])=>{$(i).value=v;$(i).dispatchEvent(new Event('input'));});};
   const tog=(id,fn,txt)=>$(id).onchange=e=>{fn(e.target.checked?1:0);ulog(txt+(e.target.checked?' on':' off'));};

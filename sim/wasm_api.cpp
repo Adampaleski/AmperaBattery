@@ -1,7 +1,9 @@
 // WebAssembly API around BmsSim::World + BmsCore::Core for tools/bms_sim.html.
 // Same headers as the Teensy firmware and scripts/sim_bms.cpp: no logic here.
 // Build: scripts/build_bms_sim_html.sh (zig c++ -target wasm32-wasi, reactor).
+#include <string.h>
 #include "BmsSim.h"
+#include "SocEstimator.h"
 
 using namespace BmsSim;
 
@@ -9,6 +11,63 @@ namespace {
 World g_w;
 char  g_buf[16384];
 float g_deadband = 0.010f;
+
+// ---- SoC (sim only): the real BmsCore::Soc fed from the sim's LEM A + LEM B.
+// Firmware does not run this yet (CURRENT_SENSE_ENABLE=0); the real capAh is
+// UNVERIFIED (0 = unknown). The page uses the capacity the sim already assumed
+// for its range gauge: 4 strings x 45 Ah = 180 Ah, labelled SIM-ASSUMED.
+constexpr float kSimCapAh   = 180.0f;              // SIM-ASSUMED, not measured
+constexpr float kTruth0V    = 3.30f;               // sim truth map: Config::lowCutV default = 0 %
+constexpr float kTruth100V  = BmsCore::kCeil100V;  // ... P100 ceiling 4.10 V = 100 % (linear, SIM-ASSUMED)
+BmsCore::Soc g_soc;
+bool  g_drain = true;     // sim plant: load current drains every cell along the truth map
+bool  g_anchorNow = false;
+uint32_t g_lemDropMs = 0; // > 0: LEM A + B read invalid until this sim time
+
+void socReset() { BmsCore::SocConfig c; c.capAh = kSimCapAh; g_soc.reset(c); g_anchorNow = false; g_lemDropMs = 0; }
+struct SocInit { SocInit() { socReset(); } } g_socInit;
+
+float simLowestCell() {
+    float lo = 9;
+    for (int b = 0; b < kBoards; b++) for (int c = 0; c < kBoardCells[b]; c++) if (g_w.cell[b][c] < lo) lo = g_w.cell[b][c];
+    return lo;
+}
+float simTruthPct() {
+    float p = (simLowestCell() - kTruth0V) / (kTruth100V - kTruth0V) * 100.0f;
+    return p < 0 ? 0 : (p > 100 ? 100 : p);
+}
+
+// One 10 ms tick: plant + Core (BmsSim), sim cell drain, then the estimator.
+void tick() {
+    const bool drop = g_lemDropMs && g_w.now + 10 < g_lemDropMs;
+    const bool fitted = g_w.currentFitted;
+    if (drop) g_w.currentFitted = false;
+    g_w.step(10);
+    g_w.currentFitted = fitted;
+    if (g_lemDropMs && !drop) g_lemDropMs = 0;
+    const BmsCore::Outputs &o = g_w.core.out();
+    const bool closed = (o.mainPos && o.mainNeg) || g_w.welded;
+    if (g_drain && closed && g_w.packA != 0) {   // load current, mains closed; the charger has its own cell model in BmsSim
+        const float dv = g_w.packA * 0.01f / 3600.0f / kSimCapAh * (kTruth100V - kTruth0V);
+        for (int b = 0; b < kBoards; b++) for (int c = 0; c < kBoardCells[b]; c++) g_w.cell[b][c] -= dv;
+    }
+    BmsCore::SocIn si;
+    si.nowMs = g_w.now;
+    si.currentValid = g_w.in.currentValid && g_w.in.lemSplitValid;
+    si.packA = g_w.in.lemA + g_w.in.lemB;          // + = discharge
+    si.atChargeLimit = g_w.core.out().chargeWhy && strcmp(g_w.core.out().chargeWhy, "at charge limit") == 0;
+    si.chargePct = g_w.core.cfg.chargePct;
+    float mn = 0;
+    for (int i = 0; i < BmsCore::kMaxStrings; i++) {
+        const BmsCore::StringIn &s = g_w.in.s[i];
+        if (s.used && s.cellsOk && (mn == 0 || s.minV < mn)) mn = s.minV;
+    }
+    si.minCellV = mn;
+    si.lowCutV = g_w.core.cfg.lowCutV;
+    g_anchorNow = si.atChargeLimit;
+    g_soc.step(si);
+}
+const char *socState() { return !g_soc.out().known ? "unknown" : (g_anchorNow ? "anchored" : "counting"); }
 
 struct Buf {
     int o = 0;
@@ -34,8 +93,8 @@ struct Buf {
 
 #define EXPORT extern "C" __attribute__((visibility("default")))
 
-EXPORT void sim_reset() { g_w.reset(); }
-EXPORT void sim_step(int ms) { for (int t = 0; t < ms; t += 10) g_w.step(10); }
+EXPORT void sim_reset() { g_w.reset(); socReset(); }
+EXPORT void sim_step(int ms) { for (int t = 0; t < ms; t += 10) tick(); }
 EXPORT void sim_set_cell(int b, int c, float v) { if (b >= 0 && b < kBoards && c >= 0 && c < kBoardCells[b]) g_w.cell[b][c] = v; }
 EXPORT float sim_get_cell(int b, int c) { return (b >= 0 && b < kBoards && c >= 0 && c < 24) ? g_w.cell[b][c] : 0; }
 EXPORT void sim_set_board(int b, float v) { if (b >= 0 && b < kBoards) for (int c = 0; c < kBoardCells[b]; c++) g_w.cell[b][c] = v; }
@@ -57,6 +116,18 @@ EXPORT void sim_set_charge_pct(int pct) { g_w.core.cfg.chargePct = pct; }
 EXPORT void sim_set_deadband_mv(float mv) { g_deadband = mv / 1000.0f; }
 EXPORT float sim_ceiling_for_pct(int pct) { return BmsCore::ceilingForPct(pct); }
 EXPORT int  sim_board_cells(int b) { return (b >= 0 && b < kBoards) ? kBoardCells[b] : 0; }
+
+// SoC estimator (BmsCore::Soc on LEM A + LEM B), sim only.
+EXPORT float sim_soc_pct() { return g_soc.out().pct; }            // -1 = unknown
+EXPORT float sim_soc_used_ah() { return g_soc.out().usedAh; }
+EXPORT int   sim_soc_known() { return g_soc.out().known; }
+EXPORT int   sim_soc_drift() { return g_soc.out().drift; }
+EXPORT const char *sim_soc_state() { return socState(); }        // unknown / anchored / counting
+EXPORT const char *sim_soc_why() { return g_soc.out().why; }
+EXPORT float sim_soc_cap_ah() { return g_soc.cfg.capAh; }
+EXPORT float sim_soc_truth_pct() { return simTruthPct(); }
+EXPORT void  sim_set_soc_drain(int on) { g_drain = on; }
+EXPORT void  sim_lem_dropout(int ms) { g_lemDropMs = ms > 0 ? g_w.now + static_cast<uint32_t>(ms) : 0; }
 
 // Live state as JSON (pointer into wasm memory, NUL-terminated).
 EXPORT const char *sim_state_json() {
@@ -82,6 +153,14 @@ EXPORT const char *sim_state_json() {
     b.f(",\"silent\":[");
     for (int i = 0; i < kBoards; i++) b.f("%s%d", i ? "," : "", g_w.silent[i] ? 1 : 0);
     b.f("],\"linkUp\":%d,\"welded\":%d,\"preOpen\":%d,\"keyOn\":%d,\"chargeReq\":%d,\"tMin\":%.1f,\"tMax\":%.1f", g_w.linkUp, g_w.welded, g_w.preOpenCircuit, g_w.keyOn, g_w.chargeReq, g_w.tMin, g_w.tMax);
+    {
+        const BmsCore::SocOut &so = g_soc.out();
+        b.f(",\"soc\":{\"state\":"); b.str(socState());
+        b.f(",\"known\":%d,\"pct\":%.2f,\"usedAh\":%.3f,\"drift\":%d,\"anchorPct\":%.0f,\"capAh\":%.0f,\"truthPct\":%.2f,\"drain\":%d,\"lemDrop\":%d,\"why\":",
+            so.known, so.pct, so.usedAh, so.drift, g_soc.anchorPct(), g_soc.cfg.capAh, simTruthPct(), g_drain, g_lemDropMs ? 1 : 0);
+        b.str(so.why ? so.why : "");
+        b.f(",\"truth0V\":%.2f,\"truth100V\":%.2f}", kTruth0V, kTruth100V);
+    }
     b.f(",\"faultNames\":[");
     for (int i = 0; i < 13; i++) { if (i) b.f(","); b.str(BmsCore::faultName(1u << i)); }
     b.f("],\"cfg\":{\"chargePct\":%d,\"stringCells\":%d,\"busMaxV\":%.1f,\"lowCutV\":%.3f,\"cellMaxV\":%.3f,"
