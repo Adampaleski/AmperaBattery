@@ -12,6 +12,9 @@ python3 - "$OUT" <<'PY'
 import base64, sys
 b64 = base64.b64encode(open(sys.argv[1], 'rb').read()).decode()
 t = open('sim/bms_sim.template.html').read()
-open('tools/bms_sim.html', 'w').write(t.replace('@@WASM_B64@@', b64))
+dj = open('sim/dash.js').read()
+open('tools/bms_sim.html', 'w').write(t.replace('@@WASM_B64@@', b64).replace('@@DASH_JS@@', dj))
+open('tools/dash.html', 'w').write(open('sim/dash.template.html').read().replace('@@DASH_JS@@', dj))
+print('tools/dash.html', len(dj) // 1024, 'KB dash.js')
 print('tools/bms_sim.html', len(b64) // 1024, 'KB wasm (base64)')
 PY

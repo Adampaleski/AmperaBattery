@@ -11,7 +11,8 @@ No JK BMS. The two Teensy 4.1s are the BMS; Volt BICMs do the sensing. Per strin
 | Volt BICM M4 18S x2 | bottom+middle circuits (0x46C/0x46D) = 12S; 0x46E empty | yes |
 | Volt BICM M4 18S x2 (extra) | needed for 4 strings | NO (red) |
 | SN65HVD230 transceiver x4 | 3.3 V CAN, one per BICM bus | yes |
-| Kelly KLS8080 NPS controller | CAN2 broadcast only; phase + battery 550 A; voltage class UNVERIFIED (read sticker) | yes |
+| Kelly KLS-8080N (8080NPS series, Sin/Cos), 144 V / 550 A config | SOURCED: Adam's order #81746 (2025-05-03, $1,214.90): model line 72–168 V, field weakening, bidirectional anti-slip, W3-GT2 liquid-cooling heatsink, 35-pin plug-and-play cable, USB cable, KLS test box. CAN2 broadcast only. 36S full charge ≈148–149 V is inside the 72–168 V model range (SOURCED: order listing #81746) | yes |
+| Kelly coolant pump (Bosch 12 V) | PROPOSED: for W3-GT2 liquid heatsink; 12 V on an unassigned Teensy B FET; no flow/temp sensor yet | NO |
 | Elcon charger HK-LF-144-46 | CAN2 250k | yes |
 | Elcon DC-DC 12 V | after main+ | yes |
 | ESP32 hub | Wi-Fi/Ethernet/BT; STATUS_SCHEMA v1 JSON from Teensy A Serial4 TX17/RX16 @115200 | yes |

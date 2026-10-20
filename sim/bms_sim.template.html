@@ -246,6 +246,9 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 </section>
 <!-- ======================= DIAGRAM ======================= -->
 <section id="t-cluster">
+  <div id="dashHost"></div>
+  <div class="controls" style="margin:10px 0"><button class="btn" id="dashWin">Open full-screen dash window</button><span class="mut">Same dash component as tools/dash.html. Style menu is top-right of the dash.</span></div>
+  <details class="more"><summary>Engineering readout: every value with its source</summary>
   <div class="cl">
     <div id="clL"></div>
     <div class="big"><div class="n" id="cSpd">0</div><div class="u">mph · <span class="src nw">SIM model · real source: Kelly CAN 0x0CF11E05 RPM × gearing (16/32, 27" tire) — Kelly RX not enabled (BMS_CAP_KELLY_RX=0)</span></div>
@@ -254,6 +257,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
       <div class="warn" id="cWarn"></div></div>
     <div id="clR"></div>
   </div>
+  </details>
   <div class="grid" style="margin-top:16px">
     <div class="card"><h3>Driver inputs <span class="tag">SIM</span></h3><div class="rows">
       <div class="controls"><button class="btn" id="ckey" style="display:none">Key on</button><label class="sw"><span>Throttle drives pack current (while this tab is open)</span><input type="checkbox" id="cdrive" checked><i></i></label></div>
@@ -299,6 +303,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 </main>
 <div class="sheet" id="sheet"><button class="x" id="sheetx">×</button><h4 id="shT"></h4><div class="mut" id="shS"></div><dl class="kv" id="shKV"></dl></div>
 
+<script>@@DASH_JS@@</script>
 <script>
 const WASM_B64="@@WASM_B64@@";
 const $=id=>document.getElementById(id);
@@ -426,7 +431,7 @@ function buildDiagram(){
   path('M1268 330 H1300','hv','hvL0');path('M1300 120 V620','hv','loadbus');
   path('M800 330 H930 M1044 330 H1300','flow','mainflow');
   // loads
-  part('kelly',1308,98,86,74,'Kelly KLS8080 NPS','550 A',{owned:true,kv:()=>({'Part':'Kelly KLS8080 NPS','Voltage class':'UNVERIFIED — read sticker (120 V class max 144 V would trip on a full 36S ≈149 V)','Limits':'phase 550 A · battery 550 A (Adam 2026-10-20, set in Kelly config tool — not yet confirmed programmed)','Motor':'Zero 75-7R · peak rating UNVERIFIED','Speed cap':'~6000 RPM ≈ 55 mph on 27" tires (plan doc)','Input capacitance':'UNVERIFIED (2 mF model only)','Logic power':'isolated 8–20 V, never pack B+','CAN2':'0x0CF11E05 / 0x0CF11F05 broadcast only — accepts no commands','Limp':'OUT3 pin 20 → low-speed input (wiring TBD)','Derate':'OUT5 pin 2 PWM → throttle (wiring TBD)','Regen':'OUT6 pin 3 → regen enable (wiring TBD)','Allowed':S.kellyPct.toFixed(0)+'%'+(S.kellyLimp?' · LIMP':'')})});
+  part('kelly',1308,98,86,74,'Kelly KLS8080 NPS','550 A',{owned:true,kv:()=>({'Part':'Kelly KLS8080 NPS','Order':'SOURCED: Adam\'s Kelly order #81746 (2025-05-03, $1,214.90) — KLS-8080N, 144 V / 550 A config (model line 72–168 V), Sin/Cos sensor (8080NPS series), field weakening, bidirectional anti-slip','Included':'W3-GT2 liquid-cooling heatsink · 35-pin plug-and-play cable · Kelly USB cable · KLS test box','Voltage':'36S full charge ≈148–149 V is inside the 72–168 V model range (SOURCED: order listing #81746)','Cooling':'W3-GT2 liquid heatsink · coolant pump PROPOSED (Bosch 12 V, FET unassigned)','Limits':'phase 550 A · battery 550 A (Adam 2026-10-20, set in Kelly config tool — not yet confirmed programmed)','Motor':'Zero 75-7R · peak rating UNVERIFIED','Speed cap':'~6000 RPM ≈ 55 mph on 27" tires (plan doc)','Input capacitance':'UNVERIFIED (2 mF model only)','Logic power':'isolated 8–20 V, never pack B+','CAN2':'0x0CF11E05 / 0x0CF11F05 broadcast only — accepts no commands','Limp':'OUT3 pin 20 → low-speed input (wiring TBD)','Derate':'OUT5 pin 2 PWM → throttle (wiring TBD)','Regen':'OUT6 pin 3 → regen enable (wiring TBD)','Allowed':S.kellyPct.toFixed(0)+'%'+(S.kellyLimp?' · LIMP':'')})});
   path('M1300 135 H1308','hv','hvK');
   part('aev1',1206,420,84,44,'AEV14012','optional',{owned:true,kv:()=>({'Part':'Volt AEV14012 contactor (factory, owned)','Use':'optional isolation of the charger branch','Status':'not in the control loop'})});
   part('elcon',1308,412,86,60,'Elcon','HK-LF-144-46',{owned:true,kv:()=>({'Part':'Elcon HK-LF-144-46 (100–202 V, 46 A)','CAN2':'0x1806E5F4 control · 0x18FF50E5 status','Request':S.chargeEnable?`${S.chargeV.toFixed(1)} V / ${S.chargeA.toFixed(2)} A`:'STOP','Why':S.chargeWhy||'-','Gate':'BMS_CAP_CHARGE_TX=0 → print only'})});
@@ -538,8 +543,8 @@ function wireDrive(){
 }
 /* ---------- cluster ---------- */
 const GEARS={L:{n:'Low',sc:.45,cap:25},M:{n:'Medium',sc:.70,cap:40},H:{n:'High',sc:1,cap:55},R:{n:'Reverse',sc:.25,cap:10}};
-const LOADS=[['lights','Lights','~10 A','12 V circuit off Elcon DC-DC · switch on dash; Teensy B FET out PROPOSED (pin unassigned)'],['spk','Speakers / amp','~10 A','12 V circuit off DC-DC, fused · head unit audio; no Teensy pin'],['seat','Seat heater','~5 A/seat','12 V via relay · PROPOSED Teensy B FET (pin unassigned), shed when SOC low'],['fan','Cooling fan','~8 A','12 V via FET · PROPOSED Teensy B FET (pin unassigned), auto on pack/Kelly hot'],['alarm','Alarm / buzzer','<1 A','12 V buzzer · PROPOSED Teensy A FET (pin unassigned), on any BMS fault']];
-const IOMAP=[['Throttle pedal','Hall pedal 0–5 V → Kelly throttle input (direct). Teensy reads it back from Kelly CAN 0x0CF11F05 b0','Kelly pin UNVERIFIED'],
+const LOADS=[['pump','Kelly coolant pump','~2–5 A (UNVERIFIED)','PROPOSED Bosch 12 V pump for W3-GT2 heatsink · Teensy B FET (pin unassigned) · no flow sensor'],['lights','Lights','~10 A','12 V circuit off Elcon DC-DC · switch on dash; Teensy B FET out PROPOSED (pin unassigned)'],['spk','Speakers / amp','~10 A','12 V circuit off DC-DC, fused · head unit audio; no Teensy pin'],['seat','Seat heater','~5 A/seat','12 V via relay · PROPOSED Teensy B FET (pin unassigned), shed when SOC low'],['fan','Cooling fan','~8 A','12 V via FET · PROPOSED Teensy B FET (pin unassigned), auto on pack/Kelly hot'],['alarm','Alarm / buzzer','<1 A','12 V buzzer · PROPOSED Teensy A FET (pin unassigned), on any BMS fault']];
+const IOMAP=[['Coolant pump','PROPOSED Bosch 12 V pump → Kelly W3-GT2 liquid heatsink, Teensy B FET; status from FET command only, no flow/coolant-temp sensor yet','PROPOSED, pin unassigned'],['Throttle pedal','Hall pedal 0–5 V → Kelly throttle input (direct). Teensy reads it back from Kelly CAN 0x0CF11F05 b0','Kelly pin UNVERIFIED'],
  ['Brake','Brake switch → Kelly brake input (regen); PROPOSED parallel opto tap to Teensy A GPIO','PROPOSED, pin unassigned'],
  ['Gear H/M/L','Kelly speed-switch inputs (3-speed on KLS NPS — UNVERIFIED); Teensy OUT3 pin 20 already drives limp (low-speed)','Kelly pins UNVERIFIED'],
  ['Reverse','Kelly reverse switch input; PROPOSED Teensy tap to show R on cluster and inhibit regen/charge','PROPOSED'],
@@ -578,6 +583,22 @@ function clusterTick(dt){ // runs every loop, drives pack amps when enabled
   let acc=(Math.max(0,kw)/120)*12*(1-Math.abs(cSpd)/Math.max(1,cap))-(brk?15:0)-1.0-(kw<0?3:0); // mph/s toy model
   let s=Math.abs(cSpd)+acc*dt;s=Math.max(0,Math.min(cap,s));cSpd=dir*s;
 }
+
+let dashC=null,dashW=null,dashBC=null;
+function simStatus(lo,hi,Q,est,closed){
+  const cs=x=>x?'closed':'open',fl=[];S.faultNames.forEach((n,i)=>{if((S.faults|S.latched)&(1<<i))fl.push({id:n,ts:0,level:'fault',source:'bms',text:n+((S.latched&(1<<i))&&!(S.faults&(1<<i))?' (latched)':'')});});
+  return {schema:1,src:'sim',ts:Math.floor(Date.now()/1000),uptimeSec:Math.floor(S.t/1000),
+    bms:{wired:true,packV:S.busV,packA:S.packA,currentVerified:false,socPct:est?Q.pct:null,socState:Q.state,socWhy:Q.why,cellMinV:lo,cellMaxV:hi,cellDeltaV:hi-lo,
+      tempMinC:S.tMin,tempMaxC:S.tMax,tempsVerified:$('tvalid').checked,cells:36,lemImbalance:!!S.lemImbalance,state:S.state},
+    contactors:{wired:true,precharge:cs(S.pre),mainPositive:cs(S.mainPos),mainNegative:cs(S.mainNeg),want:keyOn?'drive':'monitor',driven:false},
+    drive:{wired:true,rpm:null,speedMph:closed?Math.abs(cSpd):0,speedSource:'sim model',gear:closed?cGear:'P',motorTempC:null,controllerTempC:null,throttlePct:+$('cthr').value,
+      limp:!!S.kellyLimp,regenOk:!!S.kellyRegenOk,powerAllowedPct:S.kellyPct,faultCode:null,controller:'Kelly'},
+    energy:{kWhUsed:null,whPerMi:null,rangeMiEst:null,packKWh:null,calibrated:false},
+    aux12v:{wired:false,volts:null,loads:{lights:!!cLoad.lights,fan:!!cLoad.fan||S.tMax>=45,seatHeat:!!cLoad.seat,alarm:!!cLoad.alarm,pump:!!cLoad.pump},coolant:{wired:false,pumpOn:!!cLoad.pump,flowOk:null,tempC:null}},faults:fl,events:[]};
+}
+function pushDash(st){if(!dashC)dashC=TeryxDash.create($('dashHost'),{});dashC.update(st);
+  try{(dashBC||(dashBC=new BroadcastChannel('teryx-dash'))).postMessage(st);}catch(e){}
+  if(dashW&&!dashW.closed)try{dashW.postMessage(st,'*');}catch(e){}}
 function renderCluster(){
   const all=BOARDS.flatMap((b,i)=>cellsOf(i)),lo=Math.min(...all),hi=Math.max(...all),c=S.cfg,Q=S.soc;
   const kw=S.busV*S.packA/1000,closed=S.state==='Closed',est=Q.known&&Q.pct>=0;
@@ -600,6 +621,7 @@ function renderCluster(){
   if(cLoad.alarm||w.some(x=>/FAULT/.test(x)))w.push('🔔 Alarm');if(cLoad.fan||S.tMax>=45)w.push('Fan on');if(cLoad.lights)w.push('Lights');
   $('cWarn').innerHTML=w.map(x=>`<span class="chip act">${x}</span>`).join('')||'<span class="mut">No warnings</span>';
   $('ckey').textContent=keyOn?'Key off':'Key on';$('ckey').classList.toggle('on',keyOn);
+  pushDash(simStatus(lo,hi,Q,est,closed));
   $('sdet').innerHTML=`State <b>${Q.state}</b> · ${Q.why} · estimate ${est?Q.pct.toFixed(1)+' %':'unknown'} · used ${Q.usedAh.toFixed(2)} Ah · anchor ${Q.known?Q.anchorPct+' %':'—'} · sim truth ${Q.truthPct.toFixed(1)} % · capacity ${Q.capAh.toFixed(0)} Ah <span style="color:var(--warn)">SIM-ASSUMED</span>`+(Q.lemDrop?' · <span class="red">LEM dropout</span>':'');
   $('sdrop').classList.toggle('on',!!Q.lemDrop);
 }
@@ -679,7 +701,7 @@ function wire(){
   const bytes=Uint8Array.from(atob(WASM_B64),c=>c.charCodeAt(0));
   const {instance}=await WebAssembly.instantiate(bytes,{});
   X=instance.exports;X._initialize();X.sim_reset();
-  buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireSettings();loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
+  buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireSettings();$('dashWin').onclick=()=>{dashW=window.open(location.href.replace(/bms_sim\.html.*$|index\.html.*$/,'dash.html')+'?src=sim','teryxdash');};loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
   if(location.hash){const t=document.querySelector(`.tab[data-t="${location.hash.slice(1)}"]`);if(t)t.click();}
 })();
 </script></body></html>
