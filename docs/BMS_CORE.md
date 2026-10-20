@@ -9,7 +9,7 @@ All BMS decisions (contactors, charger request, Kelly outputs, faults) live in
 | PC test | `scripts/sim_bms.cpp` + `include/BmsSim.h` | `zig c++ -std=c++17 -Iinclude scripts/sim_bms.cpp` |
 | Browser | `tools/bms_sim.html` | same headers -> wasm32 (`scripts/build_bms_sim_html.sh`), embedded base64, opens from file:// |
 
-`scripts/check_bms_sim_wasm.js` runs the wasm in node and prints the same table (parity checked: identical ms on all 13 rows).
+`scripts/check_bms_sim_wasm.js` runs the wasm in node and prints the same table (parity checked: identical ms on all 18 rows).
 
 ## Gates (all default OFF — enabling is a flag flip after bench tests)
 
@@ -101,7 +101,7 @@ Implemented as `BmsCore::bicmTempC`, but **unverified on our boards**, so `TEMPS
 | Mersen A6T200 200 A Class T | 4 | string fuses — planned; size to be confirmed vs 650 A trip (Sparky) |
 | Volt AEV14012 (owned) | — | charger / DC-DC / precharge branches only |
 
-## Current trips and derates (decided 2026-10-20, not yet in code)
-- Hard trip on LEM A + LEM B: 650 A for 100 ms, or 750 A instantly. Replaces 300 A/500 ms and the 250 A derate.
-- Derates: LEM imbalance > 100 A for 1 s; cell sag from 3.2 V to 3.0 V; heat derate off until `TEMPS_VERIFIED`.
+## Current trips and derates (decided 2026-10-20)
+- **In code (2026-10-20):** hard trip on LEM A + LEM B, `overcurrentA = 650` for `overcurrentMs = 100`, or `instantTripA = 750` on any single sample (logged as `OC instant`). The 250 A Kelly derate is off (`maxDischargeA = 0`). Sim scenarios 7 and 8 plus 6 boundary checks in `scripts/sim_bms.cpp`. Not on hardware: `CURRENT_SENSE_ENABLE` is 0.
+- **Not yet in code** — derates: LEM imbalance > 100 A for 1 s; cell sag from 3.2 V to 3.0 V; heat derate off until `TEMPS_VERIFIED`.
 - Kelly phase and battery limits 550 A. Two used EV200 mains. 36S strings from 24S + 18S BICM boards (no 30S).

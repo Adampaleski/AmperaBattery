@@ -56,7 +56,7 @@ int main() {
             {"full power, healthy",          0, 0,      100, "",               true},
             {"low cell 3.375 V (halfway)",   1, 3.375f,  50, "low cell",       true},
             {"pack hot 52.5 C (halfway)",    2, 52.5f,   50, "pack hot",       true},
-            {"500 A draw (250 A target)",    3, 500.f,   50, "discharge amps", true},
+            {"550 A launch: no BMS cap",     3, 550.f,  100, "",               true},
             {"cells full 4.09 V: no regen",  4, 4.09f,  100, "",               false},
             {"pack cold -2 C: no regen",     5, -2.f,   100, "",               false},
         };
@@ -75,6 +75,33 @@ int main() {
             printf("%s kelly %-30s %5.1f%% why='%s' regen=%d (%s)\n", ok ? "PASS" : "FAIL", k.name, o.kellyPct, o.kellyWhy,
                    o.kellyRegenOk, o.regenWhy);
         }
+    }
+    // Hard trip boundaries (Adam 2026-10-20): 650 A for 100 ms, or 750 A on any sample.
+    int tfail = 0;
+    {
+        static BmsSim::World w;
+        struct T { const char *name; float a1; uint32_t ms1; float a2; uint32_t ms2; bool wantTrip; };
+        const T ts[] = {
+            {"600 A for 3 s: stays closed",         600.f, 3000,   0.f,   0, false},
+            {"640 A regen-side (-640) 3 s: closed", -640.f, 3000,  0.f,   0, false},
+            {"700 A for 80 ms then 400 A: closed",  700.f,   80, 400.f, 500, false},
+            {"700 A for 120 ms: trips",             700.f,  120,   0.f,   0, true},
+            {"760 A single 10 ms sample: trips",    760.f,   10,   0.f,   0, true},
+            {"745 A for 90 ms: closed (< 750 A)",   745.f,   90,   0.f,   0, false},
+        };
+        for (const T &t : ts) {
+            w.reset(); BmsSim::bringUp(w, false);
+            w.packA = t.a1; for (uint32_t k = 0; k < t.ms1; k += 10) w.step(10);
+            w.packA = t.a2; for (uint32_t k = 0; k < t.ms2; k += 10) w.step(10);
+            w.packA = 0; w.step(10);
+            const auto &o = w.core.out();
+            const bool tripped = (o.latched & BmsCore::F_OVERCURRENT) && o.state == BmsCore::CState::Fault;
+            const bool ok = tripped == t.wantTrip && (t.wantTrip || o.state == BmsCore::CState::Closed);
+            if (!ok) tfail++;
+            printf("%s trip %-38s state=%s latched=0x%03X\n", ok ? "PASS" : "FAIL", t.name, BmsCore::stateName(o.state),
+                   static_cast<unsigned>(o.latched));
+        }
+        printf("trip: %d/6 checks passed\n", 6 - tfail);
     }
     // State of charge (coulomb count of the split LEM sum). capAh 100 is a
     // TEST value only; the real bank Ah is UNVERIFIED.
@@ -133,5 +160,5 @@ int main() {
           rep(l && s.cfg.capAh > 49.9f && s.cfg.capAh < 50.1f && s.out().pct < 0.01f, "learn capacity 50 Ah from full->empty", s); }
         printf("soc: %d/10 checks passed\n", 10 - sfail);
     }
-    return fails + cfail + lfail + kfail + sfail;
+    return fails + cfail + lfail + kfail + tfail + sfail;
 }

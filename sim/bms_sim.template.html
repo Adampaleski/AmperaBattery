@@ -163,7 +163,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{
     <div class="card"><h3>Environment</h3><div class="rows">
       <div class="slider"><label>Temp min</label><input id="tmin" type="range" min="-20" max="80" value="20"><b id="tminv">20 °C</b></div>
       <div class="slider"><label>Temp max</label><input id="tmax" type="range" min="-20" max="80" value="22"><b id="tmaxv">22 °C</b></div>
-      <div class="slider"><label>Pack current</label><input id="amps" type="range" min="-100" max="550" value="0"><b id="ampsv">0 A</b></div>
+      <div class="slider"><label>Pack current</label><input id="amps" type="range" min="-100" max="800" step="5" value="0"><b id="ampsv">0 A</b></div>
       <label class="sw"><span>Force HV bus reading</span><input type="checkbox" id="busf"><i></i></label>
       <div class="slider"><label>HV bus</label><input id="busv" type="range" min="0" max="200" step="0.5" value="0"><b id="busvv">0 V</b></div>
     </div></div>
@@ -186,7 +186,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{
   <div class="grid">
     <div class="card"><h3>Try it</h3><div class="rows">
       <div class="controls"><button class="btn" id="dkey">Key on</button><span class="mut" style="font-size:14px">Contactors must be closed before the Kelly gets any power.</span></div>
-      <div class="slider"><label>Pack current</label><input id="damps" type="range" min="-100" max="600" step="5" value="0"><b id="dampsv">0 A</b></div>
+      <div class="slider"><label>Pack current</label><input id="damps" type="range" min="-100" max="800" step="5" value="0"><b id="dampsv">0 A</b></div>
       <div class="slider"><label>Hottest temp</label><input id="dtmax" type="range" min="-20" max="70" value="22"><b id="dtmaxv">22 °C</b></div>
       <div class="slider"><label>Coldest temp</label><input id="dtmin" type="range" min="-20" max="70" value="20"><b id="dtminv">20 °C</b></div>
       <div class="slider"><label>Weakest cell</label><input id="dcell" type="range" min="3.20" max="4.12" step="0.005" value="3.80"><b id="dcellv">3.800 V</b></div>
@@ -202,7 +202,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:14px}ol.chain li{
   <div class="grid">
     <div class="card"><h3>Low-cell cutback</h3><svg class="dchart" id="chV" viewBox="0 0 320 150"></svg></div>
     <div class="card"><h3>Heat cutback</h3><svg class="dchart" id="chT" viewBox="0 0 320 150"></svg></div>
-    <div class="card"><h3>Current cutback</h3><svg class="dchart" id="chA" viewBox="0 0 320 150"></svg></div>
+    <div class="card"><h3>Current trip</h3><svg class="dchart" id="chA" viewBox="0 0 320 150"></svg></div>
   </div>
   <div class="card"><h3>Wiring design <span class="tag">KELLY SIDE UNVERIFIED</span></h3>
     <ol class="chain">
@@ -431,7 +431,7 @@ function chart(id,x0,x1,f,xn,marks,unit,dec){
   const xc=Math.max(x0,Math.min(x1,xn));
   $(id).innerHTML=`<line class="ax" x1="${L}" y1="${py(0)}" x2="${W-R}" y2="${py(0)}"/><line class="ax" x1="${L}" y1="${py(100)}" x2="${W-R}" y2="${py(100)}"/>
    <text x="${L-6}" y="${py(100)+4}" text-anchor="end">100%</text><text x="${L-6}" y="${py(0)+4}" text-anchor="end">0</text>
-   ${marks.map(m=>`<line class="${m.c}" x1="${px(m.x)}" y1="${T}" x2="${px(m.x)}" y2="${py(0)}"/><text x="${px(m.x)+(m.a==='end'?-4:4)}" y="${T+10}" text-anchor="${m.a||'start'}" style="fill:${m.c==='trip'?'#e82127':'#8e8e93'}">${m.t}</text>`).join('')}
+   ${marks.map(m=>`<line class="${m.c}" x1="${px(m.x)}" y1="${T}" x2="${px(m.x)}" y2="${py(0)}"/><text x="${px(m.x)+(m.a==='end'?-4:4)}" y="${T+10+(m.dy||0)}" text-anchor="${m.a||'start'}" style="fill:${m.c==='trip'?'#e82127':'#8e8e93'}">${m.t}</text>`).join('')}
    <path class="cv" d="${d}"/><text x="${L}" y="${H-6}">${x0.toFixed(dec)} ${unit}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${x1.toFixed(dec)} ${unit}</text>
    <circle class="now" r="6" cx="${px(xc)}" cy="${py(f(xc))}"/>`;
 }
@@ -441,7 +441,7 @@ function renderDrive(){
   $('dPct').textContent=S.kellyPct.toFixed(0);$('dPct').parentElement.classList.toggle('fault',!closed);
   $('dWhy').textContent=S.kellyWhy?'limited by '+S.kellyWhy:'full power';
   $('dReg').textContent=S.kellyRegenOk?'Allowed':'Off';$('dRegS').textContent=S.kellyRegenOk?'cells have headroom':S.regenWhy;
-  $('dAmp').textContent=S.packA.toFixed(0);$('dAmpS').textContent=`derate above ${k.maxDischargeA} A · trip ${c.overA} A for ${k.overcurrentMs} ms`;
+  $('dAmp').textContent=S.packA.toFixed(0);$('dAmpS').textContent=(k.maxDischargeA>0?`derate above ${k.maxDischargeA} A · `:'no BMS cap · ')+`trip ${c.overA} A for ${k.overcurrentMs} ms, ${k.instantTripA} A instant`;
   let mn=9;for(let b=0;b<BOARDS.length;b++)for(let i=0;i<BOARDS[b].cells;i++){const v=X.sim_get_cell(b,i);if(v<mn)mn=v;}dMinCell=mn;
   $('dMin').textContent=mn.toFixed(3);$('dMinS').textContent=`derate below ${(c.lowCutV+k.derateLowV).toFixed(2)} V · cut ${c.lowCutV.toFixed(2)} V`;
   $('dkey').textContent=keyOn?'Key off':'Key on';$('dkey').classList.toggle('on',keyOn);
@@ -451,7 +451,7 @@ function renderDrive(){
   const lv0=c.lowCutV,lv1=c.lowCutV+k.derateLowV;
   chart('chV',3.2,3.7,v=>v>=lv1?100:(v-lv0)/(lv1-lv0)*100,mn,[{x:lv0,c:'trip',t:'cut'}],'V',1);
   chart('chT',20,c.overTempC+5,t=>t<=k.derateTempC?100:(c.overTempC-t)/(c.overTempC-k.derateTempC)*100,S.tMax,[{x:c.overTempC,c:'trip',t:'open',a:'end'}],'°C',0);
-  chart('chA',0,600,a=>a<=k.maxDischargeA?100:100*k.maxDischargeA/a,Math.max(0,S.packA),[{x:c.overA,c:'trip',t:'trip'},{x:550,c:'ref',t:'550 A peak',a:'end'}],'A',0);
+  chart('chA',0,800,a=>(k.maxDischargeA<=0||a<=k.maxDischargeA)?100:100*k.maxDischargeA/a,Math.max(0,Math.abs(S.packA)),[{x:550,c:'ref',t:'Kelly 550',a:'end',dy:52},{x:c.overA,c:'trip',t:c.overA+' A · '+k.overcurrentMs+' ms',a:'end',dy:26},{x:k.instantTripA,c:'trip',t:k.instantTripA+' A instant',a:'end'}],'A',0);
   const w=S.kellyWhy;[['chV','low cell'],['chT','pack hot'],['chA','discharge amps']].forEach(([i,r])=>$(i).classList.toggle('act',w===r));
 }
 function wireDrive(){

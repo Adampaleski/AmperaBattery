@@ -68,8 +68,8 @@ EXPORT const char *sim_state_json() {
     b.f(",\"kellyPct\":%.1f,\"kellyLimp\":%d,\"kellyRegenOk\":%d", o.kellyPct, o.kellyLimp, o.kellyRegenOk);
     b.f(",\"kellyWhy\":"); b.str(o.kellyWhy ? o.kellyWhy : "");
     b.f(",\"regenWhy\":"); b.str(o.regenWhy ? o.regenWhy : "");
-    b.f(",\"kcfg\":{\"derateLowV\":%.3f,\"derateTempC\":%.1f,\"maxDischargeA\":%.0f,\"overcurrentMs\":%u,\"ceil100V\":%.3f}",
-        c.derateLowV, c.derateTempC, c.maxDischargeA, static_cast<unsigned>(c.overcurrentMs), BmsCore::kCeil100V);
+    b.f(",\"kcfg\":{\"derateLowV\":%.3f,\"derateTempC\":%.1f,\"maxDischargeA\":%.0f,\"overcurrentMs\":%u,\"instantTripA\":%.0f,\"ceil100V\":%.3f}",
+        c.derateLowV, c.derateTempC, c.maxDischargeA, static_cast<unsigned>(c.overcurrentMs), c.instantTripA, BmsCore::kCeil100V);
     b.f(",\"faults\":%u,\"latched\":%u,\"busV\":%.2f,\"lowestStringV\":%.2f", static_cast<unsigned>(o.faults),
         static_cast<unsigned>(o.latched), g_w.busV, o.lowestStringV);
     b.f(",\"packA\":%.2f,\"chargerA\":%.2f", g_w.in.packA, g_w.chargeSoakA);

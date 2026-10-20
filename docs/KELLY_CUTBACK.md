@@ -10,7 +10,7 @@ The KLS CAN protocol is broadcast-only (`0x0CF11E05`, `0x0CF11F05`). The control
 |---|---|---|---|
 | Low cell | weakest cell below `lowCutV + derateLowV` (3.45 V) | `lowCutV` (3.30 V), where the contactors open | `derateLowV = 0.15` |
 | Pack hot | hottest sensor above `derateTempC` (50 °C) | `overTempC` (55 °C), where the contactors open | |
-| Discharge amps | pack current above `maxDischargeA` (250 A) | never 0; allowance = 250 / I | `maxDischargeA = 250` (**superseded 2026-10-20**: no BMS current cap; Kelly limits 550 A. Code not yet changed.) |
+| Discharge amps | **off** (`maxDischargeA = 0`, 2026-10-20) | — | Kelly limits 550 A; the BMS does not cap current in normal driving. Setting `maxDischargeA > 0` re-enables allowance = max / I. |
 
 The lowest of the three wins. `Outputs.kellyWhy` names it (`low cell`, `pack hot`, `discharge amps`, or empty for full power). With the contactors open or a drive fault active, allowance is 0 % and limp is on.
 
@@ -35,9 +35,9 @@ Pins are only written when `BMS_CAP_KELLY_LIMIT_DRV=1` and `TELEMETRY_ONLY=0`. B
 3. **Regen:** OUT6 HIGH turns on a PC817 placed in series with the KLS regen or brake-switch input, so a LOW (or a dead Teensy) inhibits regen. **UNVERIFIED:** which KLS input enables regen on this controller and its polarity.
 4. **Fail-safe:** with the Teensy unpowered, all three outputs are LOW. That means no limp (full Kelly power) and no regen. The contactors are open in that case, so there is no traction power anyway.
 
-## Decision (Adam, 2026-10-20) — firmware not yet updated
+## Decision (Adam, 2026-10-20)
 
-The code still has `overcurrentA = 300 A` for 500 ms and the 250 A derate. Both are replaced by:
+Trips and the derate removal are in `BmsCore` as of 2026-10-20 (sim-tested, not on hardware). The imbalance and cell-sag derates below are not coded yet. The decision:
 
 - Kelly settings: phase current 550 A, battery current 550 A. The BMS does not cap current in normal driving.
 - Hard trip (opens contactors): total LEM A + LEM B above **650 A for 100 ms**, or above **750 A instantly**.
@@ -49,4 +49,4 @@ The low-cell and pack-hot rows above show current code values, not these targets
 
 ## Simulator
 
-`tools/bms_sim.html`, Drive tab: live allowance, limiter, regen state, the three output lines, and the three cutback curves with the current operating point. The curves are drawn from the firmware's config, and the numbers come from the compiled BmsCore.
+`tools/bms_sim.html`, Drive tab: live allowance, limiter, regen state, the three output lines, the low-cell and heat cutback curves, and the current-trip chart (Kelly 550 A, 650 A for 100 ms, 750 A instant; slider to 800 A) with the current operating point. The curves are drawn from the firmware's config, and the numbers come from the compiled BmsCore.

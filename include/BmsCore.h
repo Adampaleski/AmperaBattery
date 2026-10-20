@@ -29,7 +29,7 @@ enum : uint32_t {
     F_CELL_LOW    = 1u << 3,   // a cell < lowCutV (L setting)
     F_OVERTEMP    = 1u << 4,   // pack temp > overTempC
     F_UNDERTEMP_C = 1u << 5,   // charge only: pack temp < chargeMinTempC
-    F_OVERCURRENT = 1u << 6,   // |I| > overcurrentA for > overcurrentMs
+    F_OVERCURRENT = 1u << 6,   // |I| > overcurrentA for overcurrentMs, or > instantTripA once
     F_LINK        = 1u << 7,   // B -> A link stale
     F_PRECHARGE   = 1u << 8,   // precharge failed after retries (lockout)
     F_WELDED      = 1u << 9,   // bus stays live with every contactor commanded open
@@ -85,9 +85,13 @@ struct Config {
     float    chargeMinTempC = 0.0f;
     float    derateTempC    = 50.0f;   // Kelly derate starts
     // current
-    float    overcurrentA   = 300.0f;  // |I| above this ...
-    uint32_t overcurrentMs  = 500;     // ... for this long -> open
-    float    maxDischargeA  = 250.0f;  // for the Kelly derate request
+    // Hard trip on LEM A + LEM B (Adam, 2026-10-20; replaces 300 A / 500 ms).
+    // Kelly phase + battery current set to 550 A, so the BMS does not cap
+    // current in normal driving.
+    float    overcurrentA   = 650.0f;  // |I| above this ...
+    uint32_t overcurrentMs  = 100;     // ... for this long -> open
+    float    instantTripA   = 750.0f;  // |I| above this on ANY sample -> open (no debounce)
+    float    maxDischargeA  = 0.0f;    // Kelly "discharge amps" derate; 0 = off (250 A derate superseded 2026-10-20)
     // timing (Config.h / StringConfig.h)
     uint32_t stringSilentMs = 2000;
     uint32_t linkStaleMs    = 1000;
@@ -338,6 +342,10 @@ private:
         }
         if (in.currentValid) {
             const float a = in.packA < 0 ? -in.packA : in.packA;
+            if (cfg.instantTripA > 0 && a > cfg.instantTripA) {
+                if (!(prevFaults_ & F_OVERCURRENT)) logf(in.nowMs, "OC instant: %.0f A > %.0f A", a, cfg.instantTripA);
+                f |= F_OVERCURRENT;
+            }
             if (a > cfg.overcurrentA) {
                 if (!ocActive_) { ocActive_ = true; ocSinceMs_ = in.nowMs; }
                 if (in.nowMs - ocSinceMs_ >= cfg.overcurrentMs) f |= F_OVERCURRENT;
@@ -399,7 +407,7 @@ private:
             const float k = (cfg.overTempC - in.tMaxC) / (cfg.overTempC - cfg.derateTempC);
             const float p = k * 100; if (p < pct) { pct = p; why = "pack hot"; }
         }
-        if (in.currentValid && in.packA > cfg.maxDischargeA) {
+        if (cfg.maxDischargeA > 0 && in.currentValid && in.packA > cfg.maxDischargeA) {
             const float p = 100 * cfg.maxDischargeA / in.packA; if (p < pct) { pct = p; why = "discharge amps"; }
         }
         if (pct < 0) pct = 0;

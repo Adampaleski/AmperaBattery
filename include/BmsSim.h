@@ -206,7 +206,7 @@ inline LemRead lemPair(float trueA, float trueB, bool deadA = false, bool deadB 
     return r;
 }
 
-constexpr int kScenarios = 17;
+constexpr int kScenarios = 18;
 
 inline int runAll(Result out[kScenarios]) {
     using namespace BmsCore;
@@ -226,8 +226,10 @@ inline int runAll(Result out[kScenarios]) {
     out[n++] = scenario("undertemp while charging -5 C", "charger off <= 0.2 s, stay closed", 200, true,
         [](World &w) { w.tMin = -5; },
         [](World &w) { return !w.core.out().chargeEnable && w.core.out().state == CState::Closed; });
-    out[n++] = scenario("overcurrent 350 A discharge", "open <= 0.7 s (500 ms debounce)", 700, true,
-        [](World &w) { w.packA = 350; }, openAndNoCharge);
+    out[n++] = scenario("overcurrent 700 A discharge", "open <= 0.2 s (650 A / 100 ms)", 200, true,
+        [](World &w) { w.packA = 700; }, openAndNoCharge);
+    out[n++] = scenario("overcurrent 800 A spike (instant)", "open <= 0.02 s (750 A, no debounce)", 20, true,
+        [](World &w) { w.packA = 800; }, openAndNoCharge);
     out[n++] = scenario("Teensy link loss", "open + charger off <= 1.2 s", 1200, true,
         [](World &w) { w.linkUp = false; }, openAndNoCharge);
     out[n++] = scenario("charge reaches limit (80% = 3.95 V)", "charger off at ceiling <= 1 s", 1000, true,
