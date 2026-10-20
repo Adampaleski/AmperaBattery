@@ -4,7 +4,7 @@ Tick boxes on GitHub or in VS Code. Prices are verified new prices (Oct 2026); T
 
 ## Decision
 - [x] **2 used TE EV200 mains**: one on pack +, one on pack −, each sees the full 550 A
-- [x] **One string fuse per string pair**
+- [x] **One 200 A Class T fuse per string (4 total); 1/0 or heavier string leads**
 - [x] **No per-pair contactors** (no limp-on-half-pack on a SxS)
 
 ## Already owned
@@ -23,7 +23,7 @@ Tick boxes on GitHub or in VS Code. Prices are verified new prices (Oct 2026); T
 From `docs/COMPONENTS.md`, `../diagram/components.json`, `../perfboard/BOM.md`:
 - [ ] EV200 main + (now: used, Adam sourcing)
 - [ ] EV200 main − (now: used, Adam sourcing)
-- [ ] Mersen A6T150 Class T ×4, one per string — **to be re-sized** to per-pair fuses above the 650 A trip (see below)
+- [x] Mersen A6T200 200 A Class T ×4 — **BOUGHT 2026-10-20** ($36.20 ea, unitedfuses.com); A6T is 300 V class, check the body on arrival
 - [ ] Volt BICM M4 18S ×2 (extra, needed for 4 strings)
 - [ ] Perfboard parts: 90×150 perfboard, female headers, 120 Ω terminators + jumper, 100 µF caps, SMBJ18A TVS, 10 k/18 k 1% resistors, 100 nF caps, JST-XH headers/housings/pins, DT04/DT06 bulkheads, IRLB8721 FETs ×6 per board, 100 Ω/10 k gate resistors, 1N4007, inline blade fuse holders + 1 A fuses, panel-mount micro-USB extension, M3 standoffs, zip-ties
 
@@ -34,15 +34,15 @@ From `docs/COMPONENTS.md`, `../diagram/components.json`, `../perfboard/BOM.md`:
 | Optional upgrade ×2 | Gigavac GX14BA (525 A / 10 s rating) | $205 each | - [ ] optional |
 | Precharge resistor | TBD — needs Kelly input capacitance | TBD | - [ ] |
 | Kelly-side HV voltage sense | Kelly CAN bus voltage (to confirm) **or** isolated HV module (TBD) | TBD / $0 if CAN works | - [ ] |
-| String fuses (per pair) | TBD — size above 650 A trip, per pair layout, with Sparky | TBD | - [ ] |
+| String fuses | Mersen A6T200 ×4 (bought) | $144.80 | - [x] |
 
 - [ ] Buy EV200 ×2 (used)
 - [ ] Decide on GX14BA upgrade
 - [ ] Get Kelly input capacitance → size precharge resistor
 - [ ] Confirm Kelly bus voltage on CAN, else pick HV sense module
-- [ ] Size string fuses with Sparky
+- [x] Size string fuses with Sparky (200 A; about 140 A/string at launch, about 185 A uneven)
 
-**Projected total (known numbers only):** 2× EV200AAANA new = **$245.00** (used: TBD, lower). With optional GX14BA instead: **$410.00**. Plus TBD: precharge resistor, HV sense, string fuses.
+**Projected total (known numbers only):** 2× EV200AAANA new = **$245.00** (used: TBD, lower). With optional GX14BA instead: **$410.00**. Fuses bought: $144.80. Plus TBD: precharge resistor, HV sense, 1/0 string leads.
 
 ## Firmware open
 - [ ] Close sequence: main − → precharge → wait Kelly side ≥ 95 % pack V → main + → precharge off; timeout → fault
