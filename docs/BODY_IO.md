@@ -1,7 +1,7 @@
 # Body / aux I/O: seats, cooling, lights, 2WD/4WD, diff lock (2026-10-21)
 
 Status: **PROPOSED, nothing wired, nothing flashed.** The pins are reserved in `include/Config.h` (`Pins::`), but no firmware drives them and no flag changed.
-Hardware: dual board gets a new **J9 BODY** header (18 pins, Teensy A). It feeds the **outputs daughterboard v2**
+Hardware: dual board gets **J9A (1×14) + J9B (1×10) BODY** headers next to Teensy A (placement v3, board stays 78 wide). It feeds the **outputs daughterboard v2**
 (`perfboard/make_body.py`, `teryx_body_daughter.layout.json`), which is **not routed** yet and should be routed together with the dual-board 300-try reroute.
 
 ## Vehicle facts (sourced)
@@ -54,3 +54,10 @@ Every threshold is PROPOSED and can be edited on the page (saved in localStorage
 - Glideforce LACT4P: $194.88
 
 Stall current, speed and pot resistance must come from the chosen part's datasheet before the H-bridge and fuse are sized: **UNVERIFIED.**
+
+## Zero spare pins: PROPOSED fix (not implemented)
+Teensy A now has no free edge pins; 33 is reserved for charge detect. Teensy 4.1 has three I2C buses, but **none is free today**: Wire (18/19) = IN3/IN4, Wire1 (16/17) = Serial4 to the ESP32, and Wire2 (24/25) = HV_SENSE/CUR_VC. So there is no "existing I2C bus" to hang an expander on yet.
+1. **Recommended: MCP23017 on Wire (SDA 18 / SCL 19).** IN3 and IN4 are only `pinMode(INPUT)` in `BmsApp.cpp` and nothing reads them. Repurpose them as I2C with 4.7k pull-ups to 3V3. One MCP23017 gives 16 I/O. Move the 9 light bits plus the 4WD stock switch onto it. That drops the two 595s and frees 32, 34, 35, 36 and 40. The MCP4131 then needs its own 2 pins: reuse 35 and 36 bit-banged. Net result: **3 pins free (32, 34, 40)**, and the 7 unused expander bits cover more lights later.
+   Costs: lights and brake light depend on I2C, which needs a bus watchdog plus a hardware default (MCP23017 resets to inputs, so the FET pulldowns keep the loads off). The turn-signal blink rate over I2C is fine.
+2. **Alternative: Teensy B takes the lights.** Teensy B has its own edge pins and already listens on CAN. It could drive the lights from a CAN or link command. That mixes body loads into the redundant BMS role, so I don't recommend it.
+3. **Alternative: free pin 24.** HV_SENSE is optional and unused by default (HV_ANALOG_ENABLE=0), which gives 1 pin if the HV divider is never fitted.
