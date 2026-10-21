@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Teryx EV · Wiring aid</title><style>
+:root{--bg:#0b0c0e;--card:#17191c;--line:#2a2d31;--tx:#e8eaed;--mut:#8a9099;--acc:#3e6ae1;--red:#ff4d4d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 -apple-system,system-ui,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:#0b0c0eee;border-bottom:1px solid var(--line);padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+header h1{font-size:17px;margin:0;font-weight:600}nav{display:flex;gap:6px;overflow-x:auto;flex:1}
+nav a,button{color:var(--tx);background:var(--card);border:1px solid var(--line);border-radius:18px;padding:6px 12px;text-decoration:none;white-space:nowrap;font-size:13px;cursor:pointer}
+nav a.on{background:var(--acc);border-color:var(--acc)}main{padding:12px;max-width:1500px;margin:auto}
+.desc{color:var(--mut);margin:4px 0 10px}.view{background:var(--card);border:1px solid var(--line);border-radius:12px;height:62vh;overflow:hidden;touch-action:none;position:relative}
+.view svg{width:100%;height:100%;cursor:grab}.zb{position:absolute;right:8px;top:8px;display:flex;gap:4px}
+.n rect{fill:#1f2226;stroke:#4a4f57;stroke-width:1.5;rx:8}.n.r rect{stroke:var(--red);stroke-width:2.5}.n.l rect{stroke-dasharray:6 4;stroke:var(--acc)}.n.l{cursor:pointer}
+.n.h rect{fill:none;stroke:none}.n text{fill:var(--tx);font-size:14px}.n.r text.t0{fill:#ffb3b3}.n text.t0{font-weight:600}.n.h text{fill:var(--mut);font-weight:700}
+.w{stroke:#7d8590;stroke-width:2;fill:none}.w.r{stroke:var(--red);stroke-dasharray:6 4}.wl{fill:#c9d1d9;font-size:12px;paint-order:stroke;stroke:#17191c;stroke-width:4}.wl.r{fill:var(--red)}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}th,td{border-bottom:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}th{color:var(--mut);font-weight:600}
+.tw{overflow-x:auto}.bad{color:var(--red);font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:12px}
+.th{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--tx);text-decoration:none}.th svg{width:100%;height:110px;pointer-events:none}.th b{font-size:13px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:12px;font-size:13px}
+@media (max-width:700px){nav{order:3;flex-basis:100%}.view{height:auto;aspect-ratio:var(--ar);min-height:300px}}
+@media print{header nav,.zb,button{display:none}body{background:#fff;color:#000}.view{height:auto;border:none;background:#fff}.view svg{height:auto}
+.n rect{fill:#fff;stroke:#000}.n text,.wl{fill:#000;stroke:none}.n.r text.t0,.wl.r,.bad{fill:#c00;color:#c00}.w{stroke:#000}.w.r,.n.r rect{stroke:#c00}th,td{border-color:#999;color:#000}.grid{display:none}.box{background:#fff;color:#000}}
+</style></head><body><header><h1>Teryx EV · Wiring aid</h1><nav id="nav"></nav><button onclick="print()">Print</button><a href="dash.html" style="color:var(--mut);font-size:13px">Dash</a></header>
+<main id="m"></main><script>/*DATA*/</script><script>
+const NS="http://www.w3.org/2000/svg",isR=s=>s!=="S";
+function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e}
+function draw(pg,svg,thumb){svg.setAttribute("viewBox",`0 0 ${pg.w} ${pg.h}`);const N={};pg.nodes.forEach(n=>N[n[0]]=n);
+ const cx=n=>[n[2]+n[4]/2,n[3]+n[5]/2];
+ pg.wires.forEach(([a,b,l,r])=>{const A=N[a],B=N[b];if(!A||!B)return;let[x1,y1]=cx(A),[x2,y2]=cx(B);
+  const p=Math.abs(x2-x1)>Math.abs(y2-y1)?`M${A[2]+(x2>x1?A[4]:0)} ${y1} H${(x1+x2)/2} V${y2} H${B[2]+(x2>x1?0:B[4])}`:`M${x1} ${A[3]+(y2>y1?A[5]:0)} V${(y1+y2)/2} H${x2} V${B[3]+(y2>y1?0:B[5])}`;
+  el("path",{d:p,class:"w"+(r?" r":"")},svg);if(l&&!thumb){const t=el("text",{x:(x1+x2)/2+4,y:(y1+y2)/2-4,class:"wl"+(r?" r":"")},svg);t.textContent=l+(r?" (UNVERIFIED)":"")}});
+ pg.nodes.forEach(n=>{const[id,lab,x,y,w,h,s,k]=n,hd=k==="hdr";const g=el("g",{class:"n"+(hd?" h":"")+(isR(s)&&!hd?" r":"")+(k&&!hd?" l":"")},svg);
+  el("rect",{x,y,width:w,height:h},g);const L=lab.split("|");if(isR(s)&&!hd&&!thumb)L[0]+=s==="P"?"  [PROPOSED]":"  [UNVERIFIED]";
+  L.forEach((s2,i)=>{const t=el("text",{x:x+8,y:y+18+i*16,class:"t"+i},g);t.textContent=s2});
+  if(!thumb&&!hd&&svg.isConnected){const mw=Math.max(...[...g.querySelectorAll("text")].map(q=>q.getComputedTextLength()))+34;if(mw>w)g.firstChild.setAttribute("width",mw)}
+  if(k&&!hd){const t=el("text",{x:x+Math.max(w,+g.firstChild.getAttribute("width"))-20,y:y+18},g);t.textContent="⤢";g.onclick=()=>location.hash=k}});}
+function panzoom(svg,pg){let vb=[0,0,pg.w,pg.h];const set=()=>svg.setAttribute("viewBox",vb.join(" "));const P=new Map();let d0=0;
+ const zoom=(f,cx,cy)=>{const r=svg.getBoundingClientRect(),px=vb[0]+(cx-r.left)/r.width*vb[2],py=vb[1]+(cy-r.top)/r.height*vb[3];vb=[px-(px-vb[0])*f,py-(py-vb[1])*f,vb[2]*f,vb[3]*f];set()};
+ svg.onwheel=e=>{e.preventDefault();zoom(e.deltaY>0?1.15:0.87,e.clientX,e.clientY)};
+ svg.onpointerdown=e=>{P.set(e.pointerId,[e.clientX,e.clientY]);svg.setPointerCapture(e.pointerId)};
+ svg.onpointermove=e=>{if(!P.has(e.pointerId))return;const o=P.get(e.pointerId);if(P.size===1){const r=svg.getBoundingClientRect();vb[0]-=(e.clientX-o[0])/r.width*vb[2];vb[1]-=(e.clientY-o[1])/r.height*vb[3];set()}
+  P.set(e.pointerId,[e.clientX,e.clientY]);if(P.size===2){const[a,b]=[...P.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(d0)zoom(d0/d,(a[0]+b[0])/2,(a[1]+b[1])/2);d0=d}};
+ svg.onpointerup=svg.onpointercancel=e=>{P.delete(e.pointerId);d0=0};return{zoom,reset:()=>{vb=[0,0,pg.w,pg.h];set()}}}
+function render(){const id=location.hash.slice(1)||"overview",pg=PAGES.find(p=>p.id===id)||PAGES[0];
+ document.getElementById("nav").innerHTML=PAGES.map(p=>`<a href="#${p.id}" class="${p.id===pg.id?"on":""}">${p.title}</a>`).join("");
+ const m=document.getElementById("m");m.innerHTML=`<h2 style="margin:6px 0">${pg.title}</h2><div class="desc">${pg.desc}</div><div class="view" style="--ar:${pg.w}/${pg.h}"><svg></svg><div class="zb"><button id="zi">+</button><button id="zo">−</button><button id="zr">Fit</button></div></div>`;
+ const svg=m.querySelector("svg");draw(pg,svg);const z=panzoom(svg,pg),r=svg.getBoundingClientRect();
+ zi.onclick=()=>z.zoom(.75,r.left+r.width/2,r.top+r.height/2);zo.onclick=()=>z.zoom(1.33,r.left+r.width/2,r.top+r.height/2);zr.onclick=z.reset;
+ if(pg.id==="overview"){const g=document.createElement("div");g.className="grid";PAGES.slice(1).forEach(p=>{const a=document.createElement("a");a.className="th";a.href="#"+p.id;a.innerHTML=`<b>${p.title} ⤢</b>`;const s=el("svg",{},a);draw(p,s,1);g.appendChild(a)});m.appendChild(g);
+  m.insertAdjacentHTML("beforeend",`<div class="box"><b>Proposed wire colour code</b> <span class="bad">PROPOSED — not in the docs</span> (only the BICM harness colours are sourced): `+Object.entries(COLORS).map(([k,v])=>`${k} = ${v}`).join(" · ")+`</div><div class="box"><b>Conflicts found (fix before wiring)</b><ul>${CONFLICTS.map(c=>`<li>${c}</li>`).join("")}</ul></div>`)}
+ m.insertAdjacentHTML("beforeend",`<h3>Parts &amp; connections (from → to)</h3><div class="tw"><table><tr><th>From</th><th>To</th><th>Signal</th><th>Gauge</th><th>Colour</th><th>Notes</th><th>Status</th></tr>${pg.net.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td class="${r[3]!=="factory"&&r[4]!=="—"?"bad":""}">${r[4]}${r[3]!=="factory"&&r[4]!=="—"?" (PROPOSED)":" (SOURCED)"}</td><td>${r[5]}</td><td class="${isR(r[6])?"bad":""}">${{S:"SOURCED",P:"PROPOSED",U:"UNVERIFIED"}[r[6]]}</td></tr>`).join("")}</table></div>`);scrollTo(0,0)}
+onhashchange=render;render();
+</script></body></html>

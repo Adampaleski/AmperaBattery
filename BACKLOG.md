@@ -51,11 +51,12 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 - [ ] **REQUIRED BEFORE FIRST DRIVE:** contactor weld check. Bus voltage vs pack with mains commanded open at key-off and before precharge (sim has a welded-contactor toggle; firmware not built).
 - [ ] **REQUIRED BEFORE FIRST DRIVE:** isolation monitoring (HV to chassis). Part not chosen.
 - [ ] **REQUIRED BEFORE FIRST DRIVE:** 12 V low alarm at 11.5 V (PROPOSED). Needs a 12 V sense divider pin.
-- [ ] Service disconnect: the single Volt MSD may split only ONE of the four strings. Unless the MSD sits on the common bus, the documented procedure is **pull all four Mersen A6T200 string fuses** (pending Mechanic).
+- [ ] Service disconnect (SOURCED: Mechanic 2026-10-21): the Volt MSD sits on the **common B+ bus after the 4 string fuses**. Procedure: **Step 1** pull the MSD (Kelly side safe). **Step 2** also pull all 4 Mersen A6T200 string fuses before working on the packs or the bus.
+- [ ] **REQUIRED BEFORE FIRST DRIVE:** MSD rating ≈350 A (schematic/gen.py) is below the 550 A launch current. Verify against Volt specs or replace with a combined bus fuse.
 
 ## Mechanical (Mechanic 2026-10-21) — TODO
-- [ ] Chain guard + chain tensioner (#50 chain, 16/32T).
-- [ ] Pack retention (straps/brackets), HV cable clamps, grommets at every pass-through.
+- [ ] **REQUIRED BEFORE FIRST DRIVE:** Chain guard + chain tensioner (#50 chain, 16/32T).
+- [ ] **REQUIRED BEFORE FIRST DRIVE:** Pack retention / tie-downs (straps/brackets), HV cable clamps, grommets at every pass-through.
 - [ ] Enclosure sealing with a breather and a drain.
 - [ ] Chassis ground straps: 12 V negative to frame, Kelly case to frame.
 

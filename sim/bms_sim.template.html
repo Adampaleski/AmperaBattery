@@ -152,7 +152,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 .set{width:100%;border-collapse:collapse}.set td{padding:10px 6px;border-bottom:1px solid #1c1c1e}.set input{width:120px;min-height:40px;background:var(--card2);border:0;border-radius:8px;color:var(--tx);font:inherit;padding:0 10px}
 </style></head><body>
 <header><div class="bar">
-  <div class="brand">Teryx BMS</div>
+  <div class="brand">Teryx BMS</div><a href="wiring.html" style="color:#8a9099;font-size:13px;margin-left:8px;text-decoration:none" title="Wiring aid">Wiring</a>
   <nav class="tabs">
     <button class="tab on" data-t="cluster">Dash</button><button class="tab" data-t="pack">Pack</button><button class="tab" data-t="drive">Drive</button><button class="tab" data-t="diagram">Diagram</button>
     <button class="tab" data-t="faults">Faults <span id="fcount"></span></button><button class="tab" data-t="scen">Scenarios</button><button class="tab" data-t="settings">Settings</button>
@@ -712,7 +712,7 @@ function clusterTick(dt){ // runs every loop: vehicle model -> pack amps (when e
   if(!o)o=vehStep(VP,{mph:cSpd},inp,0);
   vLast=o;const a=drv?o.packA:null;
   if(+$('cthr').value>0&&(parkSet||neut))o.why=parkSet?'park brake set: Kelly Foot_SW open (hardware interlock)':'F/N/R in neutral';
-  if($('pkdet'))$('pkdet').innerHTML=`<div><span class="mut">Park</span> <b>${PK.S.parked?'PARKED':'not parked'}</b> · contacts A/B <b>${parkSet?'set':'open'}/${parkSet&&!$('cparkb').checked?'set':'open'}</b> · precharge <b>${PK.prechargeAllowed()?'allowed':'BLOCKED (set the parking brake)'}</b> · Kid changes <b>${PK.kidChangeAllowed()?'allowed':'locked'}</b>${PK.faultNames().length?' · <span style="color:var(--bad)">'+PK.faultNames().join(', ')+'</span>':''} <span class="src">PROPOSED · docs/PARK_BRAKE.md</span></div><div><span class="mut">Brake</span> switch <b>${o.brakeSwitch?'ON':'off'}</b> · Brake_AN regen <b>${((o.brakeFrac||0)*100).toFixed(0)} %</b> of BRK_AD · regen taper <b>${inp.regenAllowPct.toFixed(0)} %</b> · Kelly Low cap <b>${inp.kellyLowCap?'ENGAGED ('+($('cdead').checked?'Teensys dead, relay off':cGear==='KID'?'Kid':'limp')+')':'released (Teensy A holds relay)'}</b></div>`;
+  if($('pkdet'))$('pkdet').innerHTML=`<div><span class="mut">Park</span> <b>${PK.S.parked?'PARKED':'not parked'}</b> · contacts A/B <b>${parkSet?'set':'open'}/${parkSet&&!$('cparkb').checked?'set':'open'}</b> · precharge <b>${PK.prechargeAllowed()?'allowed':'BLOCKED (set the parking brake)'}</b> · Kid changes <b>${PK.kidChangeAllowed()?'allowed':'locked'}</b>${PK.faultNames().length?' · <span style="color:var(--bad)">'+PK.faultNames().join(', ')+'</span>':''} <span class="src">PROPOSED · docs/PARK_BRAKE.md</span></div><div><span class="mut">Brake</span> switch <b>${o.brakeSwitch?'ON':'off'}</b> · Brake_AN regen <b>${((o.brakeFrac||0)*100).toFixed(0)} %</b> of BRK_AD · regen taper <b>${inp.regenAllowPct.toFixed(0)} %</b> · Kelly Low cap <b>${inp.kellyLowCap?'ENGAGED ('+($('cdead').checked?'Teensys dead, relay off':cGear==='KID'?'Kid':'hard fault: '+(S.limpWhy||'?'))+')':'released (Teensy A holds relay)'}</b></div>`;
   if(a!=null){X.sim_set_pack_amps(a);if(Math.abs(+$('amps').value-a)>2){$('amps').value=Math.round(a);$('ampsv').textContent=Math.round(a)+' A';$('damps').value=Math.round(a);$('dampsv').textContent=Math.round(a)+' A';}}
 }
 
