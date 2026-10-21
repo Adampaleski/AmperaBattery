@@ -5,13 +5,16 @@
 <meta name="theme-color" content="#000"><title>Teryx Dash</title>
 <style>html,body{margin:0;background:#000;height:100%;overflow:hidden}</style></head><body>
 <div id="dash"></div>
+<script>@@VEHICLE_JS@@</script>
 <script>@@DASH_JS@@</script>
 <script>
 /* Source layer: ?src=sim | http://…/api/status | ws://… | none  (saved in localStorage 'teryxDashSrc') */
 const q=new URLSearchParams(location.search);
 let cfg=JSON.parse(localStorage.getItem('teryxDashSrc')||'{"src":"sim","url":""}');
 if(q.get('src')){const s=q.get('src');cfg=/^wss?:/.test(s)?{src:'ws',url:s}:/^https?:/.test(s)?{src:'http',url:s}:{src:s,url:cfg.url};}
-const dash=TeryxDash.create(document.getElementById('dash'),{full:true,sourceUI:true});
+// Sim quick panel only with ?src=sim (commands go back to the open simulator tab); never in real mode.
+let cmdBC=null;const simPanel=q.get('src')==='sim'?{send:(cmd,v)=>{try{(cmdBC||(cmdBC=new BroadcastChannel('teryx-dash-cmd'))).postMessage({cmd,v});}catch(e){}}}:null;
+const dash=TeryxDash.create(document.getElementById('dash'),{full:true,sourceUI:true,simPanel});
 let last=null,lastAt=0,timer=null,ws=null,bc=null;
 const STALE_MS=3000;
 function got(s){if(s&&s.schema===1){last=s;lastAt=Date.now();}}
@@ -25,7 +28,7 @@ function start(){stop();last=null;
 }
 window.addEventListener('message',e=>{if(cfg.src==='sim')got(e.data);});   // window.open() from the sim
 document.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{cfg.src=b.dataset.src;document.querySelectorAll('[data-src]').forEach(x=>x.classList.toggle('on',x===b));});
-dash.F('apply').onclick=()=>{cfg.url=dash.F('url').value.trim();localStorage.setItem('teryxDashSrc',JSON.stringify(cfg));start();dash.F('menu').classList.remove('on');};
+dash.F('apply').onclick=()=>{cfg.url=dash.F('url').value.trim();localStorage.setItem('teryxDashSrc',JSON.stringify(cfg));start();};
 start();
 setInterval(()=>{const stale=!last||Date.now()-lastAt>STALE_MS;dash.update(stale?null:last,{});},100);
 </script></body></html>

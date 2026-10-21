@@ -124,6 +124,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 .kv{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:18px;margin-top:12px}.kv dt{color:var(--mut)}.kv dd{margin:0}
 .legend{display:flex;flex-wrap:wrap;gap:18px;font-size:18px;color:var(--mut);padding:10px 8px 4px}
 .legend i{display:inline-block;width:22px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+#dashHost .tdash{aspect-ratio:auto;min-height:0}#dashHost .tdash .home{min-height:430px}#dashHost .tdash .mnu{min-height:600px}#dashHost .tdash .stage{min-height:600px}
 #t-cluster .cl{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:16px;align-items:center;background:#000;border-radius:var(--r);padding:24px}
 #t-cluster .big{text-align:center}#t-cluster .big .n{font-size:96px;font-weight:200;line-height:1;font-variant-numeric:tabular-nums}#t-cluster .big .u{color:var(--mut);font-size:18px}
 #t-cluster .gears{display:flex;gap:14px;justify-content:center;margin-top:12px;font-size:22px;color:#48484a;font-weight:500}#t-cluster .gears .on{color:var(--tx)}
@@ -150,14 +151,14 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 <header><div class="bar">
   <div class="brand">Teryx BMS</div>
   <nav class="tabs">
-    <button class="tab on" data-t="pack">Pack</button><button class="tab" data-t="drive">Drive</button><button class="tab" data-t="cluster">Cluster</button><button class="tab" data-t="diagram">Diagram</button>
+    <button class="tab on" data-t="cluster">Dash</button><button class="tab" data-t="pack">Pack</button><button class="tab" data-t="drive">Drive</button><button class="tab" data-t="diagram">Diagram</button>
     <button class="tab" data-t="faults">Faults <span id="fcount"></span></button><button class="tab" data-t="scen">Scenarios</button><button class="tab" data-t="settings">Settings</button>
   </nav>
   <button class="hkey plug" id="hplug" title="Charger present / proximity input (sim)">Plug in</button><button class="hkey" id="hkey">Key off</button><div class="clock" id="clock"></div>
 </div><div class="fban" id="fban"><span id="fbanT"></span><button id="fack">Acknowledge</button></div><div class="cban" id="cban"><span id="cbanT"></span></div></header>
 <main>
 <!-- ======================= PACK ======================= -->
-<section id="t-pack" class="on">
+<section id="t-pack">
   <div class="hero">
     <div class="stat"><div class="k">Contactors</div><div class="v" id="hState">Open</div>
       <div class="pills"><span class="pill" id="pNeg">Main −</span><span class="pill" id="pPre">Precharge</span><span class="pill" id="pPos">Main +</span></div></div>
@@ -249,10 +250,10 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 </details>
 </section>
 <!-- ======================= DIAGRAM ======================= -->
-<section id="t-cluster">
+<section id="t-cluster" class="on">
   <div id="dashHost"></div>
-  <div class="controls" style="margin:10px 0"><button class="btn" id="dashWin">Open full-screen dash window</button><button class="btn" id="dwake">Wake</button><button class="btn" id="ddoor" title="PROPOSED door / button input, pin unassigned">Door / button</button><span class="mut">Same dash component as tools/dash.html. Style menu is top-right of the dash.</span></div>
-  <details class="more"><summary>Engineering readout: every value with its source</summary>
+  <div class="controls" style="margin:10px 0"><button class="btn" id="dashWin">Open full-screen dash window</button><button class="btn" id="dwake">Wake</button><button class="btn" id="ddoor" title="PROPOSED door / button input, pin unassigned">Door / button</button><span class="mut">Same dash component as tools/dash.html. Cluster style is in Menu › Display.</span></div>
+  <details class="more"><summary>More simulator controls: engineering readout, sliders, 12 V loads, drive cycle detail, SoC, pin map</summary>
   <div class="cl">
     <div id="clL"></div>
     <div class="big"><div class="n" id="cSpd">0</div><div class="u">mph · <span class="src nw">SIM model · real source: Kelly CAN 0x0CF11E05 RPM × gearing (16/32, 27" tire) — Kelly RX not enabled (BMS_CAP_KELLY_RX=0)</span></div>
@@ -261,7 +262,6 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
       <div class="warn" id="cWarn"></div></div>
     <div id="clR"></div>
   </div>
-  </details>
   <div class="grid" style="margin-top:16px">
     <div class="card"><h3>Driver inputs <span class="tag">SIM</span></h3><div class="rows">
       <div class="controls"><button class="btn" id="ckey" style="display:none">Key on</button><label class="sw"><span>Throttle drives pack current (while this tab is open)</span><input type="checkbox" id="cdrive" checked><i></i></label></div>
@@ -288,6 +288,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
     <div class="dim" style="font-size:18px">Estimate = the firmware's own <b>BmsCore::Soc</b> (include/SocEstimator.h) run on LEM A + LEM B, + = discharge. It is unknown at boot and only becomes known at a full-charge anchor (Core "at charge limit"); current invalid for more than 2 s makes it unknown again. <span style="color:var(--warn)">SIM-ASSUMED capacity 180 Ah</span> (4 strings × 45 Ah, the sim's range assumption); the real bank Ah is UNVERIFIED and is 0 = unknown in code. Sim truth = lowest cell on a SIM-ASSUMED linear map 3.30 V = 0 % → 4.10 V = 100 % (no verified OCV curve). Not wired in firmware: CURRENT_SENSE_ENABLE=0.</div>
   </div></div>
   <div class="card"><h3>Where each signal comes from <span class="tag">PIN MAP</span></h3><table class="io" id="ciomap"></table></div>
+  </details>
 </section>
 <section id="t-settings">
   <div class="card"><h3>Settings <span class="tag">SIM ONLY</span></h3>
@@ -671,7 +672,7 @@ function dcShow(){
 function setGrade(g){VP.gradePct=g;$('cgrade').value=g;$('cgradev').textContent=g+' %';}
 function clusterTick(dt){ // runs every loop: vehicle model -> pack amps (when enabled)
   dcStep(dt);
-  const drv=$('cdrive').checked&&($('t-cluster').classList.contains('on')||dc);
+  const drv=$('cdrive').checked&&($('t-cluster').classList.contains('on')||dc||remoteDrive);
   const inp={thr:+$('cthr').value,brake:+$('cbrk').value,gear:cGear,closed:S.state==='Closed',allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV};
   let o=null;for(let t=0;t<dt-1e-9;t+=0.05){const h=Math.min(0.05,dt-t);o=vehStep(VP,{mph:cSpd},inp,h);cSpd=o.mph;}  // <=50 ms slices
   if(!o)o=vehStep(VP,{mph:cSpd},inp,0);
@@ -679,24 +680,63 @@ function clusterTick(dt){ // runs every loop: vehicle model -> pack amps (when e
   if(a!=null){X.sim_set_pack_amps(a);if(Math.abs(+$('amps').value-a)>2){$('amps').value=Math.round(a);$('ampsv').textContent=Math.round(a)+' A';$('damps').value=Math.round(a);$('dampsv').textContent=Math.round(a)+' A';}}
 }
 
-let dashC=null,dashW=null,dashBC=null,doorPulse=false;
-// Elcon CAN IDs verified; winding (HK-MF-108/144) unread and 5 A is the outlet-limited Config value: ASSUMED.
-const CHARGER={model:'Elcon/TC HK-MF (winding unread)',maxA:5,assumed:true};
+let dashC=null,dashW=null,dashBC=null,doorPulse=false,remoteDrive=false;
+function simLog(){const ev=[];for(let i=0;i<X.sim_log_count();i++)ev.push({ms:X.sim_log_ms(i),text:cs(X.sim_log_text(i))});userLog.forEach(u=>ev.push({ms:u.ms,text:'You · '+u.text}));
+  return ev.filter(e=>e.ms>hideBefore).sort((a,b)=>b.ms-a.ms).slice(0,40).map(e=>({t:fmtT(e.ms),text:e.text}));}
+function simCurves(){const c=S.cfg,k=S.kcfg,d=S.dcfg,w=S.kellyWhy,pts=(a,b,f)=>{const o=[];for(let i=0;i<=40;i++){const x=a+(b-a)*i/40;o.push([x,Math.max(0,Math.min(100,f(x)))]);}return o;};
+  const lv0=c.lowCutV,lv1=c.lowCutV+k.derateLowV;
+  return [{name:'Heat cutback',unit:'pack °C',x0:20,x1:c.overTempC+5,now:S.tMax,act:w==='pack hot',pts:pts(20,c.overTempC+5,t=>t<=k.derateTempC?100:(c.overTempC-t)/(c.overTempC-k.derateTempC)*100)},
+    {name:'Low cell',unit:'cell V',x0:2.8,x1:3.6,now:S.minCellV,act:w==='low cell',pts:pts(2.8,3.6,v=>v>=lv1?100:v<=lv0?0:(v-lv0)/(lv1-lv0)*100)},
+    {name:'Cell sag',unit:'V below avg',x0:0,x1:0.5,now:S.avgCellV-S.minCellV,act:w==='cell sag',pts:pts(0,0.5,g=>g<=d.relSagStartV?100:g>=d.relSagZeroV?0:(d.relSagZeroV-g)/(d.relSagZeroV-d.relSagStartV)*100)},
+    {name:'LEM imbalance',unit:'|A−B| A',x0:0,x1:200,now:S.lemDiffA,act:w==='LEM imbalance',pts:pts(0,200,x=>x>d.imbalanceA?d.imbalancePct:100)},
+    {name:'Discharge amps',unit:'A',x0:0,x1:800,now:Math.abs(S.packA),act:w==='discharge amps',pts:pts(0,800,a=>(k.maxDischargeA<=0||a<=k.maxDischargeA)?100:100*k.maxDischargeA/a)}];}
+const setSl=(id,v)=>{$(id).value=v;$(id).dispatchEvent(new Event('input'));};
+// Sim quick panel commands (dash panel inside the sim, or dash.html?src=sim over BroadcastChannel 'teryx-dash-cmd')
+function simCmd(c,v){
+  const gear=g=>{const b=$('cgsel').querySelector(`[data-g="${g}"]`);if(b)b.click();};
+  switch(c){
+  case 'key':$('key').click();break; case 'plug':$('plug').click();break;
+  case 'thr':setSl('cthr',v);break; case 'brk':setSl('cbrk',v);break; case 'grade':setSl('cgrade',v);VP.gradePct=+v;break; case 'gear':gear(v);break;
+  case 'launch':if(!keyOn)$('key').click();setGrade(0);gear('H');setSl('cbrk',0);setSl('cthr',100);ulog('Sim: hard launch (throttle 100 %, gear H)');break;
+  case 'regen':setSl('cthr',0);setSl('cbrk',60);ulog('Sim: regen stop (brake 60 %)');break;
+  case 'coast':setSl('cthr',0);setSl('cbrk',0);ulog('Sim: coast');break;
+  case 'climb':if(!keyOn)$('key').click();gear('L');setGrade(15);setSl('cbrk',0);setSl('cthr',70);ulog('Sim: climb (15 % grade, Low, 70 %)');break;
+  case 'lowcell':setSl('dcell',3.15);ulog('Sim: low cell 3.150 V');break;
+  case 'hotpack':setSl('tmax',55);ulog('Sim: hot pack 55 °C');break;
+  case 'lemimb':setSl('dlem',75);ulog('Sim: LEM imbalance 75 / 25');break;
+  case 'weld':$('welded').checked=!$('welded').checked;$('welded').dispatchEvent(new Event('change'));break;
+  case 'lemdrop':$('sdrop').click();break; case 'chglim':$('sanc').click();break; case 'pcycle':$('flPow').click();break;
+  case 'wake':if(dashC)dashC.wake('sim Wake button');break;
+  case 'reset':{const c0=window.confirm;window.confirm=()=>true;try{$('reset').click();}finally{window.confirm=c0;}setSl('cthr',0);setSl('cbrk',0);setGrade(0);break;}
+  case 'cyclesel':if(!dc){const b=$('dcsel').querySelector(`[data-c="${v}"]`);if(b)b.click();}break;
+  case 'cycle':$('dcgo').click();break;
+  case 'speed20':{const b=document.querySelector(`#speed button[data-s="${speed===20?1:20}"]`);if(b)b.click();break;}
+  }
+}
+// SOURCED from Adam's label photo: Elcon HK-LF-144-46, config CAN3865, SN23100137B; in 90–264 VAC 45–65 Hz 32 A; out 100–202 V DC, 46 A max (~6.6 kW @ 144 V).
+// Actual current is still limited by the BMS (Config charge amps) and the charge limit. CAN 0x1806E5F4/0x18FF50E5 UNVERIFIED for CAN3865.
+const CHARGER={model:'Elcon HK-LF-144-46 (CAN3865) · 100–202 V, 46 A max · CAN protocol UNVERIFIED',maxA:46,assumed:false};
 function simStatus(lo,hi,Q,est,closed){
   const cs=x=>x?'closed':'open',fl=[];S.faultNames.forEach((n,i)=>{if((S.faults|S.latched)&(1<<i))fl.push({id:n,ts:0,level:'fault',source:'bms',text:n+((S.latched&(1<<i))&&!(S.faults&(1<<i))?' (latched)':'')});});
   return {schema:1,src:'sim',ts:Math.floor(Date.now()/1000),uptimeSec:Math.floor(S.t/1000),
     bms:{wired:true,packV:S.busV,packA:S.packA,currentVerified:false,socPct:est?Q.pct:null,socState:Q.state,socWhy:Q.why,cellMinV:lo,cellMaxV:hi,cellDeltaV:hi-lo,
-      tempMinC:S.tMin,tempMaxC:S.tMax,tempsVerified:$('tvalid').checked,cells:36,lemImbalance:!!S.lemImbalance,state:S.state},
+      tempMinC:S.tMin,tempMaxC:S.tMax,tempsVerified:$('tvalid').checked,cells:36,lemImbalance:!!S.lemImbalance,state:S.state,
+      strings:STR.map(st=>st.boards.flatMap(cellsOf)),socUsedAh:Q.usedAh,capAh:Q.capAh,capAssumed:true},
     contactors:{wired:true,precharge:cs(S.pre),mainPositive:cs(S.mainPos),mainNegative:cs(S.mainNeg),want:S.mode==='CHARGE'?'charge':(keyOn?'drive':'monitor'),driven:false},
     inputs:{key:keyOn,door:doorPulse},
     charge:{maxA:S.ccfg.chargeMaxA,ampsLimit:S.ccfg.chargeMaxA,chargerMaxA:CHARGER.maxA,charger:CHARGER,capAh:Q.capAh,capAssumed:true,plugged:!!S.plugIn,mode:S.mode,chargeA:S.chargeEnable?S.chargeA:0,chargeV:S.chargeV,why:S.chargeWhy,limitPct:+$('pct').value,driveLocked:!!S.driveLocked,keyRefused:!!S.keyRefused,chargerPath:!!S.chargerPath},
     drive:{wired:true,rpm:vLast?vLast.rpm:null,rpmSource:'sim model',speedMph:Math.abs(cSpd),speedSource:'sim model',brakePct:+$('cbrk').value,regenA:vLast?vLast.regenA:0,regenWhy:vLast?vLast.regenWhy:'',gear:closed?cGear:'P',motorTempC:null,controllerTempC:+$('ckt').value,throttlePct:+$('cthr').value,
-      limp:!!S.kellyLimp,regenOk:!!S.kellyRegenOk,powerAllowedPct:S.kellyPct,faultCode:null,controller:'Kelly'},
+      limp:!!S.kellyLimp,regenOk:!!S.kellyRegenOk,regenOkWhy:S.kellyRegenOk?'':S.regenWhy,powerAllowedPct:S.kellyPct,powerWhy:S.kellyWhy||'',faultCode:null,controller:'Kelly',
+      limits:{battA:VP.battA,phaseA:VP.phaseA,maxRegenA:VP.maxRegenA,overA:S.cfg.overA,overMs:S.kcfg.overcurrentMs,instantTripA:S.kcfg.instantTripA,overTempC:S.cfg.overTempC},curves:simCurves()},
     energy:{kWhUsed:null,whPerMi:null,rangeMiEst:null,packKWh:null,calibrated:false},
     aux12v:(()=>{const L=loadsOn();return {wired:false,volts:null,loadA:loadAmps(L),loadAEstimate:true,loads:{lights:L.lights,fan:L.fan,pump:L.pump,alarm:L.alarm,speakers:L.spk,seatDriver:seatLv.driver,seatPassenger:seatLv.passenger,seatHeat:seatLv.driver+seatLv.passenger>0}};})(),
-    coolant:{wired:false,pumpOn:keyOn||!!cLoad.pump,flowOk:null,tempC:null},faults:fl,events:[]};
+    coolant:{wired:false,pumpOn:keyOn||!!cLoad.pump,flowOk:null,tempC:null},faults:fl,events:[],fw:'BmsCore (wasm sim build)',log:simLog(),
+    simInfo:{key:keyOn,plug:plugOn,gear:cGear,gradePct:VP.gradePct,speed,weld:$('welded').checked,cycleSel:dcSel,cycleOn:!!dc,cycleTxt:dc?`${dc.name}: ${dc.label||''} ${(100*dc.t/dc.len).toFixed(0)} %`:(dcLast?dcLast.name+' ended: '+dcLast.why:''),cycles:Object.entries(DRIVE_CYCLES).map(([k,p])=>[k,p.name])}};
 }
-function pushDash(st){if(!dashC)dashC=TeryxDash.create($('dashHost'),{simControls:true,onControl:(t)=>ulog('Controls: '+t),onSeat:(k,lv)=>{seatLv[k]=lv;ulog(`Seat heater ${k} ${['off','Low','Med','High'][lv]}`);},
+function pushDash(st){if(!dashC)dashC=TeryxDash.create($('dashHost'),{simControls:true,simPanel:{send:simCmd,hostKey:true},
+    veh:{get:()=>VP,set:(k,v)=>{VP[k]=v;try{localStorage.setItem('teryxVehSettings',JSON.stringify(VP));}catch(e){}ulog('Vehicle setting '+k+' = '+v);if($('vn_'+k))$('vn_'+k).value=+v;}},
+    onFan:on=>{$('ld_fan').checked=on;$('ld_fan').dispatchEvent(new Event('change'));},
+    onGear:g=>{if(Math.abs(cSpd)>1&&(g==='R')!==(cGear==='R'))return 'Stop first to change into or out of reverse';simCmd('gear',g);return '';},onControl:(t)=>ulog('Controls: '+t),onSeat:(k,lv)=>{seatLv[k]=lv;ulog(`Seat heater ${k} ${['off','Low','Med','High'][lv]}`);},
     onChargeLimit:v=>{$('pct').value=v;$('pct').dispatchEvent(new Event('input'));ulog('Charge limit '+v+'% (charge screen, saved)');},
     onAmpsLimit:a=>{X.sim_set_charge_max_a(a);ulog('Charge amps limit '+a+' A (sim)');},
     onChargeStop:on=>{X.sim_set_charge_stop(on?1:0);ulog(on?'Charging stopped (charge screen); drive stays locked':'Charging started (charge screen)');},
@@ -837,6 +877,7 @@ function wire(){
   X=instance.exports;X._initialize();flLoad();X.sim_reset();
   buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireCycle();wireSettings();wireVeh();$('dwake').onclick=()=>{if(dashC)dashC.wake('sim Wake button');};$('ddoor').onclick=()=>{doorPulse=true;ulog('Door / button input (PROPOSED pin)');};
   {const L=+localStorage.getItem('teryxChargeLimit');if(L>=50&&L<=100){$('pct').value=L;$('pct').dispatchEvent(new Event('input'));}}$('dashWin').onclick=()=>{dashW=window.open(location.href.replace(/bms_sim\.html.*$|index\.html.*$/,'dash.html')+'?src=sim','teryxdash');};loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
+  try{new BroadcastChannel('teryx-dash-cmd').onmessage=e=>{const m=e.data||{};if(m.cmd){remoteDrive=true;simCmd(m.cmd,m.v);}};}catch(e){}
   if(location.hash){const t=document.querySelector(`.tab[data-t="${location.hash.slice(1)}"]`);if(t)t.click();}
 })();
 </script></body></html>

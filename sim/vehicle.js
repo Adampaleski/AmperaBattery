@@ -4,17 +4,17 @@
 // limit -> wheel force through 16/32 sprockets x ASSUMED gearbox; minus rolling, aero, grade, friction brake
 // and regen. Brake pedal = regen first (Kelly Brake_AN analog regen input, pin per the brief, UNVERIFIED on
 // Adam's harness), friction tops up; regen fades out below ~3 mph and friction takes over.
-const VEH_DEF={tireIn:27,sprFront:16,sprRear:32,gearbox:4.38,massKg:900,crr:0.030,cdA:1.20,gradePct:0,
+const VEH_DEF={tireIn:27,sprFront:16,sprRear:32,gearbox:1.0,massKg:900,crr:0.030,cdA:1.20,gradePct:0,
   maxRegenA:60,regenBlendPct:30,liftRegen:false,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,battA:550,
   frictionG:0.6,fadeLoMph:1.5,fadeHiMph:4.5};
 // [key, label, unit, tag, min, max, step]
-const VEH_SETS=[['tireIn','Tire diameter','in','ASSUMED (plan doc 27")',18,40,0.5],['sprFront','Drive sprocket','teeth','ASSUMED 16T (plan doc)',8,40,1],
-  ['sprRear','Driven sprocket','teeth','ASSUMED 32T (plan doc)',16,80,1],['gearbox','Gearbox ratio','× : 1','ASSUMED: back-solved from plan doc ~6000 RPM ≈ 55 mph',1,12,0.01],
+const VEH_SETS=[['tireIn','Tire diameter','in','ASSUMED 27" (plan doc). Tires/wheels MISSING in cash ledger; stock 2008 Teryx is 25". Confirm tire size',18,40,0.5],['sprFront','Drive sprocket','teeth','SOURCED: cash ledger (#50 chain, 16T)',8,40,1],
+  ['sprRear','Driven sprocket','teeth','SOURCED: cash ledger (#50 chain, 32T → 2.0:1)',16,80,1],['gearbox','Gearbox ratio','× : 1','UNVERIFIED 1.0: cash ledger shows chain straight to a Perfection Driveline custom axle, no gearbox; possible diff ratio unknown. Confirm total ratio',1,12,0.01],
   ['massKg','Mass (with driver + pack)','kg','ASSUMED',400,1600,10],['crr','Rolling resistance Crr','','ASSUMED (dirt / ATV tires)',0.005,0.15,0.001],
   ['cdA','Drag area CdA','m²','ASSUMED',0.3,3,0.05],['gradePct','Grade','%','SIM input',-30,30,0.5],
   ['maxRegenA','Max regen current','A','PROPOSED 60 A',0,200,5],['regenBlendPct','Regen brake blend','% pedal','PROPOSED: regen-only up to this pedal, then friction adds',0,100,5],
   ['liftRegen','Throttle lift-off regen','on/off','PROPOSED off by default',0,1,1],['liftRegenA','Lift-off regen current','A','PROPOSED',0,100,5],
-  ['ktNmA','Motor torque constant','Nm/A','ASSUMED (Zero 75-7R, no datasheet on file)',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
+  ['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
   ['phaseA','Kelly phase current limit','A','SOURCED: Adam 550 A (Kelly config not yet read back)',50,800,10],['battA','Kelly battery current limit','A','SOURCED: Adam 550 A',50,800,10]];
 // Kelly speed modes. sc = throttle scale, rpm = motor RPM cap. PROPOSED placeholders, not Kelly settings.
 const VEH_GEARS={L:{n:'Low',sc:.45,rpm:2700},M:{n:'Medium',sc:.70,rpm:4400},H:{n:'High',sc:1,rpm:6000},R:{n:'Reverse',sc:.25,rpm:1100}};
