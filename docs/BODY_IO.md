@@ -22,14 +22,16 @@ Hardware: dual board gets a new **J9 BODY** header (18 pins, Teensy A). It feeds
 | 41 (A17) | POS_4WD | ADC | 4WD actuator pot wiper (3.3 V) | UNVERIFIED |
 | 39 (A15) | POS_DIFF | ADC | diff actuator pot wiper | UNVERIFIED |
 | 40 | ST_4WD (IN5) | in | optional stock 4WD switch on the front diff, 27k/10k divider | optional |
-| 26 / 27 | SPI1 MOSI/SCK | SPI | 2× 74HC595 lights + MCP4131 throttle pot | PROPOSED |
-| 38 | THR_CS1 | out | MCP4131 chip select | PROPOSED |
+| 37 | ACT_EN | out | R_EN+L_EN of BOTH BTS7960s, 10k pull-down (disabled at boot) | PROPOSED |
+| 26 (A12) / 27 (A13) | IS_4WD / IS_DIFF | ADC | BTS7960 IS current sense via 10k/18k (5 V → 3.21 V) + 100 nF; fault ~7 A PROPOSED, IS scale UNVERIFIED | PROPOSED |
+| 35 / 36 | LIGHT_DATA / LIGHT_CLK | out (bit-banged) | 2× 74HC595 lights; MCP4131 shares them | chief requirement |
+| 38 | THR_CS | out | MCP4131 chip select | PROPOSED |
 | 32 | LIGHT_LATCH | out | 595 RCLK | PROPOSED |
 | 34 | LIGHT_OE | out | 595 /OE, pulled up (lights off at boot) | PROPOSED |
-| 595 bits 0–8 | HEAD_LO, HEAD_HI, TAIL, BRAKE, TURN_L, TURN_R, REVERSE, BAR, WORK | via FET | lights; headlights, bar and work lights through relays | PROPOSED |
+| 595 bits 0–8 | HEAD_LO, HEAD_HI, TAIL, BRAKE, TURN_L, TURN_R, REVERSE, BAR, WORK | via FET | lights; headlights/bar/work through relays | PROPOSED |
 
-Hazard is TURN_L and TURN_R together, so it has no channel of its own. SPI0 can't be used because pins 11, 12 and 13 are OUT1, OUT2 and LED.
-**Spare edge pins left: 33, 35, 36, 37.** Pin 33 is PROPOSED for the charge plug-in detect.
+Hazard = TURN_L + TURN_R. No SPI peripheral is used for the body I/O. SPI0 is unusable anyway because 11/12/13 are OUT1/OUT2/LED.
+**Spare edge pins: none.** 33 is RESERVED for charge plug-in detect (PROPOSED). 24 (HV_SENSE) is optional and unused by default.
 
 ## Dash / sim (sim/controls.js, sim/dash.js "Lights · 4WD" page)
 Every threshold is PROPOSED and can be edited on the page (saved in localStorage):
@@ -43,8 +45,8 @@ Every threshold is PROPOSED and can be edited on the page (saved in localStorage
 ## Chosen parts (Sparky 2026-10-21, specs as given, not re-checked against datasheets, nothing bought)
 - Actuator: Glideforce **LACT4P-12V-10**. Stall is 7 A at 12 V; it draws about 1 A unloaded and over 3 A at full load. Speed is about 1.1 in/s unloaded and 0.9 in/s loaded. IP65. The alternative is the -20 version (110 lb, half the speed). Pot resistance is UNVERIFIED; feed the pot from 3.3 V.
 - Driver: **BTS7960** module, one per actuator. RPWM and LPWM go on the two existing pins (9/10 for 4WD, 28/29 for the diff). R_EN and L_EN are tied together with a pull-down, so the driver is disabled at boot. 3.3 V logic compatibility is UNVERIFIED, and the VNH5019 is the alternative.
-  The enable line has no Teensy pin yet. Either tie it to the 595 /OE path or use spare pin 35/36: PROPOSED.
-- Faults: an over-current fault at about **7 A** (PROPOSED) needs the BTS7960 IS current-sense pins wired to an ADC. That isn't assigned or simulated yet, so the sim's stall and timeout faults run on the position pot only.
+  Enable: pin 37, shared by both modules, with a 10k pull-down on the daughterboard.
+- Faults: an over-current fault at about **7 A** (PROPOSED) reads the IS lines on A12/A13. The BTS7960 IS-to-amps ratio and its module resistor are UNVERIFIED, so it needs a bench calibration. Over-current isn't simulated; the sim's stall and timeout faults use the pot.
 - Fuses / relays (ESTIMATE): fan 15 A, headlights 10 A, coolant pump 10 A, seats 10 A each.
 
 ## Earlier candidates (per Mechanic, not re-checked, nothing bought)

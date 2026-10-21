@@ -186,12 +186,19 @@ constexpr int ACTDIF_IN2  = 29;   // H-bridge #2 IN2 (PWM) retract = unlock
 constexpr int POS_4WD     = 41;   // A17 4WD actuator pot wiper, pot fed from 3.3 V (or 5 V via 10k/18k divider)
 constexpr int POS_DIFF    = 39;   // A15 diff actuator pot wiper
 constexpr int IN5 = 40;  constexpr int ST_4WD = IN5;  // OPTIONAL stock front-diff 4WD indicator switch, divider + 100 nF
-// Lights on 2x 74HC595 (SPI1 shared with the MCP4131 throttle digipot; SPI0 unusable: 11/12/13 = OUT1/OUT2/LED).
+// BTS7960 drivers (Sparky): RPWM/LPWM = the IN1/IN2 pins above; R_EN+L_EN of BOTH modules on one pin,
+// 10k pull-DOWN on the daughterboard -> disabled at boot. IS current sense via 10k/18k divider (5 V -> 3.21 V) + 100 nF.
+constexpr int ACT_EN      = 37;   // both BTS7960 enables (active high)
+constexpr int IS_4WD      = 26;   // A12 BTS7960 #1 IS (R_IS+L_IS), over-current ~7 A PROPOSED, scale UNVERIFIED
+constexpr int IS_DIFF     = 27;   // A13 BTS7960 #2 IS
+// Lights on 2x 74HC595, BIT-BANGED (chief 2026-10-21; SPI0 unusable: 11/12/13 = OUT1/OUT2/LED).
 // 595 bits: 0 HEAD_LO 1 HEAD_HI 2 TAIL 3 BRAKE 4 TURN_L 5 TURN_R 6 REVERSE 7 LIGHT_BAR | 8 WORK, 9-15 spare.
 // Hazard = TURN_L + TURN_R (no own bit). Blink is done in firmware.
-constexpr int SPI1_MOSI  = 26;  constexpr int SPI1_SCK = 27;
-constexpr int THR_CS1    = 38;    // MCP4131 chip select
-constexpr int LIGHT_LATCH= 32;    // 595 RCLK
-constexpr int LIGHT_OE   = 34;    // 595 /OE, 10k pull-UP: lights stay off until firmware drives it low
-// Edge-pin spares left: 33, 35, 36, 37. PROPOSED: 33 = charge plug-in detect.
+constexpr int LIGHT_DATA  = 35;
+constexpr int LIGHT_CLK   = 36;
+constexpr int LIGHT_LATCH = 32;   // 595 RCLK
+constexpr int LIGHT_OE    = 34;   // 595 /OE, 10k pull-UP: lights stay off until firmware drives it low
+// MCP4131 throttle digipot shares LIGHT_DATA/LIGHT_CLK (bit-banged, own CS); 595s ignore it (no latch pulse). PROPOSED.
+constexpr int THR_CS      = 38;
+// Spare edge pins: NONE free. 33 RESERVED = charge plug-in detect (PROPOSED). 24 (HV_SENSE) is optional/unused by default.
 }  // namespace Pins
