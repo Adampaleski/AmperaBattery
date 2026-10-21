@@ -112,7 +112,7 @@ struct Config {
     float    maxDischargeA  = 0.0f;    // Kelly "discharge amps" derate; 0 = off (250 A derate superseded 2026-10-20)
     // timing (Config.h / StringConfig.h)
     uint32_t stringSilentMs = 2000;
-    uint32_t linkStaleMs    = 1000;
+    uint32_t linkStaleMs    = 200;   // PROPOSED (Adam 2026-10-21): lost B heartbeat -> F_LINK, mains open
     uint32_t pcMinMs        = 300;
     uint32_t pcTimeoutMs    = 3000;
     uint32_t pcRetryWaitMs  = 30000;

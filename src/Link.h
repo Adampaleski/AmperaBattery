@@ -21,5 +21,6 @@ void onFrame(const CAN_message_t &msg);   // from CAN2 RX
 StringMon::Summary remote(int s);         // A: B's string s (faults include kFLinkStale)
 uint8_t remoteFaults();                   // A: OR of remote faults (masked)
 bool    peerAlive();                      // B: A's heartbeat fresh
+void    setStaleMs(uint32_t ms);          // A: runtime stale limit (Thresholds linkMs, default LINK_STALE_MS)
 void print();
 }  // namespace Link

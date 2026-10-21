@@ -57,7 +57,7 @@ uint32_t keepAliveFail() { return g_kaFail; }
 uint32_t lastRxAgeMs() { return g_lastRx ? millis() - g_lastRx : 0; }
 
 void printStatus() {
-    SERIALCONSOLE.print(F("CAN1 (22/23) @125k string2: rx="));
+    SERIALCONSOLE.print(F(BICM2_NAME " @125k string2: rx="));
     SERIALCONSOLE.print(g_rx);
     SERIALCONSOLE.print(F(" last_rx_age="));
     SERIALCONSOLE.print(lastRxAgeMs());

@@ -6,11 +6,11 @@ All BMS_CAP flags 0, TELEMETRY_ONLY=1: contactors, charge and balance are PRINT-
 ## Buses (each Teensy)
 | Bus | Pins | Rate | Use |
 |---|---|---|---|
-| CAN3 | 30/31 | 125k 11-bit | string 1: **NEEDS REMAP** — old M1 30S (6/8/8/8) + M4 6S entry superseded (no 30S). 36S from 24S + 18S BICM boards; StringConfig default is `M2_ALL|M4_12S` |
-| CAN1 | 22/23 | 125k 11-bit | string 2: 24S (M3) + 12S of an 18S M4 board; StringConfig default `M3_ALL|M4_12S`. Which 18S board each string uses: **to confirm** |
-| CAN2 | 0/1 | 250k 29-bit | Elcon + Kelly + inter-Teensy link |
+| CAN1 | 22/23 | 125k 11-bit | string 1 (B: string 3): **NEEDS REMAP** — old M1 30S (6/8/8/8) + M4 6S entry superseded (no 30S). 36S from 24S + 18S BICM boards; StringConfig default is `M2_ALL|M4_12S` |
+| CAN2 | 0/1 | 125k 11-bit | string 2 (B: string 4): 24S (M3) + 12S of an 18S M4 board; StringConfig default `M3_ALL|M4_12S`. Which 18S board each string uses: **to confirm** |
+| CAN3 | 30/31 | 250k 29-bit | Kelly + Elcon + inter-Teensy link (Adam 2026-10-21, `CAN_LAYOUT_V2`; see PACK_LAYOUT.md) |
 
-Keep-alive 0x200 is sent on CAN3 and CAN1 (BICMs stop reporting without it).
+Keep-alive 0x200 is sent on both BICM buses (CAN1 and CAN2) (BICMs stop reporting without it).
 Each bus needs its own transceiver (SN65HVD230) and 120 ohm termination at both ends.
 
 ## Pin map
@@ -24,7 +24,7 @@ Each bus needs its own transceiver (SN65HVD230) and 120 ohm termination at both 
 | OUT6 | **3** | was 23 (now CAN1 RX) |
 | OUT7 / OUT8 | 5 / 6 | unchanged |
 | B fault out | 4 | role B only, DISABLED (`B_FAULT_PIN_ENABLE=0`); HIGH = ok, LOW = fault |
-| CAN1 TX/RX | 22/23 | string 2 |
+| CAN1 TX/RX | 22/23 | string 1/3 |
 | Serial4 (hub) | 16/17 | unchanged |
 
 ## String config (include/StringConfig.h)
@@ -33,7 +33,7 @@ M4 6S mode = one of `M4_C1/M4_C2/M4_C3`; 12S mode = two. Each string must total
 `STRING_EXPECT_S` (36) or the build fails. Default (Adam 10/19): string 1 = `M2_ALL|M4_12S`, string 2 = `M3_ALL|M4_12S` (24S + M4 c1-12; M4 top 0x46E empty by design, `STRING_EMPTY_CIRCUITS`). Example: `-D STRING2_CIRCUITS="(M3_ALL|M4_C1|M4_C2)"`.
 An expected circuit with no fresh frame for > `STRING_SILENT_MS` (1000 ms) = FAULT.
 
-## Link IDs (CAN2, 29-bit extended)
+## Link IDs (CAN3, 29-bit extended)
 | ID | Dir | Bytes |
 |---|---|---|
 | 0x6A0 | B->A | string 1: [0-1] V x100 LE, [2-3] min mV LE, [4-5] max mV LE, [6] faults, [7] heartbeat |
@@ -62,7 +62,7 @@ retries, then Lockout (dead-man off clears). Bus voltage source: `U` simulation,
 HV divider if `HV_ANALOG_ENABLE=1`, else none (precharge times out = fails safe).
 
 ## HV facts (2026-10-20, see docs/TERYX_MAIN_POWER_PATH.md)
-- Strings are 36S, built from 24S + 18S BICM boards. No 30S module.
+- Strings are 36S, built from 24S + 18S BICM boards. No 30S module. Pack 36S × 4P SOURCED (Adam 2026-10-21); 550 A launch = 137.5 A per string vs 200 A fuse. 8 BICMs (2 per string), 4 BICM buses; nominal ≈133 V. docs/PACK_LAYOUT.md.
 - Sensing: dual LEM A (strings 1+2, Teensy A) + LEM B (strings 3+4, Teensy B) is primary; ISA IVT-S optional.
 - Trips: 650 A for 100 ms or 750 A instantly on LEM A + B. Derates: imbalance > 100 A for 1 s; relative cell sag + pack sag vs load + 3.00 V/500 ms floor, 3.30 V low cut at rest for 1 s (2026-10-21, PLACEHOLDER values); heat off until TEMPS_VERIFIED.
 - Mains: two used TE EV200 (pack + / −); Volt AEV14012s only on charger/DC-DC/precharge.

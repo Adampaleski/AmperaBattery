@@ -57,6 +57,8 @@ static const ThrDef kThr[] = {
     THR_F("imbA",     imbalanceA,    "A",  20.0f,  300.0f, true),
     THR_U("imbMs",    imbalanceMs,         100,   10000,   true),
     THR_F("imbPct",   imbalancePct,  "%",  0.0f,   100.0f, true),
+    // A-B link (Adam 2026-10-21): lost B heartbeat -> F_LINK fault, mains open, logged
+    THR_U("linkMs",  linkStaleMs,         100,   2000,    true),
     // derate event logging
     THR_U("drLogMs",  derateLogMs,         20,    5000,    true),
     THR_U("drClrMs",  derateClearMs,       100,   30000,   true),

@@ -1,3 +1,4 @@
+#include "FlexCanCompat.h"
 #include "CurrentSense.h"
 #include "KellyLimit.h"
 #include <Arduino.h>
@@ -317,7 +318,7 @@ void setup() {
 #if DUAL_STRING
     SERIALCONSOLE.print(F("DUAL-STRING 4P  role="));
     SERIALCONSOLE.println(ROLE_IS_A ? F("A (master: contactor SM, listens to B)") : F("B (reports to A, no contactors)"));
-    SERIALCONSOLE.println(F("  CAN3 30/31 @125k = string 1   CAN1 22/23 @125k = string 2   CAN2 0/1 @250k = Elcon+Kelly+link"));
+    SERIALCONSOLE.println(F("  " BICM1_NAME " @125k = string 1   " BICM2_NAME " @125k = string 2   " VEH_NAME " @250k = Elcon+Kelly+link"));
     SERIALCONSOLE.print(F("  string1 circuits=0x"));
     SERIALCONSOLE.print(static_cast<uint32_t>(STRING1_CIRCUITS), HEX);
     SERIALCONSOLE.print(F("  string2 circuits=0x"));

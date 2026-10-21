@@ -200,7 +200,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
   <h3 style="margin:24px 0 12px">Strings · 36S each · 4P · drag a cell bar up/down</h3>
   <div class="strings" id="strings"></div>
   <div class="card" style="margin-top:16px"><div class="shead"><h3 style="margin:0">Balance plan</h3>
-    <div class="controls"><select id="planS"><option value="0">String 1 · A CAN3</option><option value="1">String 2 · A CAN1</option><option value="2">String 3 · B CAN3</option><option value="3">String 4 · B CAN1</option></select>
+    <div class="controls"><select id="planS"><option value="0">String 1 · A CAN1</option><option value="1">String 2 · A CAN2</option><option value="2">String 3 · B CAN1</option><option value="3">String 4 · B CAN1</option></select>
     <span class="mut">deadband</span><select id="db"><option>5</option><option selected>10</option><option>20</option></select><span class="mut">mV</span></div></div>
     <pre id="plan"></pre><div class="dim" style="margin-top:8px;font-size:18px">Print-only: FACTORY_BALANCE_MAP_VERIFIED=0, BMS_CAP_BALANCE_TX=0. M4 top 0x46E is never planned.</div></div>
 </section>
@@ -288,7 +288,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
     <div class="controls"><button class="btn" id="sanc">Charge to limit (anchor)</button><button class="btn" id="sdrop">LEM dropout 3 s</button>
       <label class="sw" style="flex:1;min-width:260px"><span>Cells drain with current (sim plant)</span><input type="checkbox" id="sdrain" checked><i></i></label></div>
     <div class="readout" id="sdet"></div>
-    <div class="dim" style="font-size:18px">Estimate = the firmware's own <b>BmsCore::Soc</b> (include/SocEstimator.h) run on LEM A + LEM B, + = discharge. It is unknown at boot and only becomes known at a full-charge anchor (Core "at charge limit"); current invalid for more than 2 s makes it unknown again. <span style="color:var(--warn)">SIM-ASSUMED capacity 180 Ah</span> (4 strings × 45 Ah, the sim's range assumption); the real bank Ah is UNVERIFIED and is 0 = unknown in code. Sim truth = lowest cell on a SIM-ASSUMED linear map 3.30 V = 0 % → 4.10 V = 100 % (no verified OCV curve). Not wired in firmware: CURRENT_SENSE_ENABLE=0.</div>
+    <div class="dim" style="font-size:18px">Estimate = the firmware's own <b>BmsCore::Soc</b> (include/SocEstimator.h) run on LEM A + LEM B, + = discharge. It is unknown at boot and only becomes known at a full-charge anchor (Core "at charge limit"); current invalid for more than 2 s makes it unknown again. <span style="color:var(--warn)">capacity 180 Ah</span> = 4 strings (SOURCED: Adam, 36S × 4P) × 45 Ah per group (ASSUMED); the real bank Ah is UNVERIFIED and is 0 = unknown in code. Sim truth = lowest cell on a SIM-ASSUMED linear map 3.30 V = 0 % → 4.10 V = 100 % (no verified OCV curve). Not wired in firmware: CURRENT_SENSE_ENABLE=0.</div>
   </div></div>
   <div class="card"><h3>Where each signal comes from <span class="tag">PIN MAP</span></h3><table class="io" id="ciomap"></table></div>
   </details>
@@ -343,8 +343,8 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 <script>
 const WASM_B64="@@WASM_B64@@";
 const $=id=>document.getElementById(id);
-const STR=[{n:"String 1",t:"A",bus:"CAN3",pins:"30/31",big:"M2",boards:[0,1]},{n:"String 2",t:"A",bus:"CAN1",pins:"22/23",big:"M3",boards:[2,3]},
-           {n:"String 3",t:"B",bus:"CAN3",pins:"30/31",big:"M2",boards:[4,5]},{n:"String 4",t:"B",bus:"CAN1",pins:"22/23",big:"M3",boards:[6,7]}];
+const STR=[{n:"String 1",t:"A",bus:"CAN1",pins:"22/23",big:"M2",boards:[0,1]},{n:"String 2",t:"A",bus:"CAN2",pins:"0/1",big:"M3",boards:[2,3]},
+           {n:"String 3",t:"B",bus:"CAN1",pins:"22/23",big:"M2",boards:[4,5]},{n:"String 4",t:"B",bus:"CAN2",pins:"0/1",big:"M3",boards:[6,7]}];
 const BOARDS=[];STR.forEach((s,si)=>{BOARDS.push({s:si,n:s.big+" 24S",cells:24,owned:true});BOARDS.push({s:si,n:"M4 18S · 12S used",cells:12,empty:6,owned:si<2});});
 let X,S=null,userLog=[],hideBefore=-1,simNow=0,keyOn=false,chgOn=false,plugOn=false,speed=1,last=performance.now(),acc=0,sel=null;
 const cs=p=>{const m=new Uint8Array(X.memory.buffer);let e=p;while(m[e])e++;return new TextDecoder().decode(m.subarray(p,e));};
@@ -416,11 +416,11 @@ function buildDiagram(){
   svg.addEventListener('click',()=>closeSheet());
   const SY=[40,235,475,670];
   // Teensys
-  [['A',70],['B',505]].forEach(([t,y])=>part('teensy'+t,24,y,160,250,'BMS BRAIN · Teensy 4.1 '+t,t==='A'?'S1 CAN3 · S2 CAN1 · master':'S3 CAN3 · S4 CAN1 → link',
+  [['A',70],['B',505]].forEach(([t,y])=>part('teensy'+t,24,y,160,250,'BMS BRAIN · Teensy 4.1 '+t,t==='A'?'S1 CAN1 · S2 CAN2 · Kelly CAN3 · master':'S3 CAN1 · S4 CAN2 · CAN3 link',
     {owned:true,sub:t==='A'?'Role A (TEENSY_ROLE 0)':'Role B (TEENSY_ROLE 1)',kv:()=>t==='A'?{
-      'CAN3':'pins 30/31 · 125k · String 1','CAN1':'pins 22/23 · 125k · String 2','CAN2':'pins 0/1 · 250k · Elcon, Kelly, link',
+      'CAN1':'pins 22/23 · 125k · String 1','CAN2':'pins 0/1 · 125k · String 2','CAN3':'pins 30/31 · 250k · Kelly, Elcon, link',
       'Contactors':'11 main+ · 12 precharge · 21 main−','Kelly':'OUT3 20 limp · OUT5 2 derate · OUT6 3 regen','Current':'A0/A1 + A11 (5 V ref)',
-      'Watchdog':'WDOG3 ~2 s','State':S.state}:{'CAN3':'pins 30/31 · String 3','CAN1':'pins 22/23 · String 4','CAN2':'link to A every 100 ms','Link':S.linkUp?'up':'DOWN'}}));
+      'Watchdog':'WDOG3 ~2 s','State':S.state}:{'CAN1':'pins 22/23 · String 3','CAN2':'pins 0/1 · String 4','CAN3':'250k · link to A every 100 ms (stale 200 ms PROPOSED → fault)','Link':S.linkUp?'up':'DOWN'}}));
   el('text',{class:'tiny',x:36,y:126},null,'11 MAIN+  12 PRE  21 MAIN−');el('text',{class:'tiny',x:36,y:142},null,'20 limp · 2 derate · 3 regen');
   el('text',{class:'tiny',x:36,y:158},null,'A0/A1 DHAB · A11 5V ref');
   // strings
@@ -470,7 +470,7 @@ function buildDiagram(){
   part('kelly',1308,98,86,74,'Kelly KLS8080 NPS','550 A',{owned:true,kv:()=>({'Part':'Kelly KLS8080 NPS','Order':'SOURCED: Adam\'s Kelly order #81746 (2025-05-03, $1,214.90) — KLS-8080N, 144 V / 550 A config (model line 72–168 V), Sin/Cos sensor (8080NPS series), field weakening, bidirectional anti-slip','Included':'W3-GT2 liquid-cooling heatsink · 35-pin plug-and-play cable · Kelly USB cable · KLS test box','Voltage':'36S full charge ≈148–149 V is inside the 72–168 V model range (SOURCED: order listing #81746)','Cooling':'W3-GT2 liquid heatsink on the stock Teryx radiator + Bosch 12 V pump (PROPOSED, on with key) · radiator fan relay at ~40 °C (PROPOSED)','Overvoltage cutout':'≈173 V per earlier research; adjustable in Kelly software; factory default UNVERIFIED (read from Kelly config)','Limits':'phase 550 A · battery 550 A (Adam 2026-10-20, set in Kelly config tool — not yet confirmed programmed)','Motor':'Zero 75-7R · peak rating UNVERIFIED','Speed cap':'~6000 RPM ≈ 55 mph on 27" tires (plan doc)','Input capacitance':'UNVERIFIED (2 mF model only)','Logic power':'isolated 8–20 V, never pack B+','CAN2':'0x0CF11E05 / 0x0CF11F05 broadcast only — accepts no commands','Limp':'OUT3 pin 20 → low-speed input (wiring TBD)','Derate':'OUT5 pin 2 PWM → throttle (wiring TBD)','Regen':'OUT6 pin 3 → regen enable (wiring TBD)','Allowed':S.kellyPct.toFixed(0)+'%'+(S.kellyLimp?' · LIMP':'')})});
   path('M1300 135 H1308','hv','hvK');
   part('aev1',1206,420,84,44,'AEV14012','optional',{owned:true,kv:()=>({'Part':'Volt AEV14012 contactor (factory, owned)','Use':'optional isolation of the charger branch','Status':'not in the control loop'})});
-  part('elcon',1308,412,86,60,'Elcon','HK-LF-144-46',{owned:true,kv:()=>({'Part':'Elcon HK-LF-144-46 (100–202 V, 46 A)','CAN2':'0x1806E5F4 control · 0x18FF50E5 status','Request':S.chargeEnable?`${S.chargeV.toFixed(1)} V / ${S.chargeA.toFixed(2)} A`:'STOP','Why':S.chargeWhy||'-','Gate':'BMS_CAP_CHARGE_TX=0 → print only'})});
+  part('elcon',1308,412,86,60,'Elcon','HK-LF-144-46',{owned:true,kv:()=>({'Part':'Elcon HK-LF-144-46 (100–202 V, 46 A)','CAN3':'0x1806E5F4 control · 0x18FF50E5 status','Request':S.chargeEnable?`${S.chargeV.toFixed(1)} V / ${S.chargeA.toFixed(2)} A`:'STOP','Why':S.chargeWhy||'-','Gate':'BMS_CAP_CHARGE_TX=0 → print only'})});
   path('M1290 442 H1300','tbd','');
   path('M1300 442 H1308','hv','hvE');
   part('aev2',1206,540,84,44,'AEV14012','optional',{owned:true,kv:()=>({'Part':'Volt AEV14012 contactor (factory, owned)','Use':'optional isolation of the DC-DC branch'})});
@@ -480,9 +480,9 @@ function buildDiagram(){
   path('M834 760 H930','hv','hvMN1');
   contactor('mainneg',940,752,'Main − EV200HAANA',{owned:true,kv:()=>({'Part':'TE EV200HAANA 1-1618002-8, 12–24 V economized coil (owned, open-box) · on B−','Coil':'Teensy A pin 21 → 12 V FET','Wanted':S.mainNeg?'CLOSED':'open','Owned':'no — to buy (unverified)'})});
   path('M1044 760 H1300 V640','hv','hvMN2');el('text',{class:'tiny',x:1150,y:752},null,'to Kelly / Elcon / DC-DC B−');
-  // CAN2 shared bus
+  // CAN3 shared vehicle bus
   path('M24 190 H12 V860 H1390 V480','can','can2');path('M24 625 H12','can','can2b');path('M1390 150 V172','can','');
-  el('text',{class:'sub',x:420,y:852},null,'CAN2 · pins 0/1 · 250 kbit/s · Elcon + Kelly (broadcast only) + A↔B link');
+  el('text',{class:'sub',x:420,y:852},null,'CAN3 · pins 30/31 · 250 kbit/s · Elcon + Kelly (broadcast only) + A↔B link');
   path('M1390 480 V150 H1394','can','can2k');
   path('M184 625 H200 V190 H184','can','linkAB');el('text',{class:'tiny',x:196,y:410,transform:'rotate(-90 196 410)'},null,'A ↔ B link 0x6A0–0x6A8');
 
@@ -601,9 +601,9 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Gear H/M/L','Kelly speed-switch inputs (3-speed on KLS NPS — UNVERIFIED); Teensy OUT3 pin 20 already drives limp (low-speed)','Kelly pins UNVERIFIED'],
  ['Reverse','Kelly reverse switch input; PROPOSED Teensy tap to show R on cluster and inhibit regen/charge','PROPOSED'],
  ['Speed','Kelly CAN 0x0CF11E05 RPM (b0–b1) ÷ (16/32 sprockets × 4.375 diff = 8.75, SOURCED) × 24" stock tire (SOURCED: Adam); sim: vehicle model','needs BMS_CAP_KELLY_RX=1 after candump'],
- ['Pack V','BICM cell sums (CAN3/CAN1 @125k); Kelly bus V on CAN 0x0CF11E05 b4–b5 as cross-check','BICM wired; Kelly RX off'],
+ ['Pack V','BICM cell sums (CAN1/CAN2 @125k); Kelly bus V on CAN 0x0CF11E05 b4–b5 as cross-check','BICM wired; Kelly RX off'],
  ['Pack A','LEM A (A0) + LEM B (A1), 5 V ref A11 — sign flip + zero cal TODO','CURRENT_SENSE_ENABLE=0'],
- ['Cell min/max','Volt BICMs M2/M3/M4 over CAN3 (30/31) and CAN1 (22/23)','live on bench'],
+ ['Cell min/max','Volt BICMs M2/M3/M4 over CAN1 (22/23) and CAN2 (0/1), 4 buses','live on bench'],
  ['Pack temps','BICM thermistors','TEMPS_VERIFIED=0'],
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
  ['SOC / range','BmsCore::Soc coulomb count on LEM A + LEM B, full-charge anchor (docs/SOC.md); range = SoC × SIM-ASSUMED 23.3 kWh ÷ 350 Wh/mi','sim only · capAh UNVERIFIED · CURRENT_SENSE_ENABLE=0'],
@@ -772,7 +772,7 @@ function renderCluster(){
   const socErr=`sim truth ${Q.truthPct.toFixed(1)} %`+(est?` · error ${err>=0?'+':''}${err.toFixed(1)} %`:' · error —');
   $('clL').innerHTML=`<div class="g soc"><div class="k">Battery</div><div class="v">${socV}</div><div class="src nw">${socSrc}</div><div class="err">${socErr}</div></div>`+
     gauge('Range',est?range.toFixed(0)+' mi':'—','SoC × SIM-ASSUMED '+(36*3.6*Q.capAh/1000).toFixed(1)+' kWh ÷ 350 Wh/mi (PROPOSED)',1)+gauge('Pack',S.busV.toFixed(1)+' V · '+S.packA.toFixed(0)+' A','V: BICM cell sum · A: LEM A + LEM B (CURRENT_SENSE_ENABLE=0)',1)+gauge('LEM A / B',S.lemA.toFixed(0)+' / '+S.lemB.toFixed(0)+' A','LEM A0/A1 · sign + zero cal TODO',1);
-  $('clR').innerHTML=gauge('Cell min / max',lo.toFixed(3)+' / '+hi.toFixed(3)+' V','BICM cell data (CAN3/CAN1)',0)+gauge('Pack temp',S.tMin.toFixed(0)+'–'+S.tMax.toFixed(0)+' °C','BICM thermistors · TEMPS_VERIFIED=0',1)+gauge('Kelly / motor temp','— / —','Kelly CAN 0x0CF11F05 · not decoded (RX off)',1)+gauge('Power allowed',S.kellyPct.toFixed(0)+' %'+(S.kellyWhy?' · '+S.kellyWhy:''),'BMS output → Kelly (print-only)',0);
+  $('clR').innerHTML=gauge('Cell min / max',lo.toFixed(3)+' / '+hi.toFixed(3)+' V','BICM cell data (CAN1/CAN2)',0)+gauge('Pack temp',S.tMin.toFixed(0)+'–'+S.tMax.toFixed(0)+' °C','BICM thermistors · TEMPS_VERIFIED=0',1)+gauge('Kelly / motor temp','— / —','Kelly CAN 0x0CF11F05 · not decoded (RX off)',1)+gauge('Power allowed',S.kellyPct.toFixed(0)+' %'+(S.kellyWhy?' · '+S.kellyWhy:''),'BMS output → Kelly (print-only)',0);
   const w=[];if(S.state==='Fault'||S.state==='Lockout')w.push('BMS FAULT');S.faultNames.forEach((n,i)=>{if(S.faults&(1<<i))w.push(n);});
   if(S.kellyLimp)w.push('LIMP');if(S.kellyWhy)w.push('Derate: '+S.kellyWhy);if(lo<3.2)w.push('Low cell');if(Q.drift)w.push('SoC drift');if(Q.lemDrop||(Q.why||'').startsWith('current lost'))w.push('SoC unknown: current lost');if(S.tMax>=50)w.push('Pack hot');if(S.lemImbalance)w.push('LEM imbalance');if(!S.kellyRegenOk&&closed)w.push('Regen off');
   if(cLoad.alarm||w.some(x=>/FAULT/.test(x)))w.push('🔔 Alarm');if(loadsOn().fan)w.push('Fan on');if(cLoad.lights)w.push('Lights');

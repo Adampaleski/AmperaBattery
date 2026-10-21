@@ -106,7 +106,7 @@ with sync_playwright() as p:
     # BMS thresholds card (Settings tab): real Thresholds.h validation via wasm, live + saved
     pg.click('.tab[data-t="settings"]'); pg.wait_for_timeout(300)
     T = '#thrT tr[data-k="ocA"] '
-    ok(pg.locator('#thrT tr[data-k]').count() == 20 and pg.locator('#thrT tr[data-k="floorV"] .tag').count() == 1, 'thresholds: 20 keys listed, PLACEHOLDER tag on floorV')
+    ok(pg.locator('#thrT tr[data-k]').count() == 21 and pg.locator('#thrT tr[data-k="floorV"] .tag').count() == 1, 'thresholds: 21 keys listed, PLACEHOLDER tag on floorV')
     pg.fill(T + 'input', '600'); pg.press(T + 'input', 'Enter'); pg.wait_for_timeout(300)
     ok('saved: ocA=600' in pg.inner_text('#thrMsg') and 'SET' in pg.inner_text(T) and pg.evaluate('S.cfg.overA') == 600, 'thresholds: ocA 600 applied live, SET tag')
     pg.fill(T + 'input', '700'); pg.press(T + 'input', 'Enter'); pg.wait_for_timeout(300)
@@ -119,7 +119,7 @@ with sync_playwright() as p:
     pg.click(T + '[data-r]'); pg.wait_for_timeout(300)
     ok(pg.input_value(T + 'input') == '650' and 'back to default 650' in pg.inner_text('#thrMsg'), 'thresholds: per-key Reset restores 650')
     pg.click('#thrX'); pg.wait_for_timeout(300)
-    ok('0 of 20 changed' in pg.inner_text('#thrSum'), 'thresholds: Reset all')
+    ok('0 of 21 changed' in pg.inner_text('#thrSum'), 'thresholds: Reset all')
     pg.click('.tab[data-t="faults"]'); pg.wait_for_timeout(300)
     ok('Last derate' in pg.inner_text('#fder'), 'faults tab: last derate line shown')
     pg.click('.tab[data-t="cluster"]'); pg.wait_for_timeout(200)

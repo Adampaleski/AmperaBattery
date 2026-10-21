@@ -1,8 +1,8 @@
 #include "FlexCanCompat.h"
 
 FlexCanCompat Can0;
-FlexCanCompatT<CAN2> CanCharger;
-FlexCanCompatT<CAN1> CanString2;
+FlexCanCompatT<VEH_DEV> CanCharger;
+FlexCanCompatT<BICM2_DEV> CanString2;
 
 template <CAN_DEV_TABLE Bus>
 void FlexCanCompatT<Bus>::begin(uint32_t baudrate, bool extendedIds) {

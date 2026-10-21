@@ -33,3 +33,4 @@ still 0 and `TELEMETRY_ONLY=1`.
 - Mains: two used TE EV200 (pack + / −). Volt AEV14012s only on charger/DC-DC/precharge.
 - Fuses: 4× Mersen A6T200 200 A Class T, planned; size to be confirmed vs 650 A trip (Sparky).
 - Strings: 36S from 24S + 18S BICM boards; no 30S.
+- Pack layout SOURCED (Adam 2026-10-21): 36S × 4P, 2 BICMs per string = 8 BICMs on 4 BICM buses (corrected 17:10). Resolves 36S2P vs 4 × 36S in favour of 4 × 36S. Group Ah 45 ASSUMED → 180 Ah. Nominal ≈133 V (36 × 3.7 ASSUMED); 147.6 V is full. 6 BICMs owned, 2 × M4 to buy. See docs/PACK_LAYOUT.md.

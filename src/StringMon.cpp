@@ -1,3 +1,4 @@
+#include "FlexCanCompat.h"
 #include "StringConfig.h"
 #if DUAL_STRING
 #include "StringMon.h"
@@ -11,7 +12,7 @@ namespace StringMon {
 namespace {
 
 constexpr uint32_t kMasks[kStrings] = {STRING1_CIRCUITS, STRING2_CIRCUITS};
-constexpr const char *kBusName[kStrings] = {"CAN3", "CAN1"};
+constexpr const char *kBusName[kStrings] = {BICM1_NAME, BICM2_NAME};
 
 constexpr int circCells(int i) { return kFactoryFrames[2 * i].count + kFactoryFrames[2 * i + 1].count; }
 constexpr int maskCells(uint32_t m) {

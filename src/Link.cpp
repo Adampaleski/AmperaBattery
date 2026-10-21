@@ -1,3 +1,4 @@
+#include "FlexCanCompat.h"
 #include "StringConfig.h"
 #if DUAL_STRING
 #include "Link.h"
@@ -40,7 +41,8 @@ void send(uint32_t id, const uint8_t *b) {
 #endif
 }
 
-bool stale(const Remote &r) { return !r.seen || (millis() - r.lastMs) > LINK_STALE_MS; }
+uint32_t g_staleMs = LINK_STALE_MS;
+bool stale(const Remote &r) { return !r.seen || (millis() - r.lastMs) > g_staleMs; }
 }  // namespace
 
 void begin() {
@@ -135,10 +137,11 @@ uint8_t remoteFaults() {
     return (remote(0).faults | remote(1).faults) & StringMon::kFaultMask;
 }
 
-bool peerAlive() { return g_peerSeen && (millis() - g_peerMs) <= LINK_STALE_MS; }
+bool peerAlive() { return g_peerSeen && (millis() - g_peerMs) <= g_staleMs; }
+void setStaleMs(uint32_t ms) { g_staleMs = ms; }
 
 void print() {
-    SERIALCONSOLE.print(F("LINK CAN2 @250k ext IDs 0x6A0-0x6AF  role="));
+    SERIALCONSOLE.print(F("LINK " VEH_NAME " @250k ext IDs 0x6A0-0x6AF  role="));
     SERIALCONSOLE.print(ROLE_IS_A ? 'A' : 'B');
     SERIALCONSOLE.print(F("  tx="));
     SERIALCONSOLE.print(g_tx);

@@ -26,6 +26,21 @@ constexpr uint16_t kCanScanMaxIds = 64;
 #define PACK_S_CELLS 24
 #endif
 
+// Teryx pack layout (SOURCED: Adam 2026-10-21): 36S x 4P, four 36S strings in parallel.
+// Documentation constants only; nothing reads them for control. See docs/PACK_LAYOUT.md.
+constexpr int   kTeryxStringS        = 36;      // SOURCED: Adam
+constexpr int   kTeryxStringsP       = 4;       // SOURCED: Adam
+constexpr float kVoltGen1GroupAhAssumed = 45.0f; // ASSUMED: 3P x 15 Ah Gen1 cells, not measured
+constexpr float kTeryxPackAhAssumed  = kTeryxStringsP * kVoltGen1GroupAhAssumed;  // 180 Ah ASSUMED
+constexpr float kTeryxNominalV       = kTeryxStringS * 3.7f;  // ~133 V nominal (ASSUMED 3.7 V/cell); 147.6 V is FULL
+// Monitoring (SOURCED: Adam 2026-10-21): 2 BICMs per string (one 24S M2/M3 + one M4 18S using c1-12) = 8 BICMs,
+// 2 BICMs per string on 4 buses (Adam 2026-10-21): A CAN1=S1, CAN2=S2, CAN3=Kelly 250k; B CAN1=S3, CAN2=S4, CAN3=link (FlexCanCompat.h CAN_LAYOUT_V2)
+constexpr int   kBicmPerString       = 2;
+constexpr int   kBicmBuses           = 4;       // one per string; identical M4 IDs cannot share a bus
+static_assert(kBicmBuses == kTeryxStringsP && kBicmPerString * kTeryxStringsP == 8, "pack needs 8 BICMs on 4 buses");
+static_assert(24 + 12 == kTeryxStringS, "per string: 24S board + 12 channels of an M4 = 36S");
+static_assert(kTeryxStringS * 4.10f < 168.0f, "36S charge ceiling must stay under the 168 V Kelly");
+
 #ifndef PACK_MODULE_COUNT
 #define PACK_MODULE_COUNT 4
 #endif
@@ -150,7 +165,7 @@ constexpr int OUT6 = 3;   // was 23
 // Role B optional hard-wired fault output (DISABLED unless B_FAULT_PIN_ENABLE=1).
 // Level: HIGH = healthy, LOW = fault (fail-safe: unpowered/broken wire = fault).
 constexpr int B_FAULT_OUT = 4;
-constexpr int CAN1_TX = 22;  // string 2 BICM bus (CAN1), SN65HVD230 #3
+constexpr int CAN1_TX = 22;  // CAN1: string 2 BICM (bench envs) / string 1 BICM (dual, CAN_LAYOUT_V2), SN65HVD230
 constexpr int CAN1_RX = 23;
 constexpr int OUT7 = 5;
 constexpr int OUT8 = 6;

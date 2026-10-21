@@ -38,7 +38,35 @@ private:
     bool extended_ids_     = false;
 };
 
-using FlexCanCompat = FlexCanCompatT<CAN3>;
-extern FlexCanCompat Can0;
-extern FlexCanCompatT<CAN2> CanCharger;
-extern FlexCanCompatT<CAN1> CanString2;  // pins 22/23, string 2 BICMs (dual-string build)
+// Controller map. Single-bus bench envs: CAN3 = BICM, CAN1 = string 2, CAN2 = Elcon/Kelly (unchanged).
+// Dual-string 4-bus pack (Adam 2026-10-21, CAN_LAYOUT_V2=1, default when DUAL_STRING=1):
+//   CAN1 22/23 @125k = local BICM string 1 (A: S1, B: S3)
+//   CAN2 0/1   @125k = local BICM string 2 (A: S2, B: S4)
+//   CAN3 30/31 @250k = vehicle bus: Kelly + Elcon + A-B link (B joins the same bus; was "spare")
+// CREW REVIEW: firmware logic change (bus remap), not bench-tested.
+#ifndef CAN_LAYOUT_V2
+#if defined(DUAL_STRING) && DUAL_STRING
+#define CAN_LAYOUT_V2 1
+#else
+#define CAN_LAYOUT_V2 0
+#endif
+#endif
+#if CAN_LAYOUT_V2
+#define BICM1_DEV CAN1
+#define BICM2_DEV CAN2
+#define VEH_DEV   CAN3
+#define BICM1_NAME "CAN1 22/23"
+#define BICM2_NAME "CAN2 0/1"
+#define VEH_NAME   "CAN3 30/31"
+#else
+#define BICM1_DEV CAN3
+#define BICM2_DEV CAN1
+#define VEH_DEV   CAN2
+#define BICM1_NAME "CAN3 30/31"
+#define BICM2_NAME "CAN1 22/23"
+#define VEH_NAME   "CAN2 0/1"
+#endif
+using FlexCanCompat = FlexCanCompatT<BICM1_DEV>;
+extern FlexCanCompat Can0;                      // local BICM string 1
+extern FlexCanCompatT<VEH_DEV> CanCharger;      // 250k vehicle bus: Elcon + Kelly + link
+extern FlexCanCompatT<BICM2_DEV> CanString2;    // local BICM string 2 (dual-string build)

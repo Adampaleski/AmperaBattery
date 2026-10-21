@@ -62,7 +62,7 @@
 #define STRING_SILENT_MS 2000                      // two missed 1 s keep-alives -> FAULT (crew OK 10/17; confirm vs d gapmax)
 #endif
 #ifndef LINK_STALE_MS
-#define LINK_STALE_MS 1000                         // A: B summary older -> FAULT
+#define LINK_STALE_MS 200                          // A: B heartbeat older -> FAULT, mains open + logged. PROPOSED 200 ms (Adam 2026-10-21); runtime key T linkMs
 #endif
 #ifndef LINK_PERIOD_MS
 #define LINK_PERIOD_MS 100
