@@ -1,4 +1,4 @@
-// node scripts/check_bms_sim_wasm.js /tmp/bms_sim.wasm  -> same scenario table as scripts/sim_bms.cpp (parity) + 8 socpage checks (BmsCore::Soc exports) + 5 drivecycle checks (sim/drive_cycles.js) + 8 faultlog-page checks; exit 1 on any FAIL
+// node scripts/check_bms_sim_wasm.js /tmp/bms_sim.wasm  -> same scenario table as scripts/sim_bms.cpp (parity) + 8 socpage checks (BmsCore::Soc exports) + 5 drivecycle checks (sim/drive_cycles.js) + 8 faultlog-page checks + 8 thresholds-page checks (include/Thresholds.h); exit 1 on any FAIL
 // + charge-mode and vehicle-model/regen checks (sim/vehicle.js)
 const fs=require("fs");
 const inst=new WebAssembly.Instance(new WebAssembly.Module(fs.readFileSync(process.argv[2])),{});
@@ -128,3 +128,25 @@ const scFail=r.filter(x=>!x.pass).length;if(sf||df||scFail)process.exitCode=1;
  {const L=fl();fk(L.recs.some(r=>r.kind===4&&r.boot===L.boot-1),"power cycle: derate records survive");}
  X.sim_set_pack_amps(0);X.sim_flog_clear();X.sim_reset();
  console.log(`faultlog-page: ${fn-ff}/${fn} checks passed`);if(ff)process.exitCode=1;}
+// ---- BMS thresholds page (include/Thresholds.h via sim_thr_*; same validation as the serial T command)
+{let tf=0,tn=0;const tj=()=>JSON.parse(cs(X.sim_thr_json())),st=()=>JSON.parse(cs(X.sim_state_json()));
+ const ix=k=>tj().keys.findIndex(x=>x.key===k),val=k=>tj().keys[ix(k)].value;
+ const tk=(ok,name,d)=>{tn++;if(!ok)tf++;console.log((ok?"PASS":"FAIL")+" thresholds-page "+name.padEnd(46),d);};
+ X.sim_thr_reset_all();X.sim_reset();
+ {const J=tj();tk(J.n===20&&J.overrides===0&&J.base===1216&&J.end===1306&&J.keys[ix("ocA")].only==="lower"&&J.keys[ix("chgMinC")].only==="raise"&&!J.keys[ix("ocA")].ph&&J.keys[ix("floorV")].ph,"20 keys, defaults, tighten-only + PLACEHOLDER tags",`n=${J.n} base=${J.base}`);}
+ {const m=cs(X.sim_thr_set(ix("ocA"),600));X.sim_set_key(1);X.sim_step(4000);X.sim_set_pack_amps(620);X.sim_step(200);const s=st();X.sim_set_pack_amps(0);
+  tk(/saved: ocA=600/.test(m)&&val("ocA")===600&&s.cfg.overA===600&&tj().keys[ix("ocA")].set===1&&(s.faults|s.latched)&(1<<6),"set ocA 600 in bounds: applied live, 620 A trips",m);}
+ X.sim_reset();
+ {const m=cs(X.sim_thr_set(ix("imbPct"),150));tk(/REFUSED: imbPct=150 outside 0-100/.test(m)&&val("imbPct")===50&&st().dcfg.imbalancePct===50,"imbPct 150 out of bounds: refused, unchanged",m);}
+ {const m=cs(X.sim_thr_set(ix("instA"),800)),m2=cs(X.sim_thr_set(ix("tripC"),60));tk(/REFUSED: instA=800 outside 100-750/.test(m)&&/REFUSED: tripC=60/.test(m2)&&st().kcfg.instantTripA===750&&st().cfg.overTempC===55,"loosen trip (instA 800, tripC 60): refused",m);}
+ {const m=cs(X.sim_thr_set(ix("instA"),550)),m2=cs(X.sim_thr_set(ix("sagStart"),0.45));tk(/breaks rule: ocA < instA/.test(m)&&/breaks rule: sagStart < sagZero/.test(m2)&&val("instA")===750&&Math.abs(val("sagStart")-0.15)<1e-6,"order rules (instA 550 < ocA 600, sagStart 0.45): refused",m+" | "+m2);}
+ {const m=cs(X.sim_thr_set(ix("floorV"),3.30));tk(/breaks rule: floorV < low cutoff/.test(m)&&Math.abs(val("floorV")-3.0)<1e-6,"floorV 3.30 = L 3.30: refused (floorV < L)",m);}
+ {cs(X.sim_thr_set(ix("floorV"),2.9));const m=cs(X.sim_thr_default(ix("ocA")));const a=val("ocA"),s1=st().cfg.overA;const m2=cs(X.sim_thr_reset_all());
+  tk(/ocA back to default 650/.test(m)&&a===650&&s1===650&&/all back to code defaults/.test(m2)&&tj().overrides===0&&Math.abs(st().dcfg.hardFloorV-3.0)<1e-6,"reset one (ocA) + reset all restore defaults",m);}
+ {cs(X.sim_thr_set(ix("ocA"),600));cs(X.sim_thr_set(ix("floorV"),2.9));const b=X.sim_thr_base(),e=X.sim_thr_end(),ee=[];for(let a=b;a<e;a++)ee.push(X.sim_ee_get(a));  // = page localStorage 'teryx.thr.v1'
+  const Y=new WebAssembly.Instance(new WebAssembly.Module(fs.readFileSync(process.argv[2])),{}).exports;Y._initialize();const ys=p=>{const m=new Uint8Array(Y.memory.buffer);let q=p;while(m[q])q++;return Buffer.from(m.subarray(p,q)).toString();};
+  ee.forEach((v,i)=>Y.sim_ee_set(b+i,v));Y.sim_ee_loaded();Y.sim_reset();const J=JSON.parse(ys(Y.sim_thr_json())),S=JSON.parse(ys(Y.sim_state_json()));
+  const Z=new WebAssembly.Instance(new WebAssembly.Module(fs.readFileSync(process.argv[2])),{}).exports;Z._initialize();ee.forEach((v,i)=>Z.sim_ee_set(b+i,i===20?v^1:v));Z.sim_ee_loaded();const zs=p=>{const m=new Uint8Array(Z.memory.buffer);let q=p;while(m[q])q++;return Buffer.from(m.subarray(p,q)).toString();};const JZ=JSON.parse(zs(Z.sim_thr_json()));
+  tk(J.overrides===2&&S.cfg.overA===600&&Math.abs(S.dcfg.hardFloorV-2.9)<1e-3&&JZ.overrides===0&&JZ.keys[0].value===650,"reload: saved EEPROM restores ocA 600 + floorV 2.9; corrupt = defaults",`after reload overrides=${J.overrides} ocA=${S.cfg.overA} floorV=${S.dcfg.hardFloorV}; corrupt overrides=${JZ.overrides}`);}
+ X.sim_thr_reset_all();X.sim_reset();
+ console.log(`thresholds-page: ${tn-tf}/${tn} checks passed`);if(tf)process.exitCode=1;}

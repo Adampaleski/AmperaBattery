@@ -366,7 +366,7 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
  ['SoC / range','BmsCore::Soc coulomb count on LEM A + B, full-charge anchor; range = SoC × ASSUMED kWh ÷ Wh/mi','sim only · capAh UNVERIFIED'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → head unit','schema exists']];
-const DASH_BUILD='built on afa5776+';
+const DASH_BUILD='built on 747f7c1+';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');
@@ -449,7 +449,7 @@ function create(root,opt){
       <div class="row"><button class="mb" data-f="aclr" style="display:none">Clear actuator fault</button>${opt.simControls?'<label class="k"><input type="checkbox" data-f="st4"> sim: stall 4WD actuator</label> <label class="k"><input type="checkbox" data-f="std"> sim: stall diff actuator</label>':''}</div>
       <div class="note" data-f="cmsg"></div>
       <div class="k">Settings · all PROPOSED · each change asks first</div><div class="cset" data-f="cset"></div></section>
-     <section data-s2="flt"><h3>Faults &amp; log</h3><div class="k">Active now</div><div class="lst" data-f="mfa"></div><div class="k">Seen on this screen</div><div class="lst" data-f="mfh"></div><div class="k">Event log <span class="tag" data-f="mflT"></span></div><div class="lst" data-f="mfl"></div></section>
+     <section data-s2="flt"><h3>Faults &amp; log</h3><div class="k">Active now</div><div class="lst" data-f="mfa"></div><div class="k">Power cutback (derate)</div><div class="kv" data-f="mfd"></div><div class="k">Seen on this screen</div><div class="lst" data-f="mfh"></div><div class="k">Event log <span class="tag" data-f="mflT"></span></div><div class="lst" data-f="mfl"></div></section>
      <section data-s2="cool"><h3>Cooling</h3><div class="kv" data-f="mco"></div><div class="row"><button class="mb" data-f="mfan">Fan override</button><span class="tag" data-f="mfanN"></span></div>
       <div class="k">Pump: PROPOSED Bosch 12 V pump on the stock radiator, on whenever the key is on. Fan: PROPOSED relay, auto at ~40 °C. No flow or coolant-temp sensor yet, so those read —.</div></section>
      <section data-s2="veh"><h3>Vehicle settings</h3><div class="note">Tire 24 in (SOURCED: Adam, stock tires). At the PROPOSED 6000 RPM High cap the top speed is ≈49 mph; 55 mph would need ≈6740 RPM. Total ratio 8.75 = sprockets 16T/32T 2.0:1 (SOURCED: cash ledger) × diff 4.375:1 (SOURCED: 2008 owner's manual).</div><div data-f="mveh"></div></section>
@@ -650,7 +650,7 @@ function create(root,opt){
         ['Kelly battery limit',f1(Lm.battA,0,'A'),'SOURCED: Adam'],['Kelly phase limit',f1(Lm.phaseA,0,'A'),'SOURCED: Adam'],['Max regen',f1(Lm.maxRegenA,0,'A'),'PROPOSED'],['BMS trip',num(Lm.overA)?Lm.overA+' A · '+Lm.overMs+' ms':null],['Instant trip',f1(Lm.instantTripA,0,'A')],['Over-temp open',f1(Lm.overTempC,0,'°C')]]);
       F('mds').innerHTML=tr([['Limp (OUT3 pin 20)',live&&Dr.limp!=null?(Dr.limp?'ON':'off'):null],['Derate PWM (OUT5 pin 2)',num(Dr.powerAllowedPct)?Math.round(Dr.powerAllowedPct*2.55)+' / 255':null],['Regen allowed (OUT6 pin 3)',live&&Dr.regenOk!=null?(Dr.regenOk?'HIGH':'LOW'):null],['Controller temp',f1(Dr.controllerTempC,0,'°C')],['Throttle',f1(Dr.throttlePct,0,'%')],['Brake',f1(Dr.brakePct,0,'%')]]);
       F('mcrv').innerHTML=Array.isArray(Dr.curves)&&Dr.curves.length?Dr.curves.map(curveSvg).join(''):'<div class="na k">Cutback curves are not in this data source</div>';}
-    else if(menuSec==='flt'){const fl=(live&&s.faults)||[];F('mfa').innerHTML=fl.length?fl.map(f=>`<div class="f">${f.level==='fault'?'FAULT':f.level} · ${f.text}</div>`).join(''):'<div>No active faults</div>';
+    else if(menuSec==='flt'){const fl=(live&&s.faults)||[];const hasD=live&&Dr.lastDerate!=null;F('mfd').innerHTML=tr([['Derate now',hasD?(Dr.derateNow?Dr.derateNow+' · '+Math.round(Dr.powerAllowedPct)+' %':'none'):null],['Last derate',hasD?(Dr.lastDerate?Dr.lastDerate+' · lowest '+Math.round(Dr.lastDerateMinPct)+' %':'none this boot'):null],['Derates this boot',hasD&&num(Dr.derateEvents)?Dr.derateEvents:null]]);F('mfa').innerHTML=fl.length?fl.map(f=>`<div class="f">${f.level==='fault'?'FAULT':f.level} · ${f.text}</div>`).join(''):'<div>No active faults</div>';
       F('mfh').innerHTML=fhist.length?fhist.slice(-30).reverse().map(h=>`<div class="${h.on?'f':''}">${new Date(h.t).toLocaleTimeString()} · ${h.on?'set':'cleared'} · ${h.text}</div>`).join(''):'<div>Nothing yet</div>';
       const lg=(live&&Array.isArray(s.log))?s.log:null,cl=CT.S.log.slice(-15).reverse();F('mflT').textContent=lg?'from '+(s.src==='sim'?'the simulator':'the hub'):'controls only';
       F('mfl').innerHTML=(lg?lg.map(e=>`<div class="${/FAULT|latched|WELD|Lockout|fail/i.test(e.text)?'f':''}">${e.t} · ${String(e.text).replace(/</g,'&lt;')}</div>`).join(''):'')+cl.map(t=>`<div>controls · ${t}</div>`).join('')||'<div>Empty</div>';}

@@ -5,6 +5,7 @@
 #include "BmsSim.h"
 #include "SocEstimator.h"
 #include "FaultLog.h"
+#include "Thresholds.h"
 
 using namespace BmsSim;
 
@@ -42,6 +43,38 @@ uint32_t g_prevFaults = 0;
 uint8_t  g_prevDerate = 0;
 void flogBegin() { g_flog.begin({eeRead, eeWrite}); g_prevFaults = 0; g_prevDerate = 0; }
 struct EeInit { EeInit() { memset(g_ee, 0xFF, sizeof g_ee); flogBegin(); } } g_eeInit;
+// ---- Thresholds (sim only): the real BmsCore::Thresholds (include/Thresholds.h)
+// on the same simulated EEPROM (bytes 1216..1305, right after the FaultLog), so
+// bounds, tighten-only and order rules are exactly the firmware's. Edits go
+// through Thresholds::handleLine() (the serial T command). thrApply() mirrors
+// ContactorSeq::configureCore(): code defaults for every threshold field, then
+// the saved overrides on top, into the live World's BmsCore::Config.
+BmsCore::Thresholds g_thr(BmsCore::LogStore{eeRead, eeWrite});
+char g_thrMsg[256];
+void thrSink(const char *s) { const size_t n = strlen(g_thrMsg); snprintf(g_thrMsg + n, sizeof g_thrMsg - n, "%s", s); }
+BmsCore::Config thrBase() {   // live config with every threshold field at its code default
+    BmsCore::Config c = g_w.core.cfg;
+    const BmsCore::Config d;
+    for (int i = 0; i < BmsCore::kThrN; i++) {
+        const BmsCore::ThrDef &t = BmsCore::kThr[i];
+        if (t.isMs) c.*(t.u) = d.*(t.u); else c.*(t.f) = d.*(t.f);
+    }
+    return c;
+}
+void thrApply() { BmsCore::Config c = thrBase(); g_thr.setBase(c); g_thr.apply(c); g_w.core.cfg = c; }
+const char *thrCmd(const char *line) {
+    g_thrMsg[0] = 0;
+    g_thr.setBase(thrBase());          // order rules see the live L (low cutoff)
+    g_thr.handleLine(line, thrSink);
+    thrApply();
+    const size_t n = strlen(g_thrMsg);
+    if (n && g_thrMsg[n - 1] == '\n') g_thrMsg[n - 1] = 0;
+    return g_thrMsg;
+}
+float thrGet(const BmsCore::Config &c, int i) {
+    const BmsCore::ThrDef &t = BmsCore::kThr[i];
+    return t.isMs ? static_cast<float>(c.*(t.u)) : c.*(t.f);
+}
 float simLowestCell();
 int16_t flogValue(uint8_t bit) {   // one context value per record
     if (bit == 3 || bit == 2 || bit == 10) return static_cast<int16_t>(simLowestCell() * 1000.0f + 0.5f);   // cell mV
@@ -201,7 +234,7 @@ EXPORT void sim_flog_tear() {     // power pulled mid-write: next slot gets only
 EXPORT int  sim_ee_size() { return sizeof g_ee; }
 EXPORT int  sim_ee_get(int a) { return eeRead(a); }
 EXPORT void sim_ee_set(int a, int v) { if (a >= 0 && a < static_cast<int>(sizeof g_ee)) g_ee[a] = static_cast<uint8_t>(v); }   // page restore only
-EXPORT void sim_ee_loaded() { flogBegin(); g_eeDirty = false; }
+EXPORT void sim_ee_loaded() { flogBegin(); g_thr.load(); thrApply(); g_eeDirty = false; }
 EXPORT int  sim_ee_dirty() { const int d = g_eeDirty; g_eeDirty = false; return d; }
 EXPORT const char *sim_flog_json() {
     Buf b;
@@ -216,6 +249,46 @@ EXPORT const char *sim_flog_json() {
         if (r.kind == BmsCore::LogKind::Note) b.str(r.code == BmsCore::NOTE_LIMIT ? "log limit reached" : "note");
         else if (r.kind == BmsCore::LogKind::DerateSet || r.kind == BmsCore::LogKind::DerateClear) b.str(BmsCore::derateName(r.code));
         else b.str(r.code < 32 ? BmsCore::faultName(1u << r.code) : "?");
+        b.f("}");
+    }
+    b.f("]}");
+    return g_buf;
+}
+
+// Thresholds (include/Thresholds.h on the simulated EEPROM), sim only.
+EXPORT const char *sim_thr_set(int i, float v) {   // same as serial "T<key> <v>"
+    if (i < 0 || i >= BmsCore::kThrN) return "THRESHOLDS: no such key";
+    char line[48]; snprintf(line, sizeof line, "T%s %.9g", BmsCore::kThr[i].key, static_cast<double>(v));
+    return thrCmd(line);
+}
+EXPORT const char *sim_thr_default(int i) {        // "T<key> -"
+    if (i < 0 || i >= BmsCore::kThrN) return "THRESHOLDS: no such key";
+    char line[24]; snprintf(line, sizeof line, "T%s -", BmsCore::kThr[i].key);
+    return thrCmd(line);
+}
+EXPORT const char *sim_thr_reset_all() { return thrCmd("TX"); }
+EXPORT int sim_thr_base() { return BmsCore::Thresholds::kBase; }
+EXPORT int sim_thr_end() { return BmsCore::Thresholds::kEnd; }
+EXPORT const char *sim_thr_json() {
+    const BmsCore::Config &c = g_w.core.cfg;
+    const BmsCore::Config d;
+    const char *rule = BmsCore::Thresholds::orderError(c);
+    Buf b;
+    b.f("{\"n\":%d,\"overrides\":%d,\"base\":%d,\"end\":%d,\"lowCutV\":%.3f,\"rule\":", BmsCore::kThrN, g_thr.overrides(),
+        BmsCore::Thresholds::kBase, BmsCore::Thresholds::kEnd, c.lowCutV);
+    b.str(rule ? rule : "");
+    b.f(",\"keys\":[");
+    for (int i = 0; i < BmsCore::kThrN; i++) {
+        const BmsCore::ThrDef &t = BmsCore::kThr[i];
+        const float def = thrGet(d, i);
+        // tighten-only = the code default sits on a bound (trips may only go down, charge-min temp only up)
+        const char *dir = def >= t.hi - 1e-4f ? "lower" : (def <= t.lo + 1e-4f ? "raise" : "");
+        b.f("%s{\"key\":", i ? "," : ""); b.str(t.key);
+        b.f(",\"unit\":"); b.str(t.unit);
+        b.f(",\"value\":%.9g,\"def\":%.9g,\"lo\":%.9g,\"hi\":%.9g,\"ms\":%d,\"ph\":%d,\"set\":%d,\"only\":",
+            static_cast<double>(thrGet(c, i)), static_cast<double>(def), static_cast<double>(t.lo), static_cast<double>(t.hi),
+            t.isMs, t.placeholder, g_thr.isSet(i));
+        b.str(dir);
         b.f("}");
     }
     b.f("]}");

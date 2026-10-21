@@ -146,6 +146,9 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 .simbox{border:2px dashed var(--warn);border-radius:var(--r);padding:16px;margin:16px 0}.simbox>h2{margin:0 0 12px;font-size:18px;color:var(--warn);letter-spacing:.08em;text-transform:uppercase}
 .small{font-size:18px;color:var(--dim)} details.more{margin-top:16px}details.more>summary{cursor:pointer;font-size:20px;padding:14px 0;color:var(--mut)}
 #t-drive .hero{position:sticky;top:69px;z-index:4;background:#000;padding:8px 0}
+#thrT td.k{white-space:nowrap}#thrT .key{font-family:ui-monospace,Menlo,monospace;font-size:18px;color:var(--dim)}#thrT tr.grp td{padding-top:18px;color:var(--mut);font-size:18px;letter-spacing:.06em;text-transform:uppercase;border-bottom:0}
+#thrT input.set1{box-shadow:inset 0 0 0 1.5px var(--tx)}#thrT .rs{min-height:40px;padding:0 14px}#thrT .rs:disabled{opacity:.25;cursor:default}#thrT .t2{font-size:18px;color:var(--mut)}
+#thrMsg{min-height:28px;margin-top:12px}#thrMsg.bad{color:var(--red)}#thrMsg.ok{color:var(--tx)}#thrRule{color:var(--warn)}
 .set{width:100%;border-collapse:collapse}.set td{padding:10px 6px;border-bottom:1px solid #1c1c1e}.set input{width:120px;min-height:40px;background:var(--card2);border:0;border-radius:8px;color:var(--tx);font:inherit;padding:0 10px}
 </style></head><body>
 <header><div class="bar">
@@ -295,7 +298,14 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
     <div class="mut">These change the simulator only and are saved in this browser (localStorage). They never change firmware, the Kelly or any flag. Firmware defaults stay as committed until Adam approves a change.</div>
     <table class="set" id="setT"></table>
     <div class="controls" style="margin-top:14px"><button class="btn" id="setSave">Save…</button><button class="btn" id="setDef">Restore defaults…</button></div>
-    <div class="mut" style="margin-top:10px">Read-only rows come from the firmware build (BmsCore config) and can only change in code.</div>
+    <div class="mut" style="margin-top:10px">Read-only rows come from the firmware build (BmsCore config) and can only change in code. The BMS trip, temperature, sag, imbalance and derate-log levels are editable in <b>BMS thresholds</b> below.</div>
+  </div>
+  <div class="card" id="thrCard"><div class="shead"><h3 style="margin:0">BMS thresholds <span class="tag">SIM · SAME RULES AS FIRMWARE</span></h3>
+    <div class="controls"><button class="btn" id="thrX">Reset all…</button></div></div>
+    <div class="mut">The real <code>include/Thresholds.h</code> (serial <code>T</code> command) runs inside the simulator: same bounds, same tighten-only trips and temperature cuts, same order rules. Applied values go straight into the simulated BmsCore and are saved in this browser (simulated EEPROM 1216–1305). Firmware and the Teensy are not changed. Bounds are software sanity limits, not part specs.</div>
+    <div class="mut" style="margin-top:6px" id="thrSum">—</div>
+    <table class="set" id="thrT"></table>
+    <div id="thrMsg" class="mut"></div>
   </div>
   <div class="card"><h3>Vehicle model <span class="tag">SIM ONLY · ASSUMED / PROPOSED</span></h3>
     <div class="mut">Drives wheel speed, motor RPM and regen in the Cluster tab, the dash and drive cycles. Saved in this browser. None of these is measured on the Teryx yet.</div>
@@ -311,7 +321,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 </section>
 <!-- ======================= FAULTS ======================= -->
 <section id="t-faults">
-  <div class="card"><h3>Active &amp; latched</h3><div id="faults"></div></div>
+  <div class="card"><h3>Active &amp; latched</h3><div id="faults"></div><div class="mut" id="fder" style="margin-top:12px"></div></div>
   <div class="card"><div class="shead"><h3 style="margin:0">Fault log <span class="tag">SURVIVES POWER-OFF</span></h3>
     <div class="controls"><button class="btn" id="flPow">Power cycle</button><button class="btn" id="flTear">Pull power mid-write</button><button class="btn" id="flClr">Clear log…</button></div></div>
     <div class="mut" id="flSum">—</div>
@@ -726,7 +736,7 @@ function simStatus(lo,hi,Q,est,closed){
     inputs:{key:keyOn,door:doorPulse},
     charge:{maxA:S.ccfg.chargeMaxA,ampsLimit:S.ccfg.chargeMaxA,chargerMaxA:CHARGER.maxA,charger:CHARGER,capAh:Q.capAh,capAssumed:true,plugged:!!S.plugIn,mode:S.mode,chargeA:S.chargeEnable?S.chargeA:0,chargeV:S.chargeV,why:S.chargeWhy,limitPct:+$('pct').value,driveLocked:!!S.driveLocked,keyRefused:!!S.keyRefused,chargerPath:!!S.chargerPath},
     drive:{wired:true,rpm:vLast?vLast.rpm:null,rpmSource:'sim model',speedMph:Math.abs(cSpd),speedSource:'sim model',brakePct:+$('cbrk').value,regenA:vLast?vLast.regenA:0,regenWhy:vLast?vLast.regenWhy:'',gear:closed?cGear:'P',motorTempC:null,controllerTempC:+$('ckt').value,throttlePct:+$('cthr').value,
-      limp:!!S.kellyLimp,regenOk:!!S.kellyRegenOk,regenOkWhy:S.kellyRegenOk?'':S.regenWhy,powerAllowedPct:S.kellyPct,powerWhy:S.kellyWhy||'',faultCode:null,controller:'Kelly',
+      limp:!!S.kellyLimp,regenOk:!!S.kellyRegenOk,regenOkWhy:S.kellyRegenOk?'':S.regenWhy,powerAllowedPct:S.kellyPct,powerWhy:S.kellyWhy||'',derateNow:S.derate||'',lastDerate:S.lastDerate||'',lastDerateMinPct:S.derateMinPct,derateEvents:S.derateEvents,faultCode:null,controller:'Kelly',
       limits:{battA:VP.battA,phaseA:VP.phaseA,maxRegenA:VP.maxRegenA,overA:S.cfg.overA,overMs:S.kcfg.overcurrentMs,instantTripA:S.kcfg.instantTripA,overTempC:S.cfg.overTempC},curves:simCurves()},
     energy:{kWhUsed:null,whPerMi:null,rangeMiEst:null,packKWh:null,calibrated:false},
     aux12v:(()=>{const L=loadsOn();return {wired:false,volts:null,loadA:loadAmps(L),loadAEstimate:true,loads:{lights:L.lights,fan:L.fan,pump:L.pump,alarm:L.alarm,speakers:L.spk,seatDriver:seatLv.driver,seatPassenger:seatLv.passenger,seatHeat:seatLv.driver+seatLv.passenger>0}};})(),
@@ -774,7 +784,7 @@ function renderCluster(){
 }
 /* ---------- settings (sim only) ---------- */
 const SETS=[['lowCut','Low-cell cut','V','cfg.lowCutV',v=>X.sim_set_low_cut(v),'dlcut'],['chargePct','Charge limit','%','cfg.chargePct',v=>X.sim_set_charge_pct(v),'pct'],['deadband','Balance deadband','mV',null,v=>X.sim_set_deadband_mv(v),'db']];
-const RO=[['Overcurrent trip','cfg.overA','A'],['Instant trip','kcfg.instantTripA','A'],['Trip delay','kcfg.overcurrentMs','ms'],['Max discharge (Kelly)','kcfg.maxDischargeA','A'],['Cell sag start (below avg)','dcfg.relSagStartV','V'],['Cell sag 0% (below avg)','dcfg.relSagZeroV','V'],['Low cut delay (rest)','dcfg.lowCutMs','ms'],['Hard floor (load)','dcfg.hardFloorV','V'],['Hard floor delay','dcfg.hardFloorMs','ms'],['Pack sag band','dcfg.packSagBandV','V'],['Rest current','dcfg.restA','A'],['LEM imbalance','dcfg.imbalanceA','A'],['Imbalance delay','dcfg.imbalanceMs','ms'],['Imbalance cut to','dcfg.imbalancePct','%'],['Heat derate','kcfg.derateTempC','°C'],['Over-temp trip','cfg.overTempC','°C'],['Cell max','cfg.cellMaxV','V']];
+const RO=[['Max discharge (Kelly)','kcfg.maxDischargeA','A'],['Cell max','cfg.cellMaxV','V']];
 const getp=(o,p)=>p.split('.').reduce((a,k)=>a?.[k],o);
 let DEF=null;
 function curSet(id){const s=SETS.find(x=>x[0]===id);return s[3]?getp(S,s[3]):+$('db').value;}
@@ -800,6 +810,34 @@ function wireVeh(){buildVeh();
   document.querySelector('.tab[data-t="settings"]').addEventListener('click',()=>setTimeout(buildVeh,30));}
 function loadSettings(){S=JSON.parse(cs(X.sim_state_json()));DEF=Object.fromEntries(SETS.map(s=>[s[0],curSet(s[0])]));
   const st=JSON.parse(localStorage.getItem('teryxSimSettings')||'{}');for(const k in st)if(SETS.find(s=>s[0]===k))applySet(k,st[k]);}
+/* ---------- BMS thresholds (include/Thresholds.h in wasm; validation is the header's, not JS) ---------- */
+const THR_NAME={ocA:'Overcurrent trip',ocMs:'Overcurrent delay',instA:'Instant trip',tripC:'Over-temp trip',derateC:'Heat derate start',chgMaxC:'Charge max temp',chgMinC:'Charge min temp',chgColdC:'Cold charge below',
+  lowMs:'Low cut delay (rest)',restA:'Rest current',sagStart:'Cell sag start (below avg)',sagZero:'Cell sag 0 % (below avg)',floorV:'Hard floor (load)',floorMs:'Hard floor delay',packBand:'Pack sag band',
+  imbA:'LEM A/B imbalance',imbMs:'Imbalance delay',imbPct:'Imbalance cut to',drLogMs:'Derate log after',drClrMs:'Derate cleared after'};
+const THR_GRP={ocA:'Current trip',tripC:'Temperatures',lowMs:'Cells / sag',imbA:'LEM imbalance',drLogMs:'Derate logging'};
+let thrMsgT=null;
+const thrJ=()=>JSON.parse(cs(X.sim_thr_json()));
+const thrFmt=(k,v)=>k.ms?String(Math.round(v)):String(+v.toPrecision(6));
+function thrSave(){const b=X.sim_thr_base(),e=X.sim_thr_end();let h='';for(let a=b;a<e;a++)h+=X.sim_ee_get(a).toString(16).padStart(2,'0');try{localStorage.setItem('teryx.thr.v1',h);}catch(err){}}
+function thrLoadEe(){try{const b=X.sim_thr_base(),e=X.sim_thr_end(),h=localStorage.getItem('teryx.thr.v1');if(h&&h.length===(e-b)*2)for(let i=0;i<e-b;i++)X.sim_ee_set(b+i,parseInt(h.substr(i*2,2),16));}catch(err){}}
+function thrShow(msg,k,v){const bad=/REFUSED|needs a number|unknown/.test(msg);let m=msg.replace(/^THRESHOLDS:?\s*/,'');
+  if(bad&&k&&k.only&&isFinite(v)&&((k.only==='lower'&&v>k.hi)||(k.only==='raise'&&v<k.lo)))m+=` · tighten-only: ${k.key} may only be ${k.only==='lower'?'lowered':'raised'} here; loosening needs a code change + review`;
+  const el=$('thrMsg');el.textContent=m;el.className=bad?'bad':'ok';clearTimeout(thrMsgT);if(!bad)thrMsgT=setTimeout(()=>{el.textContent='';el.className='mut';},6000);ulog('Threshold '+m+' (sim)');}
+function buildThr(){const J=thrJ();
+  $('thrSum').innerHTML=`${J.overrides} of ${J.n} changed from the code default · live in the simulator`+(J.rule?` · <span id="thrRule">⚠ live config breaks rule ${J.rule} (low cutoff L is ${J.lowCutV.toFixed(2)} V)</span>`:'');
+  $('thrT').innerHTML='<tr><td><b>Threshold</b></td><td><b>Value</b></td><td><b>Default</b></td><td><b>Allowed</b></td><td><b>Status</b></td><td></td></tr>'+J.keys.map((k,i)=>
+    (THR_GRP[k.key]?`<tr class="grp"><td colspan="6">${THR_GRP[k.key]}</td></tr>`:'')+
+    `<tr data-k="${k.key}"><td class="k">${THR_NAME[k.key]||k.key} <span class="key">${k.key}</span></td>`+
+    `<td><input class="thrIn${k.set?' set1':''}" data-i="${i}" type="number" step="any" min="${k.lo}" max="${k.hi}" value="${thrFmt(k,k.value)}"> ${k.unit}</td>`+
+    `<td class="t2">${thrFmt(k,k.def)} ${k.unit}</td><td class="t2">${thrFmt(k,k.lo)}–${thrFmt(k,k.hi)}${k.only?` <span class="small">(${k.only} only)</span>`:''}</td>`+
+    `<td>${k.set?'<span class="tag" style="background:rgba(245,245,247,.12);color:var(--tx)">SET</span>':''}${k.ph?'<span class="tag">PLACEHOLDER</span>':''}</td>`+
+    `<td><button class="btn rs" data-r="${i}" title="Back to the code default" ${k.set?'':'disabled'}>Reset</button></td></tr>`).join('');
+  $('thrT').querySelectorAll('.thrIn').forEach(el=>el.onchange=()=>{const i=+el.dataset.i,k=J.keys[i],v=el.value.trim()===''?NaN:+el.value;
+    const msg=isFinite(v)?cs(X.sim_thr_set(i,v)):cs(X.sim_thr_set(i,NaN));thrSave();thrShow(msg,k,v);buildThr();});
+  $('thrT').querySelectorAll('[data-r]').forEach(el=>el.onclick=()=>{const msg=cs(X.sim_thr_default(+el.dataset.r));thrSave();thrShow(msg);buildThr();});}
+function wireThr(){buildThr();
+  $('thrX').onclick=()=>{if(!confirm('Put every BMS threshold back to the code default? (sim only)'))return;const msg=cs(X.sim_thr_reset_all());thrSave();thrShow(msg);buildThr();};
+  document.querySelector('.tab[data-t="settings"]').addEventListener('click',()=>setTimeout(buildThr,30));}
 let ackMask=0;
 function renderBanner(){const m=(S.faults|S.latched)>>>0;if(m===0)ackMask=0;const show=m&~ackMask;
   $('fban').classList.toggle('on',!!show);if(show)$('fbanT').textContent='⚠ Fault: '+S.faultNames.filter((n,i)=>m&(1<<i)).join(', ')+' — contactors open. See Faults tab.';
@@ -811,7 +849,7 @@ function renderBanner(){const m=(S.faults|S.latched)>>>0;if(m===0)ackMask=0;cons
   else if(S.keyRefused){ct='Key cycle needed: key was turned on while plugged in. Turn the key off, then on, to drive.';cb.classList.add('warn');}
   cb.classList.toggle('on',!!ct);$('cbanT').textContent=ct;}
 function flSave(){if(!X.sim_ee_dirty())return;let h='';for(let a=256;a<1216;a++)h+=X.sim_ee_get(a).toString(16).padStart(2,'0');try{localStorage.setItem('teryx.flog.v1',h);}catch(e){}}
-function flLoad(){try{const h=localStorage.getItem('teryx.flog.v1');if(h&&h.length===1920)for(let i=0;i<960;i++)X.sim_ee_set(256+i,parseInt(h.substr(i*2,2),16));}catch(e){}X.sim_ee_loaded();}
+function flLoad(){try{const h=localStorage.getItem('teryx.flog.v1');if(h&&h.length===1920)for(let i=0;i<960;i++)X.sim_ee_set(256+i,parseInt(h.substr(i*2,2),16));}catch(e){}thrLoadEe();X.sim_ee_loaded();}
 function renderFlog(){const L=JSON.parse(cs(X.sim_flog_json()));
   $('flSum').innerHTML=`Boot <b>${L.boot}</b> · ${L.count}/${L.slots} records · ${L.written}/${L.maxPerBoot} written this boot · ${L.derates}/${L.maxDerates} derates${L.derDropped?` · <span style="color:#ff9f0a">${L.derDropped} derates not saved (cap)</span>`:''}${L.limited?' · <span class="red">log limit reached</span>':''}${L.torn?` · <span style="color:#ff9f0a">${L.torn} torn record skipped (CRC)</span>`:''} · ${L.eeWrites} EEPROM bytes changed`;
   const val=r=>r.kind===3?'':r.kind===4?'power '+r.value+' %':r.kind===5?'lowest '+r.value+' %':[2,3,10].includes(r.code)?(r.value/1000).toFixed(3)+' V cell':r.code===6?r.value+' A':'';
@@ -828,7 +866,7 @@ function render(){
   $('key').textContent=keyOn?'Key off':'Key on';$('key').classList.toggle('on',keyOn);$('chg').textContent=chgOn?'Bench charge req: on':'Bench charge req';$('chg').classList.toggle('on',chgOn);
   $('pctc').textContent=`${X.sim_ceiling_for_pct(+$('pct').value).toFixed(3)} V/cell · ${(X.sim_ceiling_for_pct(+$('pct').value)*36).toFixed(1)} V`;
   let fh='',nf=0;S.faultNames.forEach((n,i)=>{const b=1<<i,a=S.faults&b,l=S.latched&b;if(a||l){nf++;fh+=`<span class="chip ${a?'act':'lat'}">${n}${l?' · latched':''}</span>`;}});
-  $('faults').innerHTML=fh||'<span class="mut">No faults</span>';$('fcount').innerHTML=nf?`<span class="red">● ${nf}</span>`:'';
+  $('faults').innerHTML=fh||'<span class="mut">No faults</span>';$('fder').innerHTML=(S.derate?`<span style="color:var(--warn)">Derate now: <b>${S.derate}</b> · power ${S.kellyPct.toFixed(0)} %</span><br>`:'')+(S.lastDerate?`Last derate: <b style="color:var(--tx)">${S.lastDerate}</b> · lowest power ${S.derateMinPct.toFixed(0)} % · ${S.derateEvents} this boot`:'Last derate: none this boot');$('fcount').innerHTML=nf?`<span class="red">● ${nf}</span>`:'';
   const ev=[];for(let i=0;i<X.sim_log_count();i++)ev.push({ms:X.sim_log_ms(i),text:cs(X.sim_log_text(i)),k:'c'});
   userLog.forEach(u=>ev.push({ms:u.ms,text:u.text,k:'u'}));ev.sort((a,b)=>b.ms-a.ms);
   $('log').innerHTML=ev.filter(e=>e.ms>hideBefore).map(e=>`<div class="${e.k==='u'?'u':/FAULT|latched|WELD|Lockout|fail/i.test(e.text)?'f':''}"><time>${fmtT(e.ms)}</time><span>${e.k==='u'?'You · ':''}${e.text.replace(/</g,'&lt;')}</span></div>`).join('')||'<div class="mut">Nothing yet</div>';
@@ -876,7 +914,7 @@ function wire(){
   const bytes=Uint8Array.from(atob(WASM_B64),c=>c.charCodeAt(0));
   const {instance}=await WebAssembly.instantiate(bytes,{});
   X=instance.exports;X._initialize();flLoad();X.sim_reset();
-  buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireCycle();wireSettings();wireVeh();$('dwake').onclick=()=>{if(dashC)dashC.wake('sim Wake button');};$('ddoor').onclick=()=>{doorPulse=true;ulog('Door / button input (PROPOSED pin)');};
+  buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireCycle();wireSettings();wireVeh();wireThr();$('dwake').onclick=()=>{if(dashC)dashC.wake('sim Wake button');};$('ddoor').onclick=()=>{doorPulse=true;ulog('Door / button input (PROPOSED pin)');};
   {const L=+localStorage.getItem('teryxChargeLimit');if(L>=50&&L<=100){$('pct').value=L;$('pct').dispatchEvent(new Event('input'));}}$('dashWin').onclick=()=>{dashW=window.open(location.href.replace(/bms_sim\.html.*$|index\.html.*$/,'dash.html')+'?src=sim','teryxdash');};loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
   try{new BroadcastChannel('teryx-dash-cmd').onmessage=e=>{const m=e.data||{};if(m.cmd){remoteDrive=true;simCmd(m.cmd,m.v);}};}catch(e){}
   if(location.hash){const t=document.querySelector(`.tab[data-t="${location.hash.slice(1)}"]`);if(t)t.click();}
