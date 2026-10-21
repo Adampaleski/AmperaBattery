@@ -166,4 +166,32 @@ constexpr int HV_SENSE  = 24;    // A10, optional HV-bus divider
 constexpr int CUR_LO    = 14;    // A0  DHAB pin 4 (ch1, +-20 A, 100 mV/A)
 constexpr int CUR_HI    = 15;    // A1  DHAB pin 3 (ch2, -420..+230 A, 6.15 mV/A)
 constexpr int CUR_VC    = 25;    // A11 DHAB 5 V supply (ratiometric reference)
+
+// ---- Body / aux outputs (Adam 2026-10-21) — RESERVED pin map, PROPOSED. ----
+// Not pinMode'd or driven by any firmware yet (no flag changed). Hardware: outputs daughterboard v2
+// (perfboard/make_body.py). Direct channels = 3.3 V gate to low-side IRLB8721; relay/valve/pump get 1N4007 flyback.
+// 2008 Teryx 750 (KRF750A8F): stock 4WD = engine-vacuum diaphragm + solenoid valve pulling a cable to the front
+// diff (service manual "vacuum actuator / solenoid valve" tests; teryxforums threads 9680, 17597). No engine = no vacuum.
+// Mechanic plan (2026-10-21): replace with two 12 V linear actuators with pot feedback, one on the 4WD cable
+// (~3/4 in travel) and one on the mechanical diff-lock cable. Each = H-bridge (2 PWM pins) + 3.3 V-scaled ADC.
+// Candidates (docs/BODY_IO.md): Firgelli 4 in 150 lb w/ pot, Glideforce LACT4P. Actuator + H-bridge UNVERIFIED, nothing bought.
+constexpr int SEAT_DRV   = OUT7;  // pin 5  PWM  seat heater driver   (kit stages UNVERIFIED; 33/66/100 % PROPOSED)
+constexpr int SEAT_PAS   = OUT8;  // pin 6  PWM  seat heater passenger
+constexpr int OUT9  = 7;   constexpr int RAD_FAN   = OUT9;   // fan RELAY coil (on ~40 C PROPOSED)
+constexpr int OUT10 = 8;   constexpr int COOL_PUMP = OUT10;  // PWM Bosch coolant pump (key-on)
+constexpr int ACT4WD_IN1  = 9;    // H-bridge #1 IN1 (PWM) extend  = 4WD
+constexpr int ACT4WD_IN2  = 10;   // H-bridge #1 IN2 (PWM) retract = 2WD
+constexpr int ACTDIF_IN1  = 28;   // H-bridge #2 IN1 (PWM) extend  = lock (progressive)
+constexpr int ACTDIF_IN2  = 29;   // H-bridge #2 IN2 (PWM) retract = unlock
+constexpr int POS_4WD     = 41;   // A17 4WD actuator pot wiper, pot fed from 3.3 V (or 5 V via 10k/18k divider)
+constexpr int POS_DIFF    = 39;   // A15 diff actuator pot wiper
+constexpr int IN5 = 40;  constexpr int ST_4WD = IN5;  // OPTIONAL stock front-diff 4WD indicator switch, divider + 100 nF
+// Lights on 2x 74HC595 (SPI1 shared with the MCP4131 throttle digipot; SPI0 unusable: 11/12/13 = OUT1/OUT2/LED).
+// 595 bits: 0 HEAD_LO 1 HEAD_HI 2 TAIL 3 BRAKE 4 TURN_L 5 TURN_R 6 REVERSE 7 LIGHT_BAR | 8 WORK, 9-15 spare.
+// Hazard = TURN_L + TURN_R (no own bit). Blink is done in firmware.
+constexpr int SPI1_MOSI  = 26;  constexpr int SPI1_SCK = 27;
+constexpr int THR_CS1    = 38;    // MCP4131 chip select
+constexpr int LIGHT_LATCH= 32;    // 595 RCLK
+constexpr int LIGHT_OE   = 34;    // 595 /OE, 10k pull-UP: lights stay off until firmware drives it low
+// Edge-pin spares left: 33, 35, 36, 37. PROPOSED: 33 = charge plug-in detect.
 }  // namespace Pins

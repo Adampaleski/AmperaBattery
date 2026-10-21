@@ -696,7 +696,7 @@ function simStatus(lo,hi,Q,est,closed){
     aux12v:(()=>{const L=loadsOn();return {wired:false,volts:null,loadA:loadAmps(L),loadAEstimate:true,loads:{lights:L.lights,fan:L.fan,pump:L.pump,alarm:L.alarm,speakers:L.spk,seatDriver:seatLv.driver,seatPassenger:seatLv.passenger,seatHeat:seatLv.driver+seatLv.passenger>0}};})(),
     coolant:{wired:false,pumpOn:keyOn||!!cLoad.pump,flowOk:null,tempC:null},faults:fl,events:[]};
 }
-function pushDash(st){if(!dashC)dashC=TeryxDash.create($('dashHost'),{onSeat:(k,lv)=>{seatLv[k]=lv;ulog(`Seat heater ${k} ${['off','Low','Med','High'][lv]}`);},
+function pushDash(st){if(!dashC)dashC=TeryxDash.create($('dashHost'),{simControls:true,onControl:(t)=>ulog('Controls: '+t),onSeat:(k,lv)=>{seatLv[k]=lv;ulog(`Seat heater ${k} ${['off','Low','Med','High'][lv]}`);},
     onChargeLimit:v=>{$('pct').value=v;$('pct').dispatchEvent(new Event('input'));ulog('Charge limit '+v+'% (charge screen, saved)');},
     onAmpsLimit:a=>{X.sim_set_charge_max_a(a);ulog('Charge amps limit '+a+' A (sim)');},
     onChargeStop:on=>{X.sim_set_charge_stop(on?1:0);ulog(on?'Charging stopped (charge screen); drive stays locked':'Charging started (charge screen)');},

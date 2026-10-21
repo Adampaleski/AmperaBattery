@@ -5,7 +5,98 @@
 <meta name="theme-color" content="#000"><title>Teryx Dash</title>
 <style>html,body{margin:0;background:#000;height:100%;overflow:hidden}</style></head><body>
 <div id="dash"></div>
-<script>/* Teryx dash component — shared by tools/dash.html (in-vehicle) and the sim Cluster tab.
+<script>/* Teryx body controls: lights, 2WD/4WD, diff lock (Adam 2026-10-21). Pure logic, no DOM.
+   Hardware plan (Mechanic): two 12 V linear actuators with pot feedback on the stock 4WD and diff-lock cables,
+   each on an H-bridge + ADC (include/Config.h). Actuators/H-bridges UNVERIFIED, nothing bought.
+   Conditions from the Kawasaki Teryx owner's manual (2010+ editions, e.g. KRF800 99803-0268 "2WD/4WD Shifting",
+   "Shifting the Differential"): "Always stop the vehicle before changing from 2WD to 4WD and vice versa";
+   diff lock: stop completely, do not lock while turning. 2008 KRF750 manual wording UNVERIFIED.
+   Every threshold is PROPOSED and editable in Settings (localStorage teryxCtlSettings). */
+(function(g){
+const CTL_DEF={wdMaxMph:1,wdThrMaxPct:2,wdNeedBrake:false,diffMaxMph:1,diffNeedThrOff:true,diffAutoUnlockMph:15,
+  wd2Pos:5,wd4Pos:95,difOffPos:5,difPartPos:50,difFullPos:95,posTolPct:3,actTimeoutMs:4000,stallMs:600,stallMinPct:1,
+  actRatePct:40,blinkHz:1.5,brakeOnPct:3};
+const CTL_META=[['wdMaxMph','2WD/4WD: shift only at or below','mph','PROPOSED 1 mph ≈ stopped (manual: stop the vehicle)',0,10,0.5],
+ ['wdThrMaxPct','Throttle counts as released below','%','PROPOSED',0,20,1],
+ ['wdNeedBrake','2WD/4WD: also require brake','bool','PROPOSED off; manual names no brake step',0,1,1],
+ ['diffMaxMph','Diff lock: engage only at or below','mph','PROPOSED 1 mph (manual: stop completely)',0,10,0.5],
+ ['diffNeedThrOff','Diff lock: require throttle released','bool','PROPOSED',0,1,1],
+ ['diffAutoUnlockMph','Diff lock: auto-unlock above','mph','PROPOSED 15 (crew)',3,40,1],
+ ['wd2Pos','4WD actuator endpoint: 2WD','% travel','PLACEHOLDER: set on the bench',0,100,1],
+ ['wd4Pos','4WD actuator endpoint: 4WD','% travel','PLACEHOLDER (~3/4 in cable travel)',0,100,1],
+ ['difOffPos','Diff actuator: Off','% travel','PLACEHOLDER',0,100,1],
+ ['difPartPos','Diff actuator: Partial','% travel','PLACEHOLDER',0,100,1],
+ ['difFullPos','Diff actuator: Full','% travel','PLACEHOLDER',0,100,1],
+ ['posTolPct','Position reached within','%','PROPOSED',1,10,0.5],
+ ['actTimeoutMs','Actuator timeout fault after','ms','PROPOSED',500,15000,100],
+ ['stallMs','Actuator stall fault: no movement for','ms','PROPOSED',100,5000,50],
+ ['stallMinPct','Stall: movement less than','%','PROPOSED',0.2,10,0.1],
+ ['actRatePct','Sim actuator speed','%/s','SIM PLACEHOLDER (real speed per part datasheet)',5,200,5],
+ ['blinkHz','Turn / hazard blink rate','Hz','PROPOSED 1.5 Hz (~90/min)',0.5,3,0.1],
+ ['brakeOnPct','Brake light on above','% pedal','PROPOSED',0,20,1]];
+const LIGHTS=[['low','Headlights low'],['high','High beam'],['tail','Tail lights'],['bar','Light bar / aux'],['work','Work lights']];
+const DIFF=['off','partial','full'];
+function loadSet(){try{return Object.assign({},CTL_DEF,JSON.parse(localStorage.getItem('teryxCtlSettings')||'{}'));}catch(e){return Object.assign({},CTL_DEF);}}
+function create(){
+  const s0=loadSet();
+  const act=(name,pos)=>({name,pos,target:pos,moving:false,t0:0,lastMove:0,lastPos:pos,fault:'',stall:false});
+  const S={set:s0,wd:'2WD',diff:'off',a4:act('4WD actuator',s0.wd2Pos),ad:act('Diff actuator',s0.difOffPos),
+    turn:null,hazard:false,lights:{low:false,high:false,tail:false,bar:false,work:false},msg:'',msgT:0,log:[],faults:[],onLog:null};
+  const save=()=>localStorage.setItem('teryxCtlSettings',JSON.stringify(S.set));
+  const note=(t,now)=>{S.msg=t;S.msgT=now||Date.now();S.log.push(t);if(S.onLog)S.onLog(t);};
+  const refuse=(t,now)=>{note(t,now);return {ok:false,why:t};};
+  const diffPos=k=>({off:S.set.difOffPos,partial:S.set.difPartPos,full:S.set.difFullPos})[k];
+  const busy=()=>S.a4.moving||S.ad.moving;
+  function wdBlock(d){const s=S.set,mph=Math.abs(d.mph||0);
+    if(S.a4.fault)return '4WD actuator fault: '+S.a4.fault+' (clear in Lights · 4WD)';
+    if(d.mph==null)return 'No wheel speed: cannot check the 4WD shift speed';
+    if(busy())return 'Wait: actuator still moving';
+    if(S.diff!=='off')return 'Unlock the diff before leaving 4WD';
+    if(mph>s.wdMaxMph)return `Stop (≤ ${s.wdMaxMph} mph) to shift 2WD/4WD`;
+    if((d.thr||0)>s.wdThrMaxPct)return 'Release the throttle to shift 2WD/4WD';
+    if(s.wdNeedBrake&&!((d.brake||0)>s.brakeOnPct))return 'Press the brake to shift 2WD/4WD';
+    return '';}
+  function diffBlock(d,k){const s=S.set,mph=Math.abs(d.mph||0);
+    if(S.ad.fault)return 'Diff actuator fault: '+S.ad.fault+' (clear in Lights · 4WD)';
+    if(k==='off')return '';
+    if(S.wd!=='4WD')return 'Diff lock only in 4WD';
+    if(d.mph==null)return 'No wheel speed: cannot check the diff lock speed';
+    if(busy())return 'Wait: actuator still moving';
+    if(mph>s.diffMaxMph)return `Stop (≤ ${s.diffMaxMph} mph) to lock the diff`;
+    if(s.diffNeedThrOff&&(d.thr||0)>s.wdThrMaxPct)return 'Release the throttle to lock the diff';
+    return '';}
+  const move=(a,to,now)=>{a.target=to;a.moving=true;a.t0=now;a.lastMove=now;a.lastPos=a.pos;};
+  function toggle4wd(d){const now=d.now||Date.now(),w=wdBlock(d);if(w)return refuse(w,now);const to=S.wd==='4WD'?'2WD':'4WD';
+    S.a4.goal=to;move(S.a4,to==='4WD'?S.set.wd4Pos:S.set.wd2Pos,now);note('4WD actuator → '+to,now);return {ok:true};}
+  function setDiff(d,k){const now=d.now||Date.now(),w=diffBlock(d,k);if(w)return refuse(w,now);
+    S.ad.goal=k;move(S.ad,diffPos(k),now);note('Diff → '+k+(k!=='off'?' · WARNING: steering angle not sensed, keep wheels straight':''),now);return {ok:true};}
+  function clearFault(){S.a4.fault=S.ad.fault='';note('Actuator faults cleared by driver');}
+  function stepAct(a,dt,now,onDone){const s=S.set;
+    if(!a.moving)return;
+    if(!a.stall){const dp=s.actRatePct*dt,e=a.target-a.pos;a.pos+=Math.abs(e)<=dp?e:Math.sign(e)*dp;}
+    if(Math.abs(a.pos-a.lastPos)>=s.stallMinPct){a.lastPos=a.pos;a.lastMove=now;}
+    if(Math.abs(a.target-a.pos)<=s.posTolPct){a.moving=false;onDone();return;}
+    const f=now-a.lastMove>=s.stallMs?`stalled at ${a.pos.toFixed(0)} % (target ${a.target} %)`:now-a.t0>=s.actTimeoutMs?`timeout after ${s.actTimeoutMs} ms at ${a.pos.toFixed(0)} %`:'';
+    if(f){a.moving=false;a.fault=f;const t=a.name+' fault: '+f+' · H-bridge off';S.faults.push({t:now,text:t});note(t,now);}}
+  let lastT=0;
+  // d={mph,thr,brake,gear}; returns outputs + tell-tales
+  function tick(d,now){now=now||Date.now();const s=S.set,dt=lastT?Math.min(0.5,(now-lastT)/1000):0;lastT=now;
+    stepAct(S.a4,dt,now,()=>{S.wd=S.a4.goal;});
+    stepAct(S.ad,dt,now,()=>{S.diff=S.ad.goal;});
+    if(S.diff!=='off'&&!S.ad.moving&&!S.ad.fault&&d.mph!=null&&Math.abs(d.mph)>s.diffAutoUnlockMph){S.ad.goal='off';move(S.ad,s.difOffPos,now);note(`Diff auto-unlocked above ${s.diffAutoUnlockMph} mph`,now);}
+    const ph=Math.floor(now/1000*s.blinkHz*2)%2===0,L=S.lights,hb=a=>a.moving?(a.target>a.pos?'extend':'retract'):'off';
+    const out={headLow:L.low||L.high,headHigh:L.high,tail:L.tail||L.low,brake:(d.brake||0)>s.brakeOnPct,reverse:d.gear==='R',
+      turnL:(S.hazard||S.turn==='L')&&ph,turnR:(S.hazard||S.turn==='R')&&ph,bar:L.bar,work:L.work,hb4wd:hb(S.a4),hbDiff:hb(S.ad)};
+    return {out,wd:S.wd,wdShifting:S.a4.moving,diff:S.diff,diffShifting:S.ad.moving,pos4:S.a4.pos,posD:S.ad.pos,
+      fault4:S.a4.fault,faultD:S.ad.fault,msg:now-S.msgT<6000?S.msg:'',wdWhy:wdBlock(d),diffWhy:{partial:diffBlock(d,'partial'),full:diffBlock(d,'full'),off:diffBlock(d,'off')}};}
+  return {S,save,tick,toggle4wd,setDiff,clearFault,wdBlock,diffBlock,
+    setLight:(k,v)=>{S.lights[k]=v;if(k==='high'&&v)S.lights.low=true;if(k==='low'&&!v)S.lights.high=false;},
+    setTurn:t=>{S.turn=S.turn===t?null:t;},setHazard:v=>{S.hazard=v;},simStall:(which,v)=>{(which==='4wd'?S.a4:S.ad).stall=v;}};
+}
+g.TeryxControls={create,CTL_DEF,CTL_META,LIGHTS,DIFF};
+})(typeof window!=='undefined'?window:globalThis);
+
+/* Teryx dash component — shared by tools/dash.html (in-vehicle) and the sim Cluster tab.
    Input: one status object (STATUS_SCHEMA v1 + additive fields, see docs/DASH.md).
    Rule: a reading with no source is shown as "—" with an amber dot. Never invents values. */
 (function(g){
@@ -70,6 +161,15 @@ const CSS=`
 .tdash .slp{display:none;position:absolute;inset:0;background:#000;z-index:5;place-items:center;cursor:pointer}.tdash.asleep .slp{display:grid}
 .tdash .slp svg{width:min(260px,40vh);height:min(260px,40vh)}.tdash .slp .rg{stroke:#30d158;filter:drop-shadow(0 0 10px #30d158);animation:tdglow 4s ease-in-out infinite}
 @keyframes tdglow{0%,100%{opacity:.35}50%{opacity:.8}}
+.tdash .ctl{display:none;position:absolute;inset:0;background:var(--bg);z-index:4;padding:18px 26px;overflow:auto;flex-direction:column;gap:14px}.tdash.ctlon .ctl{display:flex}
+.tdash .ctl h3{margin:0;font-weight:500;font-size:22px;display:flex;align-items:center;gap:12px}.tdash .ctl h3 span{flex:1}
+.tdash .cgr{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tdash .ctb{min-height:64px;border:0;border-radius:14px;background:#1c1c1e;color:var(--tx);font:inherit;font-size:16px;cursor:pointer;padding:6px 10px;touch-action:manipulation}
+.tdash .ctb.on{background:var(--tx);color:#000;font-weight:600}.tdash .ctb.amb.on{background:var(--amb)}.tdash .ctb.blu.on{background:var(--blu);color:#fff}
+.tdash .ctb.dis{opacity:.38}.tdash .ctb small{display:block;font-size:12px;color:var(--mut);margin-top:2px;font-weight:400}.tdash .ctb.on small{color:#333}
+.tdash .ctb.auto{cursor:default}.tdash .cmsg{min-height:28px;color:var(--amb);font-size:18px}
+.tdash .cset{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px 18px;font-size:14px;color:var(--mut)}.tdash .cset label{display:flex;gap:8px;align-items:center}.tdash .cset input[type=number]{width:70px;background:#2c2c2e;color:var(--tx);border:0;border-radius:8px;padding:6px}
+.tdash .tt i.blink.on{animation:none}
 @media(max-width:900px){.tdash{aspect-ratio:auto}.tdash .main{grid-template-columns:1fr}.tdash .bot{grid-template-columns:repeat(2,1fr)}.tdash .xl{font-size:110px}}
 `;
 const IC={ // simple line icons
@@ -86,8 +186,13 @@ const IC={ // simple line icons
  seat:'<path d="M7 3v10h9l2 8M7 13l-2 8M9 8h6"/><path d="M14 2c1 1-1 2 0 3M17 2c1 1-1 2 0 3"/>',
  pump:'<circle cx="12" cy="12" r="8"/><path d="M12 4v4M8 12h8M12 12l3 4"/>',
  coolant:'<path d="M12 3s-5 6-5 10a5 5 0 0 0 10 0c0-4-5-10-5-10z"/><path d="M4 21c2-1 4 1 6 0s4 1 6 0 4 1 4 0"/>',
+ d4wd:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6h7M8.5 18h7M12 6v12"/>',
+ diff:'<circle cx="12" cy="12" r="5"/><path d="M2 12h5M17 12h5M12 7v10M9 9l6 6"/>',
+ turnL:'<path d="M3 12l7-7v4h11v6H10v4z"/>',turnR:'<path d="M21 12l-7-7v4H3v6h11v4z"/>',
+ high:'<path d="M10 6c5 0 8 2.5 8 6s-3 6-8 6c-1.5 0-2-2.7-2-6s.5-6 2-6z"/><path d="M2 7h5M2 10h5M2 13h5M2 16h5"/>',
+ hazard:'<path d="M12 3 2 20h20L12 3z"/><path d="M12 8l-5 9h10z"/>',
  alarm:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>'};
-const TT=[['fault','r','BMS fault'],['hv','a','HV contactors open'],['batt','a','Low cell'],['temp','r','Pack hot'],['limp','a','Limp / derate'],['regen','a','Regen off'],['imb','a','LEM imbalance'],['link','a','No data'],['lights','g','Lights'],['fan','b','Cooling fan'],['seat','a','Seat heater'],['pump','b','Kelly coolant pump on'],['coolant','r','Coolant warning (no live source yet)'],['alarm','r','Alarm']];
+const TT=[['turnL','g','Left turn'],['d4wd','a','4WD engaged (status input UNVERIFIED)'],['diff','r','Diff locked (actuator UNVERIFIED)'],['high','b','High beam'],['hazard','r','Hazard'],['fault','r','BMS fault'],['hv','a','HV contactors open'],['batt','a','Low cell'],['temp','r','Pack hot'],['limp','a','Limp / derate'],['regen','a','Regen off'],['imb','a','LEM imbalance'],['link','a','No data'],['lights','g','Lights'],['fan','b','Cooling fan'],['seat','a','Seat heater'],['pump','b','Kelly coolant pump on'],['coolant','r','Coolant warning (no live source yet)'],['alarm','r','Alarm'],['turnR','g','Right turn']];
 const STY=['digital','analog','minimal','night'];
 const ASSUMED_WHMI=350;           // PROPOSED fallback, docs/DASH.md
 const ASSUMED_PACK_KWH=36*3.6*180/1000; // SIM-ASSUMED 180 Ah (4 × 45 Ah) × 36 × 3.6 V
@@ -107,7 +212,7 @@ function create(root,opt){
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');
   root.innerHTML=`<div class="tdash${opt.full?' full':''}">
    <div class="top"><div class="tt">${TT.map(([k,c,t])=>`<i data-k="${k}" class="${c}" title="${t}"><svg viewBox="0 0 24 24">${IC[k]}</svg></i>`).join('')}</div>
-    <span class="srcb" data-f="srcb"></span><button class="tbtn" data-f="mbtn">Style ▾</button></div>
+    <span class="srcb" data-f="srcb"></span><button class="tbtn" data-f="lbtn">Lights · 4WD</button><button class="tbtn" data-f="mbtn">Style ▾</button></div>
    <div class="ban" data-f="ban"><span data-f="banT"></span><button data-f="ack">Acknowledge</button></div>
    <div class="chg" data-f="chg">
     <div><div class="cbat" data-f="cbat"><i data-f="cfill"></i><b data-f="clim"></b></div>
@@ -153,6 +258,17 @@ function create(root,opt){
     <div class="cell"><div class="k">Coolant pump <span class="tag">proposed</span></div><div class="v" data-f="pump">—</div></div>
    </div>
    <div class="seats">${['driver','passenger'].map(k=>`<button class="seatb" data-seat="${k}" title="Tap: Off→Low→Med→High · hold: off"><svg viewBox="0 0 40 40"><path class="st" d="M8 8v16h12l3 10M8 24l-3 10M11 16h7"/><path class="wv" data-w="1" d="M25 3c3 3-3 5 0 8s-3 5 0 8"/><path class="wv" data-w="2" d="M30 3c3 3-3 5 0 8s-3 5 0 8"/><path class="wv" data-w="3" d="M35 3c3 3-3 5 0 8s-3 5 0 8"/></svg><span><span class="k">${k==='driver'?'Driver':'Passenger'}</span><br><span class="lv" data-f="lv_${k}">Off</span></span></button>`).join('<span class="sp" data-f="l12"></span>')}</div>
+   <div class="ctl" data-f="ctl"><h3><span>Lights &amp; drive</span><button class="tbtn" data-f="lclose">Done ✕</button></h3>
+    <div class="k">Lights <span class="tag">outputs PROPOSED · not wired</span></div>
+    <div class="cgr">${TeryxControls.LIGHTS.map(([k,t])=>`<button class="ctb${k==='high'?' blu':''}" data-lt="${k}">${t}<small data-f="ls_${k}">off</small></button>`).join('')}
+     <button class="ctb amb" data-turn="L">◀ Turn left<small>tap to cancel</small></button><button class="ctb amb" data-f="haz">Hazard<small>both turns blink</small></button><button class="ctb amb" data-turn="R">Turn right ▶<small>tap to cancel</small></button>
+     <button class="ctb auto" data-f="lbrk">Brake light<small>automatic · brake pedal</small></button><button class="ctb auto" data-f="lrev">Reverse light<small>automatic · gear R</small></button></div>
+    <div class="k">Drive <span class="tag">conditions PROPOSED · 4WD/diff actuators UNVERIFIED</span></div>
+    <div class="cgr"><button class="ctb amb" data-f="b4wd">2WD rear<small data-f="w4wd"></small></button>${TeryxControls.DIFF.map(k=>`<button class="ctb ${k==='off'?'':'amb'}" data-dif="${k}">Diff ${k==='off'?'open':k}<small data-f="wd_${k}"></small></button>`).join('')}</div>
+    <div class="k" data-f="apos"></div><div class="k" style="color:var(--amb)">Steering angle not sensed (UNAVAILABLE): keep the wheels straight before locking the diff.</div>
+    <div class="row"><button class="tbtn" data-f="aclr" style="display:none">Clear actuator fault</button>${opt.simControls?'<label class="k"><input type="checkbox" data-f="st4"> sim: stall 4WD actuator</label> <label class="k"><input type="checkbox" data-f="std"> sim: stall diff actuator</label>':''}</div>
+    <div class="cmsg" data-f="cmsg"></div>
+    <div class="k">Settings · all PROPOSED, saved on this screen</div><div class="cset" data-f="cset"></div></div>
    <div class="menu" data-f="menu"><div class="k">Style</div><div class="row" data-f="sty">${STY.map(s=>`<button data-s="${s}">${s[0].toUpperCase()+s.slice(1)}</button>`).join('')}</div>
     ${opt.sourceUI?`<div class="k">Data source</div><div class="row" data-f="srcs"><button data-src="sim">Simulator</button><button data-src="http">HTTP poll</button><button data-src="ws">WebSocket</button><button data-src="none">None</button></div>
     <input data-f="url" placeholder="http://teryx-hub.local/api/status or ws://…"><div class="row"><button data-f="apply">Apply</button></div>`:''}
@@ -165,6 +281,35 @@ function create(root,opt){
   D.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>setStyle(b.dataset.s));
   F('trst').onclick=()=>{trip={mi:0,kwh:0,reg:0};win=[];localStorage.setItem('teryxDashTrip',JSON.stringify(trip));};
   F('ack').onclick=()=>{ack=curFaultKey;F('ban').classList.remove('on');};
+
+  // ---- lights / 2WD-4WD / diff lock (Adam 2026-10-21). Logic in sim/controls.js, all thresholds PROPOSED.
+  const CT=opt.controls||TeryxControls.create();let lastDrv={mph:null,thr:0,brake:0,gear:null};
+  F('lbtn').onclick=()=>D.classList.toggle('ctlon');F('lclose').onclick=()=>D.classList.remove('ctlon');
+  const ctlEv=(t,r)=>{if(opt.onControl)opt.onControl(t,r);ctlPaint();};
+  D.querySelectorAll('[data-lt]').forEach(b=>b.onclick=()=>{const k=b.dataset.lt;CT.setLight(k,!CT.S.lights[k]);ctlEv('light '+k+' '+(CT.S.lights[k]?'on':'off'));});
+  D.querySelectorAll('[data-turn]').forEach(b=>b.onclick=()=>{CT.setTurn(b.dataset.turn);ctlEv('turn '+(CT.S.turn||'off'));});
+  F('haz').onclick=()=>{CT.setHazard(!CT.S.hazard);ctlEv('hazard '+(CT.S.hazard?'on':'off'));};
+  F('b4wd').onclick=()=>{CT.toggle4wd(lastDrv);ctlPaint();};
+  D.querySelectorAll('[data-dif]').forEach(b=>b.onclick=()=>{const k=b.dataset.dif,r=CT.setDiff(lastDrv,k);ctlEv(r.ok?'diff → '+k:'diff refused: '+r.why,r);});
+  F('aclr').onclick=()=>{CT.clearFault();ctlEv('actuator fault cleared');};
+  if(opt.simControls){F('st4').onchange=e=>CT.simStall('4wd',e.target.checked);F('std').onchange=e=>CT.simStall('diff',e.target.checked);}
+  CT.S.onLog=t=>{if(opt.onControl)opt.onControl(t);};
+  F('cset').innerHTML=TeryxControls.CTL_META.map(([k,t,u,n,mn,mx,st])=>`<label title="${n}">${u==='bool'?`<input type="checkbox" data-cs="${k}">`:`<input type="number" data-cs="${k}" min="${mn}" max="${mx}" step="${st}">${u}`} ${t} <span class="tag">${n}</span></label>`).join('');
+  D.querySelectorAll('[data-cs]').forEach(e=>{const k=e.dataset.cs;if(e.type==='checkbox')e.checked=!!CT.S.set[k];else e.value=CT.S.set[k];
+    e.onchange=()=>{CT.S.set[k]=e.type==='checkbox'?e.checked:(+e.value);try{CT.save();}catch(x){}ctlEv('setting '+k+' = '+CT.S.set[k]);};});
+  let ctlLast=null;
+  function ctlPaint(){const r=CT.tick(lastDrv);ctlLast=r;const o=r.out;
+    D.querySelectorAll('[data-lt]').forEach(b=>{const k=b.dataset.lt,v={low:o.headLow,high:o.headHigh,tail:o.tail,bar:o.bar,work:o.work}[k];b.classList.toggle('on',!!v);F('ls_'+k).textContent=v?(CT.S.lights[k]?'on':'on (with '+(k==='low'?'high beam':'headlights')+')'):'off';});
+    D.querySelectorAll('[data-turn]').forEach(b=>b.classList.toggle('on',CT.S.turn===b.dataset.turn&&(b.dataset.turn==='L'?o.turnL:o.turnR)));
+    F('haz').classList.toggle('on',CT.S.hazard&&o.turnL);F('lbrk').classList.toggle('on',o.brake);F('lrev').classList.toggle('on',o.reverse);
+    const b4=F('b4wd');b4.firstChild.textContent=r.fault4?'4WD actuator FAULT':r.wdShifting?'Shifting → '+CT.S.a4.goal+'…':(r.wd==='4WD'?'4WD':'2WD rear');b4.classList.toggle('on',r.wd==='4WD');b4.classList.toggle('dis',!!r.wdWhy);
+    F('w4wd').textContent=r.wdWhy||('tap for '+(r.wd==='4WD'?'2WD':'4WD'));
+    D.querySelectorAll('[data-dif]').forEach(b=>{const k=b.dataset.dif,w=r.diffWhy[k];b.classList.toggle('on',r.diff===k&&!r.diffShifting);b.classList.toggle('dis',!!w);
+      F('wd_'+k).textContent=w||(r.diffShifting&&CT.S.ad.goal===k?'moving…':r.diff===k?(k==='off'?'open':'locked · auto-unlock above '+CT.S.set.diffAutoUnlockMph+' mph'):'tap');});
+    F('apos').textContent=`Actuator position (pot): 4WD ${r.pos4.toFixed(0)} % · diff ${r.posD.toFixed(0)} %  ·  H-bridges: ${o.hb4wd} / ${o.hbDiff}`+(r.fault4||r.faultD?'  ·  FAULT: '+[r.fault4,r.faultD].filter(Boolean).join('; '):'');
+    F('aclr').style.display=r.fault4||r.faultD?'':'none';
+    F('cmsg').textContent=r.msg;return r;}
+  setInterval(ctlPaint,200);
   let curFaultKey='',seat={driver:0,passenger:0},seatSrc=false;const LV=['Off','Low','Med','High'];
   const seatShow=()=>D.querySelectorAll('[data-seat]').forEach(b=>{const k=b.dataset.seat,l=seat[k];b.querySelectorAll('.wv').forEach(w=>w.classList.toggle('on',+w.dataset.w<=l));F('lv_'+k).textContent=LV[l]+(l?' '+[0,33,66,100][l]+'%':'');});
   D.querySelectorAll('[data-seat]').forEach(b=>{let tm=null,held=false;const k=b.dataset.seat;
@@ -276,16 +421,18 @@ function create(root,opt){
     const nd=(id,dl,v)=>{const n=D.querySelector('#'+id+'n');n.style.transform=`rotate(${dl.deg(v==null?-1e9:v)}deg)`;n.style.opacity=v==null?.25:1;D.querySelector('#'+id+'r').textContent=v==null?'—':Math.round(v);};
     nd('ds',spd,mph);nd('dp',pw,kw);nd('db',bt,soc);
     chargeScreen(s,live,B,C,dt);
+    lastDrv={mph:mph,thr:live&&num(Dr.throttlePct)?Dr.throttlePct:0,brake:live&&num(Dr.brakePct)?Dr.brakePct:0,gear:live?(Dr.gear||null):null};
+    const cr=ctlPaint(),co=cr.out;
     // tell-tales
     const fl=(s&&s.faults)||[],faultTxt=fl.filter(f=>f.level==='fault').map(f=>f.text);
     const on={fault:live&&faultTxt.length>0,hv:live&&C.wired!==false&&!closed,batt:cmn!=null&&cmn<3.2,temp:tP!=null&&tP>=50,limp:live&&(!!Dr.limp||(num(Dr.powerAllowedPct)&&Dr.powerAllowedPct<100)),
-      regen:live&&Dr.regenOk===false&&closed,imb:live&&!!B.lemImbalance,link:!live,lights:!!L.lights,fan:!!L.fan,seat:!!L.seatHeat,pump:!!L.pump,coolant:live&&((s.coolant||{}).flowOk===false||num((s.coolant||{}).tempC)&&s.coolant.tempC>=60),alarm:!!L.alarm||(live&&faultTxt.length>0)};
+      regen:live&&Dr.regenOk===false&&closed,imb:live&&!!B.lemImbalance,link:!live,lights:!!L.lights||co.headLow,fan:!!L.fan,seat:!!L.seatHeat,pump:!!L.pump,coolant:live&&((s.coolant||{}).flowOk===false||num((s.coolant||{}).tempC)&&s.coolant.tempC>=60),turnL:co.turnL,turnR:co.turnR,hazard:CT.S.hazard,high:co.headHigh,d4wd:cr.wd==='4WD',diff:cr.diff!=='off'||!!cr.faultD,alarm:!!L.alarm||(live&&faultTxt.length>0)};
     D.querySelectorAll('.tt i').forEach(i=>i.classList.toggle('on',!!on[i.dataset.k]));
     curFaultKey=faultTxt.join('|');if(!curFaultKey)ack=null;
     F('ban').classList.toggle('on',!!curFaultKey&&ack!==curFaultKey);F('banT').textContent='⚠ '+faultTxt.join(' · ');
   }
   update(null);
-  return {update,root:D,setStyle,F,wake,isAsleep:()=>cs.asleep};
+  return {update,controls:CT,root:D,setStyle,F,wake,isAsleep:()=>cs.asleep};
 }
 g.TeryxDash={create,ASSUMED_WHMI,ASSUMED_PACK_KWH,RPM_PER_MPH};
 })(window);

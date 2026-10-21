@@ -63,6 +63,15 @@ const CSS=`
 .tdash .slp{display:none;position:absolute;inset:0;background:#000;z-index:5;place-items:center;cursor:pointer}.tdash.asleep .slp{display:grid}
 .tdash .slp svg{width:min(260px,40vh);height:min(260px,40vh)}.tdash .slp .rg{stroke:#30d158;filter:drop-shadow(0 0 10px #30d158);animation:tdglow 4s ease-in-out infinite}
 @keyframes tdglow{0%,100%{opacity:.35}50%{opacity:.8}}
+.tdash .ctl{display:none;position:absolute;inset:0;background:var(--bg);z-index:4;padding:18px 26px;overflow:auto;flex-direction:column;gap:14px}.tdash.ctlon .ctl{display:flex}
+.tdash .ctl h3{margin:0;font-weight:500;font-size:22px;display:flex;align-items:center;gap:12px}.tdash .ctl h3 span{flex:1}
+.tdash .cgr{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tdash .ctb{min-height:64px;border:0;border-radius:14px;background:#1c1c1e;color:var(--tx);font:inherit;font-size:16px;cursor:pointer;padding:6px 10px;touch-action:manipulation}
+.tdash .ctb.on{background:var(--tx);color:#000;font-weight:600}.tdash .ctb.amb.on{background:var(--amb)}.tdash .ctb.blu.on{background:var(--blu);color:#fff}
+.tdash .ctb.dis{opacity:.38}.tdash .ctb small{display:block;font-size:12px;color:var(--mut);margin-top:2px;font-weight:400}.tdash .ctb.on small{color:#333}
+.tdash .ctb.auto{cursor:default}.tdash .cmsg{min-height:28px;color:var(--amb);font-size:18px}
+.tdash .cset{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px 18px;font-size:14px;color:var(--mut)}.tdash .cset label{display:flex;gap:8px;align-items:center}.tdash .cset input[type=number]{width:70px;background:#2c2c2e;color:var(--tx);border:0;border-radius:8px;padding:6px}
+.tdash .tt i.blink.on{animation:none}
 @media(max-width:900px){.tdash{aspect-ratio:auto}.tdash .main{grid-template-columns:1fr}.tdash .bot{grid-template-columns:repeat(2,1fr)}.tdash .xl{font-size:110px}}
 `;
 const IC={ // simple line icons
@@ -79,8 +88,13 @@ const IC={ // simple line icons
  seat:'<path d="M7 3v10h9l2 8M7 13l-2 8M9 8h6"/><path d="M14 2c1 1-1 2 0 3M17 2c1 1-1 2 0 3"/>',
  pump:'<circle cx="12" cy="12" r="8"/><path d="M12 4v4M8 12h8M12 12l3 4"/>',
  coolant:'<path d="M12 3s-5 6-5 10a5 5 0 0 0 10 0c0-4-5-10-5-10z"/><path d="M4 21c2-1 4 1 6 0s4 1 6 0 4 1 4 0"/>',
+ d4wd:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6h7M8.5 18h7M12 6v12"/>',
+ diff:'<circle cx="12" cy="12" r="5"/><path d="M2 12h5M17 12h5M12 7v10M9 9l6 6"/>',
+ turnL:'<path d="M3 12l7-7v4h11v6H10v4z"/>',turnR:'<path d="M21 12l-7-7v4H3v6h11v4z"/>',
+ high:'<path d="M10 6c5 0 8 2.5 8 6s-3 6-8 6c-1.5 0-2-2.7-2-6s.5-6 2-6z"/><path d="M2 7h5M2 10h5M2 13h5M2 16h5"/>',
+ hazard:'<path d="M12 3 2 20h20L12 3z"/><path d="M12 8l-5 9h10z"/>',
  alarm:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>'};
-const TT=[['fault','r','BMS fault'],['hv','a','HV contactors open'],['batt','a','Low cell'],['temp','r','Pack hot'],['limp','a','Limp / derate'],['regen','a','Regen off'],['imb','a','LEM imbalance'],['link','a','No data'],['lights','g','Lights'],['fan','b','Cooling fan'],['seat','a','Seat heater'],['pump','b','Kelly coolant pump on'],['coolant','r','Coolant warning (no live source yet)'],['alarm','r','Alarm']];
+const TT=[['turnL','g','Left turn'],['d4wd','a','4WD engaged (status input UNVERIFIED)'],['diff','r','Diff locked (actuator UNVERIFIED)'],['high','b','High beam'],['hazard','r','Hazard'],['fault','r','BMS fault'],['hv','a','HV contactors open'],['batt','a','Low cell'],['temp','r','Pack hot'],['limp','a','Limp / derate'],['regen','a','Regen off'],['imb','a','LEM imbalance'],['link','a','No data'],['lights','g','Lights'],['fan','b','Cooling fan'],['seat','a','Seat heater'],['pump','b','Kelly coolant pump on'],['coolant','r','Coolant warning (no live source yet)'],['alarm','r','Alarm'],['turnR','g','Right turn']];
 const STY=['digital','analog','minimal','night'];
 const ASSUMED_WHMI=350;           // PROPOSED fallback, docs/DASH.md
 const ASSUMED_PACK_KWH=36*3.6*180/1000; // SIM-ASSUMED 180 Ah (4 × 45 Ah) × 36 × 3.6 V
@@ -100,7 +114,7 @@ function create(root,opt){
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');
   root.innerHTML=`<div class="tdash${opt.full?' full':''}">
    <div class="top"><div class="tt">${TT.map(([k,c,t])=>`<i data-k="${k}" class="${c}" title="${t}"><svg viewBox="0 0 24 24">${IC[k]}</svg></i>`).join('')}</div>
-    <span class="srcb" data-f="srcb"></span><button class="tbtn" data-f="mbtn">Style ▾</button></div>
+    <span class="srcb" data-f="srcb"></span><button class="tbtn" data-f="lbtn">Lights · 4WD</button><button class="tbtn" data-f="mbtn">Style ▾</button></div>
    <div class="ban" data-f="ban"><span data-f="banT"></span><button data-f="ack">Acknowledge</button></div>
    <div class="chg" data-f="chg">
     <div><div class="cbat" data-f="cbat"><i data-f="cfill"></i><b data-f="clim"></b></div>
@@ -146,6 +160,17 @@ function create(root,opt){
     <div class="cell"><div class="k">Coolant pump <span class="tag">proposed</span></div><div class="v" data-f="pump">—</div></div>
    </div>
    <div class="seats">${['driver','passenger'].map(k=>`<button class="seatb" data-seat="${k}" title="Tap: Off→Low→Med→High · hold: off"><svg viewBox="0 0 40 40"><path class="st" d="M8 8v16h12l3 10M8 24l-3 10M11 16h7"/><path class="wv" data-w="1" d="M25 3c3 3-3 5 0 8s-3 5 0 8"/><path class="wv" data-w="2" d="M30 3c3 3-3 5 0 8s-3 5 0 8"/><path class="wv" data-w="3" d="M35 3c3 3-3 5 0 8s-3 5 0 8"/></svg><span><span class="k">${k==='driver'?'Driver':'Passenger'}</span><br><span class="lv" data-f="lv_${k}">Off</span></span></button>`).join('<span class="sp" data-f="l12"></span>')}</div>
+   <div class="ctl" data-f="ctl"><h3><span>Lights &amp; drive</span><button class="tbtn" data-f="lclose">Done ✕</button></h3>
+    <div class="k">Lights <span class="tag">outputs PROPOSED · not wired</span></div>
+    <div class="cgr">${TeryxControls.LIGHTS.map(([k,t])=>`<button class="ctb${k==='high'?' blu':''}" data-lt="${k}">${t}<small data-f="ls_${k}">off</small></button>`).join('')}
+     <button class="ctb amb" data-turn="L">◀ Turn left<small>tap to cancel</small></button><button class="ctb amb" data-f="haz">Hazard<small>both turns blink</small></button><button class="ctb amb" data-turn="R">Turn right ▶<small>tap to cancel</small></button>
+     <button class="ctb auto" data-f="lbrk">Brake light<small>automatic · brake pedal</small></button><button class="ctb auto" data-f="lrev">Reverse light<small>automatic · gear R</small></button></div>
+    <div class="k">Drive <span class="tag">conditions PROPOSED · 4WD/diff actuators UNVERIFIED</span></div>
+    <div class="cgr"><button class="ctb amb" data-f="b4wd">2WD rear<small data-f="w4wd"></small></button>${TeryxControls.DIFF.map(k=>`<button class="ctb ${k==='off'?'':'amb'}" data-dif="${k}">Diff ${k==='off'?'open':k}<small data-f="wd_${k}"></small></button>`).join('')}</div>
+    <div class="k" data-f="apos"></div><div class="k" style="color:var(--amb)">Steering angle not sensed (UNAVAILABLE): keep the wheels straight before locking the diff.</div>
+    <div class="row"><button class="tbtn" data-f="aclr" style="display:none">Clear actuator fault</button>${opt.simControls?'<label class="k"><input type="checkbox" data-f="st4"> sim: stall 4WD actuator</label> <label class="k"><input type="checkbox" data-f="std"> sim: stall diff actuator</label>':''}</div>
+    <div class="cmsg" data-f="cmsg"></div>
+    <div class="k">Settings · all PROPOSED, saved on this screen</div><div class="cset" data-f="cset"></div></div>
    <div class="menu" data-f="menu"><div class="k">Style</div><div class="row" data-f="sty">${STY.map(s=>`<button data-s="${s}">${s[0].toUpperCase()+s.slice(1)}</button>`).join('')}</div>
     ${opt.sourceUI?`<div class="k">Data source</div><div class="row" data-f="srcs"><button data-src="sim">Simulator</button><button data-src="http">HTTP poll</button><button data-src="ws">WebSocket</button><button data-src="none">None</button></div>
     <input data-f="url" placeholder="http://teryx-hub.local/api/status or ws://…"><div class="row"><button data-f="apply">Apply</button></div>`:''}
@@ -158,6 +183,35 @@ function create(root,opt){
   D.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>setStyle(b.dataset.s));
   F('trst').onclick=()=>{trip={mi:0,kwh:0,reg:0};win=[];localStorage.setItem('teryxDashTrip',JSON.stringify(trip));};
   F('ack').onclick=()=>{ack=curFaultKey;F('ban').classList.remove('on');};
+
+  // ---- lights / 2WD-4WD / diff lock (Adam 2026-10-21). Logic in sim/controls.js, all thresholds PROPOSED.
+  const CT=opt.controls||TeryxControls.create();let lastDrv={mph:null,thr:0,brake:0,gear:null};
+  F('lbtn').onclick=()=>D.classList.toggle('ctlon');F('lclose').onclick=()=>D.classList.remove('ctlon');
+  const ctlEv=(t,r)=>{if(opt.onControl)opt.onControl(t,r);ctlPaint();};
+  D.querySelectorAll('[data-lt]').forEach(b=>b.onclick=()=>{const k=b.dataset.lt;CT.setLight(k,!CT.S.lights[k]);ctlEv('light '+k+' '+(CT.S.lights[k]?'on':'off'));});
+  D.querySelectorAll('[data-turn]').forEach(b=>b.onclick=()=>{CT.setTurn(b.dataset.turn);ctlEv('turn '+(CT.S.turn||'off'));});
+  F('haz').onclick=()=>{CT.setHazard(!CT.S.hazard);ctlEv('hazard '+(CT.S.hazard?'on':'off'));};
+  F('b4wd').onclick=()=>{CT.toggle4wd(lastDrv);ctlPaint();};
+  D.querySelectorAll('[data-dif]').forEach(b=>b.onclick=()=>{const k=b.dataset.dif,r=CT.setDiff(lastDrv,k);ctlEv(r.ok?'diff → '+k:'diff refused: '+r.why,r);});
+  F('aclr').onclick=()=>{CT.clearFault();ctlEv('actuator fault cleared');};
+  if(opt.simControls){F('st4').onchange=e=>CT.simStall('4wd',e.target.checked);F('std').onchange=e=>CT.simStall('diff',e.target.checked);}
+  CT.S.onLog=t=>{if(opt.onControl)opt.onControl(t);};
+  F('cset').innerHTML=TeryxControls.CTL_META.map(([k,t,u,n,mn,mx,st])=>`<label title="${n}">${u==='bool'?`<input type="checkbox" data-cs="${k}">`:`<input type="number" data-cs="${k}" min="${mn}" max="${mx}" step="${st}">${u}`} ${t} <span class="tag">${n}</span></label>`).join('');
+  D.querySelectorAll('[data-cs]').forEach(e=>{const k=e.dataset.cs;if(e.type==='checkbox')e.checked=!!CT.S.set[k];else e.value=CT.S.set[k];
+    e.onchange=()=>{CT.S.set[k]=e.type==='checkbox'?e.checked:(+e.value);try{CT.save();}catch(x){}ctlEv('setting '+k+' = '+CT.S.set[k]);};});
+  let ctlLast=null;
+  function ctlPaint(){const r=CT.tick(lastDrv);ctlLast=r;const o=r.out;
+    D.querySelectorAll('[data-lt]').forEach(b=>{const k=b.dataset.lt,v={low:o.headLow,high:o.headHigh,tail:o.tail,bar:o.bar,work:o.work}[k];b.classList.toggle('on',!!v);F('ls_'+k).textContent=v?(CT.S.lights[k]?'on':'on (with '+(k==='low'?'high beam':'headlights')+')'):'off';});
+    D.querySelectorAll('[data-turn]').forEach(b=>b.classList.toggle('on',CT.S.turn===b.dataset.turn&&(b.dataset.turn==='L'?o.turnL:o.turnR)));
+    F('haz').classList.toggle('on',CT.S.hazard&&o.turnL);F('lbrk').classList.toggle('on',o.brake);F('lrev').classList.toggle('on',o.reverse);
+    const b4=F('b4wd');b4.firstChild.textContent=r.fault4?'4WD actuator FAULT':r.wdShifting?'Shifting → '+CT.S.a4.goal+'…':(r.wd==='4WD'?'4WD':'2WD rear');b4.classList.toggle('on',r.wd==='4WD');b4.classList.toggle('dis',!!r.wdWhy);
+    F('w4wd').textContent=r.wdWhy||('tap for '+(r.wd==='4WD'?'2WD':'4WD'));
+    D.querySelectorAll('[data-dif]').forEach(b=>{const k=b.dataset.dif,w=r.diffWhy[k];b.classList.toggle('on',r.diff===k&&!r.diffShifting);b.classList.toggle('dis',!!w);
+      F('wd_'+k).textContent=w||(r.diffShifting&&CT.S.ad.goal===k?'moving…':r.diff===k?(k==='off'?'open':'locked · auto-unlock above '+CT.S.set.diffAutoUnlockMph+' mph'):'tap');});
+    F('apos').textContent=`Actuator position (pot): 4WD ${r.pos4.toFixed(0)} % · diff ${r.posD.toFixed(0)} %  ·  H-bridges: ${o.hb4wd} / ${o.hbDiff}`+(r.fault4||r.faultD?'  ·  FAULT: '+[r.fault4,r.faultD].filter(Boolean).join('; '):'');
+    F('aclr').style.display=r.fault4||r.faultD?'':'none';
+    F('cmsg').textContent=r.msg;return r;}
+  setInterval(ctlPaint,200);
   let curFaultKey='',seat={driver:0,passenger:0},seatSrc=false;const LV=['Off','Low','Med','High'];
   const seatShow=()=>D.querySelectorAll('[data-seat]').forEach(b=>{const k=b.dataset.seat,l=seat[k];b.querySelectorAll('.wv').forEach(w=>w.classList.toggle('on',+w.dataset.w<=l));F('lv_'+k).textContent=LV[l]+(l?' '+[0,33,66,100][l]+'%':'');});
   D.querySelectorAll('[data-seat]').forEach(b=>{let tm=null,held=false;const k=b.dataset.seat;
@@ -269,16 +323,18 @@ function create(root,opt){
     const nd=(id,dl,v)=>{const n=D.querySelector('#'+id+'n');n.style.transform=`rotate(${dl.deg(v==null?-1e9:v)}deg)`;n.style.opacity=v==null?.25:1;D.querySelector('#'+id+'r').textContent=v==null?'—':Math.round(v);};
     nd('ds',spd,mph);nd('dp',pw,kw);nd('db',bt,soc);
     chargeScreen(s,live,B,C,dt);
+    lastDrv={mph:mph,thr:live&&num(Dr.throttlePct)?Dr.throttlePct:0,brake:live&&num(Dr.brakePct)?Dr.brakePct:0,gear:live?(Dr.gear||null):null};
+    const cr=ctlPaint(),co=cr.out;
     // tell-tales
     const fl=(s&&s.faults)||[],faultTxt=fl.filter(f=>f.level==='fault').map(f=>f.text);
     const on={fault:live&&faultTxt.length>0,hv:live&&C.wired!==false&&!closed,batt:cmn!=null&&cmn<3.2,temp:tP!=null&&tP>=50,limp:live&&(!!Dr.limp||(num(Dr.powerAllowedPct)&&Dr.powerAllowedPct<100)),
-      regen:live&&Dr.regenOk===false&&closed,imb:live&&!!B.lemImbalance,link:!live,lights:!!L.lights,fan:!!L.fan,seat:!!L.seatHeat,pump:!!L.pump,coolant:live&&((s.coolant||{}).flowOk===false||num((s.coolant||{}).tempC)&&s.coolant.tempC>=60),alarm:!!L.alarm||(live&&faultTxt.length>0)};
+      regen:live&&Dr.regenOk===false&&closed,imb:live&&!!B.lemImbalance,link:!live,lights:!!L.lights||co.headLow,fan:!!L.fan,seat:!!L.seatHeat,pump:!!L.pump,coolant:live&&((s.coolant||{}).flowOk===false||num((s.coolant||{}).tempC)&&s.coolant.tempC>=60),turnL:co.turnL,turnR:co.turnR,hazard:CT.S.hazard,high:co.headHigh,d4wd:cr.wd==='4WD',diff:cr.diff!=='off'||!!cr.faultD,alarm:!!L.alarm||(live&&faultTxt.length>0)};
     D.querySelectorAll('.tt i').forEach(i=>i.classList.toggle('on',!!on[i.dataset.k]));
     curFaultKey=faultTxt.join('|');if(!curFaultKey)ack=null;
     F('ban').classList.toggle('on',!!curFaultKey&&ack!==curFaultKey);F('banT').textContent='⚠ '+faultTxt.join(' · ');
   }
   update(null);
-  return {update,root:D,setStyle,F,wake,isAsleep:()=>cs.asleep};
+  return {update,controls:CT,root:D,setStyle,F,wake,isAsleep:()=>cs.asleep};
 }
 g.TeryxDash={create,ASSUMED_WHMI,ASSUMED_PACK_KWH,RPM_PER_MPH};
 })(window);
