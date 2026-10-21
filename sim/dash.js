@@ -147,7 +147,7 @@ const TT=[['turnL','g','Left turn'],['d4wd','a','4WD engaged (status input UNVER
 const STY=['digital','analog','minimal','night'];
 const ASSUMED_WHMI=350;           // PROPOSED fallback, docs/DASH.md
 const ASSUMED_PACK_KWH=36*3.6*180/1000; // SIM-ASSUMED 180 Ah (4 × 45 Ah) × 36 × 3.6 V
-const RPM_PER_MPH=2.0*1056/(Math.PI*27/12)*1/60*60/1; // ESTIMATE: 2.0:1 chain (cash ledger), gearbox 1.0 UNVERIFIED, ASSUMED 27" tire
+const RPM_PER_MPH=8.75*1056/(Math.PI*27/12); // ESTIMATE: 16/32 chain (SOURCED) × 4.375 diff (SOURCED) = 8.75, ASSUMED 27" tire
 const N_MI=5;                     // rolling window for "last N mi" average
 const num=x=>typeof x==='number'&&isFinite(x);
 function arc(cx,cy,r,a0,a1){const p=a=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];const[x0,y0]=p(a0),[x1,y1]=p(a1);return `M${x0} ${y0} A${r} ${r} 0 ${a1-a0>Math.PI?1:0} 1 ${x1} ${y1}`;}
@@ -171,7 +171,7 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Plug-in / proximity','Charger-present input wakes the BMS in CHARGE without key-on (J1772 PP or Elcon AC-present, part not chosen)','PROPOSED; firmware input stays false'],
  ['Gear H/M/L','Kelly speed-switch inputs (3-speed, UNVERIFIED); Teensy OUT3 pin 20 drives limp (low-speed)','Kelly pins UNVERIFIED'],
  ['Reverse','Kelly reverse switch input; PROPOSED Teensy tap to show R and inhibit regen/charge','PROPOSED'],
- ['Speed','Kelly CAN 0x0CF11E05 RPM ÷ (16/32 sprockets × ASSUMED gearbox) × ASSUMED 27" tire (stock 2008: 25"); 16/32 SOURCED cash ledger, gearbox 1.0 UNVERIFIED','needs BMS_CAP_KELLY_RX=1 after candump'],
+ ['Speed','Kelly CAN 0x0CF11E05 RPM ÷ (16/32 sprockets × 4.375 diff = 8.75, both SOURCED) × ASSUMED 27" tire (stock 2008: 25")','needs BMS_CAP_KELLY_RX=1 after candump'],
  ['Pack V','BICM cell sums (CAN3/CAN1 @125k); Kelly bus V as cross-check','BICM wired; Kelly RX off'],
  ['Pack A','LEM A (A0) + LEM B (A1), 5 V ref A11; sign flip + zero cal TODO','CURRENT_SENSE_ENABLE=0'],
  ['Cell min/max','Volt BICMs M2/M3/M4 over CAN3 (30/31) and CAN1 (22/23)','live on bench'],
@@ -266,7 +266,7 @@ function create(root,opt){
      <section data-s2="flt"><h3>Faults &amp; log</h3><div class="k">Active now</div><div class="lst" data-f="mfa"></div><div class="k">Seen on this screen</div><div class="lst" data-f="mfh"></div><div class="k">Event log <span class="tag" data-f="mflT"></span></div><div class="lst" data-f="mfl"></div></section>
      <section data-s2="cool"><h3>Cooling</h3><div class="kv" data-f="mco"></div><div class="row"><button class="mb" data-f="mfan">Fan override</button><span class="tag" data-f="mfanN"></span></div>
       <div class="k">Pump: PROPOSED Bosch 12 V pump on the stock radiator, on whenever the key is on. Fan: PROPOSED relay, auto at ~40 °C. No flow or coolant-temp sensor yet, so those read —.</div></section>
-     <section data-s2="veh"><h3>Vehicle settings</h3><div class="note">ASSUMED values: confirm tire size and drivetrain. Stock 2008 Teryx tire is 25 in; the model uses ASSUMED 27 in. Sprockets 16T/32T = 2.0:1 (SOURCED: cash ledger), gearbox 1.0 UNVERIFIED: confirm total ratio.</div><div data-f="mveh"></div></section>
+     <section data-s2="veh"><h3>Vehicle settings</h3><div class="note">ASSUMED values: confirm tire size and drivetrain. Stock 2008 Teryx tire is 25 in; the model uses ASSUMED 27 in. Total ratio 8.75 = sprockets 16T/32T 2.0:1 (SOURCED: cash ledger) × diff 4.375:1 (SOURCED: 2008 owner's manual).</div><div data-f="mveh"></div></section>
      <section data-s2="disp"><h3>Display</h3><div class="k">Cluster style</div><div class="row" data-f="sty">${STY.map(s=>`<button class="mb" data-s="${s}">${s[0].toUpperCase()+s.slice(1)}</button>`).join('')}</div>
       <div class="row"><span class="k">Sleep while charging after</span><input type="number" min="10" max="3600" step="10" data-f="msl"><span class="k">s <span class="tag">PROPOSED 120 s</span></span></div>
       <div class="k">Wakes on tap, brake, key, door/button input, charge fault or charge complete.</div>
@@ -401,7 +401,7 @@ function create(root,opt){
   F('msl').value=cs.sleepS;F('msl').onchange=e=>{const v=Math.max(10,+e.target.value||120);cs.sleepS=v;F('cslp').value=v;localStorage.setItem('teryxDashSleepS',v);};
   // vehicle settings (sim/vehicle.js VEH_SETS when loaded; saved in localStorage teryxVehSettings, which the simulator reads)
   const VS=typeof VEH_SETS!=='undefined'?VEH_SETS:null,VD=typeof VEH_DEF!=='undefined'?VEH_DEF:null;
-  const veh=opt.veh||(VS&&VD?{get:()=>Object.assign({},VD,JSON.parse(localStorage.getItem('teryxVehSettings')||'{}')),set:(k,v)=>{const o=JSON.parse(localStorage.getItem('teryxVehSettings')||'{}');o[k]=v;localStorage.setItem('teryxVehSettings',JSON.stringify(o));}}:null);
+  const veh=opt.veh||(VS&&VD?{get:()=>Object.assign({},VD,vehMigrate(JSON.parse(localStorage.getItem('teryxVehSettings')||'{}'))),set:(k,v)=>{const o=JSON.parse(localStorage.getItem('teryxVehSettings')||'{}');o[k]=v;localStorage.setItem('teryxVehSettings',JSON.stringify(o));}}:null);
   function vehBuild(){const h=F('mveh');if(!veh||!VS){h.innerHTML='<div class="k">Vehicle model not loaded on this screen.</div>';return;}const P=veh.get();
     h.innerHTML='<table class="mt"><tr><th>Setting</th><th>Value</th><th>Status</th></tr>'+VS.filter(r=>r[0]!=='gradePct').map(([k,n,u,t,mn,mx,st])=>`<tr><td>${n}</td><td><input type="number" data-vk="${k}" min="${mn}" max="${mx}" step="${st}" value="${typeof P[k]==='boolean'?+P[k]:P[k]}"> ${u}</td><td class="note">${t}</td></tr>`).join('')+'</table>'+
       (opt.veh?'':'<div class="k">Saved on this device for the simulator. The real Kelly config is not read back.</div>');

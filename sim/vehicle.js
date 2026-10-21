@@ -1,15 +1,15 @@
 // Vehicle model for tools/bms_sim.html (Cluster tab), drive cycles and scripts/check_bms_sim_wasm.js.
 // SIM ONLY. Every default below is ASSUMED or PROPOSED (tagged in VEH_SETS), not measured on the Teryx.
 // Point-mass longitudinal model: motor torque (Kelly phase-amp limit x ASSUMED Kt) and Kelly battery-amp
-// limit -> wheel force through 16/32 sprockets x ASSUMED gearbox; minus rolling, aero, grade, friction brake
+// limit -> wheel force through 16/32 sprockets (SOURCED) x 4.375 diff (SOURCED, 2008 owner's manual); minus rolling, aero, grade, friction brake
 // and regen. Brake pedal = regen first (Kelly Brake_AN analog regen input, pin per the brief, UNVERIFIED on
 // Adam's harness), friction tops up; regen fades out below ~3 mph and friction takes over.
-const VEH_DEF={tireIn:27,sprFront:16,sprRear:32,gearbox:1.0,massKg:900,crr:0.030,cdA:1.20,gradePct:0,
+const VEH_DEF={tireIn:27,sprFront:16,sprRear:32,diffRatio:4.375,massKg:900,crr:0.030,cdA:1.20,gradePct:0,
   maxRegenA:60,regenBlendPct:30,liftRegen:false,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,battA:550,
   frictionG:0.6,fadeLoMph:1.5,fadeHiMph:4.5};
 // [key, label, unit, tag, min, max, step]
 const VEH_SETS=[['tireIn','Tire diameter','in','ASSUMED 27" (plan doc). Tires/wheels MISSING in cash ledger; stock 2008 Teryx is 25". Confirm tire size',18,40,0.5],['sprFront','Drive sprocket','teeth','SOURCED: cash ledger (#50 chain, 16T)',8,40,1],
-  ['sprRear','Driven sprocket','teeth','SOURCED: cash ledger (#50 chain, 32T → 2.0:1)',16,80,1],['gearbox','Gearbox ratio','× : 1','UNVERIFIED 1.0: cash ledger shows chain straight to a Perfection Driveline custom axle, no gearbox; possible diff ratio unknown. Confirm total ratio',1,12,0.01],
+  ['sprRear','Driven sprocket','teeth','SOURCED: cash ledger (#50 chain, 32T → 2.0:1)',16,80,1],['diffRatio','Diff ratio','× : 1','SOURCED: 2008 Teryx owner\'s manual 4.375:1 (35/8, front = rear) · total 2.0 × 4.375 = 8.75',1,12,0.005],
   ['massKg','Mass (with driver + pack)','kg','ASSUMED',400,1600,10],['crr','Rolling resistance Crr','','ASSUMED (dirt / ATV tires)',0.005,0.15,0.001],
   ['cdA','Drag area CdA','m²','ASSUMED',0.3,3,0.05],['gradePct','Grade','%','SIM input',-30,30,0.5],
   ['maxRegenA','Max regen current','A','PROPOSED 60 A',0,200,5],['regenBlendPct','Regen brake blend','% pedal','PROPOSED: regen-only up to this pedal, then friction adds',0,100,5],
@@ -19,7 +19,9 @@ const VEH_SETS=[['tireIn','Tire diameter','in','ASSUMED 27" (plan doc). Tires/wh
 // Kelly speed modes. sc = throttle scale, rpm = motor RPM cap. PROPOSED placeholders, not Kelly settings.
 const VEH_GEARS={L:{n:'Low',sc:.45,rpm:2700},M:{n:'Medium',sc:.70,rpm:4400},H:{n:'High',sc:1,rpm:6000},R:{n:'Reverse',sc:.25,rpm:1100}};
 const MPS_PER_MPH=0.44704,G=9.81,RHO=1.2;
-function vehRatio(p){return p.sprRear/p.sprFront*p.gearbox;}
+function vehRatio(p){return p.sprRear/p.sprFront*p.diffRatio;}
+// Saved settings from before the rename: 'gearbox' was the diff ratio all along -> diffRatio.
+function vehMigrate(o){o=o||{};if(o.gearbox!=null){if(o.diffRatio==null)o.diffRatio=o.gearbox;delete o.gearbox;}return o;}
 function vehWheelR(p){return p.tireIn*0.0254/2;}
 function vehRpm(p,mph){return Math.abs(mph)*MPS_PER_MPH/vehWheelR(p)*vehRatio(p)*60/(2*Math.PI);}
 function vehMphAtRpm(p,rpm){return rpm*2*Math.PI/60/vehRatio(p)*vehWheelR(p)/MPS_PER_MPH;}

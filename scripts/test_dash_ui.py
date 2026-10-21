@@ -59,7 +59,7 @@ with sync_playwright() as p:
     pg.click(D + '[data-sec="drive"]'); pg.wait_for_timeout(400)
     ok(pg.locator(D + '.crv svg').count() == 5, 'Drive & Kelly: 5 cutback curves')
     pg.click(D + '[data-sec="veh"]'); pg.wait_for_timeout(300)
-    ok('confirm total ratio' in pg.inner_text(D + '[data-s2="veh"]'), 'Vehicle: ratio flagged confirm total ratio')
+    ok('8.75' in pg.inner_text(D + '[data-s2="veh"]') and 'Diff ratio' in pg.inner_text(D + '[data-s2="veh"]'), 'Vehicle: Diff ratio 4.375, total 8.75 shown')
     if shots: pg.screenshot(path=f'{shots}/menu_vehicle.png')
     small = pg.evaluate("""[...document.querySelectorAll('#dashHost .mnu *')].filter(e=>e.offsetParent&&e.childNodes.length&&[...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())&&parseFloat(getComputedStyle(e).fontSize)<18).length""")
     ok(small == 0, f'menu: no visible text under 18 px ({small})')
