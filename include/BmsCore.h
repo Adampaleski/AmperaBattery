@@ -43,6 +43,20 @@ constexpr uint32_t kDriveFaults = F_SILENT | F_COUNT | F_CELL_HIGH | F_CELL_LOW 
 // Faults that stop the charger (superset).
 constexpr uint32_t kChargeFaults = kDriveFaults | F_UNDERTEMP_C | F_CHARGE_OV | F_OVERTEMP_C | F_TEMP_INVALID;
 
+// Derates (power cutbacks with the contactors still closed). Adam 2026-10-21:
+// every derate is logged like a fault, with its reason. Codes are stored in
+// FaultLog records, so never renumber them.
+enum DerateCode : uint8_t { D_NONE = 0, D_LOW_CELL = 1, D_PACK_SAG = 2, D_CELL_SAG = 3, D_PACK_HOT = 4,
+                            D_LEM_IMB = 5, D_DISCHARGE_A = 6 };
+inline const char *derateName(uint8_t c) {
+    switch (c) {
+        case D_LOW_CELL: return "low cell";      case D_PACK_SAG: return "pack sag";
+        case D_CELL_SAG: return "cell sag";      case D_PACK_HOT: return "pack hot";
+        case D_LEM_IMB: return "LEM imbalance";  case D_DISCHARGE_A: return "discharge amps";
+        default: return "";
+    }
+}
+
 inline const char *faultName(uint32_t bit) {
     switch (bit) {
         case F_SILENT: return "BOARD-SILENT";      case F_COUNT: return "CELL-COUNT/BAD";
@@ -127,6 +141,9 @@ struct Config {
     float    imbalanceA     = 100.0f;  // |LEM A - LEM B| above this ...
     uint32_t imbalanceMs    = 1000;    // ... for this long -> derate + warn
     float    imbalancePct   = 50.0f;   // allowance while imbalanced. PLACEHOLDER: level not set by Adam
+    // Derate logging (Adam 2026-10-21). PLACEHOLDER debounce, adjustable.
+    uint32_t derateLogMs    = 100;     // a cutback must hold this long to count as a derate event
+    uint32_t derateClearMs  = 1000;    // full power this long before the event is logged as cleared
 };
 
 // --------------------------------------------------------------- inputs
@@ -189,6 +206,11 @@ struct Outputs {
     bool     kellyRegenOk = false;
     const char *kellyWhy = "";             // active limiter ("" = full power)
     const char *regenWhy = "";             // why regen is inhibited ("" = allowed)
+    uint8_t  derateNow  = D_NONE;          // raw limiter this tick (no debounce)
+    uint8_t  derateCode = D_NONE;          // logged derate event in progress (debounced)
+    float    derateMinPct = 100;           // lowest allowance in the current (or last) event
+    uint8_t  lastDerate = D_NONE;          // reason of the most recent event this boot (sticky)
+    uint32_t derateEvents = 0;             // events since boot
     bool     lemImbalance = false;         // |A - B| > imbalanceA for imbalanceMs (warn + derate)
     float    lemDiffA = 0;                 // |A - B| now (0 when split not valid)
     float    minCellV = 0, avgCellV = 0;   // weakest cell, pack average (used strings)
@@ -215,6 +237,7 @@ public:
         st_ = CState::Open; stMs_ = 0; retries_ = 0; latched_ = 0; chargeOvLatched_ = false;
         welded_ = false; keyBlock_ = false; ocSinceMs_ = 0; ocActive_ = false; full_ = false; openSinceMs_ = 0;
         imbSinceMs_ = 0; imbOver_ = false; imbOn_ = false;
+        derOn_ = D_NONE; derRaw_ = D_NONE; derSinceMs_ = derFullMs_ = 0; derMin_ = 100; derLast_ = D_NONE; derEvents_ = 0;
         lowSinceMs_ = floorSinceMs_ = 0; lowBelow_ = floorBelow_ = false;
         logHead_ = 0; logCount_ = 0; prevFaults_ = 0; out_ = Outputs{}; started_ = false;
     }
@@ -325,6 +348,7 @@ public:
         // ---- LEM pair imbalance timer, then Kelly limits
         imbalanceLogic(in, o);
         kellyLogic(in, o, f);
+        derateEvents(now, o);
 
         o.faults = f;
         o.latched = latched_ | (welded_ ? F_WELDED : 0) | (chargeOvLatched_ ? F_CHARGE_OV : 0);
@@ -350,6 +374,9 @@ private:
     bool     lowBelow_ = false, floorBelow_ = false;
     bool     imbOver_ = false, imbOn_ = false;
     uint8_t  retries_ = 0;
+    uint8_t  derOn_ = D_NONE, derRaw_ = D_NONE, derLast_ = D_NONE;
+    uint32_t derSinceMs_ = 0, derFullMs_ = 0, derEvents_ = 0;
+    float    derMin_ = 100;
     uint32_t latched_ = 0, prevFaults_ = 0;
     bool     keyBlock_ = false;
     bool     welded_ = false, chargeOvLatched_ = false, ocActive_ = false, full_ = false, started_ = false;
@@ -525,39 +552,64 @@ private:
         }
         float pct = 100;
         const char *why = "";
+        uint8_t code = D_NONE;
         float maxCell = 0;
         for (int i = 0; i < kMaxStrings; i++) if (in.s[i].used && in.s[i].maxV > maxCell) maxCell = in.s[i].maxV;
         const float minCell = o.minCellV, avg = o.avgCellV;
         if (minCell > 0) {
             if (!o.underLoad) {  // at rest: weakest cell vs the low cut
                 const float lv0 = cfg.lowCutV, lv1 = cfg.lowCutV + cfg.derateLowV;
-                if (minCell < lv1) { const float p = (minCell - lv0) / (lv1 - lv0) * 100; if (p < pct) { pct = p; why = "low cell"; } }
+                if (minCell < lv1) { const float p = (minCell - lv0) / (lv1 - lv0) * 100; if (p < pct) { pct = p; why = "low cell"; code = D_LOW_CELL; } }
             } else {             // under load: whole-pack average vs the hard floor
                 const float f0 = cfg.hardFloorV, f1 = cfg.hardFloorV + cfg.packSagBandV;
-                if (cfg.packSagBandV > 0 && avg < f1) { const float p = (avg - f0) / (f1 - f0) * 100; if (p < pct) { pct = p; why = "pack sag"; } }
+                if (cfg.packSagBandV > 0 && avg < f1) { const float p = (avg - f0) / (f1 - f0) * 100; if (p < pct) { pct = p; why = "pack sag"; code = D_PACK_SAG; } }
             }
             const float d = avg - minCell;  // relative: one cell below the rest
             if (cfg.relSagZeroV > cfg.relSagStartV && d > cfg.relSagStartV) {
                 const float p = (cfg.relSagZeroV - d) / (cfg.relSagZeroV - cfg.relSagStartV) * 100;
-                if (p < pct) { pct = p; why = "cell sag"; }
+                if (p < pct) { pct = p; why = "cell sag"; code = D_CELL_SAG; }
             }
         }
         if (in.tempsValid && in.tMaxC > cfg.derateTempC) {
             const float k = (cfg.overTempC - in.tMaxC) / (cfg.overTempC - cfg.derateTempC);
-            const float p = k * 100; if (p < pct) { pct = p; why = "pack hot"; }
+            const float p = k * 100; if (p < pct) { pct = p; why = "pack hot"; code = D_PACK_HOT; }
         }
-        if (o.lemImbalance && cfg.imbalancePct < pct) { pct = cfg.imbalancePct; why = "LEM imbalance"; }
+        if (o.lemImbalance && cfg.imbalancePct < pct) { pct = cfg.imbalancePct; why = "LEM imbalance"; code = D_LEM_IMB; }
         if (cfg.maxDischargeA > 0 && in.currentValid && in.packA > cfg.maxDischargeA) {
-            const float p = 100 * cfg.maxDischargeA / in.packA; if (p < pct) { pct = p; why = "discharge amps"; }
+            const float p = 100 * cfg.maxDischargeA / in.packA; if (p < pct) { pct = p; why = "discharge amps"; code = D_DISCHARGE_A; }
         }
         if (pct < 0) pct = 0;
         o.kellyPct = pct;
         o.kellyLimp = pct < 100;
         o.kellyWhy = why;
+        o.derateNow = pct < 100 ? code : D_NONE;
         const bool full = maxCell >= kCeil100V - 0.02f;
         const bool cold = in.tempsValid && in.tMinC < cfg.chargeMinTempC;
         o.kellyRegenOk = !full && !cold;
         o.regenWhy = full ? "cells full" : (cold ? "pack cold" : "");
+    }
+
+    // Debounced derate events for the log (and FaultLog via Outputs.derateCode).
+    // Start: a cutback held derateLogMs. Reason change: logged at once. Clear:
+    // full power (or contactors open / drive fault) for derateClearMs.
+    void derateEvents(uint32_t now, Outputs &o) {
+        const uint8_t raw = o.derateNow;
+        if (raw != derRaw_) { derRaw_ = raw; derSinceMs_ = now; }
+        if (raw != D_NONE) {
+            derFullMs_ = now;
+            if (derOn_ == D_NONE && now - derSinceMs_ >= cfg.derateLogMs) {
+                derOn_ = raw; derLast_ = raw; derEvents_++; derMin_ = o.kellyPct;
+                logf(now, "DERATE %s: power %.0f%%", derateName(raw), o.kellyPct);
+            } else if (derOn_ != D_NONE && raw != derOn_) {
+                logf(now, "DERATE %s (was %s): power %.0f%%", derateName(raw), derateName(derOn_), o.kellyPct);
+                derOn_ = raw; derLast_ = raw;
+            }
+            if (derOn_ != D_NONE && o.kellyPct < derMin_) derMin_ = o.kellyPct;
+        } else if (derOn_ != D_NONE && now - derFullMs_ >= cfg.derateClearMs) {
+            logf(now, "derate cleared: %s (lowest %.0f%%)", derateName(derOn_), derMin_);
+            derOn_ = D_NONE;
+        }
+        o.derateCode = derOn_; o.derateMinPct = derMin_; o.lastDerate = derLast_; o.derateEvents = derEvents_;
     }
 
     void enter(CState s, uint32_t now, const char *why) {

@@ -162,7 +162,24 @@ int main() {
         { const bool c12 = closed() && w.core.out().kellyPct < 1 && strcmp(w.core.out().kellyWhy, "cell sag") == 0;
           w.cell[1][4] = 3.80f; w.packA = 100; ms(20);
           rep(c12 && closed() && w.core.out().kellyPct > 99.9f, "one cell 3.20 V 300 ms @ 550 A: cut, no trip"); }
-        printf("derate: %d/12 checks passed\n", 12 - dfail);
+        // Derate events (Adam 2026-10-21: log every power cut with its reason). PLACEHOLDER 100 ms / 1 s debounce.
+        auto logHas = [&](const char *t) { for (int i = 0; i < w.core.logCount(); i++) if (strstr(w.core.logAt(i).text, t)) return true; return false; };
+        // 13 the 300 ms launch dip above: one event, reason cell sag, lowest 0 %, cleared after 1 s full power
+        { const auto &o = w.core.out();
+          const bool held = o.derateCode == BmsCore::D_CELL_SAG && o.derateEvents == 1 && logHas("DERATE cell sag");
+          ms(1100);
+          rep(held && w.core.out().derateCode == BmsCore::D_NONE && w.core.out().lastDerate == BmsCore::D_CELL_SAG &&
+              w.core.out().derateMinPct < 1 && logHas("derate cleared: cell sag"), "launch dip: DERATE cell sag logged, cleared at 1 s"); }
+        // 14 a 50 ms blip is shown live but not logged as an event
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 550; w.cell[1][4] = 3.20f; ms(50);
+        { const bool live = w.core.out().kellyPct < 1; w.cell[1][4] = 3.80f; w.packA = 100; ms(1500);
+          rep(live && w.core.out().derateEvents == 0 && !logHas("DERATE"), "50 ms cell blip: live cut, no derate event"); }
+        // 15 reason change mid-event: cell sag -> LEM imbalance is logged, still one event
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 550; w.cell[0][6] = 3.45f; w.lemShareA = 340.f / 550.f; ms(1200);
+        w.cell[0][6] = 3.80f; ms(50);
+        rep(w.core.out().derateCode == BmsCore::D_LEM_IMB && w.core.out().derateEvents == 1 && logHas("DERATE LEM imbalance (was cell sag)"),
+            "cell sag then LEM imbalance: reason change logged");
+        printf("derate: %d/15 checks passed\n", 15 - dfail);
     }
     // State of charge (coulomb count of the split LEM sum). capAh 100 is a
     // TEST value only; the real bank Ah is UNVERIFIED.

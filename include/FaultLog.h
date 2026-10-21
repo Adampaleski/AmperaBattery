@@ -24,14 +24,14 @@
 
 namespace BmsCore {
 
-enum class LogKind : uint8_t { FaultSet = 1, FaultClear = 2, Note = 3 };
+enum class LogKind : uint8_t { FaultSet = 1, FaultClear = 2, Note = 3, DerateSet = 4, DerateClear = 5 };  // Derate*: code = BmsCore::DerateCode, value = power %
 enum : uint8_t { NOTE_LIMIT = 1, NOTE_BOOT = 2 };  // Note codes
 
 struct LogRec {
     uint32_t seq = 0;       // global, increases forever (newest = highest)
     uint16_t boot = 0;      // power-on number (1 = first boot with a log)
     LogKind  kind = LogKind::Note;
-    uint8_t  code = 0;      // fault bit index (0..31) for FaultSet/Clear, NOTE_* for Note
+    uint8_t  code = 0;      // fault bit index (0..31) for FaultSet/Clear, NOTE_* for Note, DerateCode for Derate*
     uint32_t ms = 0;        // uptime ms in that boot
     int16_t  value = 0;     // optional context (e.g. lowest cell mV, amps); 0 = none
 };
@@ -51,10 +51,11 @@ public:
 
     uint32_t minGapMs   = 1000;
     int      maxPerBoot = 24;
+    int      maxDeratePerBoot = 12;   // derates stop here so they can't use up the slots real faults need
 
     // Scan storage, find the newest record, start a new boot number.
     void begin(const LogStore &s) {
-        st_ = s; count_ = 0; head_ = 0; seq_ = 0; written_ = 0; limited_ = false;
+        st_ = s; count_ = 0; head_ = 0; seq_ = 0; written_ = 0; derates_ = 0; dropped_ = 0; limited_ = false;
         uint16_t maxBoot = 0;
         for (int i = 0; i < kSlots; i++) {
             LogRec r;
@@ -73,12 +74,15 @@ public:
         if (limited_) return false;
         const int k = key(kind, code);
         if (k >= 0 && seen_[k] && ms - lastMs_[k] < minGapMs) return false;
+        const bool der = kind == LogKind::DerateSet || kind == LogKind::DerateClear;
+        if (der && derates_ >= maxDeratePerBoot) { dropped_++; return false; }
         if (written_ >= maxPerBoot - 1) {      // last slot this boot: note + stop
             put(LogKind::Note, NOTE_LIMIT, ms, static_cast<int16_t>(maxPerBoot));
             limited_ = true;
             return false;
         }
         if (k >= 0) { seen_[k] = true; lastMs_[k] = ms; }
+        if (der) derates_++;
         put(kind, code, ms, value);
         return true;
     }
@@ -113,6 +117,8 @@ public:
     uint16_t boot() const { return boot_; }
     bool     limited() const { return limited_; }
     int      writtenThisBoot() const { return written_; }
+    int      deratesThisBoot() const { return derates_; }
+    int      deratesDropped() const { return dropped_; }   // past maxDeratePerBoot (RAM only)
 
     static uint16_t crc16(const uint8_t *p, int n) {   // CRC-16/CCITT-FALSE
         uint16_t c = 0xFFFF;
@@ -126,17 +132,20 @@ public:
 private:
     static constexpr uint8_t kMagic = 0xF7;
     LogStore st_{nullptr, nullptr};
-    int      head_ = 0, count_ = 0, written_ = 0;
+    int      head_ = 0, count_ = 0, written_ = 0, derates_ = 0, dropped_ = 0;
     uint32_t seq_ = 0;
     uint16_t boot_ = 1;
     bool     limited_ = false;
-    uint32_t lastMs_[64];
-    bool     seen_[64];
+    uint32_t lastMs_[96];
+    bool     seen_[96];
 
     static int key(LogKind kind, uint8_t code) {
         if (code >= 32) return -1;
         if (kind == LogKind::FaultSet) return code;
         if (kind == LogKind::FaultClear) return 32 + code;
+        if (code >= 16) return -1;
+        if (kind == LogKind::DerateSet) return 64 + code;
+        if (kind == LogKind::DerateClear) return 80 + code;
         return -1;
     }
 
@@ -168,7 +177,7 @@ private:
         for (int i = 0; i < kRecSize; i++) b[i] = st_.read(a + i);
         if (b[0] != kMagic) return false;
         if ((b[16] | (b[17] << 8)) != crc16(b, 16)) return false;
-        if (b[1] < 1 || b[1] > 3) return false;
+        if (b[1] < 1 || b[1] > 5) return false;
         r.kind = static_cast<LogKind>(b[1]);
         r.code = b[2];
         r.seq = 0; r.ms = 0;

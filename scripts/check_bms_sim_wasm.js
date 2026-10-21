@@ -1,4 +1,4 @@
-// node scripts/check_bms_sim_wasm.js /tmp/bms_sim.wasm  -> same scenario table as scripts/sim_bms.cpp (parity) + 8 socpage checks (BmsCore::Soc exports) + 5 drivecycle checks (sim/drive_cycles.js) + 6 faultlog-page checks; exit 1 on any FAIL
+// node scripts/check_bms_sim_wasm.js /tmp/bms_sim.wasm  -> same scenario table as scripts/sim_bms.cpp (parity) + 8 socpage checks (BmsCore::Soc exports) + 5 drivecycle checks (sim/drive_cycles.js) + 8 faultlog-page checks; exit 1 on any FAIL
 // + charge-mode and vehicle-model/regen checks (sim/vehicle.js)
 const fs=require("fs");
 const inst=new WebAssembly.Instance(new WebAssembly.Module(fs.readFileSync(process.argv[2])),{});
@@ -121,5 +121,10 @@ const scFail=r.filter(x=>!x.pass).length;if(sf||df||scFail)process.exitCode=1;
  {const L=fl();fk(L.torn===1&&L.count===n1&&L.recs[0].code===6,"pull power mid-write: torn record skipped, rest intact");}
  X.sim_set_key(1);X.sim_set_pack_amps(800);X.sim_step(50);X.sim_set_pack_amps(0);X.sim_step(100);
  {const L=fl();fk(L.recs[0].code===6&&L.recs[0].seq>L.recs[1].seq&&L.torn===0,"next write reuses torn slot, seq continues");}
- X.sim_flog_clear();X.sim_reset();
+ X.sim_flog_clear();X.sim_reset();X.sim_set_key(1);X.sim_step(4000);
+ X.sim_set_pack_amps(550);X.sim_set_cell(1,4,3.20);X.sim_step(300);X.sim_set_cell(1,4,3.80);X.sim_set_pack_amps(100);X.sim_step(1500);
+ {const L=fl(),s=JSON.parse(cs(X.sim_state_json()));fk(L.recs.some(r=>r.kind===4&&r.name==="cell sag")&&L.recs[0].kind===5&&L.recs[0].name==="cell sag"&&L.derates===2&&s.lastDerate==="cell sag"&&s.derateEvents===1,"launch dip: DERATE cell sag + cleared logged");}
+ X.sim_power_cycle();
+ {const L=fl();fk(L.recs.some(r=>r.kind===4&&r.boot===L.boot-1),"power cycle: derate records survive");}
+ X.sim_set_pack_amps(0);X.sim_flog_clear();X.sim_reset();
  console.log(`faultlog-page: ${fn-ff}/${fn} checks passed`);if(ff)process.exitCode=1;}

@@ -39,7 +39,8 @@ uint8_t  eeRead(int a) { return (a >= 0 && a < static_cast<int>(sizeof g_ee)) ? 
 void     eeWrite(int a, uint8_t v) { if (a >= 0 && a < static_cast<int>(sizeof g_ee) && g_ee[a] != v) { g_ee[a] = v; g_eeDirty = true; g_eeWrites++; } }
 BmsCore::FaultLog g_flog;
 uint32_t g_prevFaults = 0;
-void flogBegin() { g_flog.begin({eeRead, eeWrite}); g_prevFaults = 0; }
+uint8_t  g_prevDerate = 0;
+void flogBegin() { g_flog.begin({eeRead, eeWrite}); g_prevFaults = 0; g_prevDerate = 0; }
 struct EeInit { EeInit() { memset(g_ee, 0xFF, sizeof g_ee); flogBegin(); } } g_eeInit;
 float simLowestCell();
 int16_t flogValue(uint8_t bit) {   // one context value per record
@@ -54,6 +55,13 @@ void flogTick() {
         if (down & (1u << b)) g_flog.add(BmsCore::LogKind::FaultClear, b, g_w.now, flogValue(b));
     }
     g_prevFaults = now;
+    // Derates (Adam 2026-10-21): logged like faults. Set value = power % at the start, clear value = lowest %.
+    const BmsCore::Outputs &o = g_w.core.out();
+    if (o.derateCode != g_prevDerate) {
+        if (g_prevDerate) g_flog.add(BmsCore::LogKind::DerateClear, g_prevDerate, g_w.now, static_cast<int16_t>(o.derateMinPct + 0.5f));
+        if (o.derateCode) g_flog.add(BmsCore::LogKind::DerateSet, o.derateCode, g_w.now, static_cast<int16_t>(o.kellyPct + 0.5f));
+        g_prevDerate = o.derateCode;
+    }
 }
 int flogTorn() {   // slots with the record magic but a bad CRC (cut off mid-write)
     int n = 0;
@@ -197,14 +205,16 @@ EXPORT void sim_ee_loaded() { flogBegin(); g_eeDirty = false; }
 EXPORT int  sim_ee_dirty() { const int d = g_eeDirty; g_eeDirty = false; return d; }
 EXPORT const char *sim_flog_json() {
     Buf b;
-    b.f("{\"boot\":%u,\"count\":%d,\"slots\":%d,\"written\":%d,\"maxPerBoot\":%d,\"limited\":%d,\"torn\":%d,\"eeWrites\":%u,\"base\":%d,\"end\":%d,\"recs\":[",
+    b.f("{\"boot\":%u,\"count\":%d,\"slots\":%d,\"written\":%d,\"maxPerBoot\":%d,\"limited\":%d,\"torn\":%d,\"eeWrites\":%u,\"base\":%d,\"end\":%d,\"derates\":%d,\"maxDerates\":%d,\"derDropped\":%d,\"recs\":[",
         g_flog.boot(), g_flog.count(), BmsCore::FaultLog::kSlots, g_flog.writtenThisBoot(), g_flog.maxPerBoot, g_flog.limited(),
-        flogTorn(), static_cast<unsigned>(g_eeWrites), BmsCore::FaultLog::kBase, BmsCore::FaultLog::kEnd);
+        flogTorn(), static_cast<unsigned>(g_eeWrites), BmsCore::FaultLog::kBase, BmsCore::FaultLog::kEnd,
+        g_flog.deratesThisBoot(), g_flog.maxDeratePerBoot, g_flog.deratesDropped());
     BmsCore::LogRec r;
     for (int i = 0; g_flog.get(i, r); i++) {
         b.f("%s{\"seq\":%u,\"boot\":%u,\"kind\":%d,\"code\":%u,\"ms\":%u,\"value\":%d,\"name\":", i ? "," : "",
             static_cast<unsigned>(r.seq), r.boot, static_cast<int>(r.kind), r.code, static_cast<unsigned>(r.ms), r.value);
         if (r.kind == BmsCore::LogKind::Note) b.str(r.code == BmsCore::NOTE_LIMIT ? "log limit reached" : "note");
+        else if (r.kind == BmsCore::LogKind::DerateSet || r.kind == BmsCore::LogKind::DerateClear) b.str(BmsCore::derateName(r.code));
         else b.str(r.code < 32 ? BmsCore::faultName(1u << r.code) : "?");
         b.f("}");
     }
@@ -227,6 +237,9 @@ EXPORT const char *sim_state_json() {
         c.chargeMaxA, c.chargeEndA, c.chargeColdC, c.chargeColdFrac, c.chargeMinTempC, c.chargeMaxTempC, c.taperBandV);
     b.f(",\"kellyPct\":%.1f,\"kellyLimp\":%d,\"kellyRegenOk\":%d", o.kellyPct, o.kellyLimp, o.kellyRegenOk);
     b.f(",\"kellyWhy\":"); b.str(o.kellyWhy ? o.kellyWhy : "");
+    b.f(",\"derate\":"); b.str(BmsCore::derateName(o.derateCode));
+    b.f(",\"lastDerate\":"); b.str(BmsCore::derateName(o.lastDerate));
+    b.f(",\"derateMinPct\":%.1f,\"derateEvents\":%u", o.derateMinPct, static_cast<unsigned>(o.derateEvents));
     b.f(",\"regenWhy\":"); b.str(o.regenWhy ? o.regenWhy : "");
     b.f(",\"lemA\":%.1f,\"lemB\":%.1f,\"lemDiffA\":%.1f,\"lemImbalance\":%d", g_w.in.lemA, g_w.in.lemB, o.lemDiffA, o.lemImbalance);
     b.f(",\"dcfg\":{\"relSagStartV\":%.3f,\"relSagZeroV\":%.3f,\"hardFloorV\":%.3f,\"hardFloorMs\":%u,\"packSagBandV\":%.3f,"

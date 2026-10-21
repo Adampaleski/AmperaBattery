@@ -64,6 +64,18 @@ int main() {
       bool inside = true; for (int a = 0; a < 4284; a++) if ((a < FaultLog::kBase || a >= FaultLog::kEnd) && a >= 32 && g_mem[a] != 0xFF) inside = false;
       rep(inside && FaultLog::kEnd <= 4284, "never writes outside 256..1215"); }
 
+    { FaultLog L; L.begin(kStore); L.clear(); L.begin(kStore);
+      L.add(LogKind::DerateSet, D_CELL_SAG, 1000, 12); L.add(LogKind::DerateClear, D_CELL_SAG, 3000, 0);
+      FaultLog R; R.begin(kStore); LogRec r0, r1;
+      rep(R.count() == 2 && R.get(0, r0) && R.get(1, r1) && r0.kind == LogKind::DerateClear && r1.kind == LogKind::DerateSet &&
+          r1.code == D_CELL_SAG && r1.value == 12 && R.deratesThisBoot() == 0, "derate set/clear survive power-off with reason + %"); }
+
+    { FaultLog L; L.begin(kStore); L.clear(); L.begin(kStore); L.minGapMs = 0;
+      for (uint32_t t = 0; t < 40; t++) L.add((t & 1) ? LogKind::DerateClear : LogKind::DerateSet, D_PACK_SAG, t * 100, 50);
+      const bool fault = L.add(LogKind::FaultSet, 3, 9000, 2990);
+      rep(L.deratesThisBoot() == L.maxDeratePerBoot && L.deratesDropped() == 40 - L.maxDeratePerBoot && fault && !L.limited(),
+          "40 derates in one boot: 12 saved, rest dropped, a real fault still gets a slot"); }
+
     printf("faultlog: %d/%d checks passed\n", n - fails, n);
     return fails ? 1 : 0;
 }

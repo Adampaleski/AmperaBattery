@@ -32,3 +32,15 @@ Status: **step 1, module + host checks only.** `include/FaultLog.h` is not calle
 - [ ] Show the log in STATUS_SCHEMA for the hub.
 - [ ] Save SoC used Ah + anchor at power-off in a separate record (backlog item 3).
 - [ ] Bench check on a real Teensy: power-pull during a write, confirm the next boot reads the log.
+
+## Derates are logged too (2026-10-21)
+Adam asked that every power cut or derate be logged as a fault, with its reason. BmsCore now turns the Kelly limiter into debounced derate events:
+- An event starts when a cutback (allowance under 100 %) holds for `derateLogMs` (100 ms). The RAM event log gets `DERATE <reason>: power N%`.
+- If the reason changes mid-event, it logs `DERATE <new> (was <old>)`. That is still the same event.
+- An event clears after `derateClearMs` (1 s) at full power, or with the contactors open. The log shows `derate cleared: <reason> (lowest N%)`.
+- Reason codes (`BmsCore::DerateCode`, stored in records, never renumber): 1 low cell, 2 pack sag, 3 cell sag, 4 pack hot, 5 LEM imbalance, 6 discharge amps.
+- FaultLog record kinds 4 (DerateSet, value = power % at start) and 5 (DerateClear, value = lowest %).
+- **Derates are capped at 12 records per boot** (`maxDeratePerBoot`), and drops beyond that are counted in RAM. This keeps repeated launch derates from using up the 24-per-boot budget that real faults need.
+- Outputs `derateCode`, `lastDerate`, `derateMinPct` and `derateEvents` are for the dash and STATUS_SCHEMA. They are shown in the simulator (Drive tab line, Faults tab Fault log card). The live reason already reaches the dash as `powerWhy`.
+
+All debounce and cap values are PLACEHOLDER and adjustable. Firmware still does not write FaultLog (BmsApp wiring is next).

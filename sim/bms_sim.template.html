@@ -316,7 +316,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
     <div class="controls"><button class="btn" id="flPow">Power cycle</button><button class="btn" id="flTear">Pull power mid-write</button><button class="btn" id="flClr">Clear log…</button></div></div>
     <div class="mut" id="flSum">—</div>
     <div id="fl" style="margin-top:10px"></div>
-    <div class="dim" style="margin-top:10px">Real <code>include/FaultLog.h</code> running on a simulated Teensy 4.1 EEPROM (bytes 256–1215, 48 records × 20 B, CRC-16 each). It keeps fault set/clear edges across power cycles, Reset and page reloads (saved in this browser). Limits: same edge once per second, 24 records per boot. <span style="color:#ff9f0a">Firmware does not write this log yet</span>, and real flash endurance is UNVERIFIED.</div></div>
+    <div class="dim" style="margin-top:10px">Real <code>include/FaultLog.h</code> running on a simulated Teensy 4.1 EEPROM (bytes 256–1215, 48 records × 20 B, CRC-16 each). It keeps fault set/clear edges and every derate (power cutback, with its reason and lowest %) across power cycles, Reset and page reloads (saved in this browser). Limits: same edge once per second, 24 records per boot, derates capped at 12 per boot so real faults always have room. A derate is logged once it holds 100 ms and cleared after 1 s at full power (PLACEHOLDER). <span style="color:#ff9f0a">Firmware does not write this log yet</span>, and real flash endurance is UNVERIFIED.</div></div>
   <div class="card"><div class="shead"><h3 style="margin:0">Event log</h3><button class="btn" id="clrlog" style="min-height:44px">Clear view</button></div><div class="log" id="log"></div></div>
 </section>
 <!-- ======================= SCENARIOS ======================= -->
@@ -535,7 +535,7 @@ let dMinCell=0;
 function renderDrive(){
   const c=S.cfg,k=S.kcfg,closed=S.state==='Closed';
   $('dPct').textContent=S.kellyPct.toFixed(0);$('dPct').parentElement.classList.toggle('fault',!closed);
-  $('dWhy').textContent=S.kellyWhy?'limited by '+S.kellyWhy:'full power';
+  $('dWhy').textContent=(S.kellyWhy?'limited by '+S.kellyWhy:'full power')+(S.derateEvents?` · ${S.derateEvents} derate${S.derateEvents>1?'s':''} logged this boot, last: ${S.lastDerate} (lowest ${S.derateMinPct.toFixed(0)} %)`:'');
   $('dReg').textContent=S.kellyRegenOk?'Allowed':'Off';$('dRegS').textContent=S.kellyRegenOk?'cells have headroom':S.regenWhy;
   $('dAmp').textContent=S.packA.toFixed(0);$('dAmpS').textContent=(k.maxDischargeA>0?`derate above ${k.maxDischargeA} A · `:'no BMS cap · ')+`trip ${c.overA} A for ${k.overcurrentMs} ms, ${k.instantTripA} A instant`;
   let mn=9;for(let b=0;b<BOARDS.length;b++)for(let i=0;i<BOARDS[b].cells;i++){const v=X.sim_get_cell(b,i);if(v<mn)mn=v;}dMinCell=mn;
@@ -813,9 +813,10 @@ function renderBanner(){const m=(S.faults|S.latched)>>>0;if(m===0)ackMask=0;cons
 function flSave(){if(!X.sim_ee_dirty())return;let h='';for(let a=256;a<1216;a++)h+=X.sim_ee_get(a).toString(16).padStart(2,'0');try{localStorage.setItem('teryx.flog.v1',h);}catch(e){}}
 function flLoad(){try{const h=localStorage.getItem('teryx.flog.v1');if(h&&h.length===1920)for(let i=0;i<960;i++)X.sim_ee_set(256+i,parseInt(h.substr(i*2,2),16));}catch(e){}X.sim_ee_loaded();}
 function renderFlog(){const L=JSON.parse(cs(X.sim_flog_json()));
-  $('flSum').innerHTML=`Boot <b>${L.boot}</b> · ${L.count}/${L.slots} records · ${L.written}/${L.maxPerBoot} written this boot${L.limited?' · <span class="red">log limit reached</span>':''}${L.torn?` · <span style="color:#ff9f0a">${L.torn} torn record skipped (CRC)</span>`:''} · ${L.eeWrites} EEPROM bytes changed`;
-  const val=r=>r.kind===3?'':[2,3,10].includes(r.code)?(r.value/1000).toFixed(3)+' V cell':r.code===6?r.value+' A':'';
-  $('fl').innerHTML=L.recs.length?'<table><tr><th>#</th><th>Boot</th><th>Time</th><th>Event</th><th class="hide-sm">Value</th></tr>'+L.recs.map(r=>`<tr${r.boot!==L.boot?' class="dim"':''}><td>${r.seq}</td><td>${r.boot}</td><td>${fmtT(r.ms)}</td><td class="${r.kind===1?'fail':r.kind===2?'pass':''}">${r.kind===1?'FAULT ':r.kind===2?'clear ':'note · '}${r.name}</td><td class="hide-sm">${val(r)}</td></tr>`).join('')+'</table>':'<div class="mut">Empty. Trip a fault (e.g. Pack tab: drag a cell under the low cut), then Power cycle.</div>';}
+  $('flSum').innerHTML=`Boot <b>${L.boot}</b> · ${L.count}/${L.slots} records · ${L.written}/${L.maxPerBoot} written this boot · ${L.derates}/${L.maxDerates} derates${L.derDropped?` · <span style="color:#ff9f0a">${L.derDropped} derates not saved (cap)</span>`:''}${L.limited?' · <span class="red">log limit reached</span>':''}${L.torn?` · <span style="color:#ff9f0a">${L.torn} torn record skipped (CRC)</span>`:''} · ${L.eeWrites} EEPROM bytes changed`;
+  const val=r=>r.kind===3?'':r.kind===4?'power '+r.value+' %':r.kind===5?'lowest '+r.value+' %':[2,3,10].includes(r.code)?(r.value/1000).toFixed(3)+' V cell':r.code===6?r.value+' A':'';
+  const ev=r=>r.kind===4?'<td style="color:#ff9f0a">DERATE '+r.name:r.kind===5?'<td class="pass">derate cleared · '+r.name:`<td class="${r.kind===1?'fail':r.kind===2?'pass':''}">${r.kind===1?'FAULT ':r.kind===2?'clear ':'note · '}${r.name}`;
+  $('fl').innerHTML=L.recs.length?'<table><tr><th>#</th><th>Boot</th><th>Time</th><th>Event</th><th class="hide-sm">Value</th></tr>'+L.recs.map(r=>`<tr${r.boot!==L.boot?' class="dim"':''}><td>${r.seq}</td><td>${r.boot}</td><td>${fmtT(r.ms)}</td>${ev(r)}</td><td class="hide-sm">${val(r)}</td></tr>`).join('')+'</table>':'<div class="mut">Empty. Trip a fault (e.g. Pack tab: drag a cell under the low cut), then Power cycle.</div>';}
 function render(){
   S=JSON.parse(cs(X.sim_state_json()));simNow=S.t;$('clock').textContent='sim '+fmtT(S.t);
   const bad=S.state==='Fault'||S.state==='Lockout';$('hState').textContent=S.state;$('hState').classList.toggle('fault',bad);
