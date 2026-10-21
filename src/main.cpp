@@ -1,4 +1,5 @@
 #include "FlexCanCompat.h"
+#include "ThrottleTrim.h"
 #include "CurrentSense.h"
 #include "KellyLimit.h"
 #include <Arduino.h>
@@ -118,6 +119,7 @@ void runCommand(char c) {
                 break;
             case 'd':
                 BicmDecode::printDecodeDetails();
+                ThrottleTrim::print();
 #if DUAL_STRING
                 StringMon::print();
                 Link::print();
@@ -200,6 +202,7 @@ void dispatchSerial() {
                     if (!BenchBleedRun::handleLine(g_line)) runCommand('b');
                 } else
 #endif
+                if (!ThrottleTrim::handleLine(g_line))
                 Settings::handleLine(g_line);
             } else if (g_lineLen < sizeof(g_line) - 1) {
                 g_line[g_lineLen++] = c;
@@ -217,6 +220,7 @@ void dispatchSerial() {
 }  // namespace
 
 void setup() {
+    ThrottleTrim::begin();   // wiper 0 before anything else (reset/watchdog safe state)
     // Coil FET gates LOW before anything else (latch LOW, then make output).
     digitalWrite(Pins::PRECHARGE, LOW);
     digitalWrite(Pins::MAIN_POS, LOW);
@@ -364,6 +368,7 @@ void loop() {
     ChargeTx::tick();
     KellyDecode::tick();
     BmsApp::tick();
+    ThrottleTrim::tick();
     HubStatus::tick();
     dispatchSerial();
     BenchBleedRun::tick();

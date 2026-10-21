@@ -16,8 +16,30 @@ const VEH_SETS=[['tireIn','Tire diameter','in','SOURCED: Adam (stock tires, 24")
   ['liftRegen','Throttle lift-off regen','on/off','PROPOSED off by default',0,1,1],['liftRegenA','Lift-off regen current','A','PROPOSED',0,100,5],
   ['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
   ['phaseA','Kelly phase current limit','A','SOURCED: Adam 550 A (Kelly config not yet read back)',50,800,10],['battA','Kelly battery current limit','A','SOURCED: Adam 550 A',50,800,10]];
-// Kelly speed modes. sc = throttle scale, rpm = motor RPM cap. PROPOSED placeholders, not Kelly settings.
-const VEH_GEARS={L:{n:'Low',sc:.45,rpm:2700},M:{n:'Medium',sc:.70,rpm:4400},H:{n:'High',sc:1,rpm:6000},R:{n:'Reverse',sc:.25,rpm:1100}};
+// Drive modes = pedal-map profiles (Adam approved 2026-10-21). Mirror of include/DriveProfile.h kDefaults
+// (parity-checked against the wasm build). ALL values PROPOSED, editable in Settings. Reduce-only trim:
+// expo (0 linear .. 1 soft), cur = pedal cap % (current-limit proxy), ramp A/s (vs 550 A), top mph, regen %.
+// rpm = Kelly 6000 RPM cap (all forward modes). Reverse keeps its own PROPOSED profile.
+const VEH_MODE_DEF={H:{n:'High',expo:0,cur:100,ramp:2000,top:49,regen:100,rpm:6000},M:{n:'Medium',expo:.3,cur:70,ramp:1000,top:36,regen:80,rpm:6000},
+  L:{n:'Low',expo:.5,cur:45,ramp:600,top:22,regen:60,rpm:6000},SNOW:{n:'Snow',expo:.8,cur:40,ramp:150,top:25,regen:25,rpm:6000},
+  MUD:{n:'Mud',expo:0,cur:90,ramp:2500,top:30,regen:20,rpm:6000},SAND:{n:'Sand',expo:0,cur:100,ramp:3000,top:35,regen:15,rpm:6000},
+  KID:{n:'Kid',expo:.7,cur:20,ramp:60,top:10,regen:30,rpm:6000},R:{n:'Reverse',expo:.3,cur:25,ramp:500,top:9,regen:30,rpm:1100}};
+const VEH_GEARS=JSON.parse(JSON.stringify(VEH_MODE_DEF));   // live (edited) profiles
+const VEH_MODE_ORDER=['H','M','L','SNOW','MUD','SAND','KID'];
+const VEH_MODE_FIELDS=[['expo','Pedal curve (expo)','0–1',0,1,0.05],['cur','Current limit','% pedal',0,100,1],['ramp','Ramp','A/s',10,5000,10],['top','Top speed','mph',1,60,1],['regen','Regen strength','%',0,100,5]];
+function vehModeSet(k,f,v){const g=VEH_GEARS[k],d=VEH_MODE_FIELDS.find(x=>x[0]===f);if(!g||!d||!(v>=d[3]&&v<=d[4]))return false;g[f]=+v;return true;}
+// Kid PIN (mirror of DriveProfile::Selector): Kid can't be entered until a PIN is set; leaving it needs the PIN.
+const VEH_KID={pin:''};
+function vehSelectMode(cur,next,pin){if(!VEH_GEARS[next])return 'unknown mode';if(next==='KID'&&cur!=='KID'&&!VEH_KID.pin)return 'Set a Kid PIN first (Settings)';
+  if(cur==='KID'&&next!=='KID'){if(!pin)return 'PIN required to leave Kid';if(String(pin)!==VEH_KID.pin)return 'Wrong PIN';}return '';}
+function vehCurve(x,e){x=Math.max(0,Math.min(1,x));e=Math.max(0,Math.min(1,e));return (1-e)*x+e*x*x*x;}
+// Reduce-only trim step (mirror of DriveProfile::Trim). tr={filt,out} persists between calls; dtMs step.
+function vehTrim(g,tr,pedal,mph,allow,ok,dtMs){const raw=Math.max(0,Math.min(100,pedal));if(!ok){tr.out=0;tr.filt=raw;return 0;}
+  const steps=Math.max(1,Math.round(dtMs));for(let i=0;i<steps;i++){tr.filt+=(raw-tr.filt)*(1/(5+1));
+    let t=vehCurve(tr.filt/100,g.expo)*100*Math.max(0,Math.min(100,g.cur))/100*Math.max(0,Math.min(100,allow))/100;
+    const over=Math.abs(mph)-(g.top-2);if(over>0)t*=Math.max(0,Math.min(1,1-over/2));
+    const rise=g.ramp/550*100/1000;tr.out=t>tr.out?Math.min(t,tr.out+rise):t;if(tr.out>tr.filt)tr.out=tr.filt;if(tr.out>raw)tr.out=raw;}
+  return tr.out;}
 const MPS_PER_MPH=0.44704,G=9.81,RHO=1.2;
 function vehRatio(p){return p.sprRear/p.sprFront*p.diffRatio;}
 // Saved settings from before the rename: 'gearbox' was the diff ratio all along -> diffRatio.
@@ -37,15 +59,19 @@ function vehStep(p,st,inp,dt){
   const thr=Math.max(0,Math.min(100,inp.thr))/100,brake=Math.max(0,Math.min(100,inp.brake))/100;
   let T=0,why='';
   if(live&&thr>0&&brake===0){
-    T=p.ktNmA*p.phaseA*thr*g.sc*Math.max(0,inp.allowPct)/100;               // phase-amp torque limit
+    const tr=st.trim||{filt:thr*100,out:thr*100*g.cur/100};                  // no state passed: steady state
+    const k100=vehTrim(g,tr,thr*100,st.mph,inp.allowPct,true,dt*1000)/100;st.trimOut=k100*100;
+    T=p.ktNmA*p.phaseA*k100;                                                  // trim output (curve, cap, ramp, top, BMS allowance)
+    if(k100<thr*g.cur/100*Math.max(0,inp.allowPct)/100-0.5e-2&&Math.abs(st.mph)>=g.top-2)why='mode top speed';
     const Pmax=p.eta*V*p.battA;if(w>1&&T*w>Pmax){T=Pmax/w;why='Kelly battery limit';}   // battery-amp limit
-    if(rpm>=g.rpm*0.95){T*=Math.max(0,(g.rpm-rpm)/(g.rpm*0.05));why='speed-mode RPM cap';}
+    if(rpm>=g.rpm*0.95){T*=Math.max(0,(g.rpm-rpm)/(g.rpm*0.05));why=inp.gear==='R'?'reverse RPM cap':'Kelly 6000 RPM cap';}
   }
   const driveA=T*w/(p.eta*V);
   // regen request: brake pedal (regen-first blend) or optional lift-off; faded at low speed; BMS can veto
   let regReq=0,rwhy='';
   if(brake>0)regReq=p.maxRegenA*Math.min(1,p.regenBlendPct>0?brake/(p.regenBlendPct/100):1);
   else if(p.liftRegen&&thr===0)regReq=p.liftRegenA;
+  regReq*=(g.regen==null?100:g.regen)/100;                                   // mode regen strength (PROPOSED)
   const fade=vehFade(p,st.mph);let regA=regReq*fade;
   if(regReq>0&&!live){regA=0;rwhy=inp.driveLocked?'drive locked':'contactors open';}
   else if(regReq>0&&!inp.regenOk){regA=0;rwhy='BMS: regen not allowed';}

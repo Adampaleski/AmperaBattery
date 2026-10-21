@@ -6,6 +6,7 @@
 #include "SocEstimator.h"
 #include "FaultLog.h"
 #include "Thresholds.h"
+#include "DriveProfile.h"
 
 using namespace BmsSim;
 
@@ -379,4 +380,18 @@ EXPORT const char *sim_run_scenarios() {
     }
     b.f("]");
     return g_buf;
+}
+
+// ---- drive-mode pedal maps (include/DriveProfile.h): parity with sim/vehicle.js
+static DriveProfile::Trim g_dpTrim;
+EXPORT const char *sim_dp_json() {
+    static char b[1400]; int o = snprintf(b, sizeof b, "[");
+    for (int i = 0; i < DriveProfile::kModes; i++) { const auto &p = DriveProfile::kDefaults[i];
+        o += snprintf(b + o, sizeof b - o, "%s{\"k\":\"%s\",\"expo\":%g,\"cur\":%g,\"ramp\":%g,\"top\":%g,\"regen\":%g}", i ? "," : "", p.key, p.expo, p.currentPct, p.rampAps, p.topMph, p.regenPct); }
+    snprintf(b + o, sizeof b - o, "]"); return b;
+}
+EXPORT void sim_dp_reset() { g_dpTrim.reset(); }
+EXPORT float sim_dp_step(int mode, float pedal, float mph, float allow, int ok) {
+    DriveProfile::In in; in.pedalPct = pedal; in.mph = mph; in.speedValid = true; in.allowPct = allow; in.ok = ok != 0;
+    return g_dpTrim.step(in, DriveProfile::kDefaults[mode < 0 || mode >= DriveProfile::kModes ? 0 : mode], 1.0f);
 }

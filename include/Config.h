@@ -102,6 +102,12 @@ static_assert(kChargeCurrentDeciA <= 80, "charge current > 8 A: only on a 240 V 
 // Temperatures are NOT decoded/verified yet. Charge is refused unless this is 1.
 // Only set 1 after the 0x7E0+ temp byte layout is verified at the bench AND
 // temp limits are enforced in code.
+// Throttle trim (drive-mode pedal maps, include/DriveProfile.h, Adam approved 2026-10-21).
+// 0 = MCP4131 never written, pedal not read. CREW REVIEW before setting 1. PROPOSED pedal input
+// pin 24 (A10) = HV_SENSE, so it cannot be used with HV_ANALOG_ENABLE=1.
+#ifndef THROTTLE_TRIM_ENABLE
+#define THROTTLE_TRIM_ENABLE 0
+#endif
 #ifndef TEMPS_VERIFIED
 #define TEMPS_VERIFIED 0
 #endif
@@ -215,5 +221,6 @@ constexpr int LIGHT_LATCH = 32;   // 595 RCLK
 constexpr int LIGHT_OE    = 34;   // 595 /OE, 10k pull-UP: lights stay off until firmware drives it low
 // MCP4131 throttle digipot shares LIGHT_DATA/LIGHT_CLK (bit-banged, own CS); 595s ignore it (no latch pulse). PROPOSED.
 constexpr int THR_CS      = 38;
+constexpr int PEDAL_IN    = 24;   // A10 pedal wiper sense (PROPOSED, divider to 3.3 V), shares HV_SENSE
 // Spare edge pins: NONE free. 33 RESERVED = charge plug-in detect (PROPOSED). 24 (HV_SENSE) is optional/unused by default.
 }  // namespace Pins

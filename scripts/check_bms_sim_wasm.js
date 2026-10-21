@@ -34,7 +34,7 @@ console.log(`socpage: ${sn-sf}/${sn} checks passed`);
 // ---- Drive cycles (sim/drive_cycles.js profiles through the page's driver-input model, 100 ms steps)
 const path=require("path");
 const DC=new Function(fs.readFileSync(path.join(__dirname,"../sim/drive_cycles.js"),"utf8")+";return {DRIVE_CYCLES,cycleLen,cycleAt};")();
-const VM=new Function(fs.readFileSync(path.join(__dirname,"../sim/vehicle.js"),"utf8")+";return {VEH_DEF,VEH_GEARS,vehStep,vehRpm,vehRatio,vehMphAtRpm,vehMigrate};")();  // same vehicle model as the page
+const VM=new Function(fs.readFileSync(path.join(__dirname,"../sim/vehicle.js"),"utf8")+";return {VEH_DEF,VEH_GEARS,VEH_MODE_DEF,VEH_KID,vehTrim,vehSelectMode,vehStep,vehRpm,vehRatio,vehMphAtRpm,vehMigrate};")();  // same vehicle model as the page
 let df=0,dn=0;
 const dck=(ok,name,d)=>{dn++;if(!ok)df++;console.log((ok?"PASS":"FAIL")+" drivecycle "+name.padEnd(44),`end=${d.end} t=${d.t.toFixed(0)}s peak=${d.peakA.toFixed(0)}A regen=${(-d.minA).toFixed(0)}A dist=${d.dist.toFixed(2)}mi Ah=${d.ah.toFixed(2)} soc=${d.soc0.toFixed(1)}->${d.soc1.toFixed(1)} lowCell=${d.lo.toFixed(3)}`);};
 const lowCell=()=>{let lo=9;for(let b=0;b<8;b++)for(let c=0;c<X.sim_board_cells(b);c++)lo=Math.min(lo,X.sim_get_cell(b,c));return lo;};
@@ -96,6 +96,14 @@ X.sim_reset();X.sim_set_key(1);X.sim_step(4000);
  vk(l0.regenA===0&&l1.regenA>19&&l1.regenA<20.01,"lift-off regen: off by default, 20 A when enabled",`${l0.regenA} / ${l1.regenA.toFixed(1)} A`);
  vk(Math.abs(VM.vehRpm(p,55)-6740)<15&&Math.abs(VM.vehRatio(p)-8.75)<0.01&&p.tireIn===24,"55 mph on 24 in, 16/32 x 4.375 diff = ~6740 RPM",`${VM.vehRpm(p,55).toFixed(0)} RPM`);
  vk(Math.abs(VM.vehMphAtRpm(p,VM.VEH_GEARS.H.rpm)-48.96)<0.2,"High cap 6000 RPM on 24 in = ~49 mph top speed (55 mph NOT reachable)",`${VM.vehMphAtRpm(p,VM.VEH_GEARS.H.rpm).toFixed(1)} mph`);
+ {const D=JSON.parse(cs(X.sim_dp_json()));let same=D.length===7,maxd=0;
+  D.forEach((d,i)=>{const j=VM.VEH_MODE_DEF[d.k];if(!j||Math.abs(j.expo-d.expo)>1e-6||j.cur!==d.cur||j.ramp!==d.ramp||j.top!==d.top||j.regen!==d.regen)same=false;
+   X.sim_dp_reset();const tr={filt:0,out:0};for(let t=0;t<3000;t++){const ped=t<1500?100:(t<2200?35:70),mph=t*0.02;const a=X.sim_dp_step(i,ped,mph,100,1),b=VM.vehTrim(j||{},tr,ped,mph,100,true,1);maxd=Math.max(maxd,Math.abs(a-b));}});
+  vk(same&&maxd<0.01,"drive modes: JS profiles + trim match include/DriveProfile.h (wasm)",`7 modes, max diff ${maxd.toFixed(4)} %`);}
+ {const p=Object.assign({},VM.VEH_DEF);const tops={};for(const k of ["H","M","L","SNOW","MUD","SAND","KID"]){let spd=0;const st={mph:0,trim:{filt:0,out:0}};
+   for(let i=0;i<1200;i++){st.mph=spd;const o=VM.vehStep(p,st,{thr:100,brake:0,gear:k,closed:true,allowPct:100,regenOk:true,driveLocked:false,packV:140},0.05);spd=o.mph;}tops[k]=spd;}
+  vk(Object.keys(tops).every(k=>tops[k]<=VM.VEH_GEARS[k].top+0.05)&&tops.KID>7&&tops.KID<=10.05&&tops.H>40,"drive modes: 60 s full pedal stays <= each mode top speed (Kid ~10 mph)",Object.entries(tops).map(([k,v])=>k+" "+v.toFixed(1)).join(" "));}
+ vk(VM.vehSelectMode("H","KID","")!==""&&(VM.VEH_KID.pin="1234",VM.vehSelectMode("H","KID",""))===""&&VM.vehSelectMode("KID","H","")!==""&&VM.vehSelectMode("KID","H","9999")!==""&&VM.vehSelectMode("KID","H","1234")==="","Kid PIN: needs a set PIN to enter, the PIN to leave");VM.VEH_KID.pin="";
  vk(VM.vehMigrate({tireIn:27}).tireIn===24&&VM.vehMigrate({tireIn:26}).tireIn===26&&VM.vehMigrate({gearbox:4.1}).diffRatio===4.1,"saved settings: old 27 in default -> 24, custom kept, gearbox -> diff ratio","ok");}
 // cold boot -> key on -> mains closed, drive allowed, throttle reaches speed (2026-10-21 regression guard)
 X.sim_reset();X.sim_step(500);

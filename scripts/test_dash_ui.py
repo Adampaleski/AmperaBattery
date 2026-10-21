@@ -126,6 +126,18 @@ with sync_playwright() as p:
     pg.click(D + '[data-q="menu"]'); pg.click(D + '[data-sec="flt"]'); pg.wait_for_timeout(400)
     ok('Last derate' in pg.inner_text(D + '[data-f="mfd"]'), 'dash Faults & log: derate now / last derate panel')
     pg.click(D + '[data-f="mclose"]')
+    # drive modes (PROPOSED pedal maps)
+    ok(pg.locator('#cgsel button').count() == 8 and pg.locator(D + '[data-sg]').count() == 8 and pg.locator('#modeT tr[data-mode]').count() == 8,
+       'drive modes: 7 modes + R in sim selector, dash sim panel, Settings profile table')
+    J = lambda js: pg.evaluate(js)
+    on = lambda: J("document.querySelector('#cgsel .on').dataset.g")
+    J("document.querySelector('#cgsel [data-g=\"KID\"]').click()"); ok(on() == 'H', 'Kid refused until a Kid PIN is set')
+    J("document.getElementById('kidPinSet').value='2468';document.getElementById('kidPinBtn').click();document.querySelector('#cgsel [data-g=\"KID\"]').click()")
+    ok(on() == 'KID', 'Kid PIN set -> Kid mode entered')
+    J("document.querySelector('#cgsel [data-g=\"H\"]').click()"); ok(on() == 'KID', 'leave Kid without PIN: refused')
+    J("document.getElementById('kidPin').value='1111';document.querySelector('#cgsel [data-g=\"H\"]').click()"); ok(on() == 'KID', 'leave Kid with wrong PIN: refused')
+    J("document.getElementById('kidPin').value='2468';document.querySelector('#cgsel [data-g=\"H\"]').click()"); ok(on() == 'H', 'leave Kid with the PIN: High')
+    J("localStorage.removeItem('teryx.modes.v1')")
     ok(not errs, 'no page errors ' + '; '.join(errs[:3]))
     # dash.html real mode: no sim panel; ?src=sim: panel present
     d = b.new_page(viewport={'width': 1366, 'height': 1024}); d.goto((root / 'dash.html').as_uri() + '?src=none'); d.wait_for_timeout(500)

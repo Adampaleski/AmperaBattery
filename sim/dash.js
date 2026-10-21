@@ -1,3 +1,5 @@
+// Drive modes = PROPOSED pedal-map profiles (sim/vehicle.js VEH_GEARS, include/DriveProfile.h)
+const MODE_NAME={H:'High',M:'Medium',L:'Low',SNOW:'Snow',MUD:'Mud',SAND:'Sand',KID:'Kid',R:'Reverse',P:'Park'};
 /* Teryx dash component — shared by tools/dash.html (in-vehicle) and the sim Cluster tab.
    Input: one status object (STATUS_SCHEMA v1 + additive fields, see docs/DASH.md).
    Rule: a reading with no source is shown as "—" with an amber dot. Never invents values. */
@@ -204,7 +206,7 @@ function create(root,opt){
       <label>Throttle <input type="range" min="0" max="100" value="0" data-sv="thr"><b data-f="sv_thr">0 %</b></label>
       <label>Brake <input type="range" min="0" max="100" value="0" data-sv="brk"><b data-f="sv_brk">0 %</b></label>
       <label>Grade <input type="range" min="-20" max="20" step="0.5" value="0" data-sv="grade"><b data-f="sv_grade">0 %</b></label>
-      <span class="sr" data-f="sgear">${['H','M','L','R'].map(g=>`<button data-sg="${g}">${g}</button>`).join('')}</span></div>
+      <span class="sr" data-f="sgear">${['H','M','L','SNOW','MUD','SAND','KID','R'].map(g=>`<button data-sg="${g}">${MODE_NAME[g]}</button>`).join('')}</span><input data-f="kidpin" type="password" inputmode="numeric" maxlength="4" placeholder="Kid PIN" aria-label="Kid PIN" style="width:110px"></div>
      <div class="sr">${[['launch','Hard launch'],['regen','Regen stop'],['coast','Coast'],['climb','Climb'],['lowcell','Low cell'],['hotpack','Hot pack'],['lemimb','LEM imbalance'],['weld','Contactor weld'],['lemdrop','LEM dropout'],['chglim','Charge to limit'],['pcycle','Power cycle'],['wake','Wake'],['reset','Reset…']].map(([k,t])=>`<button data-sc="${k}"${k==='reset'||k==='weld'?' class="red"':''}>${t}</button>`).join('')}</div>
      <div class="sr"><span>Drive cycle</span><span class="sr" data-f="scyc"></span><button data-sc="cycle" data-f="scgo" class="go">Start</button><button data-sc="speed20" data-f="s20">20× speed</button><span data-f="scst" class="k"></span></div>
      <div class="ro" data-f="sro"></div></div></div>`;
@@ -417,7 +419,7 @@ function create(root,opt){
     else if(k==='lights'){CT.setLight('low',!CT.S.lights.low);ctlEv('light low '+(CT.S.lights.low?'on':'off'));}
     else if(k==='4wd'){const r=CT.toggle4wd(lastDrv);if(!r.ok)toast(r.why);ctlPaint();}
     else if(k==='diff'){const r=CT.setDiff(lastDrv,nextDiff[CT.S.diff]||'off');if(!r.ok)toast(r.why);ctlPaint();}
-    else if(k==='mode'){const g=lastDrv.gear,n={H:'M',M:'L',L:'H'}[g]||'H';if(opt.onGear){const r=opt.onGear(n);if(r)toast(r);}else toast('Drive mode is the Kelly speed switch: display only here (not wired)');}
+    else if(k==='mode'){const g=lastDrv.gear,n={H:'M',M:'L',L:'SNOW',SNOW:'MUD',MUD:'SAND',SAND:'H'}[g]||'H';if(g==='KID'){toast('Kid mode: enter the PIN in the mode selector to leave');}else if(opt.onGear){const r=opt.onGear(n);if(r)toast(r);}else toast('Drive mode is the Kelly speed switch: display only here (not wired)');}
     else if(k==='chg')openMenu('chg');
     else if(k==='fan')fanTap();});
   function fanTap(){if(opt.onFan){const on=!fanOv;fanOv=on;opt.onFan(on);toast('Fan override '+(on?'on':'off'));}else toast('Fan override: display only, relay output PROPOSED and not wired');}
@@ -440,7 +442,7 @@ function create(root,opt){
   if(sim){const send=(c,v)=>sim.send(c,v);let drag={};
     F('simcol').onclick=()=>{const c=F('simp').classList.toggle('col');localStorage.setItem('teryxSimPanelCol',c?'1':'0');F('simcol').textContent=c?'Show ▾':'Hide ▴';};
     D.querySelectorAll('[data-sv]').forEach(e=>{const k=e.dataset.sv;e.oninput=()=>{drag[k]=performance.now();F('sv_'+k).textContent=e.value+' %';send(k,+e.value);};});
-    D.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>send('gear',b.dataset.sg));
+    D.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>{const pe=F('kidpin'),pin=pe?pe.value:'';if(pe)pe.value='';send('gear',b.dataset.sg+(pin?':'+pin:''));});
     D.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>{const k=b.dataset.sc;if(k==='wake')wake('sim Wake button');if(k==='reset'&&!confirm('Reset the simulator? Cells, faults and the log go back to start.'))return;send(k,k==='cycle'?simCyc:undefined);});
     var simCyc=null,simPaint=s=>{const Dr=(s&&s.drive)||{},B=(s&&s.bms)||{},I=(s&&s.simInfo)||{},n=performance.now();
       [['thr',Dr.throttlePct],['brk',Dr.brakePct],['grade',I.gradePct]].forEach(([k,v])=>{const e=D.querySelector(`[data-sv="${k}"]`);if(num(v)&&!(n-(drag[k]||0)<600)){e.value=v;F('sv_'+k).textContent=(+v).toFixed(k==='grade'?1:0)+' %';}});
@@ -494,7 +496,7 @@ function create(root,opt){
     q('lights',o.headHigh?'high':o.headLow?'low':'off',o.headLow);
     q('4wd',r.fault4?'FAULT':r.wdShifting?'shifting…':r.wd||'2WD',r.wd==='4WD',!!r.wdWhy);
     q('diff',r.faultD?'FAULT':r.diffShifting?'moving…':r.diff||'off',r.diff&&r.diff!=='off',!!(r.diffWhy&&r.diffWhy[nextDiff[r.diff]||'off']));
-    const g=live?Dr.gear:null;q('mode',g?({H:'High',M:'Medium',L:'Low',R:'Reverse',P:'Park'}[g]||g):'—',false,!opt.onGear);
+    const g=live?Dr.gear:null;q('mode',g?(MODE_NAME[g]||g):'—',false,!opt.onGear);
     const Ch=(live&&s.charge)||{};q('chg',(cs.lim||Ch.limitPct)?'limit '+(cs.lim||Ch.limitPct)+' %':'limit —',false);
     q('fan',L.fan!=null?(L.fan?(fanOv?'override':'on'):'off'):'—',!!L.fan,!opt.onFan);
     const P=Dr.powerAllowedPct,lim=F('lim');if(num(P)){F('limP').textContent=P.toFixed(0)+' %';F('limW').textContent=P>=99.5?'full power':'limited by '+(Dr.powerWhy||(Dr.limp?'limp':'BMS'));lim.classList.toggle('cut',P<99.5&&P>0);lim.classList.toggle('off',P<=0);}
@@ -529,7 +531,7 @@ function create(root,opt){
     put('rpm',rpm,rpm!=null?rpm.toFixed(0):'');tag('rpmTag',rt);
     // gear
     const gr=live?(Dr.gear||null):null,closed=C.mainPositive==='closed'&&C.mainNegative==='closed';
-    F('gear').innerHTML=['P','R','L','M','H'].map(x=>`<span class="${gr===x||(x==='P'&&live&&!closed)?'on':''}">${x}</span>`).join('')+(gr==null&&live?'<span class="na" style="font-size:16px"> gear not wired</span>':'');
+    F('gear').innerHTML=['P','R','L','M','H'].map(x=>`<span class="${gr===x||(x==='P'&&live&&!closed)?'on':''}">${x}</span>`).join('')+(gr&&!['P','R','L','M','H'].includes(gr)?`<span class="on">${MODE_NAME[gr]||gr}</span>`:'')+(gr==null&&live?'<span class="na" style="font-size:16px"> gear not wired</span>':'');
     // battery / range
     const soc=live&&B.wired&&num(B.socPct)?B.socPct:null;put('soc',soc,soc!=null?`${soc.toFixed(0)}<span class="u">%</span>`:'');F('sbar').style.width=(soc||0)+'%';
     tag('socTag',soc!=null&&B.socState?B.socState:(live&&soc==null?(B.socWhy||'unknown'):''));

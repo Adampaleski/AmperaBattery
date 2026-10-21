@@ -23,8 +23,30 @@ const VEH_SETS=[['tireIn','Tire diameter','in','SOURCED: Adam (stock tires, 24")
   ['liftRegen','Throttle lift-off regen','on/off','PROPOSED off by default',0,1,1],['liftRegenA','Lift-off regen current','A','PROPOSED',0,100,5],
   ['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
   ['phaseA','Kelly phase current limit','A','SOURCED: Adam 550 A (Kelly config not yet read back)',50,800,10],['battA','Kelly battery current limit','A','SOURCED: Adam 550 A',50,800,10]];
-// Kelly speed modes. sc = throttle scale, rpm = motor RPM cap. PROPOSED placeholders, not Kelly settings.
-const VEH_GEARS={L:{n:'Low',sc:.45,rpm:2700},M:{n:'Medium',sc:.70,rpm:4400},H:{n:'High',sc:1,rpm:6000},R:{n:'Reverse',sc:.25,rpm:1100}};
+// Drive modes = pedal-map profiles (Adam approved 2026-10-21). Mirror of include/DriveProfile.h kDefaults
+// (parity-checked against the wasm build). ALL values PROPOSED, editable in Settings. Reduce-only trim:
+// expo (0 linear .. 1 soft), cur = pedal cap % (current-limit proxy), ramp A/s (vs 550 A), top mph, regen %.
+// rpm = Kelly 6000 RPM cap (all forward modes). Reverse keeps its own PROPOSED profile.
+const VEH_MODE_DEF={H:{n:'High',expo:0,cur:100,ramp:2000,top:49,regen:100,rpm:6000},M:{n:'Medium',expo:.3,cur:70,ramp:1000,top:36,regen:80,rpm:6000},
+  L:{n:'Low',expo:.5,cur:45,ramp:600,top:22,regen:60,rpm:6000},SNOW:{n:'Snow',expo:.8,cur:40,ramp:150,top:25,regen:25,rpm:6000},
+  MUD:{n:'Mud',expo:0,cur:90,ramp:2500,top:30,regen:20,rpm:6000},SAND:{n:'Sand',expo:0,cur:100,ramp:3000,top:35,regen:15,rpm:6000},
+  KID:{n:'Kid',expo:.7,cur:20,ramp:60,top:10,regen:30,rpm:6000},R:{n:'Reverse',expo:.3,cur:25,ramp:500,top:9,regen:30,rpm:1100}};
+const VEH_GEARS=JSON.parse(JSON.stringify(VEH_MODE_DEF));   // live (edited) profiles
+const VEH_MODE_ORDER=['H','M','L','SNOW','MUD','SAND','KID'];
+const VEH_MODE_FIELDS=[['expo','Pedal curve (expo)','0–1',0,1,0.05],['cur','Current limit','% pedal',0,100,1],['ramp','Ramp','A/s',10,5000,10],['top','Top speed','mph',1,60,1],['regen','Regen strength','%',0,100,5]];
+function vehModeSet(k,f,v){const g=VEH_GEARS[k],d=VEH_MODE_FIELDS.find(x=>x[0]===f);if(!g||!d||!(v>=d[3]&&v<=d[4]))return false;g[f]=+v;return true;}
+// Kid PIN (mirror of DriveProfile::Selector): Kid can't be entered until a PIN is set; leaving it needs the PIN.
+const VEH_KID={pin:''};
+function vehSelectMode(cur,next,pin){if(!VEH_GEARS[next])return 'unknown mode';if(next==='KID'&&cur!=='KID'&&!VEH_KID.pin)return 'Set a Kid PIN first (Settings)';
+  if(cur==='KID'&&next!=='KID'){if(!pin)return 'PIN required to leave Kid';if(String(pin)!==VEH_KID.pin)return 'Wrong PIN';}return '';}
+function vehCurve(x,e){x=Math.max(0,Math.min(1,x));e=Math.max(0,Math.min(1,e));return (1-e)*x+e*x*x*x;}
+// Reduce-only trim step (mirror of DriveProfile::Trim). tr={filt,out} persists between calls; dtMs step.
+function vehTrim(g,tr,pedal,mph,allow,ok,dtMs){const raw=Math.max(0,Math.min(100,pedal));if(!ok){tr.out=0;tr.filt=raw;return 0;}
+  const steps=Math.max(1,Math.round(dtMs));for(let i=0;i<steps;i++){tr.filt+=(raw-tr.filt)*(1/(5+1));
+    let t=vehCurve(tr.filt/100,g.expo)*100*Math.max(0,Math.min(100,g.cur))/100*Math.max(0,Math.min(100,allow))/100;
+    const over=Math.abs(mph)-(g.top-2);if(over>0)t*=Math.max(0,Math.min(1,1-over/2));
+    const rise=g.ramp/550*100/1000;tr.out=t>tr.out?Math.min(t,tr.out+rise):t;if(tr.out>tr.filt)tr.out=tr.filt;if(tr.out>raw)tr.out=raw;}
+  return tr.out;}
 const MPS_PER_MPH=0.44704,G=9.81,RHO=1.2;
 function vehRatio(p){return p.sprRear/p.sprFront*p.diffRatio;}
 // Saved settings from before the rename: 'gearbox' was the diff ratio all along -> diffRatio.
@@ -44,15 +66,19 @@ function vehStep(p,st,inp,dt){
   const thr=Math.max(0,Math.min(100,inp.thr))/100,brake=Math.max(0,Math.min(100,inp.brake))/100;
   let T=0,why='';
   if(live&&thr>0&&brake===0){
-    T=p.ktNmA*p.phaseA*thr*g.sc*Math.max(0,inp.allowPct)/100;               // phase-amp torque limit
+    const tr=st.trim||{filt:thr*100,out:thr*100*g.cur/100};                  // no state passed: steady state
+    const k100=vehTrim(g,tr,thr*100,st.mph,inp.allowPct,true,dt*1000)/100;st.trimOut=k100*100;
+    T=p.ktNmA*p.phaseA*k100;                                                  // trim output (curve, cap, ramp, top, BMS allowance)
+    if(k100<thr*g.cur/100*Math.max(0,inp.allowPct)/100-0.5e-2&&Math.abs(st.mph)>=g.top-2)why='mode top speed';
     const Pmax=p.eta*V*p.battA;if(w>1&&T*w>Pmax){T=Pmax/w;why='Kelly battery limit';}   // battery-amp limit
-    if(rpm>=g.rpm*0.95){T*=Math.max(0,(g.rpm-rpm)/(g.rpm*0.05));why='speed-mode RPM cap';}
+    if(rpm>=g.rpm*0.95){T*=Math.max(0,(g.rpm-rpm)/(g.rpm*0.05));why=inp.gear==='R'?'reverse RPM cap':'Kelly 6000 RPM cap';}
   }
   const driveA=T*w/(p.eta*V);
   // regen request: brake pedal (regen-first blend) or optional lift-off; faded at low speed; BMS can veto
   let regReq=0,rwhy='';
   if(brake>0)regReq=p.maxRegenA*Math.min(1,p.regenBlendPct>0?brake/(p.regenBlendPct/100):1);
   else if(p.liftRegen&&thr===0)regReq=p.liftRegenA;
+  regReq*=(g.regen==null?100:g.regen)/100;                                   // mode regen strength (PROPOSED)
   const fade=vehFade(p,st.mph);let regA=regReq*fade;
   if(regReq>0&&!live){regA=0;rwhy=inp.driveLocked?'drive locked':'contactors open';}
   else if(regReq>0&&!inp.regenOk){regA=0;rwhy='BMS: regen not allowed';}
@@ -171,6 +197,8 @@ function create(){
 g.TeryxControls={create,CTL_DEF,CTL_META,LIGHTS,DIFF};
 })(typeof window!=='undefined'?window:globalThis);
 
+// Drive modes = PROPOSED pedal-map profiles (sim/vehicle.js VEH_GEARS, include/DriveProfile.h)
+const MODE_NAME={H:'High',M:'Medium',L:'Low',SNOW:'Snow',MUD:'Mud',SAND:'Sand',KID:'Kid',R:'Reverse',P:'Park'};
 /* Teryx dash component — shared by tools/dash.html (in-vehicle) and the sim Cluster tab.
    Input: one status object (STATUS_SCHEMA v1 + additive fields, see docs/DASH.md).
    Rule: a reading with no source is shown as "—" with an amber dot. Never invents values. */
@@ -366,7 +394,7 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
  ['SoC / range','BmsCore::Soc coulomb count on LEM A + B, full-charge anchor; range = SoC × ASSUMED kWh ÷ Wh/mi','sim only · capAh UNVERIFIED'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → head unit','schema exists']];
-const DASH_BUILD='built on c8b9c06+';
+const DASH_BUILD='built on ec1c8d4+';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');
@@ -377,7 +405,7 @@ function create(root,opt){
       <label>Throttle <input type="range" min="0" max="100" value="0" data-sv="thr"><b data-f="sv_thr">0 %</b></label>
       <label>Brake <input type="range" min="0" max="100" value="0" data-sv="brk"><b data-f="sv_brk">0 %</b></label>
       <label>Grade <input type="range" min="-20" max="20" step="0.5" value="0" data-sv="grade"><b data-f="sv_grade">0 %</b></label>
-      <span class="sr" data-f="sgear">${['H','M','L','R'].map(g=>`<button data-sg="${g}">${g}</button>`).join('')}</span></div>
+      <span class="sr" data-f="sgear">${['H','M','L','SNOW','MUD','SAND','KID','R'].map(g=>`<button data-sg="${g}">${MODE_NAME[g]}</button>`).join('')}</span><input data-f="kidpin" type="password" inputmode="numeric" maxlength="4" placeholder="Kid PIN" aria-label="Kid PIN" style="width:110px"></div>
      <div class="sr">${[['launch','Hard launch'],['regen','Regen stop'],['coast','Coast'],['climb','Climb'],['lowcell','Low cell'],['hotpack','Hot pack'],['lemimb','LEM imbalance'],['weld','Contactor weld'],['lemdrop','LEM dropout'],['chglim','Charge to limit'],['pcycle','Power cycle'],['wake','Wake'],['reset','Reset…']].map(([k,t])=>`<button data-sc="${k}"${k==='reset'||k==='weld'?' class="red"':''}>${t}</button>`).join('')}</div>
      <div class="sr"><span>Drive cycle</span><span class="sr" data-f="scyc"></span><button data-sc="cycle" data-f="scgo" class="go">Start</button><button data-sc="speed20" data-f="s20">20× speed</button><span data-f="scst" class="k"></span></div>
      <div class="ro" data-f="sro"></div></div></div>`;
@@ -590,7 +618,7 @@ function create(root,opt){
     else if(k==='lights'){CT.setLight('low',!CT.S.lights.low);ctlEv('light low '+(CT.S.lights.low?'on':'off'));}
     else if(k==='4wd'){const r=CT.toggle4wd(lastDrv);if(!r.ok)toast(r.why);ctlPaint();}
     else if(k==='diff'){const r=CT.setDiff(lastDrv,nextDiff[CT.S.diff]||'off');if(!r.ok)toast(r.why);ctlPaint();}
-    else if(k==='mode'){const g=lastDrv.gear,n={H:'M',M:'L',L:'H'}[g]||'H';if(opt.onGear){const r=opt.onGear(n);if(r)toast(r);}else toast('Drive mode is the Kelly speed switch: display only here (not wired)');}
+    else if(k==='mode'){const g=lastDrv.gear,n={H:'M',M:'L',L:'SNOW',SNOW:'MUD',MUD:'SAND',SAND:'H'}[g]||'H';if(g==='KID'){toast('Kid mode: enter the PIN in the mode selector to leave');}else if(opt.onGear){const r=opt.onGear(n);if(r)toast(r);}else toast('Drive mode is the Kelly speed switch: display only here (not wired)');}
     else if(k==='chg')openMenu('chg');
     else if(k==='fan')fanTap();});
   function fanTap(){if(opt.onFan){const on=!fanOv;fanOv=on;opt.onFan(on);toast('Fan override '+(on?'on':'off'));}else toast('Fan override: display only, relay output PROPOSED and not wired');}
@@ -613,7 +641,7 @@ function create(root,opt){
   if(sim){const send=(c,v)=>sim.send(c,v);let drag={};
     F('simcol').onclick=()=>{const c=F('simp').classList.toggle('col');localStorage.setItem('teryxSimPanelCol',c?'1':'0');F('simcol').textContent=c?'Show ▾':'Hide ▴';};
     D.querySelectorAll('[data-sv]').forEach(e=>{const k=e.dataset.sv;e.oninput=()=>{drag[k]=performance.now();F('sv_'+k).textContent=e.value+' %';send(k,+e.value);};});
-    D.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>send('gear',b.dataset.sg));
+    D.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>{const pe=F('kidpin'),pin=pe?pe.value:'';if(pe)pe.value='';send('gear',b.dataset.sg+(pin?':'+pin:''));});
     D.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>{const k=b.dataset.sc;if(k==='wake')wake('sim Wake button');if(k==='reset'&&!confirm('Reset the simulator? Cells, faults and the log go back to start.'))return;send(k,k==='cycle'?simCyc:undefined);});
     var simCyc=null,simPaint=s=>{const Dr=(s&&s.drive)||{},B=(s&&s.bms)||{},I=(s&&s.simInfo)||{},n=performance.now();
       [['thr',Dr.throttlePct],['brk',Dr.brakePct],['grade',I.gradePct]].forEach(([k,v])=>{const e=D.querySelector(`[data-sv="${k}"]`);if(num(v)&&!(n-(drag[k]||0)<600)){e.value=v;F('sv_'+k).textContent=(+v).toFixed(k==='grade'?1:0)+' %';}});
@@ -667,7 +695,7 @@ function create(root,opt){
     q('lights',o.headHigh?'high':o.headLow?'low':'off',o.headLow);
     q('4wd',r.fault4?'FAULT':r.wdShifting?'shifting…':r.wd||'2WD',r.wd==='4WD',!!r.wdWhy);
     q('diff',r.faultD?'FAULT':r.diffShifting?'moving…':r.diff||'off',r.diff&&r.diff!=='off',!!(r.diffWhy&&r.diffWhy[nextDiff[r.diff]||'off']));
-    const g=live?Dr.gear:null;q('mode',g?({H:'High',M:'Medium',L:'Low',R:'Reverse',P:'Park'}[g]||g):'—',false,!opt.onGear);
+    const g=live?Dr.gear:null;q('mode',g?(MODE_NAME[g]||g):'—',false,!opt.onGear);
     const Ch=(live&&s.charge)||{};q('chg',(cs.lim||Ch.limitPct)?'limit '+(cs.lim||Ch.limitPct)+' %':'limit —',false);
     q('fan',L.fan!=null?(L.fan?(fanOv?'override':'on'):'off'):'—',!!L.fan,!opt.onFan);
     const P=Dr.powerAllowedPct,lim=F('lim');if(num(P)){F('limP').textContent=P.toFixed(0)+' %';F('limW').textContent=P>=99.5?'full power':'limited by '+(Dr.powerWhy||(Dr.limp?'limp':'BMS'));lim.classList.toggle('cut',P<99.5&&P>0);lim.classList.toggle('off',P<=0);}
@@ -702,7 +730,7 @@ function create(root,opt){
     put('rpm',rpm,rpm!=null?rpm.toFixed(0):'');tag('rpmTag',rt);
     // gear
     const gr=live?(Dr.gear||null):null,closed=C.mainPositive==='closed'&&C.mainNegative==='closed';
-    F('gear').innerHTML=['P','R','L','M','H'].map(x=>`<span class="${gr===x||(x==='P'&&live&&!closed)?'on':''}">${x}</span>`).join('')+(gr==null&&live?'<span class="na" style="font-size:16px"> gear not wired</span>':'');
+    F('gear').innerHTML=['P','R','L','M','H'].map(x=>`<span class="${gr===x||(x==='P'&&live&&!closed)?'on':''}">${x}</span>`).join('')+(gr&&!['P','R','L','M','H'].includes(gr)?`<span class="on">${MODE_NAME[gr]||gr}</span>`:'')+(gr==null&&live?'<span class="na" style="font-size:16px"> gear not wired</span>':'');
     // battery / range
     const soc=live&&B.wired&&num(B.socPct)?B.socPct:null;put('soc',soc,soc!=null?`${soc.toFixed(0)}<span class="u">%</span>`:'');F('sbar').style.width=(soc||0)+'%';
     tag('socTag',soc!=null&&B.socState?B.socState:(live&&soc==null?(B.socWhy||'unknown'):''));
