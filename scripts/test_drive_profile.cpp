@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
-#include "DriveProfile.h"
+#include "DriveStore.h"
 using namespace DriveProfile;
 static int pass = 0, fail = 0;
 static void check(bool c, const char *m) { std::printf("%s %s\n", c ? "PASS" : "FAIL", m); (c ? pass : fail)++; }
@@ -76,11 +76,33 @@ int main() {
     {
         Selector s;
         check(s.select(M_KID) == Selector::NO_PIN_SET && s.mode == M_H, "Kid refused until a PIN is set");
-        s.pin = 4321;
+        s.setPin(4321);
         check(s.select(M_KID) == Selector::OK && s.mode == M_KID, "enter Kid (PIN set)");
         check(s.select(M_H) == Selector::NEED_PIN && s.mode == M_KID, "leave Kid without PIN: refused");
         check(s.select(M_SNOW, 1111) == Selector::BAD_PIN && s.mode == M_KID, "leave Kid with wrong PIN: refused");
         check(s.select(M_H, 4321) == Selector::OK && s.mode == M_H, "leave Kid with PIN: ok");
+    }
+    // 5b. EEPROM record: profiles + mode + PIN hash, CRC
+    {
+        static uint8_t ee[4284]; memset(ee, 0xFF, sizeof ee);
+        const BmsCore::LogStore ls{[](int a) { return ee[a]; }, [](int a, uint8_t v) { ee[a] = v; }};
+        Store st(ls); Table t; Selector s;
+        check(!st.load(t, s) && s.mode == M_H && !s.hasPin(), "EEPROM blank -> PROPOSED defaults, High, no PIN");
+        t.set(M_SNOW, "cur", 33); s.setPin(2468); s.select(M_KID); st.save(t, s);
+        Table t2; Selector s2;
+        check(st.load(t2, s2) && s2.mode == M_KID && t2.p[M_SNOW].currentPct == 33 && s2.pinOk(2468) && !s2.pinOk(2469),
+              "reboot: profiles + last mode restored, Kid stays Kid, PIN still checks");
+        check(s2.select(M_H) == Selector::NEED_PIN && s2.select(M_H, 2468) == Selector::OK, "after reboot: leaving Kid still needs the PIN");
+        bool clear = true;   // PIN never stored in clear (binary LE/BE or ASCII "2468")
+        for (int i = Store::kBase; i < Store::kEnd - 1; i++) {
+            const uint16_t le = ee[i] | (ee[i + 1] << 8), be = (ee[i] << 8) | ee[i + 1];
+            if (le == 2468 || be == 2468) clear = false;
+            if (i < Store::kEnd - 4 && !memcmp(ee + i, "2468", 4)) clear = false;
+        }
+        check(clear && hashPin(2468) != 2468 && hashPin(0) == 0, "PIN stored only as a salted hash (no clear bytes)");
+        ee[Store::kBase + 20] ^= 1; Table t3; Selector s3;
+        check(!st.load(t3, s3) && s3.mode == M_H && t3.p[M_SNOW].currentPct == kDefaults[M_SNOW].currentPct, "corrupt byte -> CRC fails -> defaults, High");
+        check(Store::kBase == BmsCore::Thresholds::kEnd && Store::kEnd <= 4284, "EEPROM map: after thresholds, inside 4284");
     }
     // 6. adjustable + bounds
     check(tab.set(M_SNOW, "cur", 35) && tab.p[M_SNOW].currentPct == 35 && !tab.set(M_SNOW, "cur", 150) && !tab.set(M_KID, "top", 0.5f) && !tab.set(M_H, "bogus", 1),

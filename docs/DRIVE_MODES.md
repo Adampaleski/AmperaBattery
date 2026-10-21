@@ -18,7 +18,9 @@ Every value is **PROPOSED** and adjustable (firmware: `MP <key> expo|cur|ramp|to
 - MCP4131 as a divider in the throttle wiper: Kelly sees pedal × wiper/128, so the trim can only **lower** the pedal. Wiper rounds down.
 - 1 kHz IntervalTimer: pedal ADC on pin 24 (A10, PROPOSED, shares HV_SENSE: compile error if HV_ANALOG_ENABLE=1), 5 ms one-pole filter, curve y=(1−e)x+e·x³, × cap, × BMS allowance (kellyPct), top-speed taper over the last 2 mph (speed from Kelly RPM 0x0CF11E05 × 0.008161 mph/RPM), ramp-limited rise, instant release, clamp ≤ filtered and ≤ raw pedal.
 - Output 0 (wiper 0): contactors not Closed, any drive fault, Kid without a valid speed, trim disabled. `begin()` is the first line of `setup()`, so after a watchdog reset the wiper is written 0 before anything else.
-- Kid: can't be entered until a PIN is set (`MPIN 0 <1000-9999>`); leaving needs `M <key> <pin>`. RAM only: a reboot returns to High with no PIN.
+- Kid: can't be entered until a PIN is set (`MPIN 0 <1000-9999>`, change: `MPIN <old> <new>`, not while in Kid); leaving needs `M <key> <pin>`.
+- EEPROM (chief 2026-10-21, `include/DriveStore.h`): profiles + current mode + Kid PIN hash at 1310–1462, CRC-16; boot restores the last mode (Kid stays Kid). Blank/corrupt/out-of-bounds → PROPOSED defaults, High, no PIN. The PIN is stored only as a salted, iterated FNV-1a hash and never printed (`d` shows `kidPin=set/none`). A 4-digit PIN can still be brute-forced from the EEPROM bytes (10^4 values).
+- ON HOLD (Adam to decide: chief proposes pedal direct to Kelly, no digipot): hardware default-off clamp + alive one-shot, and moving the pedal input off pin 24. See KELLY_HPD.md for HPD.
 - `d` prints mode, pedal, output, wiper, max ISR period and compute µs.
 
 ## Limits / UNVERIFIED (crew)

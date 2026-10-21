@@ -587,7 +587,7 @@ function wireDrive(){
 }
 /* ---------- cluster ---------- */
 const GEARS=VEH_GEARS;  // PROPOSED pedal-map drive modes (sim/vehicle.js)
-let modeMsg='';const cTrim={filt:0,out:0};
+let modeMsg='',modeSave=null;const cTrim={filt:0,out:0};
 let VP=Object.assign({},VEH_DEF,vehMigrate(JSON.parse(localStorage.getItem('teryxVehSettings')||'{}'))),vLast=null;
 const LOADS=[['pump','Kelly coolant pump','~2–5 A ESTIMATE','PROPOSED: stock Teryx radiator + Bosch 12 V pump for W3-GT2 heatsink · runs whenever key is on · Teensy B FET (pin unassigned) · no flow sensor',3.5],
  ['fan','Radiator fan','~8 A ESTIMATE','PROPOSED: stock radiator fan via 12 V relay driven by Teensy (pin unassigned) · auto on at ~40 °C (Kelly temp or coolant sensor)',8],
@@ -618,7 +618,7 @@ function gauge(k,v,src,nw){return `<div class="g"><div class="k">${k}</div><div 
 function wireCluster(){
   $('cgsel').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(Math.abs(cSpd)>1&&(b.dataset.g==='R')!==(cGear==='R')){ulog('Gear change to '+GEARS[b.dataset.g].n+' refused: stop first');return;}
     const why=vehSelectMode(cGear,b.dataset.g,$('kidPin').value);$('kidPin').value='';if(why){ulog('Mode '+GEARS[b.dataset.g].n+' refused: '+why);modeMsg=why;return;}modeMsg='';
-    cGear=b.dataset.g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));ulog('Gear '+GEARS[cGear].n);});
+    cGear=b.dataset.g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));ulog('Gear '+GEARS[cGear].n);if(modeSave&&cGear!=='R')modeSave();});
   $('cthr').oninput=e=>$('cthrv').textContent=e.target.value+' %';$('cthr').onchange=e=>ulog('Throttle '+e.target.value+'%');
   $('ckt').oninput=e=>$('cktv').textContent=e.target.value+' °C';
   $('cbrk').oninput=e=>$('cbrkv').textContent=e.target.value+' %';$('cbrk').onchange=e=>ulog('Brake '+e.target.value+'%');
@@ -636,7 +636,8 @@ function wireCluster(){
 let dc=null,dcSel='trail',dcLast=null;
 function dcLowCell(){let lo=9;for(let b=0;b<8;b++)for(let c=0;c<X.sim_board_cells(b);c++)lo=Math.min(lo,X.sim_get_cell(b,c));return lo;}
 function dcFaultText(){const f=[];S.faultNames.forEach((n,i)=>{if((S.faults|S.latched)&(1<<i))f.push(n);});return f.join(', ');}
-function dcSetGear(g){if(vehSelectMode(cGear,g,VEH_KID.pin))return;cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));}
+function dcSetGearRaw(g){cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));}
+function dcSetGear(g){if(cGear==='KID'&&g!=='KID')return;if(vehSelectMode(cGear,g,'x'))return;cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));}
 function wireCycle(){
   $('dcsel').innerHTML=Object.entries(DRIVE_CYCLES).map(([k,p])=>`<button data-c="${k}"${k===dcSel?' class="on"':''}>${p.name}</button>`).join('');
   $('dcsel').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(dc)return;dcSel=b.dataset.c;dcLast=null;$('dcsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));dcShow();});
@@ -811,11 +812,11 @@ function buildVeh(){$('vehT').innerHTML='<tr><td><b>Parameter</b></td><td><b>Val
   `<tr><td>Overall ratio · 55 mph</td><td>${vehRatio(VP).toFixed(2)} : 1 · ${vehRpm(VP,55).toFixed(0)} RPM</td><td class="small">derived</td></tr>`;}
 function buildModes(){$('modeT').innerHTML='<tr><td><b>Mode</b></td>'+VEH_MODE_FIELDS.map(f=>`<td><b>${f[1]}</b> <span class="small">${f[2]}</span></td>`).join('')+'</tr>'+
   VEH_MODE_ORDER.concat(['R']).map(k=>`<tr data-mode="${k}"><td>${VEH_GEARS[k].n}</td>`+VEH_MODE_FIELDS.map(([f,,,mn,mx,st])=>`<td><input id="mp_${k}_${f}" type="number" min="${mn}" max="${mx}" step="${st}" value="${VEH_GEARS[k][f]}"></td>`).join('')+'</tr>').join('');}
-function wireModes(){try{const sv=JSON.parse(localStorage.getItem('teryx.modes.v1')||'null');if(sv){Object.entries(sv.p||{}).forEach(([k,o])=>Object.entries(o).forEach(([f,v])=>vehModeSet(k,f,v)));VEH_KID.pin=sv.pin||'';}}catch(e){}
-  buildModes();const save=()=>localStorage.setItem('teryx.modes.v1',JSON.stringify({p:Object.fromEntries(Object.keys(VEH_GEARS).map(k=>[k,Object.fromEntries(VEH_MODE_FIELDS.map(([f])=>[f,VEH_GEARS[k][f]]))])),pin:VEH_KID.pin}));
+function wireModes(){try{const sv=JSON.parse(localStorage.getItem('teryx.modes.v1')||'null');if(sv){Object.entries(sv.p||{}).forEach(([k,o])=>Object.entries(o).forEach(([f,v])=>vehModeSet(k,f,v)));VEH_KID.hash=sv.hash>>>0||0;if(sv.mode&&VEH_GEARS[sv.mode]&&sv.mode!=='R'&&(sv.mode!=='KID'||VEH_KID.hash))dcSetGearRaw(sv.mode);}}catch(e){}
+  buildModes();const save=()=>localStorage.setItem('teryx.modes.v1',JSON.stringify({p:Object.fromEntries(Object.keys(VEH_GEARS).map(k=>[k,Object.fromEntries(VEH_MODE_FIELDS.map(([f])=>[f,VEH_GEARS[k][f]]))])),hash:VEH_KID.hash,mode:cGear}));modeSave=save;
   $('modeSave').onclick=()=>{let bad=0;Object.keys(VEH_GEARS).forEach(k=>VEH_MODE_FIELDS.forEach(([f])=>{const e=$('mp_'+k+'_'+f);if(e&&+e.value!==VEH_GEARS[k][f]&&!vehModeSet(k,f,+e.value))bad++;}));save();buildModes();$('modeMsgS').textContent=bad?bad+' value(s) out of range, kept':'Modes saved (sim)';ulog('Drive modes saved (sim)'+(bad?', '+bad+' refused':''));};
   $('modeReset').onclick=()=>{Object.keys(VEH_MODE_DEF).forEach(k=>Object.assign(VEH_GEARS[k],VEH_MODE_DEF[k]));save();buildModes();$('modeMsgS').textContent='Modes reset to PROPOSED defaults';};
-  $('kidPinBtn').onclick=()=>{const v=$('kidPinSet').value;$('kidPinSet').value='';if(cGear==='KID'){$('modeMsgS').textContent='Leave Kid before changing the PIN';return;}if(!/^[0-9]{4}$/.test(v)){$('modeMsgS').textContent='PIN must be 4 digits';return;}VEH_KID.pin=v;save();$('modeMsgS').textContent='Kid PIN set';ulog('Kid PIN set (sim)');};}
+  $('kidPinBtn').onclick=()=>{const v=$('kidPinSet').value;$('kidPinSet').value='';if(cGear==='KID'){$('modeMsgS').textContent='Leave Kid before changing the PIN';return;}if(!/^[0-9]{4}$/.test(v)){$('modeMsgS').textContent='PIN must be 4 digits';return;}VEH_KID.hash=vehHashPin(v);save();$('modeMsgS').textContent='Kid PIN set';ulog('Kid PIN set (sim)');};}
 function wireVeh(){buildVeh();wireModes();
   $('vehSave').onclick=()=>{const st={};VEH_SETS.forEach(([k])=>{const v=+$('vn_'+k).value;if(isFinite(v))st[k]=typeof VEH_DEF[k]==='boolean'?!!v:v;});const gr=st.gradePct;delete st.gradePct;
     Object.assign(VP,st);localStorage.setItem('teryxVehSettings',JSON.stringify(st));setGrade(gr||0);ulog('Vehicle model saved (sim): '+(Object.entries(st).filter(([k,v])=>v!==VEH_DEF[k]).map(([k,v])=>k+'='+v).join(', ')||'defaults'));buildVeh();};

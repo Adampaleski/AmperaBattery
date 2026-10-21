@@ -395,3 +395,4 @@ EXPORT float sim_dp_step(int mode, float pedal, float mph, float allow, int ok) 
     DriveProfile::In in; in.pedalPct = pedal; in.mph = mph; in.speedValid = true; in.allowPct = allow; in.ok = ok != 0;
     return g_dpTrim.step(in, DriveProfile::kDefaults[mode < 0 || mode >= DriveProfile::kModes ? 0 : mode], 1.0f);
 }
+EXPORT unsigned sim_dp_hash(int pin) { return DriveProfile::hashPin(static_cast<uint16_t>(pin)); }

@@ -69,10 +69,12 @@ Source: Adam 2026-10-21. Bench envs (sniffer, k112_*, factory_bus, 1bicm, bench_
 
 Pins: CAN2 0/1 = Serial1 (unused; hub is Serial4 16/17), OUT5/OUT6 already moved to 2/3, no Config.h pin on 0/1/22/23/30/31 except the CAN pins. No conflict on A or B.
 
-Link: B → A every 100 ms with string V, cell min/max, faults, heartbeat (0x6A0/0x6A1) and cell counts (0x6A2). Cell avg = V / cells (derived on A, no new frame). Temps: per-string min/max + hottest index on 0x6A3 every 100 ms (see TEMPS.md; decode UNVERIFIED, acted on only when TEMPS_VERIFIED=1). A: B heartbeat older than **200 ms (PROPOSED, `T linkMs`, 100–2000)** → F_LINK fault, mains open, logged. Was 1000 ms.
+Link: B → A every 50 ms (chief 2026-10-21; A → B 0x6A8 stays 100 ms) with string V, cell min/max, faults, heartbeat (0x6A0/0x6A1) and cell counts (0x6A2). Cell avg = V / cells (derived on A, no new frame). Temps: per-string min/max + hottest index on 0x6A3 every 100 ms (see TEMPS.md; decode UNVERIFIED, acted on only when TEMPS_VERIFIED=1). A: B heartbeat older than **200 ms (PROPOSED, `T linkMs`, 100–2000)** → F_LINK fault, mains open, logged. Was 1000 ms.
 Spare controllers: none. A dedicated Kelly or vehicle bus later would need an external MCP2518FD (SPI) — not needed now. The Kelly CAN is broadcast-only and at 250k with the Elcon; that's the current Config; Kelly CAN rate itself is UNVERIFIED (docs/KELLY_CAN.md).
 
 **Transceivers:** one 3.3 V SN65HVD230 per controller = **6** (4 BICM + 2 on the vehicle bus). docs/COMPONENTS.md lists × 4 — **2 more needed** (or confirm the charger-bus ones are counted elsewhere).
 **Termination:** 120 Ω at both ends of every bus. BICM buses: 120 Ω at the Teensy end; the far end (last BICM) — whether the Volt BICM chain has internal termination is UNVERIFIED, meter it (≈60 Ω across CAN_H/CAN_L with power off = both ends present). Vehicle bus: 120 Ω at Teensy A and at the farthest node (Elcon or Kelly); check for built-in terminators in either (UNVERIFIED) so the bus is not triple-terminated; Teensy B is a stub with no terminator.
 
 No safety flag or output was changed.
+
+CAN3 250k load (2026-10-21, B → A at 50 ms): Kelly 0x0CF11E05 + 0x0CF11F05 every 50 ms = 40/s; Elcon control + status ~1 s each (ASSUMED) = 2/s; link B → A 0x6A0–0x6A3 every 50 ms = 80/s + A → B 0x6A8 every 100 ms = 10/s. Total ≈ 132 frames/s × 131–160 bit (29-bit, 8 bytes, with stuffing + IFS) ≈ 17.3–21.1 kbit/s = **6.9–8.4 %** of 250 kbit/s (was 4.8–5.9 % at 100 ms).

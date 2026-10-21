@@ -9,7 +9,7 @@ Gate: `TEMPS_VERIFIED=0` (Config.h) stays 0. Until it is 1, temps are decoded, f
 - Readings outside −40…120 °C are ignored. A string's temps are fresh if ≥1 plausible frame arrived within STRING_SILENT_MS (2000 ms).
 - Frame rate of 0x7Ex is not measured: **UNVERIFIED**.
 
-## Link 0x6A3 (B → A, 29-bit, every 100 ms)
+## Link 0x6A3 (B → A, 29-bit, every 50 ms)
 `[0] S3 min °C+40  [1] S3 max °C+40  [2] S3 hottest idx  [3–5] same for S4  [6] bit0 S3 fresh, bit1 S4 fresh  [7] heartbeat`. 0xFF = none. 1 °C resolution.
 A marks a remote string's temps fresh only if the 0x6A3 heartbeat advanced within the link stale limit (200 ms PROPOSED, `T linkMs`) and its fresh bit is set.
 

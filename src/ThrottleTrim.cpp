@@ -11,6 +11,8 @@
 #include "ThrottleTrim.h"
 #include "ContactorSeq.h"
 #include "KellyDecode.h"
+#include "DriveStore.h"
+#include <EEPROM.h>
 
 #ifndef SERIALCONSOLE
 #define SERIALCONSOLE Serial
@@ -22,6 +24,11 @@ DriveProfile::Table    g_tab;
 DriveProfile::Selector g_sel;
 DriveProfile::Trim     g_trim;
 IntervalTimer          g_timer;
+uint8_t eeR(int a) { return EEPROM.read(a); }
+void    eeW(int a, uint8_t v) { EEPROM.update(a, v); }
+const BmsCore::LogStore kStore{eeR, eeW};
+DriveProfile::Store    g_store(kStore);
+void persist() { g_store.save(g_tab, g_sel); }
 volatile bool     g_ok = false, g_speedValid = false;
 volatile float    g_allow = 0, g_mph = 0;
 volatile float    g_pedal = 0, g_out = 0;
@@ -64,6 +71,10 @@ const char *res(DriveProfile::Selector::Result r) {
 }  // namespace
 
 void begin() {
+    const bool ok = g_store.load(g_tab, g_sel);   // last mode (Kid stays Kid), profiles, PIN hash
+    SERIALCONSOLE.print(F("Drive modes (EEPROM ")); SERIALCONSOLE.print(DriveProfile::Store::kBase);
+    SERIALCONSOLE.print(F("): ")); SERIALCONSOLE.print(ok ? F("loaded, mode ") : F("blank/corrupt -> PROPOSED defaults, mode "));
+    SERIALCONSOLE.println(g_tab.p[g_sel.mode].name);
 #if THROTTLE_TRIM_ENABLE
     static_assert(!HV_ANALOG_ENABLE, "PEDAL_IN shares pin 24 with HV_SENSE");
     pinMode(Pins::THR_CS, OUTPUT); digitalWriteFast(Pins::THR_CS, HIGH);
@@ -95,18 +106,19 @@ bool handleLine(const char *l) {
     if (!strncmp(l, "M?", 2)) { print(); return true; }
     if (!strncmp(l, "MPIN", 4)) {
         unsigned a = 0, b = 0;
-        if (sscanf(l + 4, "%u %u", &a, &b) == 2 && (a == g_sel.pin) && b >= 1000 && b <= 9999) { g_sel.pin = b; SERIALCONSOLE.println(F("Kid PIN set")); }
+        if (sscanf(l + 4, "%u %u", &a, &b) == 2 && (g_sel.hasPin() ? g_sel.pinOk(static_cast<uint16_t>(a)) : a == 0) && b >= 1000 && b <= 9999 && g_sel.mode != DriveProfile::M_KID) { g_sel.setPin(static_cast<uint16_t>(b)); persist(); SERIALCONSOLE.println(F("Kid PIN set (stored hashed)")); }
         else SERIALCONSOLE.println(F("MPIN <old|0> <1000-9999>: refused"));
         return true;
     }
     if (!strncmp(l, "MP ", 3)) {
-        if (sscanf(l + 3, "%7s %7s %f", k, f, &v) == 3 && g_tab.set(DriveProfile::Table::find(k), f, v)) SERIALCONSOLE.println(F("profile set (RAM, PROPOSED)"));
+        if (sscanf(l + 3, "%7s %7s %f", k, f, &v) == 3 && g_tab.set(DriveProfile::Table::find(k), f, v)) { persist(); SERIALCONSOLE.println(F("profile set (EEPROM, PROPOSED)")); }
         else SERIALCONSOLE.println(F("MP <key> expo|cur|ramp|top|regen <v>: out of bounds"));
         return true;
     }
     unsigned pin = 0;
     if (sscanf(l + 1, "%7s %u", k, &pin) >= 1) {
         const auto r = g_sel.select(DriveProfile::Table::find(k), static_cast<uint16_t>(pin));
+        if (r == DriveProfile::Selector::OK) persist();
         SERIALCONSOLE.print(F("mode ")); SERIALCONSOLE.print(k); SERIALCONSOLE.print(F(": ")); SERIALCONSOLE.println(res(r));
         return true;
     }
@@ -119,6 +131,7 @@ void print() {
     const DriveProfile::Profile &p = g_tab.p[g_sel.mode];
     SERIALCONSOLE.print(F("TRIM enable=")); SERIALCONSOLE.print(THROTTLE_TRIM_ENABLE);
     SERIALCONSOLE.print(F(" mode=")); SERIALCONSOLE.print(p.name);
+    SERIALCONSOLE.print(F(" kidPin=")); SERIALCONSOLE.print(g_sel.hasPin() ? F("set") : F("none"));   // never the PIN
     SERIALCONSOLE.print(F(" pedal=")); SERIALCONSOLE.print(g_pedal, 1);
     SERIALCONSOLE.print(F("% out=")); SERIALCONSOLE.print(g_out, 1);
     SERIALCONSOLE.print(F("% wiper=")); SERIALCONSOLE.print(g_wiper);

@@ -80,17 +80,34 @@ public:
 };
 
 // Mode selection with the Kid PIN. PIN 0 = not set: Kid cannot be entered (so it can always be left).
+// Kid PIN is kept only as a salted, iterated FNV-1a hash (never stored or printed in clear).
+// NOTE: a 4-digit PIN has 10^4 values, so anyone with the EEPROM bytes can brute-force it; the
+// hash only keeps it out of dumps/logs. 0 = no PIN.
+inline uint32_t hashPin(uint16_t pin) {
+    if (!pin) return 0;
+    uint32_t h = 2166136261u;
+    const char *salt = "TeryxKid1";
+    for (int it = 0; it < 1000; it++) {
+        for (const char *c = salt; *c; c++) { h ^= static_cast<uint8_t>(*c); h *= 16777619u; }
+        h ^= pin & 0xFF; h *= 16777619u; h ^= pin >> 8; h *= 16777619u;
+    }
+    return h ? h : 1;
+}
+
 class Selector {
 public:
     Mode mode = M_H;
-    uint16_t pin = 0;   // PROPOSED: set by the owner (4 digits); RAM only, reboot -> High, no PIN
+    uint32_t pinHash = 0;   // hashPin(pin); persisted by DriveStore (EEPROM)
+    bool hasPin() const { return pinHash != 0; }
+    void setPin(uint16_t pin) { pinHash = hashPin(pin); }
+    bool pinOk(uint16_t pin) const { return pinHash && hashPin(pin) == pinHash; }
     enum Result : uint8_t { OK = 0, NEED_PIN, BAD_PIN, NO_PIN_SET, BAD_MODE };
     Result select(int m, uint16_t enteredPin = 0) {
         if (m < 0 || m >= kModes) return BAD_MODE;
-        if (m == M_KID && mode != M_KID && pin == 0) return NO_PIN_SET;
+        if (m == M_KID && mode != M_KID && !hasPin()) return NO_PIN_SET;
         if (mode == M_KID && m != M_KID) {
             if (!enteredPin) return NEED_PIN;
-            if (enteredPin != pin) return BAD_PIN;
+            if (!pinOk(enteredPin)) return BAD_PIN;
         }
         mode = static_cast<Mode>(m);
         return OK;

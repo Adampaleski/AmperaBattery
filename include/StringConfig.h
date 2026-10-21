@@ -4,7 +4,7 @@
 //   Each Teensy:  CAN3 (30/31) @125k = string 1   CAN1 (22/23) @125k = string 2
 //                 CAN2 (0/1)   @250k = Elcon + Kelly + inter-Teensy link
 //   TEENSY_ROLE 0 = A (master: owns contactor/precharge state machine, listens to B)
-//   TEENSY_ROLE 1 = B (reports its two strings to A every 100 ms; no contactors)
+//   TEENSY_ROLE 1 = B (reports its two strings to A every 50 ms; no contactors)
 //
 // A string is a set of factory circuits on ONE bus. Circuit numbers follow the
 // frame-pair order in FactoryCellMap.h (same IDs on every bus):
@@ -65,7 +65,10 @@
 #define LINK_STALE_MS 200                          // A: B heartbeat older -> FAULT, mains open + logged. PROPOSED 200 ms (Adam 2026-10-21); runtime key T linkMs
 #endif
 #ifndef LINK_PERIOD_MS
-#define LINK_PERIOD_MS 100
+#define LINK_PERIOD_MS 50                          // B -> A summaries (chief 2026-10-21: 100 -> 50 ms; timeout stays 200 ms = 4 frames)
+#endif
+#ifndef LINK_A_PERIOD_MS
+#define LINK_A_PERIOD_MS 100                       // A -> B 0x6A8 heartbeat (unchanged)
 #endif
 #ifndef LINK_TX_ENABLE
 #define LINK_TX_ENABLE 1                           // link frames on CAN2 (not charge/balance/contactor)

@@ -106,6 +106,7 @@ public:
     // Fields set elsewhere (e.g. low cutoff from the L setting) for the order rules.
     void setBase(const Config &b) { base_ = b; }
 
+    static uint16_t crc16pub(const uint8_t *p, int n) { return crc16(p, n); }
     int  overrides() const { return __builtin_popcount(mask_); }
     bool isSet(int i) const { return (mask_ >> i) & 1u; }
 

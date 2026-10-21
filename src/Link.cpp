@@ -60,7 +60,11 @@ void tick() {
     const uint8_t f = (StringMon::summary(0).faults | StringMon::summary(1).faults) & StringMon::kFaultMask;
     digitalWrite(Pins::B_FAULT_OUT, f ? LOW : HIGH);
 #endif
+#if ROLE_IS_A
+    if (now - g_txMs < LINK_A_PERIOD_MS) return;
+#else
     if (now - g_txMs < LINK_PERIOD_MS) return;
+#endif
     g_txMs = now;
     g_hb++;
     uint8_t b[8];

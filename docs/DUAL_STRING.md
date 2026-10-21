@@ -40,7 +40,7 @@ An expected circuit with no fresh frame for > `STRING_SILENT_MS` (1000 ms) = FAU
 | 0x6A1 | B->A | string 2: same layout |
 | 0x6A2 | B->A | [0] hb, [1] role=1, [2] s1 cells, [3] s2 cells, [4] faults OR, [5] bit0 fault pin enabled |
 | 0x6A8 | A->B | [0] hb, [1] contactor state, [2] A faults OR |
-0x6A3-0x6A7, 0x6A9-0x6AF reserved. Period 100 ms. A: heartbeat not advancing > 1 s = LINK-STALE fault.
+0x6A3 temps (TEMPS.md); 0x6A4-0x6A7, 0x6A9-0x6AF reserved. B -> A every 50 ms, A -> B every 100 ms. A: heartbeat not advancing > 200 ms (PROPOSED, T linkMs) = LINK-STALE fault.
 No clash with Elcon 0x1806E5F4 / 0x18FF50E5 or Kelly 0x0CF11E05 / 0x0CF11F05.
 
 Fault bits: 0x01 SILENT, 0x02 NO-DATA, 0x04 CELL-BAD, 0x08 LOW-CUTOFF, 0x10 OVER-MAX (4.25 V),

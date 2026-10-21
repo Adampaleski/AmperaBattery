@@ -29,9 +29,13 @@ const VEH_MODE_ORDER=['H','M','L','SNOW','MUD','SAND','KID'];
 const VEH_MODE_FIELDS=[['expo','Pedal curve (expo)','0–1',0,1,0.05],['cur','Current limit','% pedal',0,100,1],['ramp','Ramp','A/s',10,5000,10],['top','Top speed','mph',1,60,1],['regen','Regen strength','%',0,100,5]];
 function vehModeSet(k,f,v){const g=VEH_GEARS[k],d=VEH_MODE_FIELDS.find(x=>x[0]===f);if(!g||!d||!(v>=d[3]&&v<=d[4]))return false;g[f]=+v;return true;}
 // Kid PIN (mirror of DriveProfile::Selector): Kid can't be entered until a PIN is set; leaving it needs the PIN.
-const VEH_KID={pin:''};
-function vehSelectMode(cur,next,pin){if(!VEH_GEARS[next])return 'unknown mode';if(next==='KID'&&cur!=='KID'&&!VEH_KID.pin)return 'Set a Kid PIN first (Settings)';
-  if(cur==='KID'&&next!=='KID'){if(!pin)return 'PIN required to leave Kid';if(String(pin)!==VEH_KID.pin)return 'Wrong PIN';}return '';}
+// PIN kept only as hash (mirror of DriveProfile::hashPin: salted FNV-1a x1000); 0 = no PIN.
+const VEH_KID={hash:0};
+function vehHashPin(pin){pin=(+pin)&0xFFFF;if(!pin)return 0;let h=2166136261>>>0;const salt='TeryxKid1';
+  for(let it=0;it<1000;it++){for(let i=0;i<salt.length;i++){h^=salt.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}h^=pin&0xFF;h=Math.imul(h,16777619)>>>0;h^=pin>>8;h=Math.imul(h,16777619)>>>0;}
+  return h>>>0||1;}
+function vehSelectMode(cur,next,pin){if(!VEH_GEARS[next])return 'unknown mode';if(next==='KID'&&cur!=='KID'&&!VEH_KID.hash)return 'Set a Kid PIN first (Settings)';
+  if(cur==='KID'&&next!=='KID'){if(!pin)return 'PIN required to leave Kid';if(!/^[0-9]{1,4}$/.test(String(pin))||vehHashPin(pin)!==VEH_KID.hash)return 'Wrong PIN';}return '';}
 function vehCurve(x,e){x=Math.max(0,Math.min(1,x));e=Math.max(0,Math.min(1,e));return (1-e)*x+e*x*x*x;}
 // Reduce-only trim step (mirror of DriveProfile::Trim). tr={filt,out} persists between calls; dtMs step.
 function vehTrim(g,tr,pedal,mph,allow,ok,dtMs){const raw=Math.max(0,Math.min(100,pedal));if(!ok){tr.out=0;tr.filt=raw;return 0;}
