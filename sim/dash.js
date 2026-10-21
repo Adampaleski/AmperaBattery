@@ -48,6 +48,21 @@ const CSS=`
 .tdash .menu.on{display:block}.tdash .menu .row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
 .tdash .menu button{min-height:40px;border:0;border-radius:8px;background:#2c2c2e;color:var(--tx);font:inherit;font-size:15px;padding:0 12px;cursor:pointer}.tdash .menu button.on{background:var(--tx);color:#000}
 .tdash .menu input{width:100%;min-height:40px;background:#2c2c2e;border:0;border-radius:8px;color:var(--tx);font:inherit;font-size:15px;padding:0 10px}
+.tdash .chg{display:none;flex:1;min-height:0;grid-template-columns:1.1fr 1fr;gap:18px 28px;align-items:center}.tdash.charging .chg{display:grid}
+.tdash.charging .main,.tdash.charging .bot,.tdash.charging .seats{display:none}
+.tdash .cbat{position:relative;height:120px;border:3px solid #3a3a3e;border-radius:22px;overflow:hidden;background:#0b0b0c}.tdash .cbat::after{content:"";position:absolute;right:-14px;top:38px;width:10px;height:44px;border-radius:0 6px 6px 0;background:#3a3a3e}
+.tdash .cbat i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#1f8f3a,#30d158);transition:width .6s}
+.tdash .cbat i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 0,rgba(255,255,255,.55) 50%,transparent 100%);background-size:40% 100%;background-repeat:no-repeat;animation:tdpulse 2.2s linear infinite}
+.tdash .cbat.idle i::after{animation:none;opacity:0}.tdash .cbat b{position:absolute;top:-6px;bottom:-6px;width:3px;background:var(--tx);opacity:.8}
+@keyframes tdpulse{0%{background-position:-60% 0}100%{background-position:160% 0}}
+.tdash .csoc{font-size:110px;font-weight:200;line-height:1}.tdash .cst{font-size:28px;margin-top:6px}.tdash .cst.ok{color:var(--grn)}.tdash .cst.bad{color:var(--red)}.tdash .cst.wait{color:var(--amb)}
+.tdash .cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.tdash .cgrid .cell .v{font-size:26px}
+.tdash .cctl{display:flex;flex-wrap:wrap;gap:12px;align-items:center;grid-column:1/-1}.tdash .cctl input[type=range]{flex:1;min-width:200px;accent-color:#30d158}
+.tdash .cctl button,.tdash .cctl input[type=number]{min-height:48px;border:0;border-radius:12px;background:#2c2c2e;color:var(--tx);font:inherit;padding:0 16px}.tdash .cctl input[type=number]{width:90px}
+.tdash .cctl button.go{background:var(--grn);color:#000;font-weight:600}.tdash .cctl button.stop{background:var(--red);color:#fff;font-weight:600}
+.tdash .slp{display:none;position:absolute;inset:0;background:#000;z-index:5;place-items:center;cursor:pointer}.tdash.asleep .slp{display:grid}
+.tdash .slp svg{width:min(260px,40vh);height:min(260px,40vh)}.tdash .slp .rg{stroke:#30d158;filter:drop-shadow(0 0 10px #30d158);animation:tdglow 4s ease-in-out infinite}
+@keyframes tdglow{0%,100%{opacity:.35}50%{opacity:.8}}
 @media(max-width:900px){.tdash{aspect-ratio:auto}.tdash .main{grid-template-columns:1fr}.tdash .bot{grid-template-columns:repeat(2,1fr)}.tdash .xl{font-size:110px}}
 `;
 const IC={ // simple line icons
@@ -87,10 +102,25 @@ function create(root,opt){
    <div class="top"><div class="tt">${TT.map(([k,c,t])=>`<i data-k="${k}" class="${c}" title="${t}"><svg viewBox="0 0 24 24">${IC[k]}</svg></i>`).join('')}</div>
     <span class="srcb" data-f="srcb"></span><button class="tbtn" data-f="mbtn">Style ▾</button></div>
    <div class="ban" data-f="ban"><span data-f="banT"></span><button data-f="ack">Acknowledge</button></div>
+   <div class="chg" data-f="chg">
+    <div><div class="cbat" data-f="cbat"><i data-f="cfill"></i><b data-f="clim"></b></div>
+      <div style="display:flex;align-items:baseline;gap:18px;margin-top:14px"><div class="csoc" data-f="csoc">—</div><div><div class="cst" data-f="cst">—</div><div class="k" data-f="cwhy"></div></div></div></div>
+    <div class="cgrid">
+      <div class="cell"><div class="k">Power in</div><div class="v" data-f="ckw">—</div></div><div class="cell"><div class="k">Current</div><div class="v" data-f="ca">—</div></div><div class="cell"><div class="k">Voltage</div><div class="v" data-f="cv">—</div></div>
+      <div class="cell"><div class="k">Time to limit <span class="tag">ESTIMATE</span></div><div class="v" data-f="ctime">—</div></div><div class="cell"><div class="k">Range added <span class="tag">ESTIMATE</span></div><div class="v" data-f="cradd">—</div></div><div class="cell"><div class="k">Limited by</div><div class="v" data-f="clmt" style="font-size:20px">—</div></div>
+      <div class="cell"><div class="k">Cell max</div><div class="v" data-f="ccmx">—</div></div><div class="cell"><div class="k">Cell temps</div><div class="v" data-f="ctmp">—</div></div><div class="cell"><div class="k">Charger <span class="tag" data-f="cchT"></span></div><div class="v" data-f="cch" style="font-size:18px;white-space:normal">—</div></div>
+    </div>
+    <div class="cctl"><span class="k">Charge limit</span><input type="range" min="50" max="100" step="1" data-f="cpct"><b data-f="cpctv">—</b>
+      <span class="k">Amps limit</span><input type="number" min="1" max="100" step="0.5" data-f="camp"><span class="k">A</span>
+      <span class="k">Sleep</span><input type="number" min="10" max="3600" step="10" data-f="cslp"><span class="k">s <span class="tag">PROPOSED</span></span>
+      <button data-f="cbtn" class="stop">Stop charging</button><span class="tag" data-f="cnote"></span></div>
+   </div>
+   <div class="slp" data-f="slp"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" stroke="#1c1c1e" stroke-width="10" fill="none"/><circle class="rg" data-f="sring" cx="100" cy="100" r="80" stroke-width="10" fill="none" stroke-linecap="round" transform="rotate(-90 100 100)" stroke-dasharray="0 503"/>
+     <text data-f="ssoc" x="100" y="112" text-anchor="middle" fill="#8e8e93" font-size="40" font-weight="200">—</text></svg></div>
    <div class="main">
     <div class="col">
       <div class="dig"><div class="k">Power <span class="tag" data-f="pwTag"></span></div><div class="v lg" data-f="kw">—</div>
-        <div class="pbar"><b></b><i data-f="pbar"></i></div><div class="pbl"><span>regen</span><span>0</span><span>power →</span></div></div>
+        <div class="pbar"><b></b><i data-f="pbar"></i></div><div class="pbl"><span data-f="rgl">regen</span><span>0</span><span>power →</span></div></div>
       <div class="ana">${pw.svg}</div>
       <div class="hide-min"><div class="k">Now</div><div class="v md" data-f="inst">—</div></div>
       <div class="hide-min"><div class="k">RPM <span class="tag" data-f="rpmTag"></span></div><div class="v sm" data-f="rpm">—</div></div>
@@ -135,6 +165,59 @@ function create(root,opt){
     b.onpointerdown=()=>{held=false;tm=setTimeout(()=>{held=true;set(0);},600);};
     b.onpointerup=()=>{clearTimeout(tm);if(!held)set((seat[k]+1)%4);};b.onpointerleave=()=>clearTimeout(tm);});
   seatShow();
+  // ---- charge screen (Adam 2026-10-21): shown while plugged in; sleeps after a PROPOSED 2 min
+  let cs={lim:+(localStorage.getItem('teryxChargeLimit')||0)||null,amps:null,stopped:false,lastAct:performance.now(),sleepS:+(localStorage.getItem('teryxDashSleepS')||120),asleep:false,prev:{},kwhIn:0,plugged:false};
+  const wake=why=>{cs.lastAct=performance.now();if(cs.asleep){cs.asleep=false;D.classList.remove('asleep');if(opt.onWake)opt.onWake(why);}};
+  D.addEventListener('pointerdown',()=>wake('screen tap'),true);
+  F('cslp').value=cs.sleepS;F('cslp').onchange=e=>{const v=Math.max(10,+e.target.value||120);cs.sleepS=v;localStorage.setItem('teryxDashSleepS',v);};
+  F('cpct').oninput=e=>F('cpctv').textContent=e.target.value+' %';
+  F('cpct').onchange=e=>{const v=+e.target.value;if(!confirm('Set charge limit to '+v+' %?')){F('cpct').value=cs.lim||80;F('cpctv').textContent=(cs.lim||80)+' %';return;}
+    cs.lim=v;localStorage.setItem('teryxChargeLimit',v);if(opt.onChargeLimit)opt.onChargeLimit(v);};
+  F('camp').onchange=e=>{const v=+e.target.value;if(v>0){cs.amps=v;if(opt.onAmpsLimit)opt.onAmpsLimit(v);}};
+  F('cbtn').onclick=()=>{cs.stopped=!cs.stopped;if(opt.onChargeStop)opt.onChargeStop(cs.stopped);};
+  const fmtDur=h=>h==null||!isFinite(h)?null:(h<1?Math.round(h*60)+' min':Math.floor(h)+' h '+Math.round((h%1)*60)+' min');
+  function chargeScreen(s,live,B,C,dt){
+    const Ch=(s&&s.charge)||{},on=live&&!!Ch.plugged;
+    if(on!==cs.plugged){cs.plugged=on;cs.kwhIn=0;D.classList.toggle('charging',on);wake(on?'plug in':'unplug');}
+    if(!on){D.classList.remove('asleep');cs.asleep=false;return;}
+    const V=num(Ch.chargeV)&&Ch.chargeA>0?Ch.chargeV:(num(B.packV)?B.packV:null),A=num(Ch.chargeA)?Ch.chargeA:null,kw=V!=null&&A!=null?V*A/1000:null;
+    if(dt>0&&kw!=null)cs.kwhIn+=kw*dt/3600;
+    const soc=num(B.socPct)?B.socPct:null,lim=num(Ch.limitPct)?Ch.limitPct:cs.lim;
+    if(cs.lim==null&&lim!=null)cs.lim=lim;if(document.activeElement!==F('cpct')){F('cpct').value=cs.lim||lim||80;F('cpctv').textContent=(cs.lim||lim||80)+' %';}
+    if(document.activeElement!==F('camp')&&num(Ch.ampsLimit))F('camp').value=Ch.ampsLimit;
+    // state
+    const fault=(s.faults||[]).filter(f=>f.level==='fault').map(f=>f.text);let st,cls,why=Ch.why||'';
+    if(fault.length){st='Fault';cls='bad';why=fault.join(', ');}
+    else if(C.mainPositive!=='closed'){st='Precharging';cls='wait';why='closing B−, precharge, B+';}
+    else if(Ch.why==='at charge limit'){st='Charging complete';cls='ok';why='at '+(lim||'—')+' % limit';}
+    else if(Ch.why==='stopped by driver'){st='Stopped';cls='wait';}
+    else if(A>0&&num(Ch.maxA)&&A<Ch.maxA*0.97&&Ch.why!=='cold: reduced'){st='Tapering';cls='ok';why='cell max near limit';}
+    else if(A>0){st='Charging';cls='ok';}
+    else{st='Not charging';cls='wait';why=why||'charger off';}
+    F('cst').textContent=st;F('cst').className='cst '+cls;F('cwhy').textContent=why;
+    const lm=fault.length?'fault':Ch.why==='cold: reduced'?'temperature (cold band)':st==='Tapering'?'cell max (taper)':st==='Charging complete'?'charge limit %':(num(Ch.ampsLimit)&&num(Ch.chargerMaxA)&&Ch.ampsLimit<Ch.chargerMaxA)?'amps limit setting':A>0?'charger max':'—';
+    F('clmt').textContent=lm;
+    F('cbat').classList.toggle('idle',!(A>0));F('cfill').style.width=(soc||0)+'%';F('clim').style.left=(cs.lim||lim||80)+'%';
+    put('csoc',soc,soc!=null?soc.toFixed(0)+'<span class="u">%</span>':'');
+    put('ckw',kw,kw!=null?kw.toFixed(2)+'<span class="u">kW</span>':'');put('ca',A,A!=null?A.toFixed(1)+'<span class="u">A</span>':'');put('cv',V,V!=null?V.toFixed(1)+'<span class="u">V</span>':'');
+    const capAh=num(Ch.capAh)?Ch.capAh:180,h=soc!=null&&A>0&&lim!=null?Math.max(0,lim-soc)/100*capAh/A:null;
+    put('ctime',h,fmtDur(h)+(num(Ch.capAh)&&!Ch.capAssumed?'':' <span class="tag">ASSUMED '+capAh+' Ah</span>'));
+    const rmi=cs.kwhIn*1000/ASSUMED_WHMI;put('cradd',1,rmi.toFixed(1)+'<span class="u">mi</span> <span class="tag">@ '+ASSUMED_WHMI+' Wh/mi ASSUMED</span>');
+    put('ccmx',num(B.cellMaxV)?1:null,num(B.cellMaxV)?B.cellMaxV.toFixed(3)+'<span class="u">V</span>':'');
+    put('ctmp',num(B.tempMinC)?1:null,num(B.tempMinC)?B.tempMinC.toFixed(0)+'–'+B.tempMaxC.toFixed(0)+'<span class="u">°C</span>'+(B.tempsVerified===false?' <span class="tag">unverified</span>':''):'');
+    const chg=Ch.charger||{};put('cch',chg.model?1:null,(chg.model||'')+(num(Ch.chargerMaxA)?' · max '+Ch.chargerMaxA+' A':''));F('cchT').textContent=chg.assumed?'ASSUMED':'';
+    cs.stopped=Ch.why==='stopped by driver';F('cbtn').textContent=cs.stopped?'Start charging':'Stop charging';F('cbtn').className=cs.stopped?'go':'stop';
+    F('cnote').textContent=opt.onChargeStop?'drive stays locked while plugged in':'display only: no output wired';
+    // wake sources: brake, key, door/button (PROPOSED pin), charge event (fault / complete)
+    const In=s.inputs||{},P=cs.prev;
+    if((s.drive||{}).brakePct>0&&!(P.brake>0))wake('brake pedal');
+    if(In.key!==undefined&&P.key!==undefined&&In.key!==P.key)wake('key');
+    if(In.door&&!P.door)wake('door / button input');
+    if((st==='Fault'||st==='Charging complete')&&P.st!==st)wake('charge '+(st==='Fault'?'fault':'complete'));
+    cs.prev={brake:(s.drive||{}).brakePct,key:In.key,door:In.door,st};
+    if(!cs.asleep&&performance.now()-cs.lastAct>cs.sleepS*1000){cs.asleep=true;D.classList.add('asleep');}
+    const pct=soc||0;F('sring').setAttribute('stroke-dasharray',(5.03*pct).toFixed(0)+' 503');F('ssoc').textContent=soc!=null?soc.toFixed(0)+'%':'—';
+  }
   const put=(n,val,txt)=>{const e=F(n);if(!e)return;if(val==null){e.textContent='—';e.classList.add('na');}else{e.innerHTML=txt;e.classList.remove('na');}};
   const tag=(n,t)=>{const e=F(n);if(e)e.textContent=t||'';};
   function update(s,meta){
@@ -147,6 +230,7 @@ function create(root,opt){
     // power
     put('kw',kw,kw!=null?`${kw.toFixed(0)}<span class="u">kW</span>`:'');
     const pb=F('pbar');if(kw==null){pb.style.width=0;}else if(kw>=0){pb.style.left='20%';pb.style.width=Math.min(80,kw/100*80)+'%';pb.style.background='var(--tx)';}else{const w=Math.min(20,-kw/20*20);pb.style.left=(20-w)+'%';pb.style.width=w+'%';pb.style.background='var(--grn)';}
+    {const ra=live&&num(Dr.regenA)&&Dr.regenA>0.5?Dr.regenA:null;F('rgl').innerHTML=ra!=null?`<b style="color:var(--grn)">regen ${ra.toFixed(0)} A</b>`:(live&&Dr.regenWhy?'regen · '+Dr.regenWhy:'regen');}
     tag('pwTag',packA!=null&&B.currentVerified===false?'LEM uncalibrated':'');
     // trip integration (only from real numbers)
     if(dt>0&&kw!=null){const e=kw*dt/3600;if(e>=0)trip.kwh+=e;else trip.reg+=-e;}
@@ -160,7 +244,7 @@ function create(root,opt){
     put('tmi',(live||trip.mi)?1:null,trip.mi.toFixed(1));put('tkwh',1,trip.kwh.toFixed(2));put('treg',1,trip.reg.toFixed(2));
     // speed / rpm
     put('spd',mph,mph!=null?mph.toFixed(0):'');tag('spdTag',mph!=null&&Dr.speedSource&&Dr.speedSource!=='kelly'?Dr.speedSource:'');
-    let rpm=live&&Dr.wired&&num(Dr.rpm)?Dr.rpm:null,rt='';if(rpm==null&&mph!=null){rpm=mph*RPM_PER_MPH;rt='estimate from speed';}
+    let rpm=live&&Dr.wired&&num(Dr.rpm)?Dr.rpm:null,rt=rpm!=null&&Dr.rpmSource?Dr.rpmSource:'';if(rpm==null&&mph!=null){rpm=mph*RPM_PER_MPH;rt='estimate from speed';}
     put('rpm',rpm,rpm!=null?rpm.toFixed(0):'');tag('rpmTag',rt);
     // gear
     const gr=live?(Dr.gear||null):null,closed=C.mainPositive==='closed'&&C.mainNegative==='closed';
@@ -184,6 +268,7 @@ function create(root,opt){
     // analog needles
     const nd=(id,dl,v)=>{const n=D.querySelector('#'+id+'n');n.style.transform=`rotate(${dl.deg(v==null?-1e9:v)}deg)`;n.style.opacity=v==null?.25:1;D.querySelector('#'+id+'r').textContent=v==null?'—':Math.round(v);};
     nd('ds',spd,mph);nd('dp',pw,kw);nd('db',bt,soc);
+    chargeScreen(s,live,B,C,dt);
     // tell-tales
     const fl=(s&&s.faults)||[],faultTxt=fl.filter(f=>f.level==='fault').map(f=>f.text);
     const on={fault:live&&faultTxt.length>0,hv:live&&C.wired!==false&&!closed,batt:cmn!=null&&cmn<3.2,temp:tP!=null&&tP>=50,limp:live&&(!!Dr.limp||(num(Dr.powerAllowedPct)&&Dr.powerAllowedPct<100)),
@@ -193,7 +278,7 @@ function create(root,opt){
     F('ban').classList.toggle('on',!!curFaultKey&&ack!==curFaultKey);F('banT').textContent='⚠ '+faultTxt.join(' · ');
   }
   update(null);
-  return {update,root:D,setStyle,F};
+  return {update,root:D,setStyle,F,wake,isAsleep:()=>cs.asleep};
 }
 g.TeryxDash={create,ASSUMED_WHMI,ASSUMED_PACK_KWH,RPM_PER_MPH};
 })(window);

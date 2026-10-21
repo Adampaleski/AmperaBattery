@@ -85,6 +85,9 @@ struct Config {
     float    chargeMaxTempC = 45.0f;
     float    chargeMinTempC = 0.0f;
     float    derateTempC    = 50.0f;   // Kelly derate starts
+    // Charge mode (Adam 2026-10-21): plug-in wakes the BMS without key-on.
+    float    chargeColdC    = 10.0f;   // pack below this: charge current reduced ... PLACEHOLDER
+    float    chargeColdFrac = 0.50f;   // ... to this fraction of chargeMaxA. PLACEHOLDER (no LG/Chevy curve on file)
     // current
     // Hard trip on LEM A + LEM B (Adam, 2026-10-20; replaces 300 A / 500 ms).
     // Kelly phase + battery current set to 550 A, so the BMS does not cap
@@ -152,8 +155,16 @@ struct Inputs {
     bool     busValid     = false; // HV bus sense present
     float    busV         = 0;
     bool     keyOn        = false; // dead-man / key / drive request
-    bool     chargeReq    = false;
+    bool     chargeReq    = false;  // legacy bench request ('g'); charges with key-on contactors
+    bool     chargeStop   = false;  // driver pressed Stop on the charge screen (charger off, mains stay closed)
+    bool     plugIn       = false;  // charger present / proximity (Adam 2026-10-21). Wakes the BMS in
+                                    // CHARGE mode without key-on; drive locked while true. Firmware
+                                    // has no proximity pin wired yet (stays false = no behaviour change).
 };
+
+// Operating mode (Adam 2026-10-21): charge is separate from key-on.
+enum class Mode : uint8_t { Idle = 0, Drive, Charge };
+inline const char *modeName(Mode m) { return m == Mode::Drive ? "DRIVE" : (m == Mode::Charge ? "CHARGE" : "IDLE"); }
 
 // -------------------------------------------------------------- outputs
 enum class CState : uint8_t { Open = 0, Precharge, MainClose, Closed, Fault, RetryWait, Lockout };
@@ -186,6 +197,10 @@ struct Outputs {
     uint32_t latched = 0;                  // latched (drive faults until key-off + clear)
     const char *chargeWhy = "";
     float    lowestStringV = 0;
+    Mode     mode = Mode::Idle;            // CHARGE when plugged in, DRIVE on key-on (not plugged), else IDLE
+    bool     chargerPath = false;          // WANTED: Volt AEV14012 charger-branch contactor (after B-, pre, B+)
+    bool     driveLocked = false;          // plugged in, or key-on refused until a key cycle
+    bool     keyRefused  = false;          // key-on seen while plugged in (cleared by key off)
 };
 
 // ------------------------------------------------------------ event log
@@ -198,7 +213,7 @@ public:
 
     void reset() {
         st_ = CState::Open; stMs_ = 0; retries_ = 0; latched_ = 0; chargeOvLatched_ = false;
-        welded_ = false; ocSinceMs_ = 0; ocActive_ = false; full_ = false; openSinceMs_ = 0;
+        welded_ = false; keyBlock_ = false; ocSinceMs_ = 0; ocActive_ = false; full_ = false; openSinceMs_ = 0;
         imbSinceMs_ = 0; imbOver_ = false; imbOn_ = false;
         lowSinceMs_ = floorSinceMs_ = 0; lowBelow_ = floorBelow_ = false;
         logHead_ = 0; logCount_ = 0; prevFaults_ = 0; out_ = Outputs{}; started_ = false;
@@ -237,22 +252,28 @@ public:
         }
         if (welded_) { f |= F_WELDED; latched_ |= F_WELDED; }
 
+        // ---- wake / mode: plug-in OR key-on closes the mains; key-on while
+        // plugged in is refused (drive locked) until the key is cycled off.
+        const bool wake = in.keyOn || in.plugIn;
+        if (in.keyOn && in.plugIn && !keyBlock_) { keyBlock_ = true; logf(now, "key on refused: plugged in (drive locked)"); }
+        if (!in.keyOn && keyBlock_) keyBlock_ = false;
+
         // ---- contactor state machine
         const bool driveFault = (f | latched_) & kDriveFaults;
         if (driveFault && st_ != CState::Open) latched_ |= f & kDriveFaults;
         if (driveFault && st_ != CState::Fault && st_ != CState::Lockout && st_ != CState::Open) {
             enter(CState::Fault, now, "open: fault");
         }
-        if (!in.keyOn && st_ != CState::Open && st_ != CState::Lockout && st_ != CState::Fault) {
+        if (!wake && st_ != CState::Open && st_ != CState::Lockout && st_ != CState::Fault) {
             enter(CState::Open, now, "key off");
         }
         const uint32_t el = now - stMs_;
         switch (st_) {
             case CState::Open:
                 // Wait weldCheckMs after any open so a stuck contactor is seen before re-closing.
-                if (in.keyOn && !driveFault && now - openSinceMs_ >= cfg.weldCheckMs) {
+                if (wake && !driveFault && now - openSinceMs_ >= cfg.weldCheckMs) {
                     retries_ = 0;
-                    enter(CState::Precharge, now, "key on");
+                    enter(CState::Precharge, now, in.plugIn ? "plug in: CHARGE (no key)" : "key on");
                 }
                 break;
             case CState::Precharge: {
@@ -275,9 +296,9 @@ public:
             case CState::Fault:
             case CState::Lockout:
                 // Clear only with key OFF and every drive fault gone. Weld: reboot only.
-                if (!in.keyOn && !(f & kDriveFaults) && !welded_) {
+                if (!wake && !(f & kDriveFaults) && !welded_) {
                     latched_ = 0;
-                    enter(CState::Open, now, "cleared (key off, faults gone)");
+                    enter(CState::Open, now, "cleared (key off + unplugged, faults gone)");
                 }
                 break;
         }
@@ -290,10 +311,16 @@ public:
             default: break;
         }
         o.state = st_;
+        o.mode = in.plugIn ? Mode::Charge : ((in.keyOn && !keyBlock_) ? Mode::Drive : Mode::Idle);
+        o.keyRefused = keyBlock_;
+        o.driveLocked = in.plugIn || keyBlock_;
 
         // ---- charger (Elcon) request
         if (chargeOvLatched_) f |= F_CHARGE_OV;
         chargeLogic(in, o, f);
+        // Charger branch (Volt AEV14012, docs/TERYX_MAIN_POWER_PATH.md): closes only
+        // after B-, precharge, B+ are Closed, in CHARGE mode, with no charge fault.
+        o.chargerPath = st_ == CState::Closed && o.mode == Mode::Charge && !((f | latched_) & kChargeFaults);
 
         // ---- LEM pair imbalance timer, then Kelly limits
         imbalanceLogic(in, o);
@@ -324,6 +351,7 @@ private:
     bool     imbOver_ = false, imbOn_ = false;
     uint8_t  retries_ = 0;
     uint32_t latched_ = 0, prevFaults_ = 0;
+    bool     keyBlock_ = false;
     bool     welded_ = false, chargeOvLatched_ = false, ocActive_ = false, full_ = false, started_ = false;
     Outputs  out_;
     Event    log_[kLogSize];
@@ -426,16 +454,18 @@ private:
         return (tripLow || tripFloor) ? F_CELL_LOW : 0;
     }
 
-    bool chargingOrRequested(const Inputs &in) const { return in.chargeReq || out_.chargeEnable; }
+    bool chargingOrRequested(const Inputs &in) const { return in.chargeReq || in.plugIn || out_.chargeEnable; }
 
     void chargeLogic(const Inputs &in, Outputs &o, uint32_t f) {
         float maxCell = 0;
         for (int i = 0; i < kMaxStrings; i++) if (in.s[i].used && in.s[i].maxV > maxCell) maxCell = in.s[i].maxV;
         o.chargeV = o.ceilingV * static_cast<float>(cfg.stringCells);
         if (full_ && maxCell < o.ceilingV - cfg.chargeHysV) full_ = false;
-        if (!full_ && maxCell >= o.ceilingV) { full_ = true; if (in.chargeReq) logf(in.nowMs, "charge: reached %.3f V/cell, stop", o.ceilingV); }
+        if (!full_ && maxCell >= o.ceilingV) { full_ = true; if (in.chargeReq || in.plugIn) logf(in.nowMs, "charge: reached %.3f V/cell, stop", o.ceilingV); }
         const uint32_t cf = (f | latched_) & kChargeFaults;
-        if (!in.chargeReq)                 o.chargeWhy = "no request";
+        const bool req = in.chargeReq || in.plugIn;
+        if (!req)                          o.chargeWhy = "no request";
+        else if (in.chargeStop)            o.chargeWhy = "stopped by driver";
         else if (cf)                       o.chargeWhy = "fault";
         else if (st_ != CState::Closed)    o.chargeWhy = "contactors not closed";
         else if (cfg.stringCells <= 0)     o.chargeWhy = "no series string defined";
@@ -448,9 +478,15 @@ private:
                 a = cfg.chargeMaxA - k * (cfg.chargeMaxA - cfg.chargeEndA);
             }
             if (a < cfg.chargeEndA) a = cfg.chargeEndA;
+            o.chargeWhy = "";
+            // Cold: 0..chargeColdC reduced (below chargeMinTempC is a fault above).
+            if (in.tempsValid && in.tMinC < cfg.chargeColdC) {
+                const float cold = cfg.chargeMaxA * cfg.chargeColdFrac;
+                if (a > cold) a = cold;
+                o.chargeWhy = "cold: reduced";
+            }
             o.chargeEnable = true;
             o.chargeA = a;
-            o.chargeWhy = "";
             return;
         }
         o.chargeEnable = false;
@@ -475,6 +511,12 @@ private:
     }
 
     void kellyLogic(const Inputs &in, Outputs &o, uint32_t f) {
+        if (o.driveLocked) {  // Adam 2026-10-21: no drive (or regen) while plugged in
+            o.kellyPct = 0; o.kellyLimp = true; o.kellyRegenOk = false;
+            o.kellyWhy = in.plugIn ? "charging - drive locked" : "key cycle needed (was plugged in)";
+            o.regenWhy = o.kellyWhy;
+            return;
+        }
         if (st_ != CState::Closed || (f & kDriveFaults)) {
             o.kellyPct = 0; o.kellyLimp = true; o.kellyRegenOk = false;
             o.kellyWhy = (f & kDriveFaults) ? "drive fault" : "contactors open";

@@ -44,7 +44,7 @@ struct World {
     bool     currentFitted = true;
     float    tMin = 20, tMax = 22;
     bool     tempsValid = true;   // sim assumes verified temps
-    bool     keyOn = false, chargeReq = false;
+    bool     keyOn = false, chargeReq = false, plugIn = false, chargeStop = false;  // plugIn: charger present (charge mode)
     bool     chargerOnline = true;
     float    busForce = -1;       // interactive page: >= 0 forces the HV bus reading (volts)
     float    chargeSoakA = 0;     // internal: current from the charger into the pack
@@ -53,7 +53,7 @@ struct World {
         core.reset();
         in = BmsCore::Inputs{};
         now = 0; busV = 0; preOpenCircuit = false; welded = false; linkUp = true; linkLastMs = 0;
-        packA = 0; lemShareA = 0.5f; tMin = 20; tMax = 22; tempsValid = true; keyOn = false; chargeReq = false; chargeSoakA = 0;
+        packA = 0; lemShareA = 0.5f; tMin = 20; tMax = 22; tempsValid = true; keyOn = false; chargeReq = false; plugIn = false; chargeStop = false; chargeSoakA = 0;
         currentFitted = true; busForce = -1;
         for (int b = 0; b < kBoards; b++) {
             silent[b] = false; lastSeen[b] = 0;
@@ -100,7 +100,7 @@ struct World {
         in.currentValid = currentFitted; in.packA = packA - chargeSoakA;
         in.lemSplitValid = currentFitted; in.lemA = in.packA * lemShareA; in.lemB = in.packA - in.lemA;
         in.busValid = true; in.busV = busV;
-        in.keyOn = keyOn; in.chargeReq = chargeReq;
+        in.keyOn = keyOn; in.chargeReq = chargeReq; in.plugIn = plugIn; in.chargeStop = chargeStop;
     }
 
     // Advance dtMs: BICM frames, link heartbeat, HV bus RC, charger current.
@@ -208,7 +208,7 @@ inline LemRead lemPair(float trueA, float trueB, bool deadA = false, bool deadB 
     return r;
 }
 
-constexpr int kScenarios = 18;
+constexpr int kScenarios = 23;
 
 inline int runAll(Result out[kScenarios]) {
     using namespace BmsCore;
@@ -277,6 +277,49 @@ inline int runAll(Result out[kScenarios]) {
     out[n++] = scenario("welded contactor (bus live after open)", "WELDED + charger off <= 2.5 s", 2500, true,
         [](World &w) { w.welded = true; w.keyOn = false; w.chargeReq = false; },
         [](World &w) { return (w.core.out().latched & F_WELDED) && !w.core.out().chargeEnable && w.allOpen(); });
+    // Charge mode (Adam 2026-10-21): plug-in wakes the BMS without key-on.
+    auto plugScenario = [](const char *name, const char *expect, uint32_t limitMs, int what) {
+        static World w;
+        w.reset();
+        Result r{name, expect, limitMs, -1, false, ""};
+        if (what == 2) w.tMin = 5;
+        if (what == 3) w.tMin = -2;
+        w.plugIn = true;                        // key stays OFF
+        bool keyEdge = false;
+        for (uint32_t t = 0; t <= limitMs + 3000; t += 10) {
+            if (what == 1 && !keyEdge && w.core.out().state == CState::Closed) { keyEdge = true; w.keyOn = true; }
+            w.step(10);
+            const Outputs &o = w.core.out();
+            const bool locked = o.mode == Mode::Charge && o.driveLocked && o.kellyPct == 0 && !o.kellyRegenOk;
+            bool ok = false;
+            if (what == 0) ok = o.state == CState::Closed && o.chargeEnable && o.chargerPath && locked && !w.keyOn;
+            if (what == 1) ok = keyEdge && o.keyRefused && o.state == CState::Closed && o.chargeEnable && locked &&
+                                strcmp(o.kellyWhy, "charging - drive locked") == 0;
+            if (what == 2) ok = o.chargeEnable && o.chargeA <= w.core.cfg.chargeMaxA * w.core.cfg.chargeColdFrac + 0.01f &&
+                                strcmp(o.chargeWhy, "cold: reduced") == 0;
+            if (what == 3) ok = t >= 4000 && o.state == CState::Closed && !o.chargeEnable && !o.chargerPath && locked;
+            if (ok) { r.gotMs = static_cast<int32_t>(w.now); break; }
+        }
+        if (what == 4) {   // unplug with key still on: drive stays locked until key off/on
+            w.plugIn = true; w.run(4000); w.keyOn = true; w.run(200); w.plugIn = false; w.run(200);
+            const bool stillLocked = w.core.out().driveLocked && w.core.out().kellyPct == 0;
+            w.keyOn = false; w.run(200); w.keyOn = true; w.run(4500);
+            const Outputs &o = w.core.out();
+            r.pass = stillLocked && o.mode == Mode::Drive && !o.driveLocked && o.kellyPct > 99 && o.state == CState::Closed;
+            r.gotMs = 0;
+        } else {
+            r.pass = r.gotMs >= 0 && static_cast<uint32_t>(r.gotMs) <= limitMs;
+        }
+        snprintf(r.note, sizeof r.note, "state=%s mode=%s chg=%d %.1fA path=%d kelly=%.0f%%", stateName(w.core.out().state),
+                 modeName(w.core.out().mode), w.core.out().chargeEnable, w.core.out().chargeA, w.core.out().chargerPath,
+                 w.core.out().kellyPct);
+        return r;
+    };
+    out[n++] = plugScenario("plug in, key OFF -> CHARGE", "B-, pre, B+, charger path, drive locked <= 3.5 s", 3500, 0);
+    out[n++] = plugScenario("key on while plugged in", "refused, stays CHARGE, drive locked", 4000, 1);
+    out[n++] = plugScenario("charge cold 5 C (0-10 C band)", "current <= 50% max (PLACEHOLDER) <= 3.5 s", 3500, 2);
+    out[n++] = plugScenario("charge below 0 C (-2 C)", "charger off + charger path open, drive locked", 4500, 3);
+    out[n++] = plugScenario("unplug with key on", "locked until key cycle, then DRIVE 100%", 0, 4);
     // Split-LEM scenarios (sim only).
     auto lemRes = [](const char *name, const char *expect, bool pass, const LemRead &l) {
         Result r{name, expect, 0, 0, pass, ""};

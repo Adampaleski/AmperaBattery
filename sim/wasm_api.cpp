@@ -151,6 +151,9 @@ EXPORT void sim_set_precharge_open(int on) { g_w.preOpenCircuit = on; }
 EXPORT void sim_set_welded(int on) { g_w.welded = on; }
 EXPORT void sim_set_key(int on) { g_w.keyOn = on; }
 EXPORT void sim_set_charge(int on) { g_w.chargeReq = on; }
+EXPORT void sim_set_plug(int on) { g_w.plugIn = on; }
+EXPORT void sim_set_charge_stop(int on) { g_w.chargeStop = on; }          // charge screen Stop
+EXPORT void sim_set_charge_max_a(float a) { g_w.core.cfg.chargeMaxA = a; } // charge screen amps limit (sim)   // charger present / proximity: CHARGE mode, no key
 EXPORT void sim_set_charger_online(int on) { g_w.chargerOnline = on; }
 EXPORT void sim_set_charge_pct(int pct) { g_w.core.cfg.chargePct = pct; }
 EXPORT void sim_set_deadband_mv(float mv) { g_deadband = mv / 1000.0f; }
@@ -218,6 +221,10 @@ EXPORT const char *sim_state_json() {
     b.f(",\"pre\":%d,\"mainPos\":%d,\"mainNeg\":%d", o.pre, o.mainPos, o.mainNeg);
     b.f(",\"chargeEnable\":%d,\"chargeV\":%.1f,\"chargeA\":%.2f,\"ceilingV\":%.4f", o.chargeEnable, o.chargeV, o.chargeA, o.ceilingV);
     b.f(",\"chargeWhy\":"); b.str(o.chargeWhy ? o.chargeWhy : "");
+    b.f(",\"mode\":"); b.str(BmsCore::modeName(o.mode));
+    b.f(",\"chargerPath\":%d,\"driveLocked\":%d,\"keyRefused\":%d,\"plugIn\":%d", o.chargerPath, o.driveLocked, o.keyRefused, g_w.plugIn);
+    b.f(",\"ccfg\":{\"chargeMaxA\":%.1f,\"chargeEndA\":%.1f,\"chargeColdC\":%.1f,\"chargeColdFrac\":%.2f,\"chargeMinTempC\":%.1f,\"chargeMaxTempC\":%.1f,\"taperBandV\":%.3f}",
+        c.chargeMaxA, c.chargeEndA, c.chargeColdC, c.chargeColdFrac, c.chargeMinTempC, c.chargeMaxTempC, c.taperBandV);
     b.f(",\"kellyPct\":%.1f,\"kellyLimp\":%d,\"kellyRegenOk\":%d", o.kellyPct, o.kellyLimp, o.kellyRegenOk);
     b.f(",\"kellyWhy\":"); b.str(o.kellyWhy ? o.kellyWhy : "");
     b.f(",\"regenWhy\":"); b.str(o.regenWhy ? o.regenWhy : "");

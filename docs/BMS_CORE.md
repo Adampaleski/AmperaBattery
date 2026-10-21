@@ -105,3 +105,15 @@ Implemented as `BmsCore::bicmTempC`, but **unverified on our boards**, so `TEMPS
 - **In code (2026-10-20):** hard trip on LEM A + LEM B, `overcurrentA = 650` for `overcurrentMs = 100`, or `instantTripA = 750` on any single sample (logged as `OC instant`). The 250 A Kelly derate is off (`maxDischargeA = 0`). Sim scenarios 7 and 8 plus 6 boundary checks in `scripts/sim_bms.cpp`. Not on hardware: `CURRENT_SENSE_ENABLE` is 0.
 - **In code (2026-10-20, sim only)** — derates: LEM imbalance > 100 A for 1 s (`imbalanceA`, `imbalanceMs`, cut to `imbalancePct` = 50 %, PLACEHOLDER level); cell sag 3.2 V → 3.0 V (`sagStartV`, `sagZeroV`); heat only with verified temps. Inputs `lemSplitValid`, `lemA`, `lemB`; outputs `lemImbalance`, `lemDiffA`. **Superseded 2026-10-21:** cell sag is now relative to the pack average (`relSagStartV`/`relSagZeroV`), whole-pack sag is judged against load (`restA`, `packSagBandV`), `CELL-LOW` is a debounced hard floor under load (`hardFloorV`/`hardFloorMs`) and a debounced `lowCutV` at rest (`lowCutMs`). See docs/KELLY_CUTBACK.md.
 - Kelly phase and battery limits 550 A. Two used EV200 mains. 36S strings from 24S + 18S BICM boards (no 30S).
+
+## Charge mode (Adam 2026-10-21) — CREW REVIEW NEEDED
+
+`Inputs.plugIn` (charger present / proximity) wakes the Core without key-on. Sequence: B−, precharge, B+
+(same as drive), then `Outputs.chargerPath` = WANTED Volt AEV14012 charger-branch contactor, only in CHARGE
+mode with no charge fault. `Outputs.mode` = IDLE / DRIVE / CHARGE. While plugged in: `kellyPct` 0, limp,
+no regen (`kellyWhy` "charging - drive locked"). Key-on while plugged in is refused (`keyRefused`) and stays
+refused after unplugging until the key is cycled off. `Inputs.chargeStop` = driver Stop on the charge screen.
+Charge current: cell-max taper (unchanged), 0–45 °C window (unchanged), below `chargeColdC` 10 °C reduced to
+`chargeColdFrac` 50 % of `chargeMaxA` (both PLACEHOLDER). Fault clear now needs key off AND unplugged.
+Firmware: ContactorSeq never sets `plugIn` / `chargeStop` (no proximity pin chosen), so live behaviour is
+unchanged; contactors and charger stay print-only (BMS_CAP_* 0, TELEMETRY_ONLY=1).
