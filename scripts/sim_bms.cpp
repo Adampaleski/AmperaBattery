@@ -54,7 +54,7 @@ int main() {
         struct K { const char *name; int what; float val; float wantPct; const char *why; bool regen; };
         const K ks[] = {
             {"full power, healthy",          0, 0,      100, "",               true},
-            {"low cell 3.375 V (halfway)",   1, 3.375f,  50, "low cell",       true},
+            {"all cells 3.375 V at rest (half)", 1, 3.375f, 50, "low cell",       true},
             {"pack hot 52.5 C (halfway)",    2, 52.5f,   50, "pack hot",       true},
             {"550 A launch: no BMS cap",     3, 550.f,  100, "",               true},
             {"cells full 4.09 V: no regen",  4, 4.09f,  100, "",               false},
@@ -62,7 +62,7 @@ int main() {
         };
         for (const K &k : ks) {
             w.reset(); BmsSim::bringUp(w, false);
-            if (k.what == 1) w.cell[0][5] = k.val;
+            if (k.what == 1) for (int b = 0; b < BmsSim::kBoards; b++) for (int c = 0; c < 24; c++) w.cell[b][c] = k.val;
             if (k.what == 2) w.tMax = k.val;
             if (k.what == 3) w.packA = k.val;
             if (k.what == 4) w.cell[1][3] = k.val;
@@ -136,19 +136,33 @@ int main() {
         w.reset(); BmsSim::bringUp(w, false); w.packA = 550; w.lemShareA = 340.f / 550.f; ms(700);
         w.lemShareA = 0.5f; ms(20); w.lemShareA = 340.f / 550.f; ms(700);
         rep(!w.core.out().lemImbalance, "130 A 0.7 s, dip, 0.7 s: timer restarts");
-        // 7 sag at the default L 3.30 V: CELL-LOW opens before sag can act (decision pending)
-        w.reset(); BmsSim::bringUp(w, false); w.cell[0][6] = 3.25f; ms(20);
-        rep(w.core.out().state == BmsCore::CState::Fault && (w.core.out().latched & BmsCore::F_CELL_LOW),
-            "L 3.30, cell 3.25 V: CELL-LOW opens first");
-        // 8 what-if L 3.00 V: cell 3.10 V -> sag curve 50 %
-        w.reset(); w.core.cfg.lowCutV = 3.00f; BmsSim::bringUp(w, false); w.cell[0][6] = 3.10f; ms(20);
+        // Cell sag (Adam 2026-10-21): relative cut, whole-pack sag vs load, debounced floors. PLACEHOLDER values.
+        auto all = [&](float v) { for (int b = 0; b < BmsSim::kBoards; b++) for (int c = 0; c < 24; c++) w.cell[b][c] = v; };
+        auto closed = [&]() { return w.core.out().state == BmsCore::CState::Closed; };
+        auto cellLow = [&]() { return w.core.out().state == BmsCore::CState::Fault && (w.core.out().latched & BmsCore::F_CELL_LOW); };
+        // 7 uniform 3.15 V under a 550 A launch for 3 s: no trip, full power (avg above floor + band)
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 550; all(3.15f); ms(3000);
+        rep(closed() && w.core.out().kellyPct > 99.9f, "uniform 3.15 V @ 550 A 3 s: closed, full");
+        // 8 uniform 3.05 V under load: pack-sag taper 50 %, closed
+        all(3.05f); ms(20);
+        rep(closed() && w.core.out().kellyPct > 49 && w.core.out().kellyPct < 51 && strcmp(w.core.out().kellyWhy, "pack sag") == 0,
+            "uniform 3.05 V @ 550 A: pack sag 50%");
+        // 9 load released, cells stay 3.15 V (rest): closed at 0.9 s, CELL-LOW by 1.1 s
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 0; all(3.15f); ms(900);
+        { const bool c9 = closed(); ms(200); rep(c9 && cellLow(), "uniform 3.15 V at rest: open at 1 s, not 0.9 s"); }
+        // 10 one cell 0.25 V below the rest under load: relative cell sag 60 %
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 400; all(3.70f); w.cell[0][6] = 3.45f; ms(20);
         { const auto &o = w.core.out();
-          rep(o.state == BmsCore::CState::Closed && o.kellyPct > 49 && o.kellyPct < 51 && strcmp(o.kellyWhy, "cell sag") == 0,
-              "what-if L 3.00: cell 3.10 V -> sag 50%"); }
-        // 9 what-if L 3.00: cell 3.25 V -> sag curve not started (> 3.2)
-        w.cell[0][6] = 3.25f; ms(20);
-        rep(strcmp(w.core.out().kellyWhy, "cell sag") != 0, "what-if L 3.00: cell 3.25 V -> no sag derate");
-        printf("derate: %d/9 checks passed\n", 9 - dfail);
+          rep(closed() && o.kellyPct > 55 && o.kellyPct < 65 && strcmp(o.kellyWhy, "cell sag") == 0, "one cell 0.25 V low @ 400 A: sag ~60%"); }
+        // 11 hard floor under load: all 2.95 V, closed at 0.4 s, CELL-LOW by 0.6 s
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 550; all(2.95f); ms(400);
+        { const bool c11 = closed(); ms(200); rep(c11 && cellLow(), "all 2.95 V @ 550 A: floor opens at 0.5 s"); }
+        // 12 brief launch dip: one cell 3.20 V for 300 ms at 550 A -> derated (cell sag), mains stay closed
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 550; w.cell[1][4] = 3.20f; ms(300);
+        { const bool c12 = closed() && w.core.out().kellyPct < 1 && strcmp(w.core.out().kellyWhy, "cell sag") == 0;
+          w.cell[1][4] = 3.80f; w.packA = 100; ms(20);
+          rep(c12 && closed() && w.core.out().kellyPct > 99.9f, "one cell 3.20 V 300 ms @ 550 A: cut, no trip"); }
+        printf("derate: %d/12 checks passed\n", 12 - dfail);
     }
     // State of charge (coulomb count of the split LEM sum). capAh 100 is a
     // TEST value only; the real bank Ah is UNVERIFIED.

@@ -221,7 +221,7 @@ inline int runAll(Result out[kScenarios]) {
         [](World &w) { w.silent[B_M4A] = true; }, openAndNoCharge);
     out[n++] = scenario("cell high 4.30 V (M2 ch7)", "open + charger off <= 0.2 s", 200, true,
         [](World &w) { w.cell[B_M2][6] = 4.30f; }, openAndNoCharge);
-    out[n++] = scenario("cell low 3.20 V (M3 ch12, via link)", "open + charger off <= 0.2 s", 200, true,
+    out[n++] = scenario("cell low 3.20 V at rest (M3 ch12, link)", "open + charger off <= 1.2 s (1 s debounce)", 1200, true,
         [](World &w) { w.cell[B_M3][11] = 3.20f; }, openAndNoCharge);
     out[n++] = scenario("overtemp 60 C", "open + charger off <= 0.2 s", 200, true,
         [](World &w) { w.tMax = 60; }, openAndNoCharge);

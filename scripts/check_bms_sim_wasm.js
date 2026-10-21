@@ -68,7 +68,7 @@ const scFail=r.filter(x=>!x.pass).length;if(sf||df||scFail)process.exitCode=1;
  const fk=(ok,name)=>{fn++;if(!ok)ff++;const L=fl();console.log((ok?"PASS":"FAIL")+" faultlog-page "+name.padEnd(44),`boot=${L.boot} count=${L.count} written=${L.written} torn=${L.torn} newest=${L.recs[0]?L.recs[0].name+'/'+L.recs[0].kind:'-'}`);};
  X.sim_flog_clear();X.sim_reset();
  fk(fl().count===0&&fl().torn===0,"cleared: empty log");
- X.sim_set_key(1);X.sim_step(4000);X.sim_set_cell(0,6,3.10);X.sim_step(500);
+ X.sim_set_key(1);X.sim_step(4000);X.sim_set_cell(0,6,3.10);X.sim_step(1500);
  {const L=fl();fk(L.recs.some(r=>r.kind===1&&r.code===3&&r.value===3100),"cell 3.10 V -> FAULT cell-low logged, value 3100 mV");}
  const b0=fl().boot,n0=fl().count;X.sim_power_cycle();
  {const L=fl();fk(L.boot===b0+1&&L.count===n0&&L.recs.some(r=>r.code===3&&r.boot===b0)&&L.written===0,"power cycle: records survive, boot +1");}

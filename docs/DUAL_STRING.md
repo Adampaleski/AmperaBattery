@@ -64,6 +64,6 @@ HV divider if `HV_ANALOG_ENABLE=1`, else none (precharge times out = fails safe)
 ## HV facts (2026-10-20, see docs/TERYX_MAIN_POWER_PATH.md)
 - Strings are 36S, built from 24S + 18S BICM boards. No 30S module.
 - Sensing: dual LEM A (strings 1+2, Teensy A) + LEM B (strings 3+4, Teensy B) is primary; ISA IVT-S optional.
-- Trips: 650 A for 100 ms or 750 A instantly on LEM A + B. Derates: imbalance > 100 A for 1 s; cell sag 3.2 → 3.0 V; heat off until TEMPS_VERIFIED.
+- Trips: 650 A for 100 ms or 750 A instantly on LEM A + B. Derates: imbalance > 100 A for 1 s; relative cell sag + pack sag vs load + 3.00 V/500 ms floor, 3.30 V low cut at rest for 1 s (2026-10-21, PLACEHOLDER values); heat off until TEMPS_VERIFIED.
 - Mains: two used TE EV200 (pack + / −); Volt AEV14012s only on charger/DC-DC/precharge.
 - Fuses: 4× Mersen A6T200 200 A Class T, planned; size to be confirmed vs 650 A trip (Sparky).

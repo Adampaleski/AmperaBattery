@@ -228,7 +228,8 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
     </div></div>
   </div>
   <div class="grid">
-    <div class="card"><h3>Low-cell + sag cutback</h3><svg class="dchart" id="chV" viewBox="0 0 320 150"></svg></div>
+    <div class="card"><h3>Cell sag: weakest cell below pack average</h3><svg class="dchart" id="chV" viewBox="0 0 320 150"></svg></div>
+    <div class="card"><h3 id="chPh">Pack sag vs load</h3><svg class="dchart" id="chP" viewBox="0 0 320 150"></svg></div>
     <div class="card"><h3>LEM imbalance <span class="tag">LEVEL PLACEHOLDER</span></h3><svg class="dchart" id="chI" viewBox="0 0 320 150"></svg><div class="dim" id="dImb" style="font-size:13px;margin-top:6px"></div></div>
     <div class="card"><h3>Heat cutback</h3><svg class="dchart" id="chT" viewBox="0 0 320 150"></svg></div>
     <div class="card"><h3>Current trip</h3><svg class="dchart" id="chA" viewBox="0 0 320 150"></svg></div>
@@ -526,20 +527,24 @@ function renderDrive(){
   $('dReg').textContent=S.kellyRegenOk?'Allowed':'Off';$('dRegS').textContent=S.kellyRegenOk?'cells have headroom':S.regenWhy;
   $('dAmp').textContent=S.packA.toFixed(0);$('dAmpS').textContent=(k.maxDischargeA>0?`derate above ${k.maxDischargeA} A · `:'no BMS cap · ')+`trip ${c.overA} A for ${k.overcurrentMs} ms, ${k.instantTripA} A instant`;
   let mn=9;for(let b=0;b<BOARDS.length;b++)for(let i=0;i<BOARDS[b].cells;i++){const v=X.sim_get_cell(b,i);if(v<mn)mn=v;}dMinCell=mn;
-  $('dMin').textContent=mn.toFixed(3);$('dMinS').textContent=`derate below ${(c.lowCutV+k.derateLowV).toFixed(2)} V · sag ${S.dcfg.sagStartV.toFixed(1)}→${S.dcfg.sagZeroV.toFixed(1)} V · cut ${c.lowCutV.toFixed(2)} V`;
+  const dd=S.dcfg,gap=S.avgCellV-S.minCellV;
+  $('dMin').textContent=mn.toFixed(3);$('dMinS').textContent=`${(gap*1000).toFixed(0)} mV below avg ${S.avgCellV.toFixed(3)} V · `+(S.underLoad?`under load: floor ${dd.hardFloorV.toFixed(2)} V for ${dd.hardFloorMs} ms`:`at rest: cut ${c.lowCutV.toFixed(2)} V for ${(dd.lowCutMs/1000).toFixed(1)} s`);
   $('dkey').textContent=keyOn?'Key off':'Key on';$('dkey').classList.toggle('on',keyOn);
   $('sLimp').textContent=S.kellyLimp?'ON':'off';$('sLimp').classList.toggle('red',S.kellyLimp);
   const duty=Math.round(S.kellyPct*2.55);$('sDuty').textContent=duty+' / 255';$('sDutyB').style.width=S.kellyPct+'%';
   $('sReg').textContent=S.kellyRegenOk?'HIGH':'LOW';
   const lv0=c.lowCutV,lv1=c.lowCutV+k.derateLowV,d=S.dcfg;
-  const lowF=v=>v>=lv1?100:(v-lv0)/(lv1-lv0)*100,sagF=v=>v>=d.sagStartV?100:(v-d.sagZeroV)/(d.sagStartV-d.sagZeroV)*100;
-  chart('chV',2.9,3.7,v=>v<lv0?0:Math.min(lowF(v),sagF(v)),mn,[{x:lv0,c:'trip',t:'cut '+lv0.toFixed(2),dy:26},{x:d.sagStartV,c:'ref',t:'sag '+d.sagStartV.toFixed(1),a:'end'}],'V',1);
+  const relF=g=>g<=d.relSagStartV?100:g>=d.relSagZeroV?0:(d.relSagZeroV-g)/(d.relSagZeroV-d.relSagStartV)*100;
+  chart('chV',0,0.5,relF,Math.max(0,gap),[{x:d.relSagStartV,c:'ref',t:'start '+(d.relSagStartV*1000).toFixed(0)+' mV',dy:26},{x:d.relSagZeroV,c:'ref',t:'0% '+(d.relSagZeroV*1000).toFixed(0)+' mV',a:'end'}],'V below avg',2);
+  const f0=d.hardFloorV,f1=f0+d.packSagBandV,lowF=v=>v>=lv1?100:v<=lv0?0:(v-lv0)/(lv1-lv0)*100,packF=v=>v>=f1?100:v<=f0?0:(v-f0)/(f1-f0)*100;
+  chart('chP',2.8,3.6,S.underLoad?packF:lowF,S.underLoad?S.avgCellV:S.minCellV,S.underLoad?[{x:f0,c:'trip',t:'floor '+f0.toFixed(2)+' · '+d.hardFloorMs+' ms',dy:26}]:[{x:lv0,c:'trip',t:'cut '+lv0.toFixed(2)+' · '+(d.lowCutMs/1000).toFixed(1)+' s',dy:26}],S.underLoad?'V avg (load)':'V min (rest)',1);
+  $('chPh').textContent=S.underLoad?`Pack sag vs load (|I| > ${d.restA} A)`:`Low cell at rest (|I| ≤ ${d.restA} A)`;
   chart('chI',0,200,x=>x>d.imbalanceA?d.imbalancePct:100,S.lemDiffA,[{x:d.imbalanceA,c:'ref',t:d.imbalanceA+' A for '+(d.imbalanceMs/1000)+' s',a:'end'}],'A',0);
   $('dImb').textContent=`LEM A ${S.lemA.toFixed(0)} A · LEM B ${S.lemB.toFixed(0)} A · |A − B| ${S.lemDiffA.toFixed(0)} A`+(S.lemImbalance?` · DERATED to ${d.imbalancePct}%`:'')+`. Derate level ${d.imbalancePct}% is a placeholder until Adam picks it.`;
   $('dlcutv').textContent=c.lowCutV.toFixed(2)+' V';
   chart('chT',20,c.overTempC+5,t=>t<=k.derateTempC?100:(c.overTempC-t)/(c.overTempC-k.derateTempC)*100,S.tMax,[{x:c.overTempC,c:'trip',t:'open',a:'end'}],'°C',0);
   chart('chA',0,800,a=>(k.maxDischargeA<=0||a<=k.maxDischargeA)?100:100*k.maxDischargeA/a,Math.max(0,Math.abs(S.packA)),[{x:550,c:'ref',t:'Kelly 550',a:'end',dy:52},{x:c.overA,c:'trip',t:c.overA+' A · '+k.overcurrentMs+' ms',a:'end',dy:26},{x:k.instantTripA,c:'trip',t:k.instantTripA+' A instant',a:'end'}],'A',0);
-  const w=S.kellyWhy;[['chV',['low cell','cell sag']],['chI',['LEM imbalance']],['chT',['pack hot']],['chA',['discharge amps']]].forEach(([i,r])=>$(i).classList.toggle('act',r.includes(w)));
+  const w=S.kellyWhy;[['chV',['cell sag']],['chP',['low cell','pack sag']],['chI',['LEM imbalance']],['chT',['pack hot']],['chA',['discharge amps']]].forEach(([i,r])=>$(i).classList.toggle('act',r.includes(w)));
 }
 function wireDrive(){
   $('dkey').onclick=()=>$('key').click();
@@ -705,7 +710,7 @@ function renderCluster(){
 }
 /* ---------- settings (sim only) ---------- */
 const SETS=[['lowCut','Low-cell cut','V','cfg.lowCutV',v=>X.sim_set_low_cut(v),'dlcut'],['chargePct','Charge limit','%','cfg.chargePct',v=>X.sim_set_charge_pct(v),'pct'],['deadband','Balance deadband','mV',null,v=>X.sim_set_deadband_mv(v),'db']];
-const RO=[['Overcurrent trip','cfg.overA','A'],['Instant trip','kcfg.instantTripA','A'],['Trip delay','kcfg.overcurrentMs','ms'],['Max discharge (Kelly)','kcfg.maxDischargeA','A'],['Sag derate start','dcfg.sagStartV','V'],['Sag derate zero','dcfg.sagZeroV','V'],['LEM imbalance','dcfg.imbalanceA','A'],['Imbalance delay','dcfg.imbalanceMs','ms'],['Imbalance cut to','dcfg.imbalancePct','%'],['Heat derate','kcfg.derateTempC','°C'],['Over-temp trip','cfg.overTempC','°C'],['Cell max','cfg.cellMaxV','V']];
+const RO=[['Overcurrent trip','cfg.overA','A'],['Instant trip','kcfg.instantTripA','A'],['Trip delay','kcfg.overcurrentMs','ms'],['Max discharge (Kelly)','kcfg.maxDischargeA','A'],['Cell sag start (below avg)','dcfg.relSagStartV','V'],['Cell sag 0% (below avg)','dcfg.relSagZeroV','V'],['Low cut delay (rest)','dcfg.lowCutMs','ms'],['Hard floor (load)','dcfg.hardFloorV','V'],['Hard floor delay','dcfg.hardFloorMs','ms'],['Pack sag band','dcfg.packSagBandV','V'],['Rest current','dcfg.restA','A'],['LEM imbalance','dcfg.imbalanceA','A'],['Imbalance delay','dcfg.imbalanceMs','ms'],['Imbalance cut to','dcfg.imbalancePct','%'],['Heat derate','kcfg.derateTempC','°C'],['Over-temp trip','cfg.overTempC','°C'],['Cell max','cfg.cellMaxV','V']];
 const getp=(o,p)=>p.split('.').reduce((a,k)=>a?.[k],o);
 let DEF=null;
 function curSet(id){const s=SETS.find(x=>x[0]===id);return s[3]?getp(S,s[3]):+$('db').value;}

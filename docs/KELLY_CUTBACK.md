@@ -41,7 +41,7 @@ Trips and the derate removal are in `BmsCore` as of 2026-10-20 (sim-tested, not 
 
 - Kelly settings: phase current 550 A, battery current 550 A. The BMS does not cap current in normal driving.
 - Hard trip (opens contactors): total LEM A + LEM B above **650 A for 100 ms**, or above **750 A instantly**.
-- Derates: LEM imbalance |A − B| > 100 A for 1 s; cell sag starting at 3.2 V, reaching 0 % at 3.0 V; heat derate coded but **off until `TEMPS_VERIFIED`**.
+- Derates: LEM imbalance |A − B| > 100 A for 1 s; cell sag relative to the pack average (2026-10-21, see below); heat derate coded but **off until `TEMPS_VERIFIED`**.
 - String fuses: 4× Mersen A6T200 200 A Class T, planned; size to be confirmed vs 650 A trip (Sparky).
 - Mains: two used TE EV200 (pack + and −). Volt AEV14012s only on charger/DC-DC/precharge.
 
@@ -51,10 +51,14 @@ The low-cell and pack-hot rows above show current code values, not these targets
 
 - **LEM imbalance:** `imbalanceLogic()` in `BmsCore`. With the mains closed and both LEM halves valid, |LEM A − LEM B| above `imbalanceA = 100` A continuously for `imbalanceMs = 1000` ms sets `lemImbalance`, logs `LEM imbalance: A … / B … A`, and caps the allowance at `imbalancePct`. It clears as soon as the difference drops back under 100 A. A dip under 100 A restarts the 1 s timer. Contactors stay closed (warn + derate only).
   - `imbalancePct = 50` is a **placeholder**. Adam set the trigger, not how far to cut. Needs his number.
-- **Cell sag:** weakest cell below `sagStartV = 3.20` V scales the allowance linearly to 0 at `sagZeroV = 3.00` V, limiter name `cell sag`. The old low-cell curve (`lowCutV + 0.15` → `lowCutV`) is kept; the lower allowance wins.
-  - **Conflict, decision pending:** the low cut `L` is 3.30 V and `CELL-LOW` opens the mains on the first sample below it. So in the default config the sag curve (3.2 → 3.0 V) can never act: the mains open first. Under a 550 A launch any cell that sags under 3.30 V opens the contactors mid-pull. Options for Adam: keep it, or make the 3.30 V cut a resting/debounced check with a lower instant floor so the sag derate handles short dips. No thresholds picked.
+- **Cell sag (Adam, 2026-10-21): relative, not a fixed per-cell voltage.** Code in `BmsCore` (`cellStats()`, `cellLowLogic()`, `kellyLogic()`), sim-tested only. Every number is a **PLACEHOLDER** in `Config` and adjustable; none is a Chevy/LG spec.
+  - *Relative cut (any load):* weakest cell more than `relSagStartV = 0.15` V below the pack-average cell scales the allowance linearly to 0 % at `relSagZeroV = 0.40` V below. Limiter `cell sag`. Contactors stay closed.
+  - *Whole-pack sag vs load:* under load (`|I| > restA = 20` A with a valid current reading) a uniform sag does not use the low cut. Only the pack average near the floor tapers power (`hardFloorV + packSagBandV` = 3.10 V down to `hardFloorV` = 3.00 V, limiter `pack sag`).
+  - *Hard floor:* any cell below `hardFloorV = 3.00` V for `hardFloorMs = 500` ms opens the mains (`CELL-LOW`, log says `floor`).
+  - *At rest* (or no current reading, treated as rest): the old low-cell taper (`lowCutV + 0.15` to `lowCutV`, limiter `low cell`) and `lowCutV = 3.30` V now debounced: a cell must stay under it for `lowCutMs = 1000` ms before `CELL-LOW`. The old instant 3.30 V trip is gone.
+  - Replaces `sagStartV`/`sagZeroV` (3.2 to 3.0 V), which could never act behind the instant 3.30 V trip. That conflict is resolved.
 - **Heat:** unchanged, only acts when temps are valid (`TEMPS_VERIFIED`).
-- Host checks: 9 derate checks in `scripts/sim_bms.cpp` (even 550 A split, 0.9 s vs 1.1 s at 130 A apart, clear, 90 A apart for 5 s, timer restart, sag blocked by L 3.30, what-if L 3.00 at 3.10 V = 50 % and at 3.25 V = none).
+- Host checks: 12 derate checks in `scripts/sim_bms.cpp`: 6 imbalance (even 550 A split, 0.9 s vs 1.1 s at 130 A apart, clear, 90 A apart for 5 s, timer restart) and 6 sag (uniform 3.15 V at 550 A for 3 s = closed, full power; uniform 3.05 V at 550 A = pack sag 50 %; uniform 3.15 V at rest opens at 1 s, not 0.9 s; one cell 0.25 V low at 400 A = cell sag ~60 %; all 2.95 V at 550 A opens at 0.5 s; one cell 3.20 V for 300 ms at 550 A = cut, no trip, recovers).
 
 ## Simulator
 

@@ -222,8 +222,11 @@ EXPORT const char *sim_state_json() {
     b.f(",\"kellyWhy\":"); b.str(o.kellyWhy ? o.kellyWhy : "");
     b.f(",\"regenWhy\":"); b.str(o.regenWhy ? o.regenWhy : "");
     b.f(",\"lemA\":%.1f,\"lemB\":%.1f,\"lemDiffA\":%.1f,\"lemImbalance\":%d", g_w.in.lemA, g_w.in.lemB, o.lemDiffA, o.lemImbalance);
-    b.f(",\"dcfg\":{\"sagStartV\":%.3f,\"sagZeroV\":%.3f,\"imbalanceA\":%.0f,\"imbalanceMs\":%u,\"imbalancePct\":%.0f}",
-        c.sagStartV, c.sagZeroV, c.imbalanceA, static_cast<unsigned>(c.imbalanceMs), c.imbalancePct);
+    b.f(",\"dcfg\":{\"relSagStartV\":%.3f,\"relSagZeroV\":%.3f,\"hardFloorV\":%.3f,\"hardFloorMs\":%u,\"packSagBandV\":%.3f,"
+        "\"lowCutMs\":%u,\"restA\":%.0f,\"imbalanceA\":%.0f,\"imbalanceMs\":%u,\"imbalancePct\":%.0f}",
+        c.relSagStartV, c.relSagZeroV, c.hardFloorV, static_cast<unsigned>(c.hardFloorMs), c.packSagBandV,
+        static_cast<unsigned>(c.lowCutMs), c.restA, c.imbalanceA, static_cast<unsigned>(c.imbalanceMs), c.imbalancePct);
+    b.f(",\"minCellV\":%.3f,\"avgCellV\":%.3f,\"underLoad\":%d", o.minCellV, o.avgCellV, o.underLoad);
     b.f(",\"kcfg\":{\"derateLowV\":%.3f,\"derateTempC\":%.1f,\"maxDischargeA\":%.0f,\"overcurrentMs\":%u,\"instantTripA\":%.0f,\"ceil100V\":%.3f}",
         c.derateLowV, c.derateTempC, c.maxDischargeA, static_cast<unsigned>(c.overcurrentMs), c.instantTripA, BmsCore::kCeil100V);
     b.f(",\"faults\":%u,\"latched\":%u,\"busV\":%.2f,\"lowestStringV\":%.2f", static_cast<unsigned>(o.faults),

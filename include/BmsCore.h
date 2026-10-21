@@ -26,7 +26,7 @@ enum : uint32_t {
     F_SILENT      = 1u << 0,   // expected circuit silent > stringSilentMs
     F_COUNT       = 1u << 1,   // cell count / bad sense reading
     F_CELL_HIGH   = 1u << 2,   // a cell > cellMaxV (4.25)
-    F_CELL_LOW    = 1u << 3,   // a cell < lowCutV (L setting)
+    F_CELL_LOW    = 1u << 3,   // a cell < lowCutV at rest for lowCutMs, or < hardFloorV for hardFloorMs
     F_OVERTEMP    = 1u << 4,   // pack temp > overTempC
     F_UNDERTEMP_C = 1u << 5,   // charge only: pack temp < chargeMinTempC
     F_OVERCURRENT = 1u << 6,   // |I| > overcurrentA for overcurrentMs, or > instantTripA once
@@ -69,7 +69,8 @@ inline float ceilingForPct(int pct) {
 
 struct Config {
     // cells
-    float    lowCutV        = 3.30f;   // L setting: open contactors below
+    float    lowCutV        = 3.30f;   // L setting: open contactors if a cell stays below this AT REST ...
+    uint32_t lowCutMs       = 1000;    // ... for this long. PLACEHOLDER (Adam 2026-10-21: no instant fixed cut)
     float    cellMaxV       = 4.25f;   // kCellFaultMaxV: open contactors above
     int      chargePct      = 80;      // P setting (EEPROM), 80 % = 3.95 V
     float    chargeHysV     = 0.05f;   // restart charge only after max cell falls this far
@@ -107,11 +108,19 @@ struct Config {
     float    weldMinV       = 30.0f;   // ... and below this absolute floor never counts
     // Kelly
     float    derateLowV     = 0.15f;   // start derating 150 mV above lowCutV
-    // Derates (Adam, 2026-10-20). Soft layer in front of the trips.
-    // NOTE: with lowCutV 3.30 V (instant CELL-LOW trip) the sag curve below
-    // 3.30 V cannot act yet -- the mains open first. Decision pending (Adam).
-    float    sagStartV      = 3.20f;   // weakest cell under load: cell-sag derate starts
-    float    sagZeroV       = 3.00f;   // ... and reaches 0 % here
+    // Cell sag (Adam, 2026-10-21): RELATIVE, not a fixed per-cell voltage.
+    //  * one cell well below the pack average -> "cell sag" derate (any load)
+    //  * whole-pack sag is judged against load: under load (|I| > restA) a
+    //    uniform sag only derates near hardFloorV ("pack sag") and only trips
+    //    if a cell stays under hardFloorV for hardFloorMs. lowCutV applies at rest.
+    //  * no current reading -> treated as rest (conservative).
+    // Every value below is a PLACEHOLDER (not a Chevy/LG spec) and adjustable.
+    float    restA          = 20.0f;   // |I| at or below this = rest
+    float    relSagStartV   = 0.15f;   // weakest cell this far below pack average: derate starts
+    float    relSagZeroV    = 0.40f;   // ... reaches 0 % here (contactors stay closed)
+    float    hardFloorV     = 3.00f;   // under load: cell below this ...
+    uint32_t hardFloorMs    = 500;     // ... for this long -> CELL-LOW (open)
+    float    packSagBandV   = 0.10f;   // under load: pack-average taper from floor + band down to floor
     float    imbalanceA     = 100.0f;  // |LEM A - LEM B| above this ...
     uint32_t imbalanceMs    = 1000;    // ... for this long -> derate + warn
     float    imbalancePct   = 50.0f;   // allowance while imbalanced. PLACEHOLDER: level not set by Adam
@@ -171,6 +180,8 @@ struct Outputs {
     const char *regenWhy = "";             // why regen is inhibited ("" = allowed)
     bool     lemImbalance = false;         // |A - B| > imbalanceA for imbalanceMs (warn + derate)
     float    lemDiffA = 0;                 // |A - B| now (0 when split not valid)
+    float    minCellV = 0, avgCellV = 0;   // weakest cell, pack average (used strings)
+    bool     underLoad = false;            // |I| > restA with a valid current reading
     uint32_t faults  = 0;                  // active now
     uint32_t latched = 0;                  // latched (drive faults until key-off + clear)
     const char *chargeWhy = "";
@@ -189,6 +200,7 @@ public:
         st_ = CState::Open; stMs_ = 0; retries_ = 0; latched_ = 0; chargeOvLatched_ = false;
         welded_ = false; ocSinceMs_ = 0; ocActive_ = false; full_ = false; openSinceMs_ = 0;
         imbSinceMs_ = 0; imbOver_ = false; imbOn_ = false;
+        lowSinceMs_ = floorSinceMs_ = 0; lowBelow_ = floorBelow_ = false;
         logHead_ = 0; logCount_ = 0; prevFaults_ = 0; out_ = Outputs{}; started_ = false;
     }
 
@@ -208,7 +220,9 @@ public:
         if (cfg.stringCells > 0 && o.ceilingV * cfg.stringCells > cfg.busMaxV - cfg.busMarginV)
             o.ceilingV = (cfg.busMaxV - cfg.busMarginV) / static_cast<float>(cfg.stringCells);
         o.lowestStringV = lowestString(in);
+        cellStats(in, o);
         uint32_t f = evalFaults(in, o.lowestStringV, o.ceilingV);
+        f |= cellLowLogic(in, o);
 
         // ---- welded check (before the state machine): every coil commanded
         // open for weldCheckMs, yet the HV bus is still live.
@@ -305,7 +319,8 @@ public:
 
 private:
     CState   st_ = CState::Open;
-    uint32_t stMs_ = 0, openSinceMs_ = 0, ocSinceMs_ = 0, imbSinceMs_ = 0;
+    uint32_t stMs_ = 0, openSinceMs_ = 0, ocSinceMs_ = 0, imbSinceMs_ = 0, lowSinceMs_ = 0, floorSinceMs_ = 0;
+    bool     lowBelow_ = false, floorBelow_ = false;
     bool     imbOver_ = false, imbOn_ = false;
     uint8_t  retries_ = 0;
     uint32_t latched_ = 0, prevFaults_ = 0;
@@ -341,7 +356,6 @@ private:
             if (s.oldestAgeMs > cfg.stringSilentMs) { f |= F_SILENT; continue; }
             if (s.cellsOk != s.expected) { f |= F_COUNT; continue; }
             if (s.maxV > cfg.cellMaxV) f |= F_CELL_HIGH;
-            if (s.minV < cfg.lowCutV) f |= F_CELL_LOW;
             if (s.maxV >= ceil + 0.05f && !chargeOvLatched_ && chargingOrRequested(in)) {
                 chargeOvLatched_ = true;
                 logf(in.nowMs, "CHARGE-OV latched: cell %.3f V >= %.3f V", s.maxV, ceil + 0.05f);
@@ -369,6 +383,47 @@ private:
             }
         }
         return f;
+    }
+
+    bool isUnderLoad(const Inputs &in) const {
+        const float a = in.packA < 0 ? -in.packA : in.packA;
+        return in.currentValid && a > cfg.restA;
+    }
+
+    // Weakest cell and pack-average cell over every used string with a full,
+    // fresh cell count (link-stale / silent / short strings are faulted elsewhere).
+    void cellStats(const Inputs &in, Outputs &o) const {
+        float mn = 0, sum = 0; int n = 0;
+        for (int i = 0; i < kMaxStrings; i++) {
+            const StringIn &s = in.s[i];
+            if (!s.used || s.expected == 0 || s.cellsOk != s.expected) continue;
+            if (s.remote && !in.linkFresh) continue;
+            if (n == 0 || s.minV < mn) mn = s.minV;
+            sum += s.sumV; n += s.expected;
+        }
+        o.minCellV = n ? mn : 0;
+        o.avgCellV = n ? sum / static_cast<float>(n) : 0;
+        o.underLoad = isUnderLoad(in);
+    }
+
+    // CELL-LOW (Adam 2026-10-21): at rest a cell below lowCutV for lowCutMs;
+    // any load, a cell below hardFloorV for hardFloorMs. A short launch sag
+    // under lowCutV but above the floor never opens the mains.
+    uint32_t cellLowLogic(const Inputs &in, const Outputs &o) {
+        const uint32_t now = in.nowMs;
+        const bool have = o.minCellV > 0;
+        const bool low = have && !o.underLoad && o.minCellV < cfg.lowCutV;
+        const bool flo = have && o.minCellV < cfg.hardFloorV;
+        if (low && !lowBelow_) lowSinceMs_ = now;
+        if (flo && !floorBelow_) floorSinceMs_ = now;
+        lowBelow_ = low; floorBelow_ = flo;
+        const bool tripLow = low && now - lowSinceMs_ >= cfg.lowCutMs;
+        const bool tripFloor = flo && now - floorSinceMs_ >= cfg.hardFloorMs;
+        if ((tripLow || tripFloor) && !(prevFaults_ & F_CELL_LOW))
+            logf(now, tripFloor ? "CELL-LOW: %.3f V < floor %.2f V for %u ms" : "CELL-LOW: %.3f V < %.2f V at rest for %u ms",
+                 o.minCellV, tripFloor ? cfg.hardFloorV : cfg.lowCutV,
+                 static_cast<unsigned>(tripFloor ? cfg.hardFloorMs : cfg.lowCutMs));
+        return (tripLow || tripFloor) ? F_CELL_LOW : 0;
     }
 
     bool chargingOrRequested(const Inputs &in) const { return in.chargeReq || out_.chargeEnable; }
@@ -428,16 +483,22 @@ private:
         }
         float pct = 100;
         const char *why = "";
-        float minCell = 9, maxCell = 0;
-        for (int i = 0; i < kMaxStrings; i++) if (in.s[i].used) {
-            if (in.s[i].minV < minCell) minCell = in.s[i].minV;
-            if (in.s[i].maxV > maxCell) maxCell = in.s[i].maxV;
-        }
-        const float lv0 = cfg.lowCutV, lv1 = cfg.lowCutV + cfg.derateLowV;
-        if (minCell < lv1) { const float k = (minCell - lv0) / (lv1 - lv0); const float p = k * 100; if (p < pct) { pct = p; why = "low cell"; } }
-        if (cfg.sagStartV > cfg.sagZeroV && minCell < cfg.sagStartV) {
-            const float k = (minCell - cfg.sagZeroV) / (cfg.sagStartV - cfg.sagZeroV);
-            const float p = k * 100; if (p < pct) { pct = p; why = "cell sag"; }
+        float maxCell = 0;
+        for (int i = 0; i < kMaxStrings; i++) if (in.s[i].used && in.s[i].maxV > maxCell) maxCell = in.s[i].maxV;
+        const float minCell = o.minCellV, avg = o.avgCellV;
+        if (minCell > 0) {
+            if (!o.underLoad) {  // at rest: weakest cell vs the low cut
+                const float lv0 = cfg.lowCutV, lv1 = cfg.lowCutV + cfg.derateLowV;
+                if (minCell < lv1) { const float p = (minCell - lv0) / (lv1 - lv0) * 100; if (p < pct) { pct = p; why = "low cell"; } }
+            } else {             // under load: whole-pack average vs the hard floor
+                const float f0 = cfg.hardFloorV, f1 = cfg.hardFloorV + cfg.packSagBandV;
+                if (cfg.packSagBandV > 0 && avg < f1) { const float p = (avg - f0) / (f1 - f0) * 100; if (p < pct) { pct = p; why = "pack sag"; } }
+            }
+            const float d = avg - minCell;  // relative: one cell below the rest
+            if (cfg.relSagZeroV > cfg.relSagStartV && d > cfg.relSagStartV) {
+                const float p = (cfg.relSagZeroV - d) / (cfg.relSagZeroV - cfg.relSagStartV) * 100;
+                if (p < pct) { pct = p; why = "cell sag"; }
+            }
         }
         if (in.tempsValid && in.tMaxC > cfg.derateTempC) {
             const float k = (cfg.overTempC - in.tMaxC) / (cfg.overTempC - cfg.derateTempC);
