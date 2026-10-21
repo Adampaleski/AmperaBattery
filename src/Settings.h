@@ -6,8 +6,11 @@
 //   P80   <Enter>   charge limit %, 100 % = 4.10 V/cell, 80 % = 3.95 V  bounds 50-100  default 80
 //   L3.30 <Enter>   low cutoff per cell, V        bounds 3.00-3.50  default 3.30
 //   W10   <Enter>   balance-plan deadband, mV     bounds 2-50       default 10
-//   X     <Enter>   restore all defaults
+//   X     <Enter>   restore all defaults (P/L/W; thresholds use TX)
+//   T     <Enter>   list BMS thresholds; TocA 600 sets one, TocA - resets, TX all (include/Thresholds.h)
 #include <stdint.h>
+
+namespace BmsCore { struct Config; }
 
 namespace Settings {
 // Charge ceiling is now set as a PERCENT (P80 <Enter>), mapped linearly by
@@ -29,5 +32,6 @@ float lowCutoffV();     // string fault (contactors open) below this
 float deadbandV();      // balance planner deadband
 bool  handleLine(const char *line);  // true if it was a settings/sim command
 void  print();
+void  applyThresholds(BmsCore::Config &c);  // saved T overrides on top of code defaults
 float simBusV();        // 'U' bench simulation of HV bus volts for the dry-run precharge (0 = off)
 }  // namespace Settings

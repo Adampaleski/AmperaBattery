@@ -253,6 +253,7 @@ void configureCore() {
     c.pcMaxRetries   = kPcDualMaxRetries;
     c.pcRatio        = kPrechargeRatio;
     c.overlapMs      = kPrechargeOverlapMs;
+    Settings::applyThresholds(c);   // T overrides (bounded, tighten-only for trips/temps)
 }
 
 BmsCore::StringIn toCore(const StringMon::Summary &s, bool remote) {

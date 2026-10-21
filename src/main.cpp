@@ -81,6 +81,7 @@ void printHelp() {
 #endif
     SERIALCONSOLE.println(F("=== SETTINGS (type, then Enter; saved to EEPROM) ==="));
     SERIALCONSOLE.println(F("  P80    charge limit % (50-100; 80=3.95 V, 100=4.10 V/cell)   L3.30  low cutoff V/cell (3.00-3.50)"));
+    SERIALCONSOLE.println(F("  T      list BMS thresholds   TocA 600  set one (bounded; trips/temps tighten only)   TocA -  default   TX  all defaults"));
     SERIALCONSOLE.println(F("  W10    balance deadband mV (2-50)          X      restore defaults"));
     SERIALCONSOLE.println(F("  U145.0 SIMULATE HV bus volts for the dry-run precharge (U0 = off)"));
     SERIALCONSOLE.println(F("  I120   SIMULATE pack amps (I0 = off)       Z      zero current sensor (no current flowing)"));
@@ -161,7 +162,7 @@ void runCommand(char c) {
     }
 }
 
-// Uppercase V/L/W/X/U start a settings line (ended by Enter); every other key
+// Uppercase P/V/L/W/X/U/T/Z/I start a settings line (ended by Enter); every other key
 // is a single-key command as before.
 char     g_line[24];
 uint8_t  g_lineLen = 0;
@@ -183,7 +184,8 @@ void dispatchSerial() {
             g_lineLen = 0;
         }
 #endif
-        if (!g_inLine && (c == 'V' || c == 'L' || c == 'W' || c == 'X' || c == 'U')) {
+        if (!g_inLine && (c == 'P' || c == 'V' || c == 'L' || c == 'W' || c == 'X' || c == 'U' ||
+                          c == 'T' || c == 'Z' || c == 'I')) {
             g_inLine = true;
             g_lineLen = 0;
         }

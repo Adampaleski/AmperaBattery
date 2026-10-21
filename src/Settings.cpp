@@ -5,6 +5,7 @@
 #include "Config.h"
 #include "CurrentSense.h"
 #include "BmsCore.h"
+#include "Thresholds.h"
 #include "StringConfig.h"
 
 namespace Settings {
@@ -22,6 +23,12 @@ struct Blob {
 };
 Blob  g{};
 float g_simBus = 0.0f;
+
+uint8_t eeRead(int a) { return EEPROM.read(a); }
+void    eeWrite(int a, uint8_t v) { EEPROM.update(a, v); }
+const BmsCore::LogStore kThrStore{eeRead, eeWrite};
+BmsCore::Thresholds g_thr(kThrStore);
+void thrOut(const char *s) { SERIALCONSOLE.print(s); }
 
 uint8_t sum(const Blob &b) {
     const uint8_t *p = reinterpret_cast<const uint8_t *>(&b);
@@ -66,7 +73,15 @@ void begin() {
     if (!ok) { defaults(); save(); }
     SERIALCONSOLE.print(ok ? F("Settings (EEPROM): ") : F("Settings (EEPROM blank/invalid -> DEFAULTS saved): "));
     print();
+    const bool thrOk = g_thr.load();
+    SERIALCONSOLE.print(F("Thresholds (EEPROM "));
+    SERIALCONSOLE.print(BmsCore::Thresholds::kBase);
+    SERIALCONSOLE.print(F("): "));
+    SERIALCONSOLE.print(thrOk ? g_thr.overrides() : 0);
+    SERIALCONSOLE.println(thrOk ? F(" overridden (T to list)") : F("none saved, code defaults (T to list)"));
 }
+
+void applyThresholds(BmsCore::Config &c) { g_thr.apply(c); }
 
 int   chargePct()    { return g.pct; }
 float ceilingV() {
@@ -112,6 +127,13 @@ bool handleLine(const char *line) {
     char *end = nullptr;
     const float v = static_cast<float>(strtod(arg, &end));
     const bool num = end && end != arg;
+    if (k == 'T') {
+        BmsCore::Config base;
+        base.lowCutV = lowCutoffV();
+        g_thr.setBase(base);
+        g_thr.handleLine(line, thrOut);
+        return true;
+    }
     switch (k) {
         case 'P':
             if (!num) break;
@@ -156,7 +178,7 @@ bool handleLine(const char *line) {
     }
     SERIALCONSOLE.print(F("Bad settings line '"));
     SERIALCONSOLE.print(line);
-    SERIALCONSOLE.println(F("' (use P80 / L3.30 / W10 / X / U145.0 / I120 / Z then Enter)"));
+    SERIALCONSOLE.println(F("' (use P80 / L3.30 / W10 / X / T / TocA 600 / U145.0 / I120 / Z then Enter)"));
     return true;
 }
 }  // namespace Settings
