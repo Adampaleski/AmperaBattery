@@ -24,7 +24,7 @@ Open the Style menu, or use `?src=`. The choice is saved in localStorage `teryxD
 Readings come only from the status object. A frame older than 3 s counts as stale, and the dash then shows **"—" with an amber dot**. A missing or null field shows the same way. Nothing is invented.
 
 Values the dash computes are tagged on screen:
-- **RPM estimate:** used only when `drive.rpm` is null. It is speed × 6000/55 RPM per mph, a plan-doc figure (≈6000 RPM ≈ 55 mph on 27" tires).
+- **RPM estimate:** used only when `drive.rpm` is null. It is speed × ≈122.5 RPM per mph: 16/32 sprockets × 4.375 diff = 8.75 (SOURCED) on 24" stock tires (SOURCED: Adam). 55 mph ≈ 6740 RPM, above the PROPOSED 6000 RPM High cap, so the model tops out near 49 mph.
 - **Range:** uses `energy.rangeMiEst` when the source sends it. Otherwise it is SoC × pack kWh ÷ Wh/mi.
   - Wh/mi is the last-5-mi average, then the trip average, then **350 Wh/mi ASSUMED**.
   - Pack kWh is `energy.packKWh`, otherwise **23.3 kWh ASSUMED** (36 × 3.6 V × 180 Ah).

@@ -256,7 +256,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
   <details class="more"><summary>More simulator controls: engineering readout, sliders, 12 V loads, drive cycle detail, SoC, pin map</summary>
   <div class="cl">
     <div id="clL"></div>
-    <div class="big"><div class="n" id="cSpd">0</div><div class="u">mph · <span class="src nw">SIM model · real source: Kelly CAN 0x0CF11E05 RPM × gearing (16/32, 27" tire) — Kelly RX not enabled (BMS_CAP_KELLY_RX=0)</span></div>
+    <div class="big"><div class="n" id="cSpd">0</div><div class="u">mph · <span class="src nw">SIM model · real source: Kelly CAN 0x0CF11E05 RPM × gearing (16/32 × 4.375, 24" tire) — Kelly RX not enabled (BMS_CAP_KELLY_RX=0)</span></div>
       <div class="gears" id="cGear"></div>
       <div class="pbar"><i id="cPw"></i></div><div class="u" style="margin-top:6px"><span id="cKw">0</span> kW · <span class="src">pack V × (LEM A + LEM B)</span></div>
       <div class="warn" id="cWarn"></div></div>
@@ -271,7 +271,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
       <div class="slider"><label>Grade</label><input id="cgrade" type="range" min="-20" max="20" step="0.5" value="0"><b id="cgradev">0 %</b></div>
       <div class="readout" id="vdet"></div>
       <div class="controls"><span class="mut" style="font-size:18px">Gear</span><span class="seg" id="cgsel"><button data-g="L">Low</button><button data-g="M">Medium</button><button data-g="H" class="on">High</button><button data-g="R">Reverse</button></span></div>
-      <div class="dim" style="font-size:18px">Vehicle model (sim/vehicle.js): motor torque = throttle × speed-mode scale × BMS power allowed × 550 A phase × <span style="color:var(--warn)">ASSUMED</span> Kt, capped by the 550 A Kelly battery limit; wheel speed from mass, Crr, CdA, grade (ASSUMED) and 27" tire (ASSUMED; stock 2008 is 25"), 16/32 sprockets × 4.375 diff = 8.75 (SOURCED), edit in Settings; motor RPM = wheel speed × ratio. Brake pressure = regen first up to the <span style="color:var(--warn)">PROPOSED</span> 60 A max (Kelly Brake_AN, pin 2, analog regen — pin per brief, UNVERIFIED on the harness), friction tops up; regen fades out below ~3 mph and only flows if the BMS allows regen. Speed-mode scales/RPM caps (H 100 %/6000, M 70 %/4400, L 45 %/2700, R 25 %/1100) are PROPOSED. Throttle is ignored while plugged in.</div>
+      <div class="dim" style="font-size:18px">Vehicle model (sim/vehicle.js): motor torque = throttle × speed-mode scale × BMS power allowed × 550 A phase × <span style="color:var(--warn)">ASSUMED</span> Kt, capped by the 550 A Kelly battery limit; wheel speed from mass, Crr, CdA, grade (ASSUMED) and 24" stock tire (SOURCED: Adam), 16/32 sprockets × 4.375 diff = 8.75 (SOURCED), edit in Settings; motor RPM = wheel speed × ratio. Brake pressure = regen first up to the <span style="color:var(--warn)">PROPOSED</span> 60 A max (Kelly Brake_AN, pin 2, analog regen — pin per brief, UNVERIFIED on the harness), friction tops up; regen fades out below ~3 mph and only flows if the BMS allows regen. Speed-mode scales/RPM caps (H 100 %/6000, M 70 %/4400, L 45 %/2700, R 25 %/1100) are PROPOSED. Throttle is ignored while plugged in.</div>
     </div></div>
     <div class="card"><h3>12 V loads <span class="tag">PROPOSED</span></h3><div class="mut">Total ≈ <b id="cload">0 A</b> <span class="small">ESTIMATE currents; seats ~4.5 A × level/3 each (use the seat buttons on the dash)</span></div><div class="rows" id="cloads"></div></div>
   </div>
@@ -590,7 +590,7 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Plug-in / proximity','Charger-present input wakes the BMS in CHARGE without key-on (J1772 PP or Elcon AC-present — part not chosen)','PROPOSED, pin unassigned; firmware input stays false'],
  ['Gear H/M/L','Kelly speed-switch inputs (3-speed on KLS NPS — UNVERIFIED); Teensy OUT3 pin 20 already drives limp (low-speed)','Kelly pins UNVERIFIED'],
  ['Reverse','Kelly reverse switch input; PROPOSED Teensy tap to show R on cluster and inhibit regen/charge','PROPOSED'],
- ['Speed','Kelly CAN 0x0CF11E05 RPM (b0–b1) ÷ (16/32 sprockets × 4.375 diff = 8.75, SOURCED) × ASSUMED 27" tire; sim: vehicle model','needs BMS_CAP_KELLY_RX=1 after candump'],
+ ['Speed','Kelly CAN 0x0CF11E05 RPM (b0–b1) ÷ (16/32 sprockets × 4.375 diff = 8.75, SOURCED) × 24" stock tire (SOURCED: Adam); sim: vehicle model','needs BMS_CAP_KELLY_RX=1 after candump'],
  ['Pack V','BICM cell sums (CAN3/CAN1 @125k); Kelly bus V on CAN 0x0CF11E05 b4–b5 as cross-check','BICM wired; Kelly RX off'],
  ['Pack A','LEM A (A0) + LEM B (A1), 5 V ref A11 — sign flip + zero cal TODO','CURRENT_SENSE_ENABLE=0'],
  ['Cell min/max','Volt BICMs M2/M3/M4 over CAN3 (30/31) and CAN1 (22/23)','live on bench'],
