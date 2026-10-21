@@ -69,4 +69,4 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 
 - [x] 2026-10-21 crew review of b629bcf: park on direct pin 32 (A needs BODY_IO_EXPANDER), Brake_AN DEFERRED (switch regen default), Low cap only on hard faults with a 1 s ramp, docs/ESTOP.md + wiring aid e-stop page fixed, WIRING.md CAN_LAYOUT_V2 map.
 - [ ] Before Brake_AN: read back the Kelly config (Brake Type, Boost OFF, BRK_AD/BRK_SW, Foot Switch, Three Gears/Speed) and save it in docs/.
-- [ ] E-stop NC block DC rating vs EV200 inrush (≈3.8 A / 130 ms each) + hold + precharge + KSI; add an interposing fail-safe relay if needed.
+- [ ] E-stop NC block DC rating (bench/datasheet): makes ≈7.6 A combined EV200 inrush for 130 ms, breaks only hold (≈0.52 A + precharge + KSI). No interposing relay (Sparky).

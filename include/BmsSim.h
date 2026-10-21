@@ -43,6 +43,7 @@ struct World {
     float    packA = 0;
     float    lemShareA = 0.5f;    // fraction of packA through LEM A (strings 1+2); 0.5 = even split
     bool     currentFitted = true;
+    bool     lemALost = false, lemBLost = false;   // one LEM half reads nothing (hard fault test)
     float    tMin = 20, tMax = 22;
     bool     tempsValid = true;   // sim assumes verified temps
     float    sTMax[4] = {-999, -999, -999, -999};  // per-string override (-999: use tMax)
@@ -59,7 +60,7 @@ struct World {
         now = 0; busV = 0; preOpenCircuit = false; welded = false; linkUp = true; linkLastMs = 0;
         packA = 0; lemShareA = 0.5f; tMin = 20; tMax = 22; tempsValid = true; keyOn = false; chargeReq = false; plugIn = false; chargeStop = false; chargeSoakA = 0;
         for (int s = 0; s < 4; s++) { sTMax[s] = -999; tempUp[s] = true; tempLast[s] = 0; }
-        currentFitted = true; busForce = -1;
+        currentFitted = true; lemALost = lemBLost = false; busForce = -1;
         for (int b = 0; b < kBoards; b++) {
             silent[b] = false; lastSeen[b] = 0;
             for (int c = 0; c < 24; c++) cell[b][c] = 3.80f + 0.002f * static_cast<float>((c * 7 + b * 3) % 5);
@@ -111,6 +112,7 @@ struct World {
         }
         in.currentExpected = true; in.tempsExpected = true;
         in.currentValid = currentFitted; in.packA = packA - chargeSoakA;
+        in.lemAValid = !lemALost; in.lemBValid = !lemBLost;
         in.lemSplitValid = currentFitted; in.lemA = in.packA * lemShareA; in.lemB = in.packA - in.lemA;
         in.busValid = true; in.busV = busV;
         in.keyOn = keyOn; in.chargeReq = chargeReq; in.plugIn = plugIn; in.chargeStop = chargeStop;

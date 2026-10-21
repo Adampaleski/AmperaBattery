@@ -35,11 +35,12 @@ Teensy A OUT3 (pin 20) --- logic FET low-side --- relay coil (12 V) + 1N4007 fly
 - **UNVERIFIED:** relay part (12 V automotive SPDT, e.g. Bosch-style 30/87a — not chosen), whether Adam's harness brings ECO out, the exact ECO pin on his connector, and that ECO really caps speed on his firmware (bench: ECO 12 V → RPM ≤ cap at full pedal).
 - **Limp threshold (crew 2026-10-21, `BmsCore::kellyLogic`, PROPOSED + adjustable):**
   - **Soft derates only scale current smoothly**, with no Low cap: pack hot, low-ish cells at rest, pack/cell sag, discharge amps.
-  - **Hard faults engage the 10 mph cap:** current sensor lost (only when `CURRENT_SENSE_ENABLE=1`), temps stale (only when `TEMPS_VERIFIED=1`), any cell < `limpCellV` 3.00 V, or LEM A/B mismatch.
+  - **Hard faults engage the 10 mph cap:** current sensor lost (only when `CURRENT_SENSE_ENABLE=1`), **one LEM reading nothing or out of range** (|half| > `lemRangeA` 450 A, PROPOSED), temps stale (only when `TEMPS_VERIFIED=1`), any cell < `limpCellV` 3.00 V.
+  - **LEM A vs B disagreeing** by > `imbalanceA` **60 A** for 1 s (crew 2026-10-21, was 100 A) = **SOFT** `imbalancePct` 50 % derate (PROPOSED, adjustable on the Thresholds page). It never triggers the Low cap.
+  - Teensy A vs B disagreeing is handled by the throttle clamp (docs/THROTTLE_CLAMP.md), not here.
   - On a hard fault, power ramps from 100 % to `limpRampPct` 30 % over `limpRampMs` 1000 ms, then ECO asserts. It releases when the fault clears.
   - Note: a cell < 3.00 V for 500 ms also trips the existing hard-floor fault (mains open), so the cap only shows its ramp start there.
-  - Note: "A/B mismatch" is implemented as the LEM A vs B imbalance. The throttle A/B disagree already zeroes the throttle through the clamp.
-  - Tests: scripts/test_limp.cpp (8) + 3 wasm checks.
+  - Tests: scripts/test_limp.cpp (11) + 3 wasm checks.
 - Sim: Kid engages the cap. The "Both Teensys dead" toggle uses pedal-direct, so the relay drops and the Kelly holds Low (scripts/test_controls.js: capped at ≤1225 RPM vs uncapped > 2450).
 
 ## Limits / UNVERIFIED (crew)

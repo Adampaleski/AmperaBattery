@@ -212,6 +212,7 @@ EXPORT const char *sim_soc_why() { return g_soc.out().why; }
 EXPORT float sim_soc_cap_ah() { return g_soc.cfg.capAh; }
 EXPORT float sim_soc_truth_pct() { return simTruthPct(); }
 EXPORT void  sim_set_soc_drain(int on) { g_drain = on; }
+EXPORT void  sim_set_lem_b_lost(int on) { g_w.lemBLost = on != 0; }   // one LEM reads nothing -> hard Low cap
 EXPORT void  sim_lem_dropout(int ms) { g_lemDropMs = ms > 0 ? g_w.now + static_cast<uint32_t>(ms) : 0; }
 
 // Fault log (BmsCore::FaultLog on simulated EEPROM), sim only.

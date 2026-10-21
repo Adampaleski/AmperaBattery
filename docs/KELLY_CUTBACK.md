@@ -41,7 +41,7 @@ Trips and the derate removal are in `BmsCore` as of 2026-10-20 (sim-tested, not 
 
 - Kelly settings: phase current 550 A, battery current 550 A. The BMS does not cap current in normal driving.
 - Hard trip (opens contactors): total LEM A + LEM B above **650 A for 100 ms**, or above **750 A instantly**.
-- Derates: LEM imbalance |A − B| > 100 A for 1 s; cell sag relative to the pack average (2026-10-21, see below); heat derate coded but **off until `TEMPS_VERIFIED`**.
+- Derates: LEM imbalance |A − B| > 60 A for 1 s (crew 2026-10-21, was 100 A; soft 50 % derate, never the Low cap); cell sag relative to the pack average (2026-10-21, see below); heat derate coded but **off until `TEMPS_VERIFIED`**.
 - String fuses: 4× Mersen A6T200 200 A Class T, planned; size to be confirmed vs 650 A trip (Sparky).
 - Mains: two used TE EV200 (pack + and −). Volt AEV14012s only on charger/DC-DC/precharge.
 

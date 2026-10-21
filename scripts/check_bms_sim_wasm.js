@@ -84,7 +84,10 @@ X.sim_reset();X.sim_set_key(1);X.sim_step(4000);
 {X.sim_set_temps(52.5,52.5);X.sim_step(500);const a=st();vk(a.kellyPct<60&&!a.kellyLimp,"soft derate (pack hot): current scaled, no Low cap",`${a.kellyPct.toFixed(0)} % limp=${a.kellyLimp}`);
  X.sim_set_temps(20,22);X.sim_step(500);X.sim_lem_dropout(3000);X.sim_step(300);const b=st();X.sim_step(900);const c=st();
  vk(!b.kellyLimp&&b.kellyPct<100&&c.kellyLimp&&c.limpWhy==="current sensor lost","hard (LEM lost): ramp ~1 s then Low cap",`${b.kellyPct.toFixed(0)} % -> ${c.kellyPct.toFixed(0)} % limp=${c.kellyLimp} ${c.limpWhy}`);
- X.sim_step(2500);vk(!st().kellyLimp,"LEM back: Low cap released",st().limpWhy);}
+ X.sim_step(2500);vk(!st().kellyLimp,"LEM back: Low cap released",st().limpWhy);
+ X.sim_set_pack_amps(300);X.sim_set_lem_share(70);X.sim_step(1500);const d=st();vk(d.kellyPct<50.1&&!d.kellyLimp,"LEMs disagree 120 A (> 60 A): soft 50 % derate, no Low cap",`${d.kellyPct.toFixed(0)} % limp=${d.kellyLimp}`);
+ X.sim_set_lem_share(50);X.sim_set_pack_amps(0);X.sim_step(500);X.sim_set_lem_b_lost(1);X.sim_step(1200);const e=st();vk(e.kellyLimp&&/LEM/.test(e.limpWhy),"one LEM reads nothing: hard -> Low cap",e.limpWhy);
+ X.sim_set_lem_b_lost(0);X.sim_step(200);}
 X.sim_reset();X.sim_set_key(1);X.sim_step(4000);
 {let spd=40,peak=0,below=null;const p=Object.assign({},VM.VEH_DEF,{analogBrake:true});
  for(let i=0;i<200;i++){const S=st();const o=VM.vehStep(p,{mph:spd},{thr:0,brake:80,gear:"H",closed:S.state==="Closed",allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV},0.1);

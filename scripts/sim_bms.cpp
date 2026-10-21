@@ -103,7 +103,7 @@ int main() {
         }
         printf("trip: %d/6 checks passed\n", 6 - tfail);
     }
-    // Derates (Adam 2026-10-20): LEM imbalance > 100 A for 1 s; cell sag 3.2 -> 3.0 V.
+    // Derates (Adam 2026-10-20): LEM imbalance > 60 A (crew 2026-10-21, was 100) for 1 s; cell sag 3.2 -> 3.0 V.
     int dfail = 0;
     {
         static BmsSim::World w;
@@ -129,10 +129,13 @@ int main() {
         // 4 back to even: clears
         w.lemShareA = 0.5f; ms(20);
         rep(!w.core.out().lemImbalance && w.core.out().kellyPct > 99.9f, "back to 275/275: clears");
-        // 5 90 A apart for 5 s: under threshold
-        w.reset(); BmsSim::bringUp(w, false); w.packA = 300; w.lemShareA = 195.f / 300.f; ms(5000);
-        rep(!w.core.out().lemImbalance && w.core.out().kellyPct > 99.9f, "195/105 A (90 A) for 5 s: no derate");
-        // 6 imbalance timer restarts if it dips under 100 A
+        // 5 50 A apart for 5 s: under the 60 A threshold
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 300; w.lemShareA = 175.f / 300.f; ms(5000);
+        rep(!w.core.out().lemImbalance && w.core.out().kellyPct > 99.9f, "175/125 A (50 A) for 5 s: no derate");
+        // 5b 90 A apart: now over 60 A -> soft 50 % derate, never the Low cap
+        w.reset(); BmsSim::bringUp(w, false); w.packA = 300; w.lemShareA = 195.f / 300.f; ms(2000);
+        rep(w.core.out().lemImbalance && w.core.out().kellyPct < pct50 + 0.1f && !w.core.out().kellyLimp, "195/105 A (90 A): soft 50 %, no Low cap");
+        // 6 imbalance timer restarts if it dips under 60 A
         w.reset(); BmsSim::bringUp(w, false); w.packA = 550; w.lemShareA = 340.f / 550.f; ms(700);
         w.lemShareA = 0.5f; ms(20); w.lemShareA = 340.f / 550.f; ms(700);
         rep(!w.core.out().lemImbalance, "130 A 0.7 s, dip, 0.7 s: timer restarts");

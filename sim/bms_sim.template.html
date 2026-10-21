@@ -287,7 +287,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
     <div class="dim" style="font-size:18px">Plays scripted throttle, brake and gear into the driver inputs above, so pack current, cutback, regen, trips and SoC all come from the real BmsCore. Turns the key on if needed and keeps driving on any tab. Stops early if the mains open. Profiles are made up for testing, not logged Teryx drives; speed and distance come from the toy speed model (PROPOSED gear caps). Use 5× or 20× for the long climb.</div>
   </div></div>
   <div class="card"><h3>State of charge <span class="tag">SIM · NOT IN FIRMWARE</span></h3><div class="rows">
-    <div class="controls"><button class="btn" id="sanc">Charge to limit (anchor)</button><button class="btn" id="sdrop">LEM dropout 3 s</button>
+    <div class="controls"><button class="btn" id="sanc">Charge to limit (anchor)</button><button class="btn" id="sdrop">LEM dropout 3 s</button><label class="sw danger"><span>LEM B reads nothing (hard → 10 mph cap)</span><input type="checkbox" id="slemb"><i></i></label>
       <label class="sw" style="flex:1;min-width:260px"><span>Cells drain with current (sim plant)</span><input type="checkbox" id="sdrain" checked><i></i></label></div>
     <div class="readout" id="sdet"></div>
     <div class="dim" style="font-size:18px">Estimate = the firmware's own <b>BmsCore::Soc</b> (include/SocEstimator.h) run on LEM A + LEM B, + = discharge. It is unknown at boot and only becomes known at a full-charge anchor (Core "at charge limit"); current invalid for more than 2 s makes it unknown again. <span style="color:var(--warn)">capacity 180 Ah</span> = 4 strings (SOURCED: Adam, 36S × 4P) × 45 Ah per group (ASSUMED); the real bank Ah is UNVERIFIED and is 0 = unknown in code. Sim truth = lowest cell on a SIM-ASSUMED linear map 3.30 V = 0 % → 4.10 V = 100 % (no verified OCV curve). Not wired in firmware: CURRENT_SENSE_ENABLE=0.</div>
@@ -638,6 +638,7 @@ function wireCluster(){
   $('ckey').onclick=()=>$('key').click();
   $('sanc').onclick=()=>{if(!plugOn)$('plug').click();const v=X.sim_ceiling_for_pct(+$('pct').value)+0.001;
     BOARDS.forEach((b,bi)=>{for(let c=0;c<b.cells;c++)X.sim_set_cell(bi,c,v);});socAnchorPending=true;ulog(`SoC: cells set to ${v.toFixed(3)} V (P${$('pct').value} limit), charging to anchor (sim shortcut)`);};
+  $('slemb').onchange=e=>{X.sim_set_lem_b_lost(e.target.checked?1:0);ulog('LEM B '+(e.target.checked?'reads nothing (sim)':'restored'));};
   $('sdrop').onclick=()=>{X.sim_lem_dropout(3000);ulog('LEM A + B dropout 3 s (sim)');};
   $('sdrain').onchange=e=>{X.sim_set_soc_drain(e.target.checked?1:0);ulog('Cell drain with current '+(e.target.checked?'on':'off'));};
   $('cloads').innerHTML=LOADS.map(([id,n,a,src])=>`<label class="sw"><span>${n} <span class="dim">· ${a}</span><br><span class="src nw" style="font-size:18px">${src}</span></span><input type="checkbox" id="ld_${id}"><i></i></label>`).join('');

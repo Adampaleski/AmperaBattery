@@ -140,11 +140,12 @@ struct Config {
     float    hardFloorV     = 3.00f;   // under load: cell below this ...
     uint32_t hardFloorMs    = 500;     // ... for this long -> CELL-LOW (open)
     float    packSagBandV   = 0.10f;   // under load: pack-average taper from floor + band down to floor
-    float    imbalanceA     = 100.0f;  // |LEM A - LEM B| above this ...
+    float    imbalanceA     = 60.0f;   // |LEM A - LEM B| above this ... (crew 2026-10-21: 60 A, PROPOSED; SOFT 50 % derate, no Low cap)
     uint32_t imbalanceMs    = 1000;    // ... for this long -> derate + warn
     // Low cap (crew 2026-10-21): soft derates only scale kellyPct; the Kelly ECO 10 mph cap (kellyLimp) engages
     // only on HARD faults, after ramping kellyPct down to limpRampPct over limpRampMs. All PROPOSED, adjustable.
     float    limpCellV      = 3.00f;   // any cell below -> hard
+    float    lemRangeA      = 450.0f;  // |LEM half| above this = out of range -> hard (DHAB S/44 -420..+230 A, PROPOSED)
     uint32_t limpRampMs     = 1000;    // ~1 s ramp into the cap
     float    limpRampPct    = 30.0f;   // power allowed at the end of the ramp (cap then holds speed)
     float    imbalancePct   = 50.0f;   // allowance while imbalanced. PLACEHOLDER: level not set by Adam
@@ -181,6 +182,8 @@ struct Inputs {
     float    packA        = 0;     // + = discharge
     bool     currentExpected = false; // current sensing fitted+enabled (CURRENT_SENSE_ENABLE): !currentValid = LOST
     bool     tempsExpected   = false; // temps verified (TEMPS_VERIFIED): !tempsValid = STALE
+    bool     lemAValid    = true;  // LEM A half reading (not open/dead)
+    bool     lemBValid    = true;  // LEM B half reading (local on B, over the link on A)
     bool     lemSplitValid= false; // both halves read (LEM A on Teensy A, LEM B over the link)
     float    lemA = 0, lemB = 0;   // strings 1+2 and 3+4, + = discharge
     bool     busValid     = false; // HV bus sense present
@@ -625,7 +628,11 @@ private:
         if (in.currentExpected && !in.currentValid) hard = "current sensor lost";
         else if (in.tempsExpected && !in.tempsValid) hard = "temps stale";
         else if (minCell > 0 && minCell < cfg.limpCellV) hard = "cell < 3.0 V";
-        else if (o.lemImbalance) hard = "LEM A/B mismatch";
+        else if (in.currentExpected && (!in.lemAValid || !in.lemBValid)) hard = "one LEM reading nothing";
+        else if (in.currentExpected && in.lemSplitValid &&
+                 (in.lemA > cfg.lemRangeA || in.lemA < -cfg.lemRangeA || in.lemB > cfg.lemRangeA || in.lemB < -cfg.lemRangeA))
+            hard = "LEM out of range";
+        // LEM A/B disagreement (> imbalanceA) is a SOFT derate above (imbalancePct), never the Low cap.
         if (hard[0]) {
             if (!hardOn_) { hardOn_ = true; hardSinceMs_ = in.nowMs; logf(in.nowMs, "LOW CAP: %s (ramp %lu ms)", hard, (unsigned long)cfg.limpRampMs); }
             const uint32_t t = in.nowMs - hardSinceMs_;

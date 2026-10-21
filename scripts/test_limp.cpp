@@ -26,7 +26,14 @@ int main() {
     up(); w.packA = 200; w.cell[2][5] = 2.95f; run(200);
     // NOTE: the 3.00 V hard floor (500 ms) opens the mains before the 1 s ramp ends, so only the ramp start is seen.
     ok(w.core.out().limpWhy[0] && w.core.out().state == BmsCore::CState::Closed, "hard: cell 2.95 V under load -> Low cap ramp starts (floor trip follows at 500 ms)", w.core.out().kellyPct);
-    up(); w.lemShareA = 0.9f; w.packA = 300; run(12000);
-    ok(w.core.out().kellyLimp, "hard: LEM A/B mismatch -> Low cap", w.core.out().lemDiffA);
+    up(); w.lemShareA = 0.7f; w.packA = 300; run(1500);   // |A-B| = 120 A > 60 A
+    ok(w.core.out().lemImbalance && !w.core.out().kellyLimp && w.core.out().kellyPct < 50.1f && w.core.out().kellyPct > 49.9f,
+       "soft: LEMs disagree > 60 A -> 50 % derate, NO Low cap", w.core.out().lemDiffA);
+    up(); w.lemShareA = 0.55f; w.packA = 300; run(1500);  // |A-B| = 30 A
+    ok(!w.core.out().lemImbalance && w.core.out().kellyPct > 99, "LEMs within 60 A: no derate", w.core.out().lemDiffA);
+    up(); w.lemBLost = true; run(1200);
+    ok(w.core.out().kellyLimp && w.core.out().limpWhy[0], "hard: one LEM reading nothing -> Low cap");
+    up(); w.packA = 600; w.lemShareA = 0.8f; run(1200);    // LEM A = 480 A > 450 A range
+    ok(w.core.out().kellyLimp, "hard: LEM out of range -> Low cap", 480);
     printf("limp: %d/%d\n", n - f, n); return f ? 1 : 0;
 }

@@ -48,7 +48,7 @@ From `docs/COMPONENTS.md`, `../diagram/components.json`, `../perfboard/BOM.md`:
 - [ ] Close sequence: main − → precharge → wait Kelly side ≥ 95 % pack V → main + → precharge off; timeout → fault
 - [ ] Startup weld check: both mains commanded open, Kelly side must read ≈ 0 V or refuse to start
 - [ ] Hard trips on LEM A + LEM B: 650 A for 100 ms, 750 A instant (replaces 300 A / 500 ms) — code + sim done 2026-10-20 (`BmsCore`); tick after a bench test with `CURRENT_SENSE_ENABLE` on
-- [ ] LEM imbalance derate: |A − B| > 100 A for 1 s → derate + warn — code + sim done 2026-10-20; cut level 50 % is a placeholder (Adam to pick)
+- [ ] LEM imbalance derate: |A − B| > 60 A for 1 s (crew 2026-10-21, was 100 A; soft 50 % derate, never the Low cap) → derate + warn — code + sim done 2026-10-20; cut level 50 % is a placeholder (Adam to pick)
 - [ ] Cell sag derate: lowest cell 3.2 V → 3.0 V linear to zero — code + sim done 2026-10-20; can't act while the 3.30 V low cut trips instantly (Adam to decide)
 - [ ] Heat derate (50 °C start / 60 °C cut) coded but **off** until `TEMPS_VERIFIED`
 - [ ] LEM sign flip (discharge positive), zero calibration, enable `CURRENT_SENSE_ENABLE`

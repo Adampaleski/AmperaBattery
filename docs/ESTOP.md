@@ -29,7 +29,9 @@ E-stop NC block 2 --> Teensy B input (pull-up, open = pressed) -- LOGGING ONLY, 
 | EV200 inrush, each | ≈3.8 A for ≈130 ms | SOURCED crew (recheck datasheet) |
 | AEV14012 coil | ≈0.35 A (not economized) | SOURCED (Volt part, sim note) |
 | Kelly KSI / PWR | UNVERIFIED (measure) | — |
-Worst case is both EV200s pulling in at once (≈7.6 A for 130 ms) plus the precharge coil and KSI. That's against **12-24 V DC** on the contact block. The XB4/IDEC block's DC-13 rating at 12-24 V is **UNVERIFIED** (typically well under 2 A at DC-13). If it's too low, NC1 should drive a **fail-safe relay** sized for the load: the relay coil runs through NC1, and its NO contact carries the coil feeds. That relay must drop out when de-energized (spring return), so the cut stays fail-safe.
+**Both EV200s close together**, so the e-stop contact must **make and carry the combined inrush of ≈7.6 A for ≈130 ms**, plus the precharge coil and KSI. It only ever **breaks the hold current** (≈0.52 A + precharge coil + KSI), because pressing it happens with the coils economized. The XB4/IDEC block's DC-13 make/break rating at 12–24 V is a **bench/datasheet check (UNVERIFIED)**.
+
+**No interposing relay:** the crew (Sparky) prefers the contact block directly in the coil feed. A relay adds a failure point and a coil of its own. Only revisit this if the datasheet check fails.
 
 ## Bench checks before first drive
 - Press with mains closed: both EV200s and the precharge relay open, the Kelly powers down, and Teensy B logs the press.

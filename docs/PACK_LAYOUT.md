@@ -31,7 +31,7 @@ The ledger's "~150–155 V full" is 36S at 4.17–4.3 V/cell; the firmware stops
 | 750 A instant trip | 187.5 A | 94 % |
 | Earlier "uneven" estimate | ~185 A on the strongest string at 550 A | 93 % |
 
-Per-string current is **not measured**: LEM A sees strings 1+2 and LEM B sees strings 3+4. The imbalance derate (|A − B| > 100 A for 1 s, PLACEHOLDER) only catches a pair-to-pair split; a split inside a pair is invisible. Class T fuses are time-delay, so 187.5 A brief peaks are inside their rating, but check the A6T200 time-current curve against the 650 A / 100 ms trip with Sparky. No firmware change made.
+Per-string current is **not measured**: LEM A sees strings 1+2 and LEM B sees strings 3+4. The imbalance derate (|A − B| > 60 A for 1 s (crew 2026-10-21, was 100 A; soft 50 % derate, never the Low cap), PLACEHOLDER) only catches a pair-to-pair split; a split inside a pair is invisible. Class T fuses are time-delay, so 187.5 A brief peaks are inside their rating, but check the A6T200 time-current curve against the 650 A / 100 ms trip with Sparky. No firmware change made.
 
 ## Module inventory vs 4 × 36S
 - Owned modules (cash ledger): 13 × 12S + 4 × 6S = **180S** worth of cell groups.
