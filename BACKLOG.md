@@ -22,6 +22,8 @@
    - [ ] Next: record a real Teryx drive (Kelly CAN speed/current) as a replayable profile; add a heat/temps-valid profile once temps are verified; cycle results into the dash trip panel.
    - Note: in the Hard launches run regen showed 0 A near full charge (BMS blocks regen near the charge ceiling, expected); trail loop regen hit 60 A.
 5. [ ] Fault log that survives power-off.
+   - [x] 2026-10-20 7 PM: include/FaultLog.h (header-only, not wired into firmware). 48 x 20-byte records at EEPROM 256..1215 (Settings stays at 0; Teensy 4.1 EEPROM 4284 B per installed core). Seq + CRC-16 per record, no header: torn write skipped, blank = empty. Fault set/clear edges with boot no., uptime ms, one value. Wear limits: same edge max 1/s, 24 records per boot then 'log limit reached'. 10 host checks (scripts/test_fault_log.cpp), ARM compile check. docs/FAULT_LOG.md. Flash endurance UNVERIFIED.
+   - [ ] Next: wire into BmsApp (EEPROM.read/update, edges each tick), serial print/clear command, show in simulator + STATUS_SCHEMA, bench power-pull test.
 6. [ ] Tesla-style dash on the ESP32 hub (teryx-ev-hub, never main).
    - [x] 2026-10-20 (parent chat, 43a7c0c + c76fee2): standalone tools/dash.html + sim/dash.js (Digital/Analog/Minimal/Night, "—" + amber when no source, range/Wh/mi/trip, tell-tales, seat heater buttons, cooling PROPOSED). Simulator-side only; ESP32 hub port still to do.
 
