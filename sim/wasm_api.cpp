@@ -4,6 +4,7 @@
 #include <string.h>
 #include "BmsSim.h"
 #include "SocEstimator.h"
+#include "FaultLog.h"
 
 using namespace BmsSim;
 
@@ -27,6 +28,44 @@ uint32_t g_lemDropMs = 0; // > 0: LEM A + B read invalid until this sim time
 void socReset() { BmsCore::SocConfig c; c.capAh = kSimCapAh; g_soc.reset(c); g_anchorNow = false; g_lemDropMs = 0; }
 struct SocInit { SocInit() { socReset(); } } g_socInit;
 
+// ---- Fault log (sim only): the real BmsCore::FaultLog on a simulated 4284-byte
+// Teensy 4.1 emulated EEPROM. g_ee survives sim_reset and "power cycle" (that
+// is the point); the page also mirrors it to localStorage so it survives a
+// page reload. Firmware does not call FaultLog yet (backlog item 5).
+uint8_t  g_ee[4284];
+bool     g_eeDirty = false;
+uint32_t g_eeWrites = 0;          // bytes actually changed (EEPROM.update semantics)
+uint8_t  eeRead(int a) { return (a >= 0 && a < static_cast<int>(sizeof g_ee)) ? g_ee[a] : 0xFF; }
+void     eeWrite(int a, uint8_t v) { if (a >= 0 && a < static_cast<int>(sizeof g_ee) && g_ee[a] != v) { g_ee[a] = v; g_eeDirty = true; g_eeWrites++; } }
+BmsCore::FaultLog g_flog;
+uint32_t g_prevFaults = 0;
+void flogBegin() { g_flog.begin({eeRead, eeWrite}); g_prevFaults = 0; }
+struct EeInit { EeInit() { memset(g_ee, 0xFF, sizeof g_ee); flogBegin(); } } g_eeInit;
+float simLowestCell();
+int16_t flogValue(uint8_t bit) {   // one context value per record
+    if (bit == 3 || bit == 2 || bit == 10) return static_cast<int16_t>(simLowestCell() * 1000.0f + 0.5f);   // cell mV
+    if (bit == 6) { const float a = g_w.in.lemA + g_w.in.lemB; return static_cast<int16_t>(a > 32000 ? 32000 : (a < -32000 ? -32000 : a)); }  // amps
+    return 0;
+}
+void flogTick() {
+    const uint32_t now = g_w.core.out().faults, up = now & ~g_prevFaults, down = g_prevFaults & ~now;
+    for (uint8_t b = 0; b < 32; b++) {
+        if (up & (1u << b))   g_flog.add(BmsCore::LogKind::FaultSet, b, g_w.now, flogValue(b));
+        if (down & (1u << b)) g_flog.add(BmsCore::LogKind::FaultClear, b, g_w.now, flogValue(b));
+    }
+    g_prevFaults = now;
+}
+int flogTorn() {   // slots with the record magic but a bad CRC (cut off mid-write)
+    int n = 0;
+    for (int i = 0; i < BmsCore::FaultLog::kSlots; i++) {
+        uint8_t b[BmsCore::FaultLog::kRecSize];
+        const int a = BmsCore::FaultLog::kBase + i * BmsCore::FaultLog::kRecSize;
+        for (int k = 0; k < BmsCore::FaultLog::kRecSize; k++) b[k] = g_ee[a + k];
+        if (b[0] == 0xF7 && (b[16] | (b[17] << 8)) != BmsCore::FaultLog::crc16(b, 16)) n++;
+    }
+    return n;
+}
+
 float simLowestCell() {
     float lo = 9;
     for (int b = 0; b < kBoards; b++) for (int c = 0; c < kBoardCells[b]; c++) if (g_w.cell[b][c] < lo) lo = g_w.cell[b][c];
@@ -43,6 +82,7 @@ void tick() {
     const bool fitted = g_w.currentFitted;
     if (drop) g_w.currentFitted = false;
     g_w.step(10);
+    flogTick();
     g_w.currentFitted = fitted;
     if (g_lemDropMs && !drop) g_lemDropMs = 0;
     const BmsCore::Outputs &o = g_w.core.out();
@@ -93,7 +133,7 @@ struct Buf {
 
 #define EXPORT extern "C" __attribute__((visibility("default")))
 
-EXPORT void sim_reset() { g_w.reset(); socReset(); }
+EXPORT void sim_reset() { g_w.reset(); socReset(); flogBegin(); }   // a reset is a reboot: new boot no., EEPROM kept
 EXPORT void sim_step(int ms) { for (int t = 0; t < ms; t += 10) tick(); }
 EXPORT void sim_set_cell(int b, int c, float v) { if (b >= 0 && b < kBoards && c >= 0 && c < kBoardCells[b]) g_w.cell[b][c] = v; }
 EXPORT float sim_get_cell(int b, int c) { return (b >= 0 && b < kBoards && c >= 0 && c < 24) ? g_w.cell[b][c] : 0; }
@@ -128,6 +168,46 @@ EXPORT float sim_soc_cap_ah() { return g_soc.cfg.capAh; }
 EXPORT float sim_soc_truth_pct() { return simTruthPct(); }
 EXPORT void  sim_set_soc_drain(int on) { g_drain = on; }
 EXPORT void  sim_lem_dropout(int ms) { g_lemDropMs = ms > 0 ? g_w.now + static_cast<uint32_t>(ms) : 0; }
+
+// Fault log (BmsCore::FaultLog on simulated EEPROM), sim only.
+EXPORT void sim_power_cycle() { g_w.reset(); socReset(); flogBegin(); }      // RAM lost, EEPROM kept
+EXPORT void sim_flog_clear() { g_flog.clear(); flogBegin(); }
+EXPORT void sim_flog_tear() {     // power pulled mid-write: next slot gets only its first 12 bytes
+    BmsCore::LogRec r;
+    int slot = 0;
+    if (g_flog.get(0, r)) {
+        for (int i = 0; i < BmsCore::FaultLog::kSlots; i++) {
+            const int a = BmsCore::FaultLog::kBase + i * BmsCore::FaultLog::kRecSize;
+            uint32_t q = 0; for (int k = 0; k < 4; k++) q |= static_cast<uint32_t>(g_ee[a + 4 + k]) << (8 * k);
+            if (g_ee[a] == 0xF7 && q == r.seq) { slot = (i + 1) % BmsCore::FaultLog::kSlots; break; }
+        }
+    }
+    const int a = BmsCore::FaultLog::kBase + slot * BmsCore::FaultLog::kRecSize;
+    const uint8_t part[12] = {0xF7, 1, 6, 0, 0xEE, 0xEE, 0xEE, 0xEE, 1, 0, 0, 0};
+    for (int k = 0; k < 12; k++) eeWrite(a + k, part[k]);
+    sim_power_cycle();
+}
+EXPORT int  sim_ee_size() { return sizeof g_ee; }
+EXPORT int  sim_ee_get(int a) { return eeRead(a); }
+EXPORT void sim_ee_set(int a, int v) { if (a >= 0 && a < static_cast<int>(sizeof g_ee)) g_ee[a] = static_cast<uint8_t>(v); }   // page restore only
+EXPORT void sim_ee_loaded() { flogBegin(); g_eeDirty = false; }
+EXPORT int  sim_ee_dirty() { const int d = g_eeDirty; g_eeDirty = false; return d; }
+EXPORT const char *sim_flog_json() {
+    Buf b;
+    b.f("{\"boot\":%u,\"count\":%d,\"slots\":%d,\"written\":%d,\"maxPerBoot\":%d,\"limited\":%d,\"torn\":%d,\"eeWrites\":%u,\"base\":%d,\"end\":%d,\"recs\":[",
+        g_flog.boot(), g_flog.count(), BmsCore::FaultLog::kSlots, g_flog.writtenThisBoot(), g_flog.maxPerBoot, g_flog.limited(),
+        flogTorn(), static_cast<unsigned>(g_eeWrites), BmsCore::FaultLog::kBase, BmsCore::FaultLog::kEnd);
+    BmsCore::LogRec r;
+    for (int i = 0; g_flog.get(i, r); i++) {
+        b.f("%s{\"seq\":%u,\"boot\":%u,\"kind\":%d,\"code\":%u,\"ms\":%u,\"value\":%d,\"name\":", i ? "," : "",
+            static_cast<unsigned>(r.seq), r.boot, static_cast<int>(r.kind), r.code, static_cast<unsigned>(r.ms), r.value);
+        if (r.kind == BmsCore::LogKind::Note) b.str(r.code == BmsCore::NOTE_LIMIT ? "log limit reached" : "note");
+        else b.str(r.code < 32 ? BmsCore::faultName(1u << r.code) : "?");
+        b.f("}");
+    }
+    b.f("]}");
+    return g_buf;
+}
 
 // Live state as JSON (pointer into wasm memory, NUL-terminated).
 EXPORT const char *sim_state_json() {

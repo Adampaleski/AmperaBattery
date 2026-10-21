@@ -1,4 +1,4 @@
-// node scripts/check_bms_sim_wasm.js /tmp/bms_sim.wasm  -> same scenario table as scripts/sim_bms.cpp (parity) + 8 socpage checks (BmsCore::Soc exports) + 5 drivecycle checks (sim/drive_cycles.js); exit 1 on any FAIL
+// node scripts/check_bms_sim_wasm.js /tmp/bms_sim.wasm  -> same scenario table as scripts/sim_bms.cpp (parity) + 8 socpage checks (BmsCore::Soc exports) + 5 drivecycle checks (sim/drive_cycles.js) + 6 faultlog-page checks; exit 1 on any FAIL
 const fs=require("fs");
 const inst=new WebAssembly.Instance(new WebAssembly.Module(fs.readFileSync(process.argv[2])),{});
 const X=inst.exports; X._initialize();
@@ -63,3 +63,20 @@ function drive(k,prep){
 {const d=drive("trail",()=>X.sim_set_cell(3,5,3.25));dck(d.end!=="complete"&&d.ah<0.01,"cell 3.25 V < low cut: mains never close",d);}
 console.log(`drivecycle: ${dn-df}/${dn} checks passed`);
 const scFail=r.filter(x=>!x.pass).length;if(sf||df||scFail)process.exitCode=1;
+// ---- Fault log page (BmsCore::FaultLog on the simulated EEPROM, sim only)
+{let ff=0,fn=0;const fl=()=>JSON.parse(cs(X.sim_flog_json()));
+ const fk=(ok,name)=>{fn++;if(!ok)ff++;const L=fl();console.log((ok?"PASS":"FAIL")+" faultlog-page "+name.padEnd(44),`boot=${L.boot} count=${L.count} written=${L.written} torn=${L.torn} newest=${L.recs[0]?L.recs[0].name+'/'+L.recs[0].kind:'-'}`);};
+ X.sim_flog_clear();X.sim_reset();
+ fk(fl().count===0&&fl().torn===0,"cleared: empty log");
+ X.sim_set_key(1);X.sim_step(4000);X.sim_set_cell(0,6,3.10);X.sim_step(500);
+ {const L=fl();fk(L.recs.some(r=>r.kind===1&&r.code===3&&r.value===3100),"cell 3.10 V -> FAULT cell-low logged, value 3100 mV");}
+ const b0=fl().boot,n0=fl().count;X.sim_power_cycle();
+ {const L=fl();fk(L.boot===b0+1&&L.count===n0&&L.recs.some(r=>r.code===3&&r.boot===b0)&&L.written===0,"power cycle: records survive, boot +1");}
+ X.sim_set_key(1);X.sim_set_pack_amps(800);X.sim_step(50);X.sim_set_pack_amps(0);X.sim_step(100);
+ {const L=fl();fk(L.recs.some(r=>r.kind===1&&r.code===6&&r.value>=750&&r.boot===L.boot),"800 A spike -> FAULT overcurrent logged with amps");}
+ const n1=fl().count;X.sim_flog_tear();
+ {const L=fl();fk(L.torn===1&&L.count===n1&&L.recs[0].code===6,"pull power mid-write: torn record skipped, rest intact");}
+ X.sim_set_key(1);X.sim_set_pack_amps(800);X.sim_step(50);X.sim_set_pack_amps(0);X.sim_step(100);
+ {const L=fl();fk(L.recs[0].code===6&&L.recs[0].seq>L.recs[1].seq&&L.torn===0,"next write reuses torn slot, seq continues");}
+ X.sim_flog_clear();X.sim_reset();
+ console.log(`faultlog-page: ${fn-ff}/${fn} checks passed`);if(ff)process.exitCode=1;}

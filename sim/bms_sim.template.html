@@ -300,6 +300,11 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 <!-- ======================= FAULTS ======================= -->
 <section id="t-faults">
   <div class="card"><h3>Active &amp; latched</h3><div id="faults"></div></div>
+  <div class="card"><div class="shead"><h3 style="margin:0">Fault log <span class="tag">SURVIVES POWER-OFF</span></h3>
+    <div class="controls"><button class="btn" id="flPow">Power cycle</button><button class="btn" id="flTear">Pull power mid-write</button><button class="btn" id="flClr">Clear log…</button></div></div>
+    <div class="mut" id="flSum">—</div>
+    <div id="fl" style="margin-top:10px"></div>
+    <div class="dim" style="margin-top:10px">Real <code>include/FaultLog.h</code> running on a simulated Teensy 4.1 EEPROM (bytes 256–1215, 48 records × 20 B, CRC-16 each). It keeps fault set/clear edges across power cycles, Reset and page reloads (saved in this browser). Limits: same edge once per second, 24 records per boot. <span style="color:#ff9f0a">Firmware does not write this log yet</span>, and real flash endurance is UNVERIFIED.</div></div>
   <div class="card"><div class="shead"><h3 style="margin:0">Event log</h3><button class="btn" id="clrlog" style="min-height:44px">Clear view</button></div><div class="log" id="log"></div></div>
 </section>
 <!-- ======================= SCENARIOS ======================= -->
@@ -723,6 +728,12 @@ let ackMask=0;
 function renderBanner(){const m=(S.faults|S.latched)>>>0;if(m===0)ackMask=0;const show=m&~ackMask;
   $('fban').classList.toggle('on',!!show);if(show)$('fbanT').textContent='⚠ Fault: '+S.faultNames.filter((n,i)=>m&(1<<i)).join(', ')+' — contactors open. See Faults tab.';
   $('hkey').textContent=keyOn?'Key ON':'Key off';$('hkey').classList.toggle('on',keyOn);}
+function flSave(){if(!X.sim_ee_dirty())return;let h='';for(let a=256;a<1216;a++)h+=X.sim_ee_get(a).toString(16).padStart(2,'0');try{localStorage.setItem('teryx.flog.v1',h);}catch(e){}}
+function flLoad(){try{const h=localStorage.getItem('teryx.flog.v1');if(h&&h.length===1920)for(let i=0;i<960;i++)X.sim_ee_set(256+i,parseInt(h.substr(i*2,2),16));}catch(e){}X.sim_ee_loaded();}
+function renderFlog(){const L=JSON.parse(cs(X.sim_flog_json()));
+  $('flSum').innerHTML=`Boot <b>${L.boot}</b> · ${L.count}/${L.slots} records · ${L.written}/${L.maxPerBoot} written this boot${L.limited?' · <span class="red">log limit reached</span>':''}${L.torn?` · <span style="color:#ff9f0a">${L.torn} torn record skipped (CRC)</span>`:''} · ${L.eeWrites} EEPROM bytes changed`;
+  const val=r=>r.kind===3?'':[2,3,10].includes(r.code)?(r.value/1000).toFixed(3)+' V cell':r.code===6?r.value+' A':'';
+  $('fl').innerHTML=L.recs.length?'<table><tr><th>#</th><th>Boot</th><th>Time</th><th>Event</th><th class="hide-sm">Value</th></tr>'+L.recs.map(r=>`<tr${r.boot!==L.boot?' class="dim"':''}><td>${r.seq}</td><td>${r.boot}</td><td>${fmtT(r.ms)}</td><td class="${r.kind===1?'fail':r.kind===2?'pass':''}">${r.kind===1?'FAULT ':r.kind===2?'clear ':'note · '}${r.name}</td><td class="hide-sm">${val(r)}</td></tr>`).join('')+'</table>':'<div class="mut">Empty. Trip a fault (e.g. Pack tab: drag a cell under the low cut), then Power cycle.</div>';}
 function render(){
   S=JSON.parse(cs(X.sim_state_json()));simNow=S.t;$('clock').textContent='sim '+fmtT(S.t);
   const bad=S.state==='Fault'||S.state==='Lockout';$('hState').textContent=S.state;$('hState').classList.toggle('fault',bad);
@@ -743,6 +754,7 @@ function render(){
   if($('t-diagram').classList.contains('on'))renderDiagram();
   if($('t-drive').classList.contains('on'))renderDrive();
   if($('t-cluster').classList.contains('on'))renderCluster();
+  if($('t-faults').classList.contains('on'))renderFlog();flSave();
   renderBanner();
 }
 function loop(){const t=performance.now();acc+=(t-last)*speed;last=t;
@@ -765,6 +777,12 @@ function wire(){
   $('busf').onchange=()=>{bus();ulog($('busf').checked?'HV bus forced '+$('busv').value+' V':'HV bus model');};$('busv').oninput=bus;
   $('db').onchange=e=>X.sim_set_deadband_mv(+e.target.value);
   $('clrlog').onclick=()=>hideBefore=simNow;
+  const flRe=()=>{keyOn=chgOn=false;userLog=[];hideBefore=-1;socAnchorPending=false;X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);X.sim_set_soc_drain($('sdrain').checked?1:0);
+    ['link','charger_on','curfit','tvalid'].forEach(i=>$(i).checked=true);['preopen','welded','busf'].forEach(i=>$(i).checked=false);
+    BOARDS.forEach((b,bi)=>$('sil'+bi).checked=false);$('dcell').value=3.80;$('dcellv').textContent='3.800 V';[['tmin',20],['tmax',22],['amps',0],['dlem',50],['dlcut',3.30]].forEach(([i,v])=>{$(i).value=v;$(i).dispatchEvent(new Event('input'));});};
+  $('flPow').onclick=()=>{X.sim_power_cycle();flRe();ulog('Power cycle (RAM lost, fault log kept)');};
+  $('flTear').onclick=()=>{X.sim_flog_tear();flRe();ulog('Power pulled mid-write, rebooted');};
+  $('flClr').onclick=()=>{if(!confirm('Erase the saved fault log? (sim only)'))return;X.sim_flog_clear();ulog('Fault log cleared');};
   $('runsc').onclick=()=>{const t0=performance.now(),r=JSON.parse(cs(X.sim_run_scenarios())),ok=r.filter(x=>x.pass).length;
     $('scN').textContent=r.length;$('scSum').innerHTML=`${ok}/${r.length} <span class="mut" style="font-size:18px">passed · ${(performance.now()-t0).toFixed(0)} ms</span>`;$('scSum').classList.toggle('red',ok!==r.length);
     $('sc').innerHTML='<table><tr><th>Scenario</th><th>Expect</th><th>ms</th><th>Result</th><th class="hide-sm">End state</th></tr>'+
@@ -773,7 +791,7 @@ function wire(){
 (async()=>{
   const bytes=Uint8Array.from(atob(WASM_B64),c=>c.charCodeAt(0));
   const {instance}=await WebAssembly.instantiate(bytes,{});
-  X=instance.exports;X._initialize();X.sim_reset();
+  X=instance.exports;X._initialize();flLoad();X.sim_reset();
   buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireCycle();wireSettings();$('dashWin').onclick=()=>{dashW=window.open(location.href.replace(/bms_sim\.html.*$|index\.html.*$/,'dash.html')+'?src=sim','teryxdash');};loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
   if(location.hash){const t=document.querySelector(`.tab[data-t="${location.hash.slice(1)}"]`);if(t)t.click();}
 })();

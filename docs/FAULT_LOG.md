@@ -28,6 +28,7 @@ Status: **step 1, module + host checks only.** `include/FaultLog.h` is not calle
 
 - [ ] Wire into BmsApp: `begin()` at boot with `EEPROM.read`/`EEPROM.update`, `edges(prevFaults, faults, ms, value)` each tick.
 - [ ] Serial command to print the log (newest first) and to clear it (explicit command only).
-- [ ] Show the log in the simulator (wasm) and in STATUS_SCHEMA for the hub.
+- [x] Show the log in the simulator: Faults tab "Fault log" card (2026-10-20 10 PM). The real FaultLog runs in wasm on a simulated 4284-byte EEPROM that survives Reset, Power cycle and page reload (localStorage). Buttons: Power cycle, Pull power mid-write (torn record, skipped by CRC), Clear log. Values: cell mV for cell-low/high/charge-OV, amps for overcurrent. 6 faultlog-page wasm checks.
+- [ ] Show the log in STATUS_SCHEMA for the hub.
 - [ ] Save SoC used Ah + anchor at power-off in a separate record (backlog item 3).
 - [ ] Bench check on a real Teensy: power-pull during a write, confirm the next boot reads the log.
