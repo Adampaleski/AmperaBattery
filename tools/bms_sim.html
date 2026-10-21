@@ -271,10 +271,12 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
       <div class="slider"><label>Throttle</label><input id="cthr" type="range" min="0" max="100" value="0"><b id="cthrv">0 %</b></div>
       <div class="slider"><label>Kelly temp (SIM)</label><input id="ckt" type="range" min="10" max="90" value="25"><b id="cktv">25 °C</b></div>
       <div class="slider"><label>Brake</label><input id="cbrk" type="range" min="0" max="100" value="0"><b id="cbrkv">0 %</b></div>
+      <div class="controls"><label class="sw"><span>Parking brake set <span class="tag">2 contacts + Kelly Foot_SW interlock</span></span><input type="checkbox" id="cpark" checked><i></i></label><label class="sw"><span>F/N/R selector in Neutral</span><input type="checkbox" id="cneut" checked><i></i></label><label class="sw danger"><span>Park contact B open-circuit (inject)</span><input type="checkbox" id="cparkb"><i></i></label><label class="sw danger"><span>Both Teensys dead (inject: pedal-direct, Kelly Low cap relay drops)</span><input type="checkbox" id="cdead"><i></i></label><button class="btn" id="cparkclr">Clear park faults</button></div>
+      <div class="readout" id="pkdet"></div>
       <div class="slider"><label>Grade</label><input id="cgrade" type="range" min="-20" max="20" step="0.5" value="0"><b id="cgradev">0 %</b></div>
       <div class="readout" id="vdet"></div>
       <div class="controls"><span class="mut" style="font-size:18px">Gear</span><span class="seg" id="cgsel"><button data-g="H" class="on">High</button><button data-g="M">Medium</button><button data-g="L">Low</button><button data-g="SNOW">Snow</button><button data-g="MUD">Mud</button><button data-g="SAND">Sand</button><button data-g="KID">Kid</button><button data-g="R">Reverse</button></span> <input id="kidPin" type="password" inputmode="numeric" maxlength="4" placeholder="Kid PIN" style="width:110px" aria-label="Kid PIN"> <span class="tag">PROPOSED pedal maps</span></div>
-      <div class="dim" style="font-size:18px">Vehicle model (sim/vehicle.js): motor torque = throttle × speed-mode scale × BMS power allowed × 550 A phase × <span style="color:var(--warn)">ASSUMED</span> Kt, capped by the 550 A Kelly battery limit; wheel speed from mass, Crr, CdA, grade (ASSUMED) and 24" stock tire (SOURCED: Adam), 16/32 sprockets × 4.375 diff = 8.75 (SOURCED), edit in Settings; motor RPM = wheel speed × ratio. Brake pressure = regen first up to the <span style="color:var(--warn)">PROPOSED</span> 60 A max (Kelly Brake_AN, pin 2, analog regen — pin per brief, UNVERIFIED on the harness), friction tops up; regen fades out below ~3 mph and only flows if the BMS allows regen. Speed-mode scales/RPM caps (H 100 %/6000, M 70 %/4400, L 45 %/2700, R 25 %/1100) are PROPOSED. Throttle is ignored while plugged in. Top speed falls as the pack drains (SOURCED: Sparky, back-EMF 0.026 V/RPM): base speed ≈ pack V ÷ 0.026 = ≈5680 RPM (≈46 mph) at 147.6 V full, ≈5120 RPM (≈42 mph) at 133 V nominal, ≈4570 RPM (≈37 mph) at the 118.8 V low cut; above base speed the Kelly must field-weaken, up to the 6000 RPM cap (≈49 mph). mph from the 24" tire and 8.75 ratio; sag under load lowers it further (not modelled).</div>
+      <div class="dim" style="font-size:18px">Vehicle model (sim/vehicle.js): motor torque = throttle × speed-mode scale × BMS power allowed × 550 A phase × <span style="color:var(--warn)">ASSUMED</span> Kt, capped by the 550 A Kelly battery limit; wheel speed from mass, Crr, CdA, grade (ASSUMED) and 24" stock tire (SOURCED: Adam), 16/32 sprockets × 4.375 diff = 8.75 (SOURCED), edit in Settings; motor RPM = wheel speed × ratio. Brake pedal = analog hall pedal on Kelly Brake_AN pin 2 (SOURCED: KLS-8080N manual V2.11, Brake Type 2, Boost off): regen is proportional between Brake Dead Low 20 % and Dead High 80 % (SOURCED defaults), scaled by BRK_AD Brk (0–50 %, <span style="color:var(--warn)">PROPOSED</span> 30) × the PROPOSED 60 A cap; hydraulic friction always follows the pedal on top. The 12 V brake switch (Kelly pin 25 + brake light) cuts the throttle. Regen only flows if the BMS allows it and is tapered by SOC (>90 %) and cold (<10 °C) (PROPOSED). Parking brake set = Kelly Foot_SW open = no drive (hardware interlock). Speed-mode scales/RPM caps (H 100 %/6000, M 70 %/4400, L 45 %/2700, R 25 %/1100) are PROPOSED. Throttle is ignored while plugged in. Top speed falls as the pack drains (SOURCED: Sparky, back-EMF 0.026 V/RPM): base speed ≈ pack V ÷ 0.026 = ≈5680 RPM (≈46 mph) at 147.6 V full, ≈5120 RPM (≈42 mph) at 133 V nominal, ≈4570 RPM (≈37 mph) at the 118.8 V low cut; above base speed the Kelly must field-weaken, up to the 6000 RPM cap (≈49 mph). mph from the 24" tire and 8.75 ratio; sag under load lowers it further (not modelled).</div>
     </div></div>
     <div class="card"><h3>12 V loads <span class="tag">PROPOSED</span></h3><div class="mut">Total ≈ <b id="cload">0 A</b> <span class="small">ESTIMATE currents; seats ~4.5 A × level/3 each (use the seat buttons on the dash)</span></div><div class="rows" id="cloads"></div></div>
   </div>
@@ -431,6 +433,23 @@ function create(){
     setTurn:t=>{S.turn=S.turn===t?null:t;},setHazard:v=>{S.hazard=v;},simStall:(which,v)=>{(which==='4wd'?S.a4:S.ad).stall=v;}};
 }
 g.TeryxControls={create,CTL_DEF,CTL_META,LIGHTS,DIFF};
+/* Park detection (Adam 2026-10-21): JS mirror of include/ParkState.h (parity checked in scripts/test_controls.js).
+   Two park-brake contacts (A pin 18, B pin 18, pull-ups: open = NOT set) + Kelly RPM 0 + Kelly F/N/R neutral.
+   Hardware interlock: a third NC contact opens the Kelly Foot_SW (pin 15) 12 V feed while the brake is set. */
+const PARK_DEF={disagreeMs:100,movingMs:300,moveRpm:50,prechargeNeedsPark:true};
+function createPark(o){const P=Object.assign({},PARK_DEF,o||{});
+  const S={fault:0,latched:0,parked:false,brakeSet:false,dis:false,disT:0,mov:false,movT:0,log:[]};
+  const FN={1:'PARK-CONTACT-DISAGREE',2:'PARK-BRAKE-WHILE-MOVING'};
+  function step(now,i){const both=!!(i.contactA&&i.contactB),any=!!(i.contactA||i.contactB);S.brakeSet=both;
+    if(!!i.contactA!==!!i.contactB){if(!S.dis){S.dis=true;S.disT=now;}}else S.dis=false;
+    if(any&&i.rpmValid&&i.rpm>P.moveRpm){if(!S.mov){S.mov=true;S.movT=now;}}else S.mov=false;
+    const f0=S.fault;S.fault=0;if(S.dis&&now-S.disT>=P.disagreeMs)S.fault|=1;if(S.mov&&now-S.movT>=P.movingMs)S.fault|=2;
+    [1,2].forEach(b=>{if((S.fault&b)&&!(f0&b))S.log.push({t:now,text:'FAULT '+FN[b]});});S.latched|=S.fault;
+    S.parked=both&&!!i.rpmValid&&i.rpm===0&&!!i.neutral&&!(S.fault&1);return S;}
+  return {S,P,step,FN,clear:()=>{S.latched=S.fault;},faultNames:()=>[1,2].filter(b=>S.latched&b).map(b=>FN[b]),
+    kidChangeAllowed:()=>S.parked,prechargeAllowed:()=>!P.prechargeNeedsPark||(S.brakeSet&&!(S.fault&1))};}
+g.TeryxPark={create:createPark,PARK_DEF};
+
 })(typeof window!=='undefined'?window:globalThis);
 
 // Drive modes = PROPOSED pedal-map profiles (sim/vehicle.js VEH_GEARS, include/DriveProfile.h)
@@ -630,7 +649,7 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
  ['SoC / range','BmsCore::Soc coulomb count on LEM A + B, full-charge anchor; range = SoC × ASSUMED kWh ÷ Wh/mi','sim only · capAh UNVERIFIED'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → head unit','schema exists']];
-const DASH_BUILD='built on d8e0f2f+';
+const DASH_BUILD='built on 0f724c1+';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');
@@ -1033,19 +1052,23 @@ function cycleAt(p,t){
 // SIM ONLY. Every default below is ASSUMED or PROPOSED (tagged in VEH_SETS), not measured on the Teryx.
 // Point-mass longitudinal model: motor torque (Kelly phase-amp limit x ASSUMED Kt) and Kelly battery-amp
 // limit -> wheel force through 16/32 sprockets (SOURCED) x 4.375 diff (SOURCED, 2008 owner's manual); minus rolling, aero, grade, friction brake
-// and regen. Brake pedal = regen first (Kelly Brake_AN analog regen input, pin per the brief, UNVERIFIED on
-// Adam's harness), friction tops up; regen fades out below ~3 mph and friction takes over.
+// and regen. Brake pedal (2026-10-21, Kelly KLS-8080N manual V2.11, SOURCED): analog hall pedal 0-5 V on Kelly
+// Brake_AN pin 2 (Brake Type = 2, Boost OFF). Regen is PROPORTIONAL between Brake Dead Low (20 %) and Brake Dead
+// High (80 %), max = BRK_AD Brk strength (0-50 %, default 0 = off). Kelly exits regen below Brk_Speed Limit RPM.
+// The 12 V brake switch (Kelly pin 25 + brake light + Teensy) cuts the throttle here (Kelly-side: Brake H-Pedal).
+// Hydraulic friction is NOT blended: it always follows the pedal; regen adds on top. Regen is still capped by the
+// BMS (regenOk: cells full / pack cold) and a PROPOSED taper regenAllowPct (SOC + cold, from the sim page).
 const VEH_DEF={tireIn:24,sprFront:16,sprRear:32,diffRatio:4.375,massKg:900,crr:0.030,cdA:1.20,gradePct:0,
-  maxRegenA:60,regenBlendPct:30,liftRegen:false,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,battA:550,
-  frictionG:0.6,fadeLoMph:1.5,fadeHiMph:4.5};
+  maxRegenA:60,regenBlendPct:30,brkDeadLo:20,brkDeadHi:80,brkAdPct:30,brkSwPct:3,brkMinRpm:100,analogBrake:true,liftRegen:false,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,battA:550,
+  frictionG:0.6,parkG:0.25,lowCapRpm:1225,fadeLoMph:1.5,fadeHiMph:4.5};
 // [key, label, unit, tag, min, max, step]
 const VEH_SETS=[['tireIn','Tire diameter','in','SOURCED: Adam (stock tires, 24")',18,40,0.5],['sprFront','Drive sprocket','teeth','SOURCED: cash ledger (#50 chain, 16T)',8,40,1],
   ['sprRear','Driven sprocket','teeth','SOURCED: cash ledger (#50 chain, 32T → 2.0:1)',16,80,1],['diffRatio','Diff ratio','× : 1','SOURCED: 2008 Teryx owner\'s manual 4.375:1 (35/8, front = rear) · total 2.0 × 4.375 = 8.75',1,12,0.005],
   ['massKg','Mass (with driver + pack)','kg','ASSUMED',400,1600,10],['crr','Rolling resistance Crr','','ASSUMED (dirt / ATV tires)',0.005,0.15,0.001],
   ['cdA','Drag area CdA','m²','ASSUMED',0.3,3,0.05],['gradePct','Grade','%','SIM input',-30,30,0.5],
-  ['maxRegenA','Max regen current','A','PROPOSED 60 A',0,200,5],['regenBlendPct','Regen brake blend','% pedal','PROPOSED: regen-only up to this pedal, then friction adds',0,100,5],
+  ['maxRegenA','Max regen current','A','PROPOSED 60 A',0,200,5],['regenBlendPct','Regen brake blend (switch-only model)','% pedal','PROPOSED: only used with analog brake OFF',0,100,5],['analogBrake','Analog brake pedal on Kelly Brake_AN','on/off','SOURCED feature (KLS-8080N V2.11, Brake Type 2); Adam\'s pedal + harness UNVERIFIED',0,1,1],['brkDeadLo','Kelly Brake Dead Low','% pedal','SOURCED default 20 % (=1 V)',5,40,1],['brkDeadHi','Kelly Brake Dead High','% pedal','SOURCED default 80 % (=4 V)',60,95,1],['brkAdPct','Kelly BRK_AD Brk (pedal regen strength)','% (0-50)','SOURCED range 0-50 %, default 0; 30 PROPOSED; mapping to amps UNVERIFIED (maxRegenA scales it)',0,50,1],['brkSwPct','Brake switch closes above','% pedal','PROPOSED (switch position on pedal UNVERIFIED)',0,20,1],['brkMinRpm','Kelly Brk_Speed Limit','RPM','SOURCED range 0-500, default 0; 100 PROPOSED',0,500,10],
   ['liftRegen','Throttle lift-off regen','on/off','PROPOSED off by default',0,1,1],['liftRegenA','Lift-off regen current','A','PROPOSED',0,100,5],
-  ['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
+  ['lowCapRpm','Kelly Low speed cap (ECO pin 22)','RPM','PROPOSED 1225 RPM ≈ 10 mph (LowSpeed Forw ≈ 20 % of 6000); fail-safe relay, ECO pin + relay UNVERIFIED',300,6000,25],['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
   ['phaseA','Kelly phase current limit','A','SOURCED: Adam 550 A (Kelly config not yet read back)',50,800,10],['battA','Kelly battery current limit','A','SOURCED: Adam 550 A',50,800,10]];
 // Drive modes = pedal-map profiles (Adam approved 2026-10-21). Mirror of include/DriveProfile.h kDefaults
 // (parity-checked against the wasm build). ALL values PROPOSED, editable in Settings. Reduce-only trim:
@@ -1093,33 +1116,43 @@ function vehStep(p,st,inp,dt){
   // drive torque: throttle x gear scale x BMS allowance (Teensy scales the throttle line, never raises it)
   const thr=Math.max(0,Math.min(100,inp.thr))/100,brake=Math.max(0,Math.min(100,inp.brake))/100;
   let T=0,why='';
-  if(live&&thr>0&&brake===0){
+  const brkSw=brake*100>(p.brkSwPct==null?0:p.brkSwPct);                 // 12 V brake switch: overrides throttle
+  if(live&&thr>0&&!brkSw&&!inp.parkBrake){
     const tr=st.trim||{filt:thr*100,out:thr*100*g.cur/100};                  // no state passed: steady state
-    const k100=vehTrim(g,tr,thr*100,st.mph,inp.allowPct,true,dt*1000)/100;st.trimOut=k100*100;
+    // both Teensys dead: clamp-less pedal-direct fallback (docs/THROTTLE_CLAMP.md) = raw pedal, no trim/BMS scale
+    const k100=inp.teensyDead?thr:vehTrim(g,tr,thr*100,st.mph,inp.allowPct,true,dt*1000)/100;st.trimOut=k100*100;
     T=p.ktNmA*p.phaseA*k100;                                                  // trim output (curve, cap, ramp, top, BMS allowance)
     if(k100<thr*g.cur/100*Math.max(0,inp.allowPct)/100-0.5e-2&&Math.abs(st.mph)>=g.top-2)why='mode top speed';
     const Pmax=p.eta*V*p.battA;if(w>1&&T*w>Pmax){T=Pmax/w;why='Kelly battery limit';}   // battery-amp limit
-    if(rpm>=g.rpm*0.95){T*=Math.max(0,(g.rpm-rpm)/(g.rpm*0.05));why=inp.gear==='R'?'reverse RPM cap':'Kelly 6000 RPM cap';}
+    const capRpm=inp.kellyLowCap?Math.min(g.rpm,p.lowCapRpm):g.rpm;
+    if(inp.kellyLowCap&&rpm>=capRpm*0.95){T*=Math.max(0,(capRpm-rpm)/(capRpm*0.05));why='Kelly Low cap (ECO relay'+(inp.teensyDead?', Teensys dead':'')+')';}
+    else if(rpm>=g.rpm*0.95){T*=Math.max(0,(g.rpm-rpm)/(g.rpm*0.05));why=inp.gear==='R'?'reverse RPM cap':'Kelly 6000 RPM cap';}
   }
   const driveA=T*w/(p.eta*V);
   // regen request: brake pedal (regen-first blend) or optional lift-off; faded at low speed; BMS can veto
   let regReq=0,rwhy='';
-  if(brake>0)regReq=p.maxRegenA*Math.min(1,p.regenBlendPct>0?brake/(p.regenBlendPct/100):1);
-  else if(p.liftRegen&&thr===0)regReq=p.liftRegenA;
+  let brkFrac=0;
+  if(p.analogBrake){const lo=p.brkDeadLo/100,hi=p.brkDeadHi/100;brkFrac=Math.max(0,Math.min(1,(brake-lo)/Math.max(0.01,hi-lo)));
+    if(brkFrac>0)regReq=p.maxRegenA*brkFrac*(p.brkAdPct/50);}                // proportional to pedal (Brake_AN)
+  else if(brkSw)regReq=p.maxRegenA*Math.min(1,p.regenBlendPct>0?brake/(p.regenBlendPct/100):1);
+  if(regReq===0&&!brkSw&&p.liftRegen&&thr===0)regReq=p.liftRegenA;          // Kelly RLS_TPS Brk (0-50 %, SOURCED)
   regReq*=(g.regen==null?100:g.regen)/100;                                   // mode regen strength (PROPOSED)
+  const allow=inp.regenAllowPct==null?100:Math.max(0,Math.min(100,inp.regenAllowPct));const regReq0=regReq;regReq*=allow/100;
   const fade=vehFade(p,st.mph);let regA=regReq*fade;
   if(regReq>0&&!live){regA=0;rwhy=inp.driveLocked?'drive locked':'contactors open';}
   else if(regReq>0&&!inp.regenOk){regA=0;rwhy='BMS: regen not allowed';}
+  else if(regReq0>0&&allow<100)rwhy=allow>0?'BMS taper '+allow.toFixed(0)+' % (SOC / cold)':'BMS taper: 0 %';
+  else if(p.analogBrake&&regReq>0&&rpm<p.brkMinRpm){regA=0;rwhy='below Kelly Brk_Speed Limit';}
   else if(regReq>0&&fade<1)rwhy=fade>0?'fading (low speed)':'below ~3 mph: friction only';
   // forces along travel (positive = forward along travel direction)
   const Fdrive=T*k/r;
-  const Ftarget=brake*p.frictionG*m*G;
+  const Ftarget=brake*p.frictionG*m*G+(inp.parkBrake?p.parkG*m*G:0);         // park brake = rear friction (sim)
   // regen force from the amps request, capped by motor torque and (on the pedal) by the driver's brake demand;
   // the pack current is then what that force really returns (low speed = little current).
   let Fregen=v>0.05?Math.min(regA*V*p.eta/v,p.ktNmA*p.phaseA*k/r):0;
-  if(brake>0)Fregen=Math.min(Fregen,Ftarget);
+  if(brake>0&&!p.analogBrake)Fregen=Math.min(Fregen,Ftarget);             // switch model: blended; analog: adds
   regA=Fregen*v/(V*p.eta);
-  const Ffric=brake>0?Math.max(0,Ftarget-Fregen):0;
+  const Ffric=p.analogBrake?Ftarget:(brake>0?Math.max(0,Ftarget-Fregen):0)+(inp.parkBrake&&!(brake>0)?Ftarget:0);
   const th=Math.atan((p.gradePct||0)/100),Fgrade=m*G*Math.sin(th)*dir;   // uphill opposes travel in the gear direction
   const Froll=p.crr*m*G*Math.cos(th),Faero=0.5*RHO*p.cdA*v*v;
   let s=dir*st.mph>=0?v:-v;                                              // speed along the gear direction
@@ -1127,10 +1160,10 @@ function vehStep(p,st,inp,dt){
   let Fnet=Fdrive-Fgrade-sgn*(Froll+Faero+Ffric+Fregen);
   if(sgn===0){const resist=Froll+Ffric;if(Math.abs(Fdrive-Fgrade)<=resist)Fnet=0;else Fnet=(Fdrive-Fgrade)-Math.sign(Fdrive-Fgrade)*resist;}
   let s1=s+Fnet/m*dt;
-  if(sgn!==0&&Math.sign(s1)!==sgn&&(brake>0||Fdrive===0&&Math.abs(Fgrade)<=Froll))s1=0;  // brakes/rolling stop, no reversal
+  if(sgn!==0&&Math.sign(s1)!==sgn&&(brake>0||inp.parkBrake||Fdrive===0&&Math.abs(Fgrade)<=Froll))s1=0;  // brakes/rolling stop, no reversal
   const mph=dir*s1/MPS_PER_MPH;
   const packA=live?driveA-regA:0;
-  return {mph,rpm:vehRpm(p,mph),packA,driveA,regenA:regA,regenReqA:regReq,fade,Fdrive,Fregen,Ffric,Froll,Faero,Fgrade,why,regenWhy:rwhy};
+  return {mph,rpm:vehRpm(p,mph),packA,brakeSwitch:brkSw,brakeFrac:brkFrac,driveA,regenA:regA,regenReqA:regReq,fade,Fdrive,Fregen,Ffric,Froll,Faero,Fgrade,why,regenWhy:rwhy};
 }
 </script>
 <script>
@@ -1390,9 +1423,11 @@ function loadAmps(L){return LOADS.reduce((a,l)=>a+(L[l[0]]?l[4]:0),0)+SEAT_A*(se
 const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump → Kelly W3-GT2 heatsink; on whenever key is on; Teensy B FET; no flow/coolant-temp sensor yet','PROPOSED, pin unassigned'],
  ['Radiator fan','PROPOSED: 12 V relay driven by Teensy, on at ~40 °C from Kelly temp (CAN 0x0CF11F05) or a coolant sensor','PROPOSED, pin unassigned'],
  ['Seat heaters (driver + passenger)','Likely aftermarket kit (single/two-stage UNVERIFIED). PROPOSED MOSFET PWM 33/66/100 % for Low/Med/High; ~4–5 A per seat, 10 A fuse (ESTIMATE)','PROPOSED, pins unassigned'],['Throttle pedal','Hall pedal 0–5 V → Kelly throttle input (direct). Teensy reads it back from Kelly CAN 0x0CF11F05 b0','Kelly pin UNVERIFIED'],
- ['Brake','Brake pressure → Kelly Brake_AN (pin 2, analog regen; per brief, UNVERIFIED on harness) — regen scales with pedal up to PROPOSED 60 A; PROPOSED parallel tap to Teensy A GPIO','PROPOSED, pin unassigned'],
+ ['Brake','Hall pedal 0–5 V → Kelly Brake_AN pin 2 (SOURCED: KLS-8080N V2.11, Brake Type 2, Boost off): proportional regen 20–80 % pedal × BRK_AD Brk; 12 V brake switch → Kelly pin 25 + brake light, read back on Kelly CAN 0x0CF11F05 b5 bit3','harness UNVERIFIED'],
+ ['Parking brake','3-pole switch: NO → Teensy A pin 18 + Teensy B pin 18 (pull-ups, LOW = set); NC → Kelly Foot_SW pin 15 12 V feed (hardware: no drive while set)','PROPOSED · switch fit UNVERIFIED'],
+ ['Kelly Low cap','Relay NC: Kelly 12 V → ECO pin 22 (Low). Teensy A OUT3 pin 20 energizes to RELEASE. Kid / limp / Teensys dead = Low','PROPOSED · relay + ECO pin UNVERIFIED'],
  ['Plug-in / proximity','Charger-present input wakes the BMS in CHARGE without key-on (J1772 PP or Elcon AC-present — part not chosen)','PROPOSED, pin unassigned; firmware input stays false'],
- ['Gear H/M/L','Kelly speed-switch inputs (3-speed on KLS NPS — UNVERIFIED); Teensy OUT3 pin 20 already drives limp (low-speed)','Kelly pins UNVERIFIED'],
+ ['Gear H/M/L','Teensy pedal maps; Kelly Three Speed (item 31) 1–3 modes SOURCED, but FWD pin 12 is shared with F/N/R, so only ECO Low + max are used','PROPOSED'],
  ['Reverse','Kelly reverse switch input; PROPOSED Teensy tap to show R on cluster and inhibit regen/charge','PROPOSED'],
  ['Speed','Kelly CAN 0x0CF11E05 RPM (b0–b1) ÷ (16/32 sprockets × 4.375 diff = 8.75, SOURCED) × 24" stock tire (SOURCED: Adam); sim: vehicle model','needs BMS_CAP_KELLY_RX=1 after candump'],
  ['Pack V','BICM cell sums (CAN1/CAN2 @125k); Kelly bus V on CAN 0x0CF11E05 b4–b5 as cross-check','BICM wired; Kelly RX off'],
@@ -1403,9 +1438,17 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['SOC / range','BmsCore::Soc coulomb count on LEM A + LEM B, full-charge anchor (docs/SOC.md); range = SoC × SIM-ASSUMED 23.3 kWh ÷ 350 Wh/mi','sim only · capAh UNVERIFIED · CURRENT_SENSE_ENABLE=0'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → Surface 3 head unit','schema exists']];
 let cGear='H',cSpd=0,cLoad={},socAnchorPending=false;
+// Park detection (docs/PARK_BRAKE.md): TeryxPark mirror of include/ParkState.h. Sim starts parked.
+const PK=TeryxPark.create();let pkT=0;
+function parkIn(){const set=$('cpark').checked;return {contactA:set,contactB:set&&!$('cparkb').checked,rpmValid:true,rpm:vLast?Math.round(Math.abs(vLast.rpm)):0,neutral:$('cneut').checked};}
+function parkStep(dtMs){pkT+=Math.max(1,Math.round(dtMs));const n0=PK.S.log.length;PK.step(pkT,parkIn());PK.S.log.slice(n0).forEach(e=>ulog(e.text+' (park detection)'));}
+function simKeyOn(){if(keyOn)return;if(!PK.prechargeAllowed()){$('cpark').checked=true;$('cparkb').checked=false;parkStep(200);ulog('Sim: parking brake set for precharge');}$('key').click();}
+function simDriveAway(){if($('cpark').checked||$('cneut').checked){$('cpark').checked=false;$('cneut').checked=false;ulog('Sim: parking brake released, F/N/R → drive');}}
 function gauge(k,v,src,nw){return `<div class="g"><div class="k">${k}</div><div class="v">${v}</div><div class="src${nw?' nw':''}">${src}</div></div>`;}
 function wireCluster(){
-  $('cgsel').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(Math.abs(cSpd)>1&&(b.dataset.g==='R')!==(cGear==='R')){ulog('Gear change to '+GEARS[b.dataset.g].n+' refused: stop first');return;}
+  $('cpark').onchange=e=>ulog('Parking brake '+(e.target.checked?'set':'released'));$('cneut').onchange=e=>ulog('F/N/R '+(e.target.checked?'neutral':'drive'));
+  $('cparkb').onchange=e=>ulog('Park contact B '+(e.target.checked?'open-circuit injected':'restored'));$('cdead').onchange=e=>ulog(e.target.checked?'Both Teensys dead (sim): relay off → Kelly ECO 12 V → Low cap':'Teensys restored');$('cparkclr').onclick=()=>{PK.clear();ulog('Park faults cleared');};
+  $('cgsel').querySelectorAll('button').forEach(b=>b.onclick=()=>{if((b.dataset.g==='KID')!==(cGear==='KID')&&!PK.kidChangeAllowed()){const w='Kid changes only while Parked (park brake set, 0 RPM, neutral)';ulog('Mode '+GEARS[b.dataset.g].n+' refused: '+w);modeMsg=w;return;}if(Math.abs(cSpd)>1&&(b.dataset.g==='R')!==(cGear==='R')){ulog('Gear change to '+GEARS[b.dataset.g].n+' refused: stop first');return;}
     const why=vehSelectMode(cGear,b.dataset.g,$('kidPin').value);$('kidPin').value='';if(why){ulog('Mode '+GEARS[b.dataset.g].n+' refused: '+why);modeMsg=why;return;}modeMsg='';
     cGear=b.dataset.g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));ulog('Gear '+GEARS[cGear].n);if(modeSave&&cGear!=='R')modeSave();});
   $('cthr').oninput=e=>$('cthrv').textContent=e.target.value+' %';$('cthr').onchange=e=>ulog('Throttle '+e.target.value+'%');
@@ -1433,7 +1476,7 @@ function wireCycle(){
   $('dcgo').onclick=()=>dc?dcStop('stopped by you'):dcStart();dcShow();
 }
 function dcStart(){
-  const P=DRIVE_CYCLES[dcSel];if(plugOn){ulog('Drive cycle refused: unplug first (charging – drive locked)');return;}if(!keyOn)$('key').click();$('cdrive').checked=true;
+  const P=DRIVE_CYCLES[dcSel];if(plugOn){ulog('Drive cycle refused: unplug first (charging – drive locked)');return;}simKeyOn();simDriveAway();$('cdrive').checked=true;
   dc={k:dcSel,name:P.name,len:cycleLen(P),t:0,t0:S.t,dist:0,whOut:0,whIn:0,peakA:0,peakRegenA:0,minCell:dcLowCell(),minKelly:100,minWhy:'',wasClosed:false,
       soc0:S.soc.known?S.soc.pct:null,trips:0,label:''};
   ulog('Drive cycle "'+P.name+'" started (sim profile)');dcShow();
@@ -1479,10 +1522,17 @@ function setGrade(g){VP.gradePct=g;$('cgrade').value=g;$('cgradev').textContent=
 function clusterTick(dt){ // runs every loop: vehicle model -> pack amps (when enabled)
   dcStep(dt);
   const drv=$('cdrive').checked&&($('t-cluster').classList.contains('on')||dc||remoteDrive);
-  const inp={thr:+$('cthr').value,brake:+$('cbrk').value,gear:cGear,closed:S.state==='Closed',allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV};
+  parkStep(dt*1000);
+  const socP=S.soc&&S.soc.known?S.soc.pct:null,socTaper=socP==null?100:Math.max(0,Math.min(100,(100-socP)/10*100));   // PROPOSED: 100 % regen ≤90 % SOC → 0 at 100 %
+  const tmp=(typeof S.tMin==='number'&&isFinite(S.tMin))?S.tMin:25,tmpTaper=Math.max(0,Math.min(100,(tmp-0)/10*100));                                   // PROPOSED: 0 % at ≤0 °C → 100 % at ≥10 °C
+  const parkSet=$('cpark').checked,neut=$('cneut').checked;
+  const inp={thr:neut?0:+$('cthr').value,brake:+$('cbrk').value,gear:cGear,closed:S.state==='Closed',allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV,
+    parkBrake:parkSet,regenAllowPct:Math.min(socTaper,tmpTaper),teensyDead:$('cdead').checked,kellyLowCap:$('cdead').checked||cGear==='KID'||!!S.kellyLimp};
   let o=null;for(let t=0;t<dt-1e-9;t+=0.05){const h=Math.min(0.05,dt-t);o=vehStep(VP,{mph:cSpd,trim:cTrim},inp,h);cSpd=o.mph;}  // <=50 ms slices
   if(!o)o=vehStep(VP,{mph:cSpd},inp,0);
   vLast=o;const a=drv?o.packA:null;
+  if(+$('cthr').value>0&&(parkSet||neut))o.why=parkSet?'park brake set: Kelly Foot_SW open (hardware interlock)':'F/N/R in neutral';
+  if($('pkdet'))$('pkdet').innerHTML=`<div><span class="mut">Park</span> <b>${PK.S.parked?'PARKED':'not parked'}</b> · contacts A/B <b>${parkSet?'set':'open'}/${parkSet&&!$('cparkb').checked?'set':'open'}</b> · precharge <b>${PK.prechargeAllowed()?'allowed':'BLOCKED (set the parking brake)'}</b> · Kid changes <b>${PK.kidChangeAllowed()?'allowed':'locked'}</b>${PK.faultNames().length?' · <span style="color:var(--bad)">'+PK.faultNames().join(', ')+'</span>':''} <span class="src">PROPOSED · docs/PARK_BRAKE.md</span></div><div><span class="mut">Brake</span> switch <b>${o.brakeSwitch?'ON':'off'}</b> · Brake_AN regen <b>${((o.brakeFrac||0)*100).toFixed(0)} %</b> of BRK_AD · regen taper <b>${inp.regenAllowPct.toFixed(0)} %</b> · Kelly Low cap <b>${inp.kellyLowCap?'ENGAGED ('+($('cdead').checked?'Teensys dead, relay off':cGear==='KID'?'Kid':'limp')+')':'released (Teensy A holds relay)'}</b></div>`;
   if(a!=null){X.sim_set_pack_amps(a);if(Math.abs(+$('amps').value-a)>2){$('amps').value=Math.round(a);$('ampsv').textContent=Math.round(a)+' A';$('damps').value=Math.round(a);$('dampsv').textContent=Math.round(a)+' A';}}
 }
 
@@ -1503,10 +1553,10 @@ function simCmd(c,v){
   switch(c){
   case 'key':$('key').click();break; case 'plug':$('plug').click();break;
   case 'thr':setSl('cthr',v);break; case 'brk':setSl('cbrk',v);break; case 'grade':setSl('cgrade',v);VP.gradePct=+v;break; case 'gear':gear(v);break;
-  case 'launch':if(!keyOn)$('key').click();setGrade(0);gear('H');setSl('cbrk',0);setSl('cthr',100);ulog('Sim: hard launch (throttle 100 %, gear H)');break;
+  case 'launch':simKeyOn();simDriveAway();setGrade(0);gear('H');setSl('cbrk',0);setSl('cthr',100);ulog('Sim: hard launch (throttle 100 %, gear H)');break;
   case 'regen':setSl('cthr',0);setSl('cbrk',60);ulog('Sim: regen stop (brake 60 %)');break;
   case 'coast':setSl('cthr',0);setSl('cbrk',0);ulog('Sim: coast');break;
-  case 'climb':if(!keyOn)$('key').click();gear('L');setGrade(15);setSl('cbrk',0);setSl('cthr',70);ulog('Sim: climb (15 % grade, Low, 70 %)');break;
+  case 'climb':simKeyOn();simDriveAway();gear('L');setGrade(15);setSl('cbrk',0);setSl('cthr',70);ulog('Sim: climb (15 % grade, Low, 70 %)');break;
   case 'lowcell':setSl('dcell',3.15);ulog('Sim: low cell 3.150 V');break;
   case 'hotpack':setSl('tmax',55);ulog('Sim: hot pack 55 °C');break;
   case 'lemimb':setSl('dlem',75);ulog('Sim: LEM imbalance 75 / 25');break;
@@ -1524,6 +1574,7 @@ function simCmd(c,v){
 const CHARGER={model:'Elcon HK-LF-144-46 (CAN3865) · 100–202 V, 46 A max · CAN protocol UNVERIFIED',maxA:46,assumed:false};
 function simStatus(lo,hi,Q,est,closed){
   const cs=x=>x?'closed':'open',fl=[];S.faultNames.forEach((n,i)=>{if((S.faults|S.latched)&(1<<i))fl.push({id:n,ts:0,level:'fault',source:'bms',text:n+((S.latched&(1<<i))&&!(S.faults&(1<<i))?' (latched)':'')});});
+  PK.faultNames().forEach(n=>fl.push({id:n,ts:0,level:'fault',source:'park',text:n+(PK.S.fault?'':' (latched)')}));
   return {schema:1,src:'sim',ts:Math.floor(Date.now()/1000),uptimeSec:Math.floor(S.t/1000),
     bms:{wired:true,packV:S.busV,packA:S.packA,currentVerified:false,socPct:est?Q.pct:null,socState:Q.state,socWhy:Q.why,cellMinV:lo,cellMaxV:hi,cellDeltaV:hi-lo,
       tempMinC:S.tMin,tempMaxC:S.tMax,tempsVerified:$('tvalid').checked,cells:36,lemImbalance:!!S.lemImbalance,state:S.state,
@@ -1531,7 +1582,7 @@ function simStatus(lo,hi,Q,est,closed){
     contactors:{wired:true,precharge:cs(S.pre),mainPositive:cs(S.mainPos),mainNegative:cs(S.mainNeg),want:S.mode==='CHARGE'?'charge':(keyOn?'drive':'monitor'),driven:false},
     inputs:{key:keyOn,door:doorPulse},
     charge:{maxA:S.ccfg.chargeMaxA,ampsLimit:S.ccfg.chargeMaxA,chargerMaxA:CHARGER.maxA,charger:CHARGER,capAh:Q.capAh,capAssumed:true,plugged:!!S.plugIn,mode:S.mode,chargeA:S.chargeEnable?S.chargeA:0,chargeV:S.chargeV,why:S.chargeWhy,limitPct:+$('pct').value,driveLocked:!!S.driveLocked,keyRefused:!!S.keyRefused,chargerPath:!!S.chargerPath},
-    drive:{wired:true,rpm:vLast?vLast.rpm:null,rpmSource:'sim model',speedMph:Math.abs(cSpd),speedSource:'sim model',brakePct:+$('cbrk').value,regenA:vLast?vLast.regenA:0,regenWhy:vLast?vLast.regenWhy:'',gear:closed?cGear:'P',motorTempC:null,controllerTempC:+$('ckt').value,throttlePct:+$('cthr').value,
+    drive:{wired:true,park:{parked:PK.S.parked,brakeSet:PK.S.brakeSet,neutral:$('cneut').checked,prechargeAllowed:PK.prechargeAllowed(),kidChangeAllowed:PK.kidChangeAllowed(),faults:PK.faultNames()},brakeSwitch:vLast?!!vLast.brakeSwitch:false,rpm:vLast?vLast.rpm:null,rpmSource:'sim model',speedMph:Math.abs(cSpd),speedSource:'sim model',brakePct:+$('cbrk').value,regenA:vLast?vLast.regenA:0,regenWhy:vLast?vLast.regenWhy:'',gear:closed?cGear:'P',motorTempC:null,controllerTempC:+$('ckt').value,throttlePct:+$('cthr').value,
       limp:!!S.kellyLimp,regenOk:!!S.kellyRegenOk,regenOkWhy:S.kellyRegenOk?'':S.regenWhy,powerAllowedPct:S.kellyPct,powerWhy:S.kellyWhy||'',derateNow:S.derate||'',lastDerate:S.lastDerate||'',lastDerateMinPct:S.derateMinPct,derateEvents:S.derateEvents,faultCode:null,controller:'Kelly',
       limits:{battA:VP.battA,phaseA:VP.phaseA,maxRegenA:VP.maxRegenA,overA:S.cfg.overA,overMs:S.kcfg.overcurrentMs,instantTripA:S.kcfg.instantTripA,overTempC:S.cfg.overTempC},curves:simCurves()},
     energy:{kWhUsed:null,whPerMi:null,rangeMiEst:null,packKWh:null,calibrated:false},
@@ -1684,7 +1735,7 @@ function render(){
 function loop(){const t=performance.now();acc+=(t-last)*speed;last=t;
   if(acc>=10){const ms=Math.min(Math.floor(acc/10)*10,5000);X.sim_step(ms);if(S)clusterTick(ms/1000);acc-=ms;if(acc>1000)acc=0;}render();if(dc)dcShow();}
 function wire(){
-  $('key').onclick=()=>{keyOn=!keyOn;X.sim_set_key(keyOn?1:0);ulog('Key '+(keyOn?'on':'off'));};
+  $('key').onclick=()=>{if(!keyOn&&!PK.prechargeAllowed()){ulog('Key on refused: precharge blocked, set the parking brake (PROPOSED)');if(typeof dashToast==='function')dashToast('Set the parking brake to start (precharge)');return;}keyOn=!keyOn;X.sim_set_key(keyOn?1:0);ulog('Key '+(keyOn?'on':'off'));};
   $('chg').onclick=()=>{chgOn=!chgOn;X.sim_set_charge(chgOn?1:0);ulog('Bench charge request '+(chgOn?'on':'off'));};
   $('plug').onclick=$('hplug').onclick=()=>{plugOn=!plugOn;X.sim_set_plug(plugOn?1:0);ulog(plugOn?'Plugged in (charger present)':'Unplugged');};
   $('pct').oninput=e=>{X.sim_set_charge_pct(+e.target.value);$('pctv').textContent=e.target.value+'%';};$('pct').onchange=e=>ulog('Charge limit '+e.target.value+'%');

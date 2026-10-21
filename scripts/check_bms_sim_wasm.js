@@ -82,13 +82,13 @@ X.sim_set_plug(0);X.sim_step(200);
 {const S=st();vk(S.state==="Open"&&S.mode==="IDLE"&&!S.chargerPath,"unplug, key off: mains open, IDLE",S.state);}
 X.sim_reset();X.sim_set_key(1);X.sim_step(4000);
 {let spd=40,peak=0,below=null;const p=Object.assign({},VM.VEH_DEF);
- for(let i=0;i<200;i++){const S=st();const o=VM.vehStep(p,{mph:spd},{thr:0,brake:30,gear:"H",closed:S.state==="Closed",allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV},0.1);
+ for(let i=0;i<200;i++){const S=st();const o=VM.vehStep(p,{mph:spd},{thr:0,brake:80,gear:"H",closed:S.state==="Closed",allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV},0.1);
   X.sim_set_pack_amps(o.packA);X.sim_step(100);spd=o.mph;peak=Math.min(peak,st().packA);if(spd<1.5&&below==null)below=o;if(spd<=0)break;}
- vk(peak<=-59&&peak>=-60.5,"brake 30 % at 40 mph: regen to PROPOSED 60 A max",`${peak.toFixed(1)} A`);
+ vk(peak<=-35&&peak>=-36.5,"analog brake 80 % (Dead High) at 40 mph: regen = 60 A x BRK_AD 30/50 = 36 A",`${peak.toFixed(1)} A`);
  const lo=VM.vehStep(p,{mph:1.2},{thr:0,brake:30,gear:"H",closed:true,allowPct:100,regenOk:true,driveLocked:false,packV:140},0.01);
  vk(lo.regenA===0&&lo.Ffric>0&&below&&below.regenA<below.regenReqA,"below ~1.5 mph: regen faded, friction only",`${lo.regenA} A friction ${lo.Ffric.toFixed(0)} N`);}
-{const p=Object.assign({},VM.VEH_DEF),S=st();const o=VM.vehStep(p,{mph:30},{thr:0,brake:15,gear:"H",closed:true,allowPct:100,regenOk:true,driveLocked:false,packV:S.busV},0.1);
- vk(o.regenA>15&&o.regenA<o.regenReqA+0.01&&Math.abs(o.regenReqA-30)<0.01,"brake 15 % = half the 30 % blend: 30 A asked",`${o.regenA.toFixed(1)}/${o.regenReqA} A`);
+{const p=Object.assign({},VM.VEH_DEF),S=st();const o=VM.vehStep(p,{mph:30},{thr:0,brake:50,gear:"H",closed:true,allowPct:100,regenOk:true,driveLocked:false,packV:S.busV},0.1);
+ vk(o.regenA>9&&o.regenA<o.regenReqA+0.01&&Math.abs(o.regenReqA-18)<0.01,"analog brake 50 % = half way 20..80 %: 18 A asked (proportional)",`${o.regenA.toFixed(1)}/${o.regenReqA} A`);
  const n=VM.vehStep(p,{mph:30},{thr:0,brake:30,gear:"H",closed:true,allowPct:100,regenOk:false,driveLocked:false,packV:S.busV},0.1);
  vk(n.regenA===0&&n.Ffric>0&&/BMS/.test(n.regenWhy),"BMS regen not allowed (full/cold): friction only",n.regenWhy);
  const l0=VM.vehStep(p,{mph:30},{thr:0,brake:0,gear:"H",closed:true,allowPct:100,regenOk:true,driveLocked:false,packV:S.busV},0.1);

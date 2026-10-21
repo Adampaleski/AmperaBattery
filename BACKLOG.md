@@ -44,3 +44,25 @@
 - [ ] HV path (2026-10-20, see docs/TERYX_MAIN_POWER_PATH.md): two main contactors, used TE EV200 on pack + and pack −. Volt AEV14012s only on charger/DC-DC/precharge branches.
 - [ ] String fuses: 4× Mersen A6T200 200 A Class T, planned; size to be confirmed vs 650 A trip (Sparky).
 - [ ] Strings: 36S each, built from 24S + 18S BICM boards (no 30S).
+
+## Safety gaps (crew 2026-10-21) — TODO, NOT BUILT
+Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. The Kelly CAN is telemetry, not protection.
+- [ ] **REQUIRED BEFORE FIRST DRIVE:** charge-plug interlock. No drive while plugged in, and no charging below 0 °C or with stale/unverified temps (TEMPS_VERIFIED=0 today).
+- [ ] **REQUIRED BEFORE FIRST DRIVE:** contactor weld check. Bus voltage vs pack with mains commanded open at key-off and before precharge (sim has a welded-contactor toggle; firmware not built).
+- [ ] **REQUIRED BEFORE FIRST DRIVE:** isolation monitoring (HV to chassis). Part not chosen.
+- [ ] **REQUIRED BEFORE FIRST DRIVE:** 12 V low alarm at 11.5 V (PROPOSED). Needs a 12 V sense divider pin.
+- [ ] Service disconnect: the single Volt MSD may split only ONE of the four strings. Unless the MSD sits on the common bus, the documented procedure is **pull all four Mersen A6T200 string fuses** (pending Mechanic).
+
+## Mechanical (Mechanic 2026-10-21) — TODO
+- [ ] Chain guard + chain tensioner (#50 chain, 16/32T).
+- [ ] Pack retention (straps/brackets), HV cable clamps, grommets at every pass-through.
+- [ ] Enclosure sealing with a breather and a drain.
+- [ ] Chassis ground straps: 12 V negative to frame, Kelly case to frame.
+
+## 2026-10-21 park / Kelly / Low cap (this commit, CREW REVIEW)
+- [x] Clamp review fixes: A heartbeat pin 4 (not CS), 4066 on shared 5 V, Kelly pull-down 100k + bench curve recheck.
+- [x] Park detection: ParkState.h + sim; Foot_SW NC hardware interlock documented (docs/PARK_BRAKE.md).
+- [x] Kelly CAN/regen research: docs/KELLY_CAN_ROLES.md; sim analog Brake_AN regen.
+- [x] Kelly ECO fail-safe Low cap (OUT3 inverted: HIGH = release); Kid + both-Teensys-dead sim.
+- [ ] Next: B → A park contact bit on the link; wire ParkState into ContactorSeq (precharge gate) and Selector (Kid); bench the Foot_SW / ECO behaviour.
+

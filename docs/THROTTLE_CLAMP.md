@@ -11,16 +11,19 @@ The Kelly throttle input is held at **0 V unless BOTH Teensy A and Teensy B asse
                                   +-- 10k/18k + 100 nF -> Teensy A pin 40 (A16)  PEDAL_IN_A
                                   +-- 10k/18k + 100 nF -> Teensy B pin 41 (A17)  PEDAL_IN_B
 P0W -- U2a 74HC4066 (ctl = U1 Q1) -- U2b 74HC4066 (ctl = U1 Q2) --+-- Kelly throttle input
-                                                                   +-- R1 10k to GND (holds 0 V)
+                                                                   +-- R1 100k to GND (holds 0 V; was 10k, Sparky 2026-10-21)
 Teensy A 35/36/38 (DATA/CLK/CS, 3.3 V) -> U4 74AHCT125 (5 V) -> MCP4131 SDI/SCK/CS
-  buffered CS also -> U1 B1 (rising edge = trigger; A1 = GND).  A's alive = one CS pulse per 1 ms write.
+Teensy A pin 4 (A_THR_ALIVE, 10k pull-down R6) -> U4 4th buffer -> U1 B1 (A1 = GND).  A toggles it at 1 kHz.
+  CS is NOT the alive signal any more (chief 2026-10-21).
 Teensy B pin 7 (B_THR_ALIVE, 10k pull-down R4) -> U1 B2 (A2 = GND).  B toggles it at 1 kHz.
 U1 /CLR1 = /CLR2 = R5 10k to 5 V + C5 1 uF to GND (+1N4148 across R5): Q held low ~10 ms after power-up.
 U1 timing: Rx1 = Rx2 = 100k, Cx1 = Cx2 = 100 nF  -> tw ~ 0.45 x Rx x Cx ~ 4.5 ms (UNVERIFIED: scope it).
-U1, U2, U3, U4 on the same 5 V rail as the pedal: rail loss kills the pedal signal too.
+U1, U2 (both 74HC4066 sections), U3, U4 all run on the SHARED 5 V rail with the pedal (VCC = 5 V, not 3.3 V):
+  the 4066 passes the full 0-5 V Kelly throttle range without clipping. Rail loss kills the pedal signal too.
 ```
-- **A's alive = MCP4131 CS (valid):** the ISR writes the wiper every 1 ms only while A's cross-check enables and `loop()` is fresh (≤20 ms). On a fault it writes wiper 0 once, then CS stays idle → no rising edges → Q1 low in ≈4.5 ms. The 595 light code (not written yet) has its own latch line and must never toggle CS (`g_busLock`).
-- **B's alive:** pin 7 toggles in B's 1 kHz ISR under the same rule. Pin 7 idles LOW with a pull-down, so the '123 /CLR release at power-up cannot trigger channel 2. Channel 1 can fire one ~4.5 ms pulse at /CLR release (CS idles HIGH), but the AND with B blocks it.
+- **A's alive = dedicated pin 4 (`A_THR_ALIVE`, chief 2026-10-21):** A's 1 kHz ISR toggles pin 4 only *after* that cycle's cross-check passed and `loop()` is fresh (≤20 ms). CS was dropped as the alive signal because a loop stuck rewriting a stale wiper would still make CS edges. On a fault A writes wiper 0 once and stops toggling → Q1 low in ≈4.5 ms. Pin 4 is free on A (B_FAULT_OUT is role-B only); `Config.h` static_asserts it against every A pin.
+- **B's alive:** pin 7 toggles in B's 1 kHz ISR under the same rule. Pin 7 idles LOW with a pull-down, so the '123 /CLR release at power-up cannot trigger channel 2. Pin 4 on A also idles LOW with R6, so neither channel fires at /CLR release.
+- **4066 supply (chief):** CD74HC4066 VCC = 5 V shared rail (SOURCED: TI datasheet, switch passes 0..VCC). A 3.3 V-powered 4066 would clip or leak above ~3.3 V: do not do that.
 - **Levels:** the Teensy is 3.3 V. A 74HC123 at 5 V needs VIH ≥ 3.5 V, so use the **HCT** part (TTL thresholds, VIH 2.0 V). The MCP4131 at 5 V needs VIH 0.7·VDD = 3.5 V → buffer SDI/SCK/CS through a 74AHCT125.
 - **Kelly HPD stays on** (docs/KELLY_HPD.md): if the clamp releases with the pedal down, the Kelly refuses to drive until the pedal returns to zero.
 
@@ -54,22 +57,29 @@ Also checked in `scripts/test_throttle_cross.cpp`: 120 s of random pedal, speed 
 | U4 | TI SN74AHCT125N (quad buffer, DIP-14) | 1 | 3.3 → 5 V for MCP4131 + CS |
 | Rx1, Rx2 | 100k 1 % | 2 | one-shot timing |
 | Cx1, Cx2 | 100 nF C0G/film | 2 | one-shot timing |
-| R1 | 10k | 1 | Kelly throttle pull-down |
+| R1 | 100k | 1 | Kelly throttle pull-down (was 10k: loaded the 10k MCP4131 wiper and bent the curve, Sparky) |
 | R4 | 10k | 1 | B_THR_ALIVE pull-down |
+| R6 | 10k | 1 | A_THR_ALIVE pull-down (pin 4) |
 | R5, C5, D5 | 10k, 1 µF, 1N4148 | 1 each | /CLR power-on hold |
 | — | 10k + 18k 1 %, 100 nF | 2 sets | pedal sense dividers A pin 40, B pin 41 |
 | — | 100 nF decoupling | 4 | one per IC |
 
 ## Pins
-- **Teensy A:** pedal **pin 40 (A16)**, freed by moving the optional stock 4WD indicator to Teensy B pin 40 (`ST_4WD_B`, not read yet). MCP4131 on 35/36 (shared DATA/CLK) + CS 38 = alive. HV sense stays on 24.
-- **Teensy B:** pedal **pin 41 (A17)**, alive **pin 7**, stock 4WD switch pin 40.
+- **Teensy A:** pedal **pin 40 (A16)**, freed by moving the optional stock 4WD indicator to Teensy B pin 40 (`ST_4WD_B`, not read yet). MCP4131 on 35/36 (shared DATA/CLK) + CS 38. Alive = **pin 4**. Park brake contact 1 = **pin 18 (IN3)**. HV sense stays on 24.
+- **Teensy B:** pedal **pin 41 (A17)**, alive **pin 7**, stock 4WD switch pin 40, park brake contact 2 **pin 18 (IN3)**.
   - Pins B already uses: 0/1, 22/23, 30/31 (CAN), 4 (B fault), 2/3/5/6/11/12/20/21 (OUT pinModes), 13 (LED), 14/15/25 (LEM B), 16/17 (hub UART), 18/19 (IN3/IN4), 24 (HV sense).
   - 7, 40 and 41 are body-I/O pins on A only, and nothing on B drives them.
 
+## Bench step: recheck the pedal curve with the 100k pull-down fitted (Sparky)
+1. Clamp enabled on the bench (both alive one-shots high), Kelly disconnected, 100k R1 fitted.
+2. Pedal at 0/25/50/75/100 % and wiper at 0/32/64/96/127: meter V at the Kelly side vs `pedal × wiper/128`.
+3. Pass if every point is within ±2 % of full scale (PROPOSED). If not, calibrate the pedal map with R1 fitted.
+4. Repeat with the Kelly connected (its input impedance is UNVERIFIED) and record in docs/BENCH.md.
+
 ## UNVERIFIED (crew)
 - The '123 pulse width formula (0.45·R·C is from memory of the HC/HCT123 datasheet curve): scope it, and target 3–8 ms.
-- Kelly throttle input impedance or internal pull-up (the 10k pull-down must win), and its 0–5 V range on the KLS8080N.
-- Pedal type and drive capability (MCP4131 10k + two 28k dividers ≈ 5.6k load).
+- Kelly throttle input impedance or internal pull-up (the 10k pull-down must win), and its 0–5 V range on the KLS8080N (with the pull-down now 100k, an internal Kelly pull-up is more likely to win: check that 0 V really holds with the clamp open).
+- Pedal type and drive capability (MCP4131 10k + two 28k dividers ≈ 5.6k load; R1 100k now loads the wiper ~1 %).
 - 74HC4066 on/off behaviour and leakage at 5 V with the Kelly input.
 - Whether the pedal 5 V can back-feed an unpowered 4066/MCP4131 (same rail is required).
 - Link bus load (below) has not been measured on the bus.

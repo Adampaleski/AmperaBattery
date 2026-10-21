@@ -226,9 +226,31 @@ constexpr int LIGHT_LATCH = 32;   // 595 RCLK
 constexpr int LIGHT_OE    = 34;   // 595 /OE, 10k pull-UP: lights stay off until firmware drives it low
 // MCP4131 throttle digipot shares LIGHT_DATA/LIGHT_CLK (bit-banged, own CS); 595s ignore it (no latch pulse). PROPOSED.
 constexpr int THR_CS      = 38;
-// A's throttle alive signal = THR_CS edges (MCP4131 write every 1 ms) -> 74HC123 #1 B input (docs/THROTTLE_CLAMP.md).
-// Spare edge pins on A: NONE free. 33 RESERVED = charge plug-in detect (PROPOSED). 24 = HV_SENSE (pedal no longer there).
+// A's throttle alive signal (chief 2026-10-21): its OWN heartbeat pin, NOT the MCP4131 CS (a loop stuck rewriting a
+// stale wiper would still toggle CS). Toggled in A's 1 kHz ISR only after that cycle's cross-check + loop-fresh pass.
+// Pin 4 on A: B_FAULT_OUT is role-B only; nothing on A pinModes 4 (grep 2026-10-21: only Config.h names it).
+constexpr int A_THR_ALIVE = 4;    // Teensy A: 1 kHz heartbeat -> 74AHCT125 -> 74HC123 #1 B input (throttle enable A)
+// Parking brake (Adam 2026-10-21, docs/PARK_BRAKE.md): IN3 pin 18 on BOTH Teensys, 10k pull-up to 3.3 V
+// (PROPOSED), LOW = brake set. IN3 was pinMode(INPUT) and never read. NOTE: the MCP23017 expander option in
+// docs/BODY_IO.md wanted 18/19 as I2C on A; if Adam picks it, move PARK_IN_A to an expander-free pin (decision).
+constexpr int PARK_IN_A   = 18;   // Teensy A IN3: park contact 1
+constexpr int PARK_IN_B   = 18;   // Teensy B IN3: park contact 2
+// Spare edge pins on A now: NONE. 33 RESERVED = charge plug-in detect (PROPOSED). 24 = HV_SENSE.
 // Teensy B pins in use: 0/1 22/23 30/31 CAN, 4 B_FAULT_OUT, 2 3 5 6 11 12 20 21 OUT*, 13 LED, 14 15 25 LEM B, 16/17 hub UART,
 // 18 19 IN3/IN4, 24 HV_SENSE -> 7, 40, 41 are free on B (A's body-I/O map is not used on B).
+// Teensy A pin clash check: heartbeat + park input vs every pin A drives or reads.
+static_assert(A_THR_ALIVE != THR_CS && A_THR_ALIVE != LIGHT_DATA && A_THR_ALIVE != LIGHT_CLK && A_THR_ALIVE != LIGHT_LATCH &&
+              A_THR_ALIVE != LIGHT_OE && A_THR_ALIVE != PEDAL_IN_A && A_THR_ALIVE != OUT5 && A_THR_ALIVE != OUT6 &&
+              A_THR_ALIVE != OUT7 && A_THR_ALIVE != OUT8 && A_THR_ALIVE != OUT9 && A_THR_ALIVE != OUT10 && A_THR_ALIVE != OUT1 &&
+              A_THR_ALIVE != OUT2 && A_THR_ALIVE != OUT3 && A_THR_ALIVE != OUT4 && A_THR_ALIVE != LED && A_THR_ALIVE != IN1 &&
+              A_THR_ALIVE != IN2 && A_THR_ALIVE != IN3 && A_THR_ALIVE != IN4 && A_THR_ALIVE != CAN1_TX && A_THR_ALIVE != CAN1_RX &&
+              A_THR_ALIVE != HV_SENSE && A_THR_ALIVE != CUR_LO && A_THR_ALIVE != CUR_HI && A_THR_ALIVE != CUR_VC &&
+              A_THR_ALIVE != ACT4WD_IN1 && A_THR_ALIVE != ACT4WD_IN2 && A_THR_ALIVE != ACTDIF_IN1 && A_THR_ALIVE != ACTDIF_IN2 &&
+              A_THR_ALIVE != POS_4WD && A_THR_ALIVE != POS_DIFF && A_THR_ALIVE != ACT_EN && A_THR_ALIVE != IS_4WD &&
+              A_THR_ALIVE != IS_DIFF && A_THR_ALIVE != 0 && A_THR_ALIVE != 1 && A_THR_ALIVE != 30 && A_THR_ALIVE != 31 &&
+              A_THR_ALIVE != 33, "A heartbeat pin clash");
+static_assert(PARK_IN_A == IN3 && PARK_IN_A != A_THR_ALIVE && PARK_IN_A != PEDAL_IN_A && PARK_IN_A != THR_CS &&
+              PARK_IN_A != IN1 && PARK_IN_A != IN2 && PARK_IN_A != HV_SENSE, "A park pin clash");
+static_assert(PARK_IN_B != B_THR_ALIVE && PARK_IN_B != PEDAL_IN_B && PARK_IN_B != ST_4WD_B && PARK_IN_B != B_FAULT_OUT, "B park pin clash");
 static_assert(B_THR_ALIVE != B_FAULT_OUT && PEDAL_IN_B != HV_SENSE && PEDAL_IN_B != CUR_LO && PEDAL_IN_B != CUR_HI && PEDAL_IN_B != CUR_VC, "B pin clash");
 }  // namespace Pins

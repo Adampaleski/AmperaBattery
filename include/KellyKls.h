@@ -15,18 +15,23 @@ namespace KellyKls {
 constexpr uint32_t kIdRpmCurrentV = 0x0CF11E05u;  // RPM / current / pack V / errors
 constexpr uint32_t kIdThrottleTemp = 0x0CF11F05u; // throttle / controller+motor temps
 
-// 0x0CF11E05 DLC 8 (verify on wire):
-//   b0-b1  RPM            uint16 LE
-//   b2-b3  motor current  int16 LE, 0.1 A
+// Layout per Kelly broadcast CAN protocol doc (docs/KELLY_CAN_ROLES.md; SOURCED doc, UNVERIFIED on Adam's unit).
+// Both frames every 50 ms. Kelly accepts NO CAN commands (broadcast only).
+// 0x0CF11E05 DLC 8:
+//   b0-b1  RPM            uint16 LE, 1 rpm/bit (0-6000)
+//   b2-b3  motor current  uint16 LE, 0.1 A (0-4000 = 0-400 A; UNSIGNED, saturates < Adam's 550 A)
 //   b4-b5  battery V      uint16 LE, 0.1 V
-//   b6     error code     uint8
-//   b7     error bits     uint8
-//
-// 0x0CF11F05 DLC 8 (verify on wire):
-//   b0     throttle %     uint8 0–255 → scale /2.55 for %
-//   b1     controller °C  uint8 (offset TBD — often raw °C or +40)
-//   b2     motor °C       uint8
-//   b3-b7  reserved / NPS status — capture before decoding
+//   b6-b7  error bits     ERR0-ERR7 (b6), ERR8-ERR15 (b7)
+// 0x0CF11F05 DLC 8:
+//   b0     throttle       0-255 = 0-5 V
+//   b1     controller °C  raw - 40
+//   b2     motor °C       raw - 30
+//   b3     reserved
+//   b4     status         bits3-2 feedback dir, bits1-0 command dir (0 stop, 1 fwd, 2 rev)
+//   b5     switches       bit7 Boost, bit6 Foot_SW, bit5 FWD, bit4 REV, bit3 12V brake, bits2-0 Hall C/B/A
+//   b6-b7  reserved
+constexpr uint8_t kSwFoot = 0x40, kSwFwd = 0x20, kSwRev = 0x10, kSwBrake = 0x08;
+inline bool neutral(uint8_t sw) { return (sw & (kSwFwd | kSwRev)) == 0; }
 
 struct Telemetry {
     bool     haveRpmFrame     = false;

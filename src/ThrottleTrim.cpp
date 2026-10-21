@@ -83,10 +83,12 @@ void isr() {
     const bool en = g_chk.enable() && loopFresh;
     g_wiper = (in.ok && en) ? DriveProfile::Trim::wiper(o, in.pedalPct) : 0;
 #if ROLE_IS_A
-    // A's alive signal = MCP4131 CS edges (74HC123 #1 B input). No write -> no edge -> clamp drops in ~5 ms.
+    // A's alive signal = dedicated A_THR_ALIVE pin (chief 2026-10-21), NOT CS. Toggled only after this cycle's
+    // cross-check + loop-fresh checks passed (en). Stops toggling -> 74HC123 #1 Q low in ~5 ms.
     static bool zeroed = false;
-    if (en) { if (!g_busLock) mcpWrite(g_wiper); zeroed = false; }
-    else if (!zeroed && !g_busLock) { mcpWrite(0); zeroed = true; }   // one last write (wiper 0), then CS stays idle
+    if (en) { if (!g_busLock) mcpWrite(g_wiper); zeroed = false;
+              g_aliveLvl = !g_aliveLvl; digitalWriteFast(Pins::A_THR_ALIVE, g_aliveLvl); }
+    else if (!zeroed && !g_busLock) { mcpWrite(0); zeroed = true; }   // one last write (wiper 0); heartbeat stopped
 #else
     // B's alive signal: toggle B_THR_ALIVE (74HC123 #2 B input) only while enabled.
     if (en) { g_aliveLvl = !g_aliveLvl; digitalWriteFast(Pins::B_THR_ALIVE, g_aliveLvl); }
@@ -101,6 +103,8 @@ const char *res(DriveProfile::Selector::Result r) {
 }
 }  // namespace
 
+bool kidMode() { return g_sel.mode == DriveProfile::M_KID; }
+
 void begin() {
     const bool ok = g_store.load(g_tab, g_sel);   // last mode (Kid stays Kid), profiles, PIN hash
     SERIALCONSOLE.print(F("Drive modes (EEPROM ")); SERIALCONSOLE.print(DriveProfile::Store::kBase);
@@ -110,6 +114,7 @@ void begin() {
     pinMode(Pins::THR_CS, OUTPUT); digitalWriteFast(Pins::THR_CS, HIGH);
     pinMode(Pins::LIGHT_DATA, OUTPUT); pinMode(Pins::LIGHT_CLK, OUTPUT);
 #if ROLE_IS_A
+    pinMode(Pins::A_THR_ALIVE, OUTPUT); digitalWriteFast(Pins::A_THR_ALIVE, LOW);
     mcpWrite(0);   // first thing after any reset (watchdog included): output 0
 #else
     pinMode(Pins::B_THR_ALIVE, OUTPUT); digitalWriteFast(Pins::B_THR_ALIVE, LOW);

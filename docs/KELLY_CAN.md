@@ -35,6 +35,8 @@ Gap was never “how does Kelly talk?” — it was **decode those frames on the
 
 ## Byte layout (verify before enabling unpack)
 
+**2026-10-21:** superseded by the SOURCED Kelly protocol layout in docs/KELLY_CAN_ROLES.md (16-bit error field, unsigned 0-400 A current, temp offsets +40/+30, b4 direction, b5 switches).
+
 Public NPS map (treat as **hypothesis** until candump confirms):
 
 **`0x0CF11E05`** DLC 8 LE: RPM u16, motor current i16 (0.1 A), battery V u16 (0.1 V), error u8, error bits u8.

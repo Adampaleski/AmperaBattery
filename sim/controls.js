@@ -88,4 +88,21 @@ function create(){
     setTurn:t=>{S.turn=S.turn===t?null:t;},setHazard:v=>{S.hazard=v;},simStall:(which,v)=>{(which==='4wd'?S.a4:S.ad).stall=v;}};
 }
 g.TeryxControls={create,CTL_DEF,CTL_META,LIGHTS,DIFF};
+/* Park detection (Adam 2026-10-21): JS mirror of include/ParkState.h (parity checked in scripts/test_controls.js).
+   Two park-brake contacts (A pin 18, B pin 18, pull-ups: open = NOT set) + Kelly RPM 0 + Kelly F/N/R neutral.
+   Hardware interlock: a third NC contact opens the Kelly Foot_SW (pin 15) 12 V feed while the brake is set. */
+const PARK_DEF={disagreeMs:100,movingMs:300,moveRpm:50,prechargeNeedsPark:true};
+function createPark(o){const P=Object.assign({},PARK_DEF,o||{});
+  const S={fault:0,latched:0,parked:false,brakeSet:false,dis:false,disT:0,mov:false,movT:0,log:[]};
+  const FN={1:'PARK-CONTACT-DISAGREE',2:'PARK-BRAKE-WHILE-MOVING'};
+  function step(now,i){const both=!!(i.contactA&&i.contactB),any=!!(i.contactA||i.contactB);S.brakeSet=both;
+    if(!!i.contactA!==!!i.contactB){if(!S.dis){S.dis=true;S.disT=now;}}else S.dis=false;
+    if(any&&i.rpmValid&&i.rpm>P.moveRpm){if(!S.mov){S.mov=true;S.movT=now;}}else S.mov=false;
+    const f0=S.fault;S.fault=0;if(S.dis&&now-S.disT>=P.disagreeMs)S.fault|=1;if(S.mov&&now-S.movT>=P.movingMs)S.fault|=2;
+    [1,2].forEach(b=>{if((S.fault&b)&&!(f0&b))S.log.push({t:now,text:'FAULT '+FN[b]});});S.latched|=S.fault;
+    S.parked=both&&!!i.rpmValid&&i.rpm===0&&!!i.neutral&&!(S.fault&1);return S;}
+  return {S,P,step,FN,clear:()=>{S.latched=S.fault;},faultNames:()=>[1,2].filter(b=>S.latched&b).map(b=>FN[b]),
+    kidChangeAllowed:()=>S.parked,prechargeAllowed:()=>!P.prechargeNeedsPark||(S.brakeSet&&!(S.fault&1))};}
+g.TeryxPark={create:createPark,PARK_DEF};
+
 })(typeof window!=='undefined'?window:globalThis);

@@ -83,3 +83,16 @@ Firmware: `HubStatus` emits on Serial4. Caps `BALANCE_TX` / `CHARGE_TX` / `CONTA
 
 `Pins::IN1`/`IN2` in Config.h also use 17/16 — unavailable when hub UART is wired (unused by contactors; BmsApp does not `pinMode` them). Details: teryx-ev-hub repo: `firmware/esp32-gateway/docs/PINMAP.md`.
 
+## Schematic notes: park brake, Kelly interlocks, throttle clamp (2026-10-21, PROPOSED, CREW REVIEW)
+```
+Teensy A pin 18 (IN3) --10k--> 3V3 ; pin 18 -- park pole 1 (NO) -- GND      LOW = brake set
+Teensy B pin 18 (IN3) --10k--> 3V3 ; pin 18 -- park pole 2 (NO) -- GND
+Kelly 12V (pin 11) -- park pole 3 (NC, opens when set) -- Kelly Foot_SW (pin 15)   [Kelly Foot Switch = checked]
+Kelly 12V (pin 11) -- relay NC -- Kelly ECO (pin 22)      relay coil <- FET <- Teensy A OUT3 pin 20 (HIGH = release Low cap)
+Teensy A pin 4 (A_THR_ALIVE, 10k pull-down) -> 74AHCT125 -> 74HCT123 #1 B   (heartbeat; CS no longer used as alive)
+4066 VCC = shared 5 V rail; Kelly throttle pull-down 100k
+Brake pedal (hall 0-5 V) -> Kelly Brake_AN (pin 2)  [Brake Type = 2, Boost = UNCHECKED]
+Brake switch 12 V -> Kelly pin 25 + brake light; state readable on Kelly CAN 0x0CF11F05 b5 bit3
+```
+Kelly pin numbers are from the KLS-8080N V2.11 manual (SOURCED). Adam's harness is UNVERIFIED. Details: docs/PARK_BRAKE.md, docs/DRIVE_MODES.md, docs/THROTTLE_CLAMP.md, docs/KELLY_CAN_ROLES.md.
+

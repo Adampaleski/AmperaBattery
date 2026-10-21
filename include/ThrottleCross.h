@@ -3,8 +3,8 @@
 // Pure C++: firmware (src/ThrottleTrim.cpp), sim scenarios (BmsSim.h), tests. CREW REVIEW. THROTTLE_TRIM_ENABLE=0.
 //
 // Hardware (docs/THROTTLE_CLAMP.md): Kelly throttle = digipot wiper -> 74HC4066 switch SW1 (ctl = one-shot A)
-// -> SW2 (ctl = one-shot B) -> Kelly throttle input, 10k pull-down at the Kelly side. One 74HC123 holds each
-// one-shot Q high only while that Teensy keeps toggling its alive line (A: MCP4131 CS, B: pin 7). A Teensy
+// -> SW2 (ctl = one-shot B) -> Kelly throttle input, 100k pull-down at the Kelly side. One 74HC123 holds each
+// one-shot Q high only while that Teensy keeps toggling its alive line (A: pin 4 A_THR_ALIVE, B: pin 7). A Teensy
 // "drops its enable" by stopping its toggles. Either one alone forces 0 V.
 //
 // Cross-check: A sends its commanded trim + mode + profile CRC to B (0x6A9); B computes the same pedal map from
@@ -116,7 +116,7 @@ struct Plant {
         if (!hungB && now - lastBtoA >= kFrameMs) { lastBtoA = now; bSent = outB; crcBSent = profileCrc(tabB, modeB); bSeenAtA = now; bSeenA = true; }
         if (!hungA) chkA.step(now, outA, bSent, bSeenA, bSeenAtA, crcBSent == profileCrc(tabA, mode), !faultA);
         if (!hungB) chkB.step(now, outB, aSent, aSeenB, aSeenAtB, crcASent == profileCrc(tabB, modeB), true);
-        // alive toggles: only from a running side whose checker still enables (A: CS edges only while ok)
+        // alive toggles: only from a running side whose checker still enables (A: pin 4 heartbeat only while ok)
         if (!hungA && chkA.enable()) osA.edge(now);
         if (!hungB && chkB.enable()) osB.edge(now);
         const float pot = potStuckPct >= 0 ? pedal * potStuckPct / 100.0f
