@@ -117,7 +117,21 @@ const CSS=`
 .tdash .simp button.on{background:var(--tx);color:#000}.tdash .simp button.go{background:var(--grn);color:#000}.tdash .simp button.red{background:#5a1a1d}
 .tdash .simp label{display:flex;align-items:center;gap:6px;color:var(--mut)}.tdash .simp input[type=range]{width:170px}.tdash .simp b{min-width:56px;color:var(--tx);font-variant-numeric:tabular-nums;font-weight:500}
 .tdash .simp .ro{font-variant-numeric:tabular-nums;color:var(--tx);display:flex;flex-wrap:wrap;gap:4px 18px}.tdash .simp .ro span{color:var(--mut)}
-.tdash.charging .home,.tdash.charging .dock{display:none}
+.tdash.charging:not(.splitOn) .home{display:none}
+.tdash,.tdash *{box-sizing:border-box}.tdash .dock,.tdash .toast{flex:none}.tdash.full .stage{overflow:auto}
+.tdash .split{display:none;flex:1;min-height:0;grid-template-columns:1fr 1fr;gap:14px}.tdash.splitOn .split{display:grid}
+.tdash.splitOn .stage>.home,.tdash.splitOn .stage>.chg,.tdash.splitOn .mnu{display:none!important}
+.tdash .pane{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;background:#0b0b0c;border-radius:16px;padding:10px 12px}
+.tdash .pane select{min-height:48px;background:#1c1c1e;color:var(--tx);border:0;border-radius:10px;font:inherit;font-size:20px;padding:0 12px}
+.tdash .pane .pb{flex:1;min-height:0;overflow:auto;font-size:20px}.tdash .pane .pb section{display:flex;flex-direction:column;gap:12px}
+.tdash .pane .pb section h3{display:none}.tdash .pane .k,.tdash .pane .tag,.tdash .pane small,.tdash .pane label,.tdash .pane td,.tdash .pane th{font-size:18px}.tdash .pane .tag{text-transform:none;letter-spacing:.02em}
+.tdash .pane .home{grid-template-columns:1fr}.tdash .pane .home .xl{font-size:110px}.tdash .pane .kv{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.tdash .pane .cg{grid-template-columns:repeat(auto-fill,minmax(66px,1fr))}.tdash .pane .cgr{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.tdash .pane input[type=number]{min-height:44px;background:#2c2c2e;border:0;border-radius:10px;color:var(--tx);font:inherit;font-size:20px;padding:0 10px;width:100px}
+.tdash .pane button.mb{min-height:48px;border:0;border-radius:12px;background:#2c2c2e;color:var(--tx);font:inherit;font-size:18px;padding:0 14px;cursor:pointer}.tdash .pane button.mb.on{background:var(--tx);color:#000}
+.tdash .pane .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tdash .pane input[type=range]{flex:1;min-width:160px;accent-color:#30d158}
+.tdash .pane .ctb{min-height:68px;font-size:18px}.tdash .pane .ctb small{font-size:18px}
+@media(max-width:1000px){.tdash .split{grid-template-columns:1fr;grid-template-rows:1fr 1fr}}
 @media(max-width:900px){.tdash .home{grid-template-columns:1fr}.tdash .dock{flex-wrap:wrap}.tdash .qb{flex:1 0 22%}.tdash .mnu{grid-template-columns:1fr}}
 `;
 const IC={ // simple line icons
@@ -242,8 +256,7 @@ function create(root,opt){
      </div>
     </div>
    </div>
-   <div class="toast" data-f="toast"></div>
-   <div class="dock seats">${qb('lights','lights','Lights')}${qb('4wd','d4wd','4WD','amb')}${qb('diff','diff','Diff lock','amb')}${seatBtn('driver')}${seatBtn('passenger')}${qb('mode','mode','Drive mode')}${qb('chg','plug','Charge')}${qb('fan','fan','Fan','blu')}${qb('menu','menu','Menu')}</div>
+   <div class="split" data-f="split">${['L','R'].map(p=>`<div class="pane" data-pane="${p}"><select data-f="pick${p}" aria-label="${p==='L'?'Left':'Right'} pane">${[['home','Cluster'],...SEC.map(x=>[x[0],x[1]])].map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><div class="pb" data-f="pb${p}"></div></div>`).join('')}</div>
    <div class="mnu" data-f="menu"><nav>${SEC.map(([k,t,ic])=>`<button data-sec="${k}"><svg viewBox="0 0 24 24">${IC[ic]}</svg>${t}</button>`).join('')}<button data-f="mclose"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>Close</button></nav>
     <div class="mc">
      <section data-s2="batt"><h3>Battery &amp; cells</h3><div class="kv" data-f="mbk"></div><div class="k" data-f="mbcap"></div><div data-f="mcells"></div></section>
@@ -276,6 +289,8 @@ function create(root,opt){
      <section data-s2="about"><h3>About</h3><div class="kv" data-f="mab"></div><div class="k">Rule: a value with no source shows “—” with an amber dot. ASSUMED / PROPOSED / ESTIMATE tags mark anything not measured on the Teryx.</div></section>
     </div></div>
    </div>
+   <div class="toast" data-f="toast"></div>
+   <div class="dock seats" data-f="dock">${qb('lights','lights','Lights')}${qb('4wd','d4wd','4WD','amb')}${qb('diff','diff','Diff lock','amb')}${seatBtn('driver')}${seatBtn('passenger')}${qb('mode','mode','Drive mode')}${qb('chg','plug','Charge')}${qb('fan','fan','Fan','blu')}${qb('split','disp','Split')}${qb('menu','menu','Menu')}</div>
    <div class="slp" data-f="slp"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" stroke="#1c1c1e" stroke-width="10" fill="none"/><circle class="rg" data-f="sring" cx="100" cy="100" r="80" stroke-width="10" fill="none" stroke-linecap="round" transform="rotate(-90 100 100)" stroke-dasharray="0 503"/>
      <text data-f="ssoc" x="100" y="112" text-anchor="middle" fill="#8e8e93" font-size="40" font-weight="200">—</text></svg></div>
    </div>`;
@@ -379,13 +394,26 @@ function create(root,opt){
   // ---- Home quick buttons, full menu, sim quick panel (Adam 2026-10-21: Tesla-style home + menu)
   let menuSec=localStorage.getItem('teryxDashSec')||'batt',lastS=null,lastMeta={},fhist=[],prevFault='',toastT=0,toastMsg='';
   const toast=t=>{toastMsg=t;toastT=performance.now();F('toast').textContent=t;};
-  const openMenu=k=>{if(k)menuSec=k;localStorage.setItem('teryxDashSec',menuSec);F('menu').classList.add('on');
+  // ---- split view (Adam 2026-10-21): two panes, each picks any section; saved in localStorage teryxDashSplit
+  let split=Object.assign({on:false,L:'home',R:null},(()=>{try{return JSON.parse(localStorage.getItem('teryxDashSplit')||'{}');}catch(e){return {};}})());
+  const homeEl=D.querySelector('.stage>.home'),stageEl=D.querySelector('.stage'),mcEl=D.querySelector('.mnu .mc');
+  const secEl=k=>k==='home'?homeEl:D.querySelector(`[data-s2="${k}"]`);
+  function applySplit(){
+    ['L','R'].forEach(p=>[...F('pb'+p).children].forEach(e=>{if(e===homeEl)stageEl.insertBefore(homeEl,F('split'));else mcEl.appendChild(e);}));
+    D.querySelectorAll('[data-s2]').forEach(x=>x.classList.toggle('on',x.dataset.s2===menuSec));
+    if(split.on){if(!split.L)split.L='home';if(!split.R||split.R===split.L)split.R=menuSec!==split.L?menuSec:(split.L==='home'?'batt':'home');
+      ['L','R'].forEach(p=>{const k=split[p],e=secEl(k);F('pb'+p).appendChild(e);if(k!=='home')e.classList.add('on');F('pick'+p).value=k;});}
+    D.classList.toggle('splitOn',split.on);try{localStorage.setItem('teryxDashSplit',JSON.stringify(split));}catch(e){}menuPaint();}
+  const setSplit=on=>{split.on=on;if(on)F('menu').classList.remove('on');applySplit();};
+  ['L','R'].forEach(p=>F('pick'+p).onchange=e=>{const v=e.target.value,o=p==='L'?'R':'L';if(split[o]===v)split[o]=split[p];split[p]=v;if(v!=='home'){menuSec=v;localStorage.setItem('teryxDashSec',v);}applySplit();});
+  const openMenu=k=>{if(split.on){if(k&&k!==split.L){split.R=k;menuSec=k;applySplit();return;}if(k)return;setSplit(false);}if(k)menuSec=k;localStorage.setItem('teryxDashSec',menuSec);F('menu').classList.add('on');
     D.querySelectorAll('[data-sec]').forEach(b=>b.classList.toggle('on',b.dataset.sec===menuSec));D.querySelectorAll('[data-s2]').forEach(x=>x.classList.toggle('on',x.dataset.s2===menuSec));menuPaint();};
   D.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>openMenu(b.dataset.sec));
   F('mclose').onclick=()=>F('menu').classList.remove('on');F('cmenu').onclick=()=>openMenu('chg');
   const nextDiff={off:'partial',partial:'full',full:'off'};
   D.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{const k=b.dataset.q;
     if(k==='menu')openMenu();
+    else if(k==='split')setSplit(!split.on);
     else if(k==='lights'){CT.setLight('low',!CT.S.lights.low);ctlEv('light low '+(CT.S.lights.low?'on':'off'));}
     else if(k==='4wd'){const r=CT.toggle4wd(lastDrv);if(!r.ok)toast(r.why);ctlPaint();}
     else if(k==='diff'){const r=CT.setDiff(lastDrv,nextDiff[CT.S.diff]||'off');if(!r.ok)toast(r.why);ctlPaint();}
@@ -433,7 +461,8 @@ function create(root,opt){
     const nowY=num(c.now)?c.pts.reduce((a,q)=>Math.abs(q[0]-c.now)<Math.abs(a[0]-c.now)?q:a)[1]:null;
     return `<svg viewBox="0 0 ${W} ${H}" class="${c.act?'act':''}"><text x="12" y="20" fill="#f5f5f7" font-size="18">${c.name}</text><path d="${p}" stroke="#f5f5f7" stroke-width="2" fill="none"/>
       <text x="${W-8}" y="${H-6}" fill="#a1a1a8" font-size="18" text-anchor="end">${c.unit}</text>${num(c.now)?`<circle cx="${X(Math.max(x0,Math.min(x1,c.now)))}" cy="${Y(nowY)}" r="6" fill="#d6a33a"/>`:''}</svg>`;}
-  function menuPaint(){if(!F('menu').classList.contains('on'))return;const s=lastS,live=!!s&&!lastMeta.stale,B=(live&&s.bms)||{},Dr=(live&&s.drive)||{},Ch=(live&&s.charge)||{},Co=(live&&s.coolant)||{},A=(live&&s.aux12v)||{},L=A.loads||{};
+  function menuPaint(){(split.on?[split.L,split.R]:F('menu').classList.contains('on')?[menuSec]:[]).forEach(k=>{if(k!=='home')menuPaint1(k);});}
+  function menuPaint1(menuSec){const s=lastS,live=!!s&&!lastMeta.stale,B=(live&&s.bms)||{},Dr=(live&&s.drive)||{},Ch=(live&&s.charge)||{},Co=(live&&s.coolant)||{},A=(live&&s.aux12v)||{},L=A.loads||{};
     if(menuSec==='batt'){const st=Array.isArray(B.strings)?B.strings:null,all=st?st.flat():[];
       const mn=all.length?Math.min(...all):null,mx=all.length?Math.max(...all):null,av=all.length?all.reduce((a,v)=>a+v,0)/all.length:null,sd=all.length?Math.sqrt(all.reduce((a,v)=>a+(v-av)*(v-av),0)/all.length):null;
       F('mbk').innerHTML=tr([['Lowest cell',f1(mn??B.cellMinV,3,'V')],['Highest cell',f1(mx??B.cellMaxV,3,'V')],['Average',f1(av,3,'V')],['Spread',num(mn)?((mx-mn)*1000).toFixed(0)+'<span class="u">mV</span>':null],['Std deviation',num(sd)?(sd*1000).toFixed(1)+'<span class="u">mV</span>':null],
@@ -461,6 +490,7 @@ function create(root,opt){
   }
   function homePaint(s,live){const Dr=(live&&s.drive)||{},r=ctlLast||{},o=r.out||{},L=((live&&s.aux12v)||{}).loads||{};
     const q=(k,t,on,dis)=>{F('q_'+k).textContent=t;const b=D.querySelector(`[data-q="${k}"]`);b.classList.toggle('on',!!on);b.classList.toggle('dis',!!dis);};
+    q('split',split.on?'on':'off',split.on);
     q('lights',o.headHigh?'high':o.headLow?'low':'off',o.headLow);
     q('4wd',r.fault4?'FAULT':r.wdShifting?'shifting…':r.wd||'2WD',r.wd==='4WD',!!r.wdWhy);
     q('diff',r.faultD?'FAULT':r.diffShifting?'moving…':r.diff||'off',r.diff&&r.diff!=='off',!!(r.diffWhy&&r.diffWhy[nextDiff[r.diff]||'off']));
@@ -530,10 +560,10 @@ function create(root,opt){
     curFaultKey=faultTxt.join('|');if(!curFaultKey)ack=null;
     F('ban').classList.toggle('on',!!curFaultKey&&ack!==curFaultKey);F('banT').textContent='⚠ '+faultTxt.join(' · ');
     if(curFaultKey!==prevFault){const a=prevFault?prevFault.split('|'):[],b=faultTxt;b.filter(x=>!a.includes(x)).forEach(x=>fhist.push({t:Date.now(),text:x,on:true}));a.filter(x=>!b.includes(x)).forEach(x=>fhist.push({t:Date.now(),text:x,on:false}));prevFault=curFaultKey;}
-    lastS=s;lastMeta=meta;homePaint(s,live);if(F('menu').classList.contains('on')&&(!this||++mp%3===0))menuPaint();
+    lastS=s;lastMeta=meta;homePaint(s,live);if((split.on||F('menu').classList.contains('on'))&&++mp%3===0)menuPaint();
   }
-  update(null);
-  return {update,controls:CT,root:D,setStyle,F,wake,openMenu,isAsleep:()=>cs.asleep};
+  update(null);if(split.on)applySplit();
+  return {update,controls:CT,root:D,setStyle,F,wake,openMenu,setSplit,getSplit:()=>Object.assign({},split),isAsleep:()=>cs.asleep};
 }
 g.TeryxDash={create,IOMAP,SEC:TeryxDash_SEC,ASSUMED_WHMI,ASSUMED_PACK_KWH,RPM_PER_MPH};
 })(window);
