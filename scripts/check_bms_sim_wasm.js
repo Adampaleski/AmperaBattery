@@ -95,6 +95,13 @@ X.sim_reset();X.sim_set_key(1);X.sim_step(4000);
  const l1=VM.vehStep(Object.assign({},p,{liftRegen:true}),{mph:30},{thr:0,brake:0,gear:"H",closed:true,allowPct:100,regenOk:true,driveLocked:false,packV:S.busV},0.1);
  vk(l0.regenA===0&&l1.regenA>19&&l1.regenA<20.01,"lift-off regen: off by default, 20 A when enabled",`${l0.regenA} / ${l1.regenA.toFixed(1)} A`);
  vk(Math.abs(VM.vehRpm(p,55)-6000)<15&&Math.abs(VM.vehRatio(p)-8.76)<0.01,"55 mph on 27 in, 16/32 x 4.38 = ~6000 RPM",`${VM.vehRpm(p,55).toFixed(0)} RPM`);}
+// cold boot -> key on -> mains closed, drive allowed, throttle reaches speed (2026-10-21 regression guard)
+X.sim_reset();X.sim_step(500);
+{const s0=st();vk(s0.state==="Open"&&!s0.faults&&!s0.latched,"cold boot: open, no faults",`${s0.state} f=${s0.faults} l=${s0.latched}`);
+ X.sim_set_key(1);let tC=-1;for(let i=0;i<60&&tC<0;i++){X.sim_step(100);if(st().state==="Closed")tC=(i+1)*100;}
+ const s1=st();vk(tC>0&&tC<=3000&&s1.mode==="DRIVE"&&!s1.driveLocked&&!s1.keyRefused&&s1.kellyPct>0,"cold boot key-on: mains close <= 3 s, drive allowed",`closed at ${tC} ms mode=${s1.mode} locked=${s1.driveLocked} kelly=${s1.kellyPct}%`);
+ const p=Object.assign({},VM.VEH_DEF);let spd=0;for(let i=0;i<150;i++){const S=st();const o=VM.vehStep(p,{mph:spd},{thr:60,brake:0,gear:"H",closed:S.state==="Closed",allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV},0.1);X.sim_set_pack_amps(o.packA);X.sim_step(100);spd=o.mph;}
+ X.sim_set_pack_amps(0);vk(spd>15&&st().state==="Closed","cold boot: 60 % throttle 15 s reaches > 15 mph, mains stay closed",`${spd.toFixed(1)} mph`);}
 console.log(`chargemode/vehicle: ${vn-vf}/${vn} checks passed`);if(vf)process.exitCode=1;
 const scFail=r.filter(x=>!x.pass).length;if(sf||df||scFail)process.exitCode=1;
 // ---- Fault log page (BmsCore::FaultLog on the simulated EEPROM, sim only)

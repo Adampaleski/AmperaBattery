@@ -40,7 +40,14 @@ Every threshold is PROPOSED and can be edited on the page (saved in localStorage
 - Lights: low, high (which also turns on low), tail, light bar or aux, work, turn left and right and hazard blinking at 1.5 Hz, plus automatic brake (pedal above 3 %) and reverse (gear R) lights.
 - Buttons that can't be used are greyed out and say why, for example "Stop (≤ 1 mph) to shift 2WD/4WD".
 
-## Candidate actuators (per Mechanic, not re-checked, nothing bought)
+## Chosen parts (Sparky 2026-10-21, specs as given, not re-checked against datasheets, nothing bought)
+- Actuator: Glideforce **LACT4P-12V-10**. Stall is 7 A at 12 V; it draws about 1 A unloaded and over 3 A at full load. Speed is about 1.1 in/s unloaded and 0.9 in/s loaded. IP65. The alternative is the -20 version (110 lb, half the speed). Pot resistance is UNVERIFIED; feed the pot from 3.3 V.
+- Driver: **BTS7960** module, one per actuator. RPWM and LPWM go on the two existing pins (9/10 for 4WD, 28/29 for the diff). R_EN and L_EN are tied together with a pull-down, so the driver is disabled at boot. 3.3 V logic compatibility is UNVERIFIED, and the VNH5019 is the alternative.
+  The enable line has no Teensy pin yet. Either tie it to the 595 /OE path or use spare pin 35/36: PROPOSED.
+- Faults: an over-current fault at about **7 A** (PROPOSED) needs the BTS7960 IS current-sense pins wired to an ADC. That isn't assigned or simulated yet, so the sim's stall and timeout faults run on the position pot only.
+- Fuses / relays (ESTIMATE): fan 15 A, headlights 10 A, coolant pump 10 A, seats 10 A each.
+
+## Earlier candidates (per Mechanic, not re-checked, nothing bought)
 - Firgelli 4 in stroke, 150 lb, with pot: $149.99
 - Glideforce LACT4P: $194.88
 

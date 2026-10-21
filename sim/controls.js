@@ -8,7 +8,7 @@
 (function(g){
 const CTL_DEF={wdMaxMph:1,wdThrMaxPct:2,wdNeedBrake:false,diffMaxMph:1,diffNeedThrOff:true,diffAutoUnlockMph:15,
   wd2Pos:5,wd4Pos:95,difOffPos:5,difPartPos:50,difFullPos:95,posTolPct:3,actTimeoutMs:4000,stallMs:600,stallMinPct:1,
-  actRatePct:40,blinkHz:1.5,brakeOnPct:3};
+  actRatePct:40,actStallA:7,blinkHz:1.5,brakeOnPct:3};
 const CTL_META=[['wdMaxMph','2WD/4WD: shift only at or below','mph','PROPOSED 1 mph ≈ stopped (manual: stop the vehicle)',0,10,0.5],
  ['wdThrMaxPct','Throttle counts as released below','%','PROPOSED',0,20,1],
  ['wdNeedBrake','2WD/4WD: also require brake','bool','PROPOSED off; manual names no brake step',0,1,1],
@@ -24,6 +24,7 @@ const CTL_META=[['wdMaxMph','2WD/4WD: shift only at or below','mph','PROPOSED 1 
  ['actTimeoutMs','Actuator timeout fault after','ms','PROPOSED',500,15000,100],
  ['stallMs','Actuator stall fault: no movement for','ms','PROPOSED',100,5000,50],
  ['stallMinPct','Stall: movement less than','%','PROPOSED',0.2,10,0.1],
+ ['actStallA','Actuator over-current fault at','A','PROPOSED ~7 A (LACT4P stall, Sparky); needs BTS7960 IS sense, not simulated',1,20,0.5],
  ['actRatePct','Sim actuator speed','%/s','SIM PLACEHOLDER (real speed per part datasheet)',5,200,5],
  ['blinkHz','Turn / hazard blink rate','Hz','PROPOSED 1.5 Hz (~90/min)',0.5,3,0.1],
  ['brakeOnPct','Brake light on above','% pedal','PROPOSED',0,20,1]];

@@ -763,7 +763,7 @@ function loadSettings(){S=JSON.parse(cs(X.sim_state_json()));DEF=Object.fromEntr
 let ackMask=0;
 function renderBanner(){const m=(S.faults|S.latched)>>>0;if(m===0)ackMask=0;const show=m&~ackMask;
   $('fban').classList.toggle('on',!!show);if(show)$('fbanT').textContent='⚠ Fault: '+S.faultNames.filter((n,i)=>m&(1<<i)).join(', ')+' — contactors open. See Faults tab.';
-  $('hkey').textContent=keyOn?'Key ON':'Key off';$('hkey').classList.toggle('on',keyOn);
+  $('hkey').textContent=keyOn?'Key: ON · tap for off':'Key: OFF · tap for on';$('hkey').classList.toggle('on',keyOn);
   $('hplug').textContent=plugOn?'Plugged in':'Plug in';$('hplug').classList.toggle('on',plugOn);$('plug').textContent=plugOn?'Unplug':'Plug in';$('plug').classList.toggle('on',plugOn);
   const cb=$('cban');let ct='';cb.classList.remove('warn');
   if(S.plugIn){ct='🔌 Charging – drive locked · '+(S.chargeEnable?S.chargeA.toFixed(1)+' A → '+$('pct').value+' % ('+S.ceilingV.toFixed(3)+' V/cell)'+(S.chargeWhy?' · '+S.chargeWhy:''):(S.chargeWhy||S.state))+(S.chargerPath?' · charger contactor closed':'')+(S.keyRefused?' · key-on refused while plugged in':'');

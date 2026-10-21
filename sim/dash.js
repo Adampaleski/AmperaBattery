@@ -192,7 +192,7 @@ function create(root,opt){
   D.querySelectorAll('[data-turn]').forEach(b=>b.onclick=()=>{CT.setTurn(b.dataset.turn);ctlEv('turn '+(CT.S.turn||'off'));});
   F('haz').onclick=()=>{CT.setHazard(!CT.S.hazard);ctlEv('hazard '+(CT.S.hazard?'on':'off'));};
   F('b4wd').onclick=()=>{CT.toggle4wd(lastDrv);ctlPaint();};
-  D.querySelectorAll('[data-dif]').forEach(b=>b.onclick=()=>{const k=b.dataset.dif,r=CT.setDiff(lastDrv,k);ctlEv(r.ok?'diff → '+k:'diff refused: '+r.why,r);});
+  D.querySelectorAll('[data-dif]').forEach(b=>b.onclick=()=>{CT.setDiff(lastDrv,b.dataset.dif);ctlPaint();});
   F('aclr').onclick=()=>{CT.clearFault();ctlEv('actuator fault cleared');};
   if(opt.simControls){F('st4').onchange=e=>CT.simStall('4wd',e.target.checked);F('std').onchange=e=>CT.simStall('diff',e.target.checked);}
   CT.S.onLog=t=>{if(opt.onControl)opt.onControl(t);};
