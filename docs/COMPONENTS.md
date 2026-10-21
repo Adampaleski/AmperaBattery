@@ -26,8 +26,8 @@ No JK BMS. The two Teensy 4.1s are the BMS; Volt BICMs do the sensing. Pack: 36S
 | Precharge relay Volt AEV14012 + 50 ohm resistor | resistor vs Kelly capacitance (2 mF UNVERIFIED) | yes |
 | LEM DHAB S/44 | Volt current sensor | yes |
 | Volt AEV14012 x2 | optional charger / DC-DC branch | yes |
-| Parking-brake switch, 3-pole (2× NO to Teensy A/B pin 18 + 1× NC in Kelly Foot_SW 12 V feed), sealed | Park detection + hardware drive interlock (docs/PARK_BRAKE.md). Teryx lever/caliper fit UNVERIFIED (photo needed) | NO (PROPOSED) |
-| 2× 10k pull-up + 2× 100 nF | park inputs A/B pin 18 | NO (PROPOSED) |
+| Parking-brake switch, 3-pole (2× NO to Teensy A/B pin 32 + 1× NC in Kelly Foot_SW 12 V feed), sealed | Park detection + hardware drive interlock (docs/PARK_BRAKE.md). Teryx lever/caliper fit UNVERIFIED (photo needed) | NO (PROPOSED) |
+| 2× 10k pull-up + 2× 100 nF | park inputs A/B pin 32 | NO (PROPOSED) |
 | 12 V SPDT automotive relay (NC contact) + logic FET + 1N4007 | Kelly ECO Low cap, fail-safe: de-energized = Low (docs/DRIVE_MODES.md); part UNVERIFIED | NO (PROPOSED) |
 | 10k (R6) | Teensy A pin 4 A_THR_ALIVE pull-down (throttle clamp) | NO (PROPOSED) |
 | 100k (R1, was 10k) | Kelly throttle pull-down (throttle clamp) | NO (PROPOSED) |

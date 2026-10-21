@@ -89,7 +89,7 @@ function create(){
 }
 g.TeryxControls={create,CTL_DEF,CTL_META,LIGHTS,DIFF};
 /* Park detection (Adam 2026-10-21): JS mirror of include/ParkState.h (parity checked in scripts/test_controls.js).
-   Two park-brake contacts (A pin 18, B pin 18, pull-ups: open = NOT set) + Kelly RPM 0 + Kelly F/N/R neutral.
+   Two park-brake contacts (A pin 32, B pin 32, pull-ups: open = NOT set) + Kelly RPM 0 + Kelly F/N/R neutral.
    Hardware interlock: a third NC contact opens the Kelly Foot_SW (pin 15) 12 V feed while the brake is set. */
 const PARK_DEF={disagreeMs:100,movingMs:300,moveRpm:50,prechargeNeedsPark:true};
 function createPark(o){const P=Object.assign({},PARK_DEF,o||{});

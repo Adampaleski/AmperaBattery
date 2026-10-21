@@ -9,14 +9,16 @@ Which parking brake the 2008 Teryx has, and whether it has a switch, is **UNVERI
 ## Hardware (PROPOSED)
 Switch: a sealed lever/caliper switch with **3 poles** (or 2 switches): two NO poles for the Teensys, one NC pole for the Kelly.
 ```
-Park pole 1 (NO, closes when SET) : Teensy A pin 18 (IN3, PARK_IN_A) -- 10k pull-up to 3.3 V -- switch -- GND
-Park pole 2 (NO, closes when SET) : Teensy B pin 18 (IN3, PARK_IN_B) -- 10k pull-up to 3.3 V -- switch -- GND
+Park pole 1 (NO, closes when SET) : Teensy A pin 32 (PARK_IN_A) -- 10k pull-up to 3.3 V -- switch -- GND
+Park pole 2 (NO, closes when SET) : Teensy B pin 32 (PARK_IN_B) -- 10k pull-up to 3.3 V -- switch -- GND
   + 100 nF at each pin. LOW = brake SET. Broken wire / unplugged = HIGH = NOT parked (fail-safe for "parked").
 Park pole 3 (NC, OPENS when SET) : Kelly 12 V out (pin 11) -- pole 3 -- Kelly Foot_SW (pin 15)
 ```
-- Pins: 18 is IN3 on both Teensys. It was `pinMode(INPUT)` and never read; now `INPUT_PULLUP` + external 10k. `Config.h` static_asserts it against the other pins.
-  - **Decision for Adam:** the MCP23017 expander option (docs/BODY_IO.md) wanted 18/19 as I2C on Teensy A. If you pick the expander, PARK_IN_A has to move.
-- Carrier IN3 input conditioning (a divider or opto on the VoltBMS carrier?) is **UNVERIFIED**. Check it on the bench: the switch must pull the Teensy pin below 0.8 V.
+- Pins (crew 2026-10-21): **direct GPIO pin 32 on both Teensys**. Safety inputs never go on the MCP23017 expander. Pin 18 is the expander's SDA, so it was dropped.
+  - **Teensy A:** 32 is free only with `BODY_IO_EXPANDER=1` (default now, PROPOSED). The 595 latch moves to the expander and 34 is spare. **Without the expander there is NO free direct pin on Teensy A** (`PARK_IN_A = -1`).
+  - **Teensy B:** 32 is an A-only body pin and nothing uses it on B.
+  - `BmsApp` sets `INPUT_PULLUP` (read only). `Config.h` static_asserts both pins against every pin in use on that Teensy.
+- Pin 32 is a direct 3.3 V Teensy GPIO (not 5 V tolerant): pull-up to 3.3 V only.
 
 ## Hardware interlock (non-negotiable)
 The Kelly **cannot drive while the parking brake is set, whatever the software does**:

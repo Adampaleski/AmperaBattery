@@ -33,7 +33,13 @@ Teensy A OUT3 (pin 20) --- logic FET low-side --- relay coil (12 V) + 1N4007 fly
 - Teensy A must actively drive OUT3 **HIGH** to energize the relay and **release** the cap. `src/KellyLimit.cpp`: cap held (OUT3 LOW) when BMS limp **or Kid mode**. Boot writes OUT3 LOW. Pins are driven only with `BMS_CAP_KELLY_LIMIT_DRV=1` + `TELEMETRY_ONLY=0` (both still off). **Firmware semantics changed** (OUT3 was "HIGH = limp"): CREW REVIEW.
 - Kelly config PROPOSED: Three Speed = 1 or 2 with ECO = low speed. LowSpeed Forw Speed ≈ 20 % of Max Speed 6000 RPM ≈ 1225 RPM ≈ 10 mph (122.5 RPM/mph SOURCED gearing). LowSpeed Rev 30 % (SOURCED default). Three Gears (F/N/R) shares FWD pin 12 with the high-speed switch, so use ECO + max only (SOURCED note 4).
 - **UNVERIFIED:** relay part (12 V automotive SPDT, e.g. Bosch-style 30/87a — not chosen), whether Adam's harness brings ECO out, the exact ECO pin on his connector, and that ECO really caps speed on his firmware (bench: ECO 12 V → RPM ≤ cap at full pedal).
-- Limp → Low cap means *any* BMS derate below 100 % also caps speed (existing behaviour, now fail-safe). Crew: maybe cap only below a derate threshold (decision).
+- **Limp threshold (crew 2026-10-21, `BmsCore::kellyLogic`, PROPOSED + adjustable):**
+  - **Soft derates only scale current smoothly**, with no Low cap: pack hot, low-ish cells at rest, pack/cell sag, discharge amps.
+  - **Hard faults engage the 10 mph cap:** current sensor lost (only when `CURRENT_SENSE_ENABLE=1`), temps stale (only when `TEMPS_VERIFIED=1`), any cell < `limpCellV` 3.00 V, or LEM A/B mismatch.
+  - On a hard fault, power ramps from 100 % to `limpRampPct` 30 % over `limpRampMs` 1000 ms, then ECO asserts. It releases when the fault clears.
+  - Note: a cell < 3.00 V for 500 ms also trips the existing hard-floor fault (mains open), so the cap only shows its ramp start there.
+  - Note: "A/B mismatch" is implemented as the LEM A vs B imbalance. The throttle A/B disagree already zeroes the throttle through the clamp.
+  - Tests: scripts/test_limp.cpp (8) + 3 wasm checks.
 - Sim: Kid engages the cap. The "Both Teensys dead" toggle uses pedal-direct, so the relay drops and the Kelly holds Low (scripts/test_controls.js: capped at ≤1225 RPM vs uncapped > 2450).
 
 ## Limits / UNVERIFIED (crew)

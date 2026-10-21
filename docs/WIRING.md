@@ -1,6 +1,15 @@
 # Wiring (from AmperaBattery upstream)
 
-## BICM internal CAN (125 kbps) — bench target
+## CAN map: CAN_LAYOUT_V2 (dual-string build, default when DUAL_STRING=1; include/FlexCanCompat.h)
+| Teensy bus | Pins | Speed | Teensy A | Teensy B |
+|---|---|---|---|---|
+| CAN1 | 22 TX / 23 RX | 125k | BICM string 1 | BICM string 3 |
+| CAN2 | 1 TX / 0 RX | 125k | BICM string 2 | BICM string 4 |
+| CAN3 | 31 TX / 30 RX | 250k | vehicle bus: Kelly + Elcon + A-B link | same vehicle bus (stub, no 120 Ω) |
+Each bus has its own SN65HVD230 (6 total; 4 owned). **The sections below are the older single-string / bench layout (CAN_LAYOUT_V2=0)**: there, BICM = CAN3, Elcon/Kelly = CAN2. Use the table above for the Teryx pack (`teensy41_dual_a` / `_b`). CREW REVIEW: bus remap not bench-tested.
+
+
+## BICM internal CAN (125 kbps) — bench target (legacy layout, CAN_LAYOUT_V2=0)
 
 Connector **X2** on BECM K16:
 
@@ -14,7 +23,7 @@ Connector **X2** on BECM K16:
 Teensy 4.1: **CAN3** — pin 30 RX, pin 31 TX, transceiver GND common with pack.
 Use the existing SN65HVD230 (or equivalent 3.3 V transceiver).
 
-## Elcon / TC charger CAN (250 kbps) — second transceiver
+## Elcon / TC charger CAN (250 kbps) — legacy CAN2 (V2: CAN3 30/31 vehicle bus)
 
 **Not** Brusa 500 kbit. **Not** Eltek. **Not** the 125 kbit BICM bus.
 
@@ -60,7 +69,7 @@ Optional HV-bus analog: pin 24 (`A10`), compile with `HV_ANALOG_ENABLE=1`. Defau
 
 Connector **X1** — 500 kbps when accessory wake lines are held high. See upstream README. The Elcon bus is a **separate** 250 kbit network on CAN2, not X1.
 
-## Kelly KLS8080 NPS (250 kbps) — same CAN2 as Elcon
+## Kelly KLS8080 NPS (250 kbps) — same bus as Elcon (legacy: CAN2; V2: CAN3 30/31)
 
 Broadcast RX only. **Not** serial. **Not** BICM CAN3.
 
@@ -85,13 +94,16 @@ Firmware: `HubStatus` emits on Serial4. Caps `BALANCE_TX` / `CHARGE_TX` / `CONTA
 
 ## Schematic notes: park brake, Kelly interlocks, throttle clamp (2026-10-21, PROPOSED, CREW REVIEW)
 ```
-Teensy A pin 18 (IN3) --10k--> 3V3 ; pin 18 -- park pole 1 (NO) -- GND      LOW = brake set
-Teensy B pin 18 (IN3) --10k--> 3V3 ; pin 18 -- park pole 2 (NO) -- GND
+Teensy A pin 32 --10k--> 3V3 ; pin 32 -- park pole 1 (NO) -- GND      LOW = brake set
+Teensy B pin 32 --10k--> 3V3 ; pin 32 -- park pole 2 (NO) -- GND
 Kelly 12V (pin 11) -- park pole 3 (NC, opens when set) -- Kelly Foot_SW (pin 15)   [Kelly Foot Switch = checked]
 Kelly 12V (pin 11) -- relay NC -- Kelly ECO (pin 22)      relay coil <- FET <- Teensy A OUT3 pin 20 (HIGH = release Low cap)
 Teensy A pin 4 (A_THR_ALIVE, 10k pull-down) -> 74AHCT125 -> 74HCT123 #1 B   (heartbeat; CS no longer used as alive)
 4066 VCC = shared 5 V rail; Kelly throttle pull-down 100k
-Brake pedal (hall 0-5 V) -> Kelly Brake_AN (pin 2)  [Brake Type = 2, Boost = UNCHECKED]
+E-stop (docs/ESTOP.md): 12 V fused -> mushroom NC1 -> EV200 B+ coil, EV200 B- coil, AEV14012 coil (high sides), Kelly KSI/PWR pin 7
+                         NC2 -> Teensy B input (log only)
+Brake_AN (pin 2): NOT WIRED for first drive (DEFERRED: Kelly config readback + Boost OFF confirmed first).
+  First drive: Brake Type = 0 (switch regen, BRK_SW Brk fixed level)
 Brake switch 12 V -> Kelly pin 25 + brake light; state readable on Kelly CAN 0x0CF11F05 b5 bit3
 ```
 Kelly pin numbers are from the KLS-8080N V2.11 manual (SOURCED). Adam's harness is UNVERIFIED. Details: docs/PARK_BRAKE.md, docs/DRIVE_MODES.md, docs/THROTTLE_CLAMP.md, docs/KELLY_CAN_ROLES.md.

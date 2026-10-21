@@ -59,10 +59,10 @@ No. The protocol defines only these two controller → instrument frames, and th
 | E-stop, contactors, precharge | **Hardware + Teensy A** | unchanged (docs/SAFETY.md) |
 | Pedal maps / trim | **Teensys** (clamp) | the Kelly has one fixed curve and no CAN command |
 | Low speed cap (Kid, limp, Teensys dead) | **Hardware relay on ECO**, Teensy A releases it | fail-safe (docs/DRIVE_MODES.md) |
-| Brake pedal analog → regen | **Kelly Brake_AN direct**; Teensy reads the brake *switch* from CAN b5 bit3 and its own wire for the brake light | Brake_AN is not on CAN; tap it with a divider only if the dash needs %, PROPOSED |
+| Brake pedal analog → regen | **DEFERRED for first drive** (Brake_AN not wired; Brake Type 0 switch regen at fixed BRK_SW Brk). Later: Kelly Brake_AN direct, after a config readback confirms Boost OFF; Teensy reads the brake *switch* from CAN b5 bit3 and its own wire for the brake light | Brake_AN is not on CAN; tap it with a divider only if the dash needs %, PROPOSED |
 | Regen inhibit (full / cold) | **Teensy OUT6** (pin 3) in the Brake_AN/brake-switch path | the Kelly can't take a CAN command |
 
 **Wiring impact:**
 - No new Teensy wires for RPM, F/N/R or the brake switch: they come from CAN.
-- New: 2 park wires (pin 18 on A and B), 1 Foot_SW NC pole, and the ECO relay (OUT3 pin 20).
+- New: 2 park wires (pin 32 on A and B), 1 Foot_SW NC pole, and the ECO relay (OUT3 pin 20).
 - Brake_AN stays pedal → Kelly direct.

@@ -222,20 +222,36 @@ constexpr int IS_DIFF     = 27;   // A13 BTS7960 #2 IS
 // Hazard = TURN_L + TURN_R (no own bit). Blink is done in firmware.
 constexpr int LIGHT_DATA  = 35;
 constexpr int LIGHT_CLK   = 36;
+// BODY_IO_EXPANDER=1 (crew 2026-10-21, PROPOSED, Adam decision): lights + stock 4WD switch on an MCP23017 on Wire
+// (SDA 18 / SCL 19 = IN3/IN4), 595s dropped -> 32 and 34 freed. Pin 32 -> park contact A (direct GPIO, safety
+// input NEVER on the expander). With BODY_IO_EXPANDER=0 there is NO free direct pin on Teensy A for park.
+#ifndef BODY_IO_EXPANDER
+#define BODY_IO_EXPANDER 1
+#endif
+#if BODY_IO_EXPANDER
+constexpr int LIGHT_LATCH = -1;   // retired: lights on MCP23017
+constexpr int LIGHT_OE    = 34;   // freed (spare). Kept named for the clash check; nothing drives it.
+constexpr int I2C_SDA     = 18;   // MCP23017 (IN3)
+constexpr int I2C_SCL     = 19;   // MCP23017 (IN4)
+#else
 constexpr int LIGHT_LATCH = 32;   // 595 RCLK
 constexpr int LIGHT_OE    = 34;   // 595 /OE, 10k pull-UP: lights stay off until firmware drives it low
+#endif
 // MCP4131 throttle digipot shares LIGHT_DATA/LIGHT_CLK (bit-banged, own CS); 595s ignore it (no latch pulse). PROPOSED.
 constexpr int THR_CS      = 38;
 // A's throttle alive signal (chief 2026-10-21): its OWN heartbeat pin, NOT the MCP4131 CS (a loop stuck rewriting a
 // stale wiper would still toggle CS). Toggled in A's 1 kHz ISR only after that cycle's cross-check + loop-fresh pass.
 // Pin 4 on A: B_FAULT_OUT is role-B only; nothing on A pinModes 4 (grep 2026-10-21: only Config.h names it).
 constexpr int A_THR_ALIVE = 4;    // Teensy A: 1 kHz heartbeat -> 74AHCT125 -> 74HC123 #1 B input (throttle enable A)
-// Parking brake (Adam 2026-10-21, docs/PARK_BRAKE.md): IN3 pin 18 on BOTH Teensys, 10k pull-up to 3.3 V
-// (PROPOSED), LOW = brake set. IN3 was pinMode(INPUT) and never read. NOTE: the MCP23017 expander option in
-// docs/BODY_IO.md wanted 18/19 as I2C on A; if Adam picks it, move PARK_IN_A to an expander-free pin (decision).
-constexpr int PARK_IN_A   = 18;   // Teensy A IN3: park contact 1
-constexpr int PARK_IN_B   = 18;   // Teensy B IN3: park contact 2
-// Spare edge pins on A now: NONE. 33 RESERVED = charge plug-in detect (PROPOSED). 24 = HV_SENSE.
+// Parking brake (docs/PARK_BRAKE.md, crew 2026-10-21): DIRECT GPIO on both Teensys (never the expander), 10k pull-up
+// to 3.3 V + 100 nF, LOW = brake set. A: pin 32 (freed by BODY_IO_EXPANDER). B: pin 32 (A-only body pin, free on B).
+#if BODY_IO_EXPANDER
+constexpr int PARK_IN_A   = 32;   // Teensy A: park contact 1
+#else
+constexpr int PARK_IN_A   = -1;   // NO free direct pin on A without the expander
+#endif
+constexpr int PARK_IN_B   = 32;   // Teensy B: park contact 2
+// Spare edge pins on A now: 34 (with expander). 33 RESERVED = charge plug-in detect (PROPOSED). 24 = HV_SENSE.
 // Teensy B pins in use: 0/1 22/23 30/31 CAN, 4 B_FAULT_OUT, 2 3 5 6 11 12 20 21 OUT*, 13 LED, 14 15 25 LEM B, 16/17 hub UART,
 // 18 19 IN3/IN4, 24 HV_SENSE -> 7, 40, 41 are free on B (A's body-I/O map is not used on B).
 // Teensy A pin clash check: heartbeat + park input vs every pin A drives or reads.
@@ -249,8 +265,23 @@ static_assert(A_THR_ALIVE != THR_CS && A_THR_ALIVE != LIGHT_DATA && A_THR_ALIVE 
               A_THR_ALIVE != POS_4WD && A_THR_ALIVE != POS_DIFF && A_THR_ALIVE != ACT_EN && A_THR_ALIVE != IS_4WD &&
               A_THR_ALIVE != IS_DIFF && A_THR_ALIVE != 0 && A_THR_ALIVE != 1 && A_THR_ALIVE != 30 && A_THR_ALIVE != 31 &&
               A_THR_ALIVE != 33, "A heartbeat pin clash");
-static_assert(PARK_IN_A == IN3 && PARK_IN_A != A_THR_ALIVE && PARK_IN_A != PEDAL_IN_A && PARK_IN_A != THR_CS &&
-              PARK_IN_A != IN1 && PARK_IN_A != IN2 && PARK_IN_A != HV_SENSE, "A park pin clash");
-static_assert(PARK_IN_B != B_THR_ALIVE && PARK_IN_B != PEDAL_IN_B && PARK_IN_B != ST_4WD_B && PARK_IN_B != B_FAULT_OUT, "B park pin clash");
+#if BODY_IO_EXPANDER
+static_assert(PARK_IN_A != A_THR_ALIVE && PARK_IN_A != PEDAL_IN_A && PARK_IN_A != THR_CS && PARK_IN_A != LIGHT_DATA &&
+              PARK_IN_A != LIGHT_CLK && PARK_IN_A != LIGHT_LATCH && PARK_IN_A != I2C_SDA && PARK_IN_A != I2C_SCL &&
+              PARK_IN_A != IN1 && PARK_IN_A != IN2 && PARK_IN_A != HV_SENSE && PARK_IN_A != CUR_LO && PARK_IN_A != CUR_HI &&
+              PARK_IN_A != CUR_VC && PARK_IN_A != OUT1 && PARK_IN_A != OUT2 && PARK_IN_A != OUT3 && PARK_IN_A != OUT4 &&
+              PARK_IN_A != OUT5 && PARK_IN_A != OUT6 && PARK_IN_A != OUT7 && PARK_IN_A != OUT8 && PARK_IN_A != OUT9 &&
+              PARK_IN_A != OUT10 && PARK_IN_A != ACT4WD_IN1 && PARK_IN_A != ACT4WD_IN2 && PARK_IN_A != ACTDIF_IN1 &&
+              PARK_IN_A != ACTDIF_IN2 && PARK_IN_A != POS_4WD && PARK_IN_A != POS_DIFF && PARK_IN_A != ACT_EN &&
+              PARK_IN_A != IS_4WD && PARK_IN_A != IS_DIFF && PARK_IN_A != CAN1_TX && PARK_IN_A != CAN1_RX && PARK_IN_A != LED &&
+              PARK_IN_A != 0 && PARK_IN_A != 1 && PARK_IN_A != 30 && PARK_IN_A != 31 && PARK_IN_A != 33, "A park pin clash");
+#endif
+// B pins in use: 0/1 2 3 4 5 6 7 11 12 13 14 15 16/17 18/19 20 21 22/23 24 25 30/31 40 41.
+static_assert(PARK_IN_B != B_THR_ALIVE && PARK_IN_B != PEDAL_IN_B && PARK_IN_B != ST_4WD_B && PARK_IN_B != B_FAULT_OUT &&
+              PARK_IN_B != HV_SENSE && PARK_IN_B != CUR_LO && PARK_IN_B != CUR_HI && PARK_IN_B != CUR_VC && PARK_IN_B != IN1 &&
+              PARK_IN_B != IN2 && PARK_IN_B != IN3 && PARK_IN_B != IN4 && PARK_IN_B != LED && PARK_IN_B != CAN1_TX &&
+              PARK_IN_B != CAN1_RX && PARK_IN_B != 0 && PARK_IN_B != 1 && PARK_IN_B != 30 && PARK_IN_B != 31 &&
+              PARK_IN_B != OUT1 && PARK_IN_B != OUT2 && PARK_IN_B != OUT3 && PARK_IN_B != OUT4 && PARK_IN_B != OUT5 &&
+              PARK_IN_B != OUT6 && PARK_IN_B != OUT7 && PARK_IN_B != OUT8, "B park pin clash");
 static_assert(B_THR_ALIVE != B_FAULT_OUT && PEDAL_IN_B != HV_SENSE && PEDAL_IN_B != CUR_LO && PEDAL_IN_B != CUR_HI && PEDAL_IN_B != CUR_VC, "B pin clash");
 }  // namespace Pins

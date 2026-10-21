@@ -109,6 +109,7 @@ struct World {
             si.tFresh = (now - tempLast[s]) <= lim;
             si.tMinC = tMin; si.tMaxC = sTMax[s] > -500 ? sTMax[s] : tMax; si.tHot = static_cast<uint8_t>(s);
         }
+        in.currentExpected = true; in.tempsExpected = true;
         in.currentValid = currentFitted; in.packA = packA - chargeSoakA;
         in.lemSplitValid = currentFitted; in.lemA = in.packA * lemShareA; in.lemB = in.packA - in.lemA;
         in.busValid = true; in.busV = busV;

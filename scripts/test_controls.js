@@ -37,12 +37,14 @@ c.setLight('high',true);r=run({mph:0},100);ok(r.out.headLow&&r.out.headHigh&&r.o
  ok(/kDisagreeMs\s*=\s*100\b/.test(src)&&/kMovingMs\s*=\s*300\b/.test(src)&&/kMoveRpm\s*=\s*50\b/.test(src),'JS park timings match ParkState.h');}
 // ---- analog brake regen (vehicle.js)
 {const vm=require('vm');const ctx={};vm.createContext(ctx);vm.runInContext(require('fs').readFileSync(__dirname+'/../sim/vehicle.js','utf8')+';this.V=vehStep;this.D=VEH_DEF;',ctx);
- const p=Object.assign({},ctx.D),I=(b,x)=>Object.assign({thr:0,brake:b,gear:'H',closed:true,allowPct:100,regenOk:true,packV:133},x||{});
+ const p=Object.assign({},ctx.D,{analogBrake:true}),I=(b,x)=>Object.assign({thr:0,brake:b,gear:'H',closed:true,allowPct:100,regenOk:true,packV:133},x||{});
  const r=b=>ctx.V(p,{mph:25},I(b),0.05).regenA;
  ok(r(10)===0&&r(30)>0&&r(50)>r(30)&&r(80)>r(50)&&Math.abs(r(100)-r(80))<1e-6,'regen proportional between dead zones');
  ok(ctx.V(p,{mph:25},I(50,{regenOk:false}),0.05).regenA===0,'BMS veto kills regen');
  ok(ctx.V(p,{mph:25},I(50,{regenAllowPct:50}),0.05).regenA<r(50)*0.6,'BMS taper scales regen');
  ok(ctx.V(p,{mph:10},I(5,{thr:80}),0.05).driveA===0,'brake switch overrides throttle');
+ {const q=Object.assign({},ctx.D);ok(q.analogBrake===false,'Brake_AN DEFERRED: default off');const a=ctx.V(q,{mph:25},I(10),0.05).regenReqA,b=ctx.V(q,{mph:25},I(90),0.05).regenReqA;
+  ok(a>0&&Math.abs(a-b)<1e-9&&Math.abs(a-q.maxRegenA*q.brkSwRegenPct/50)<1e-9,'default: brake-switch regen at a fixed level ('+a+' A asked)');}
  ok(ctx.V(p,{mph:0},I(0,{thr:80,parkBrake:true}),0.05).driveA===0,'park brake interlock: no drive');}
 {const vm=require('vm');const ctx={};vm.createContext(ctx);vm.runInContext(require('fs').readFileSync(__dirname+'/../sim/vehicle.js','utf8')+';this.V=vehStep;this.D=VEH_DEF;this.R=vehRpm;',ctx);
  const p=Object.assign({},ctx.D);const drive=x=>{let st={mph:0},o;for(let i=0;i<1200;i++){o=ctx.V(p,st,Object.assign({thr:100,brake:0,gear:'H',closed:true,allowPct:100,regenOk:true,packV:140},x),0.05);st.mph=o.mph;}return o;};

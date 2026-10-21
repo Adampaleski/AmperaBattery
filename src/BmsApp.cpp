@@ -11,7 +11,10 @@ namespace {
 void initPins() {
     // IN1=17 / IN2=16 are Serial4 TX/RX for the teryx-ev-hub ESP32 link.
     // Do not pinMode them as GPIO — HubStatus::begin() owns Serial4.
-    pinMode(Pins::IN3, INPUT_PULLUP);   // PARK_IN_A/B (docs/PARK_BRAKE.md); external 10k pull-up too, LOW = brake set
+#if BODY_IO_EXPANDER
+    pinMode(Pins::PARK_IN_B, INPUT_PULLUP);  // pin 32 on A and B: park contact (docs/PARK_BRAKE.md), LOW = set; read only
+#endif
+    pinMode(Pins::IN3, INPUT);   // reserved: MCP23017 SDA when BODY_IO_EXPANDER (lights); park moved to pin 32
     pinMode(Pins::IN4, INPUT);
 
     pinMode(Pins::OUT1, OUTPUT);

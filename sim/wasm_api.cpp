@@ -315,6 +315,7 @@ EXPORT const char *sim_state_json() {
     b.f(",\"lastDerate\":"); b.str(BmsCore::derateName(o.lastDerate));
     b.f(",\"derateMinPct\":%.1f,\"derateEvents\":%u", o.derateMinPct, static_cast<unsigned>(o.derateEvents));
     b.f(",\"regenWhy\":"); b.str(o.regenWhy ? o.regenWhy : "");
+    b.f(",\"limpWhy\":"); b.str(o.limpWhy ? o.limpWhy : "");
     b.f(",\"lemA\":%.1f,\"lemB\":%.1f,\"lemDiffA\":%.1f,\"lemImbalance\":%d", g_w.in.lemA, g_w.in.lemB, o.lemDiffA, o.lemImbalance);
     b.f(",\"dcfg\":{\"relSagStartV\":%.3f,\"relSagZeroV\":%.3f,\"hardFloorV\":%.3f,\"hardFloorMs\":%u,\"packSagBandV\":%.3f,"
         "\"lowCutMs\":%u,\"restA\":%.0f,\"imbalanceA\":%.0f,\"imbalanceMs\":%u,\"imbalancePct\":%.0f}",

@@ -52,7 +52,7 @@ nodes:[
 ["clamp","Throttle clamp|MCP4131 + HCT123 + 4066 ×2",960,360,240,50,"P","clamp"],
 ["en","Dual-Teensy safety enables|A pin 4 · B pin 7",1240,360,240,50,"P","enables"],
 ["ped","Throttle pedal (hall 0–5 V ASSUMED)|+ brake pedal → Brake_AN",960,440,240,50,"U","clamp"],
-["pk","Park brake switch 3-pole|pin 18 A/B + NC in Foot_SW",1240,440,240,50,"P","park"],
+["pk","Park brake switch 3-pole|pin 32 A/B (direct GPIO) + NC in Foot_SW",1240,440,240,50,"P","park"],
 ["low","Kelly ECO Low-cap relay|OUT3 pin 20 → relay → ECO 22",960,520,240,50,"P","kelly"],
 ["esp","ESP32 hub|Serial4 16/17 115200",1240,520,240,50,"S"],
 ["head","Dash head unit|Surface 3 (Linux), Wi-Fi",1240,600,240,44,"S"],
@@ -114,14 +114,14 @@ net:[["A pin 4","U1 B1 (via U4)","heartbeat","22 AWG","VT","PROPOSED colour","P"
 {id:"park",title:"Park brake dual contact + drive-enable interlock",w:1100,h:600,desc:"Switch fit on the 2008 Teryx is UNVERIFIED (photo needed). Source: docs/PARK_BRAKE.md.",
 nodes:[
 ["sw","Park brake switch, 3-pole sealed|pole1 NO · pole2 NO · pole3 NC",20,40,300,50,"P"],
-["a","Teensy A pin 18 (IN3)|10k pull-up 3V3 + 100 nF|LOW = set",420,20,260,64,"S"],
-["b","Teensy B pin 18 (IN3)|10k pull-up 3V3 + 100 nF|LOW = set",420,110,260,64,"S"],
+["a","Teensy A pin 32 (direct GPIO)|10k pull-up 3V3 + 100 nF|LOW = set · needs BODY_IO_EXPANDER",420,20,260,64,"S"],
+["b","Teensy B pin 32 (direct GPIO)|10k pull-up 3V3 + 100 nF|LOW = set",420,110,260,64,"S"],
 ["k12","Kelly 12 V out (pin 11)",20,250,220,40,"S"],
 ["fs","Kelly Foot_SW (pin 15)|Foot Switch = checked",420,250,260,50,"U"],
 ["sw3","Park pole 3 (NC)|opens when brake SET",220,330,220,44,"P"],
 ["sws","Software Parked =|A set AND B set AND RPM 0 (≤200 ms) AND F/N/R neutral",720,60,340,64,"S"]],
 wires:[["sw","a","pole 1 → GND",0],["sw","b","pole 2 → GND",0],["k12","sw3","",0],["sw3","fs","",0],["a","sws","",0],["b","sws","",0]],
-net:[["Teensy A pin 18","Park pole 1 → GND","park in","22 AWG","BU/BK","colour PROPOSED","P"],["Teensy B pin 18","Park pole 2 → GND","park in","22 AWG","BU/RD","","P"],["Kelly pin 11 (12 V out)","Park pole 3 NC","12 V","20 AWG","RD/WH","","P"],["Park pole 3 NC","Kelly pin 15 Foot_SW","enable","20 AWG","RD/YE","harness pin UNVERIFIED","U"]]},
+net:[["Teensy A pin 32","Park pole 1 → GND","park in","22 AWG","BU/BK","colour PROPOSED","P"],["Teensy B pin 32","Park pole 2 → GND","park in","22 AWG","BU/RD","","P"],["Kelly pin 11 (12 V out)","Park pole 3 NC","12 V","20 AWG","RD/WH","","P"],["Park pole 3 NC","Kelly pin 15 Foot_SW","enable","20 AWG","RD/YE","harness pin UNVERIFIED","U"]]},
 {id:"precharge",title:"Precharge + contactor sequence, MSD service disconnect",w:1200,h:700,desc:"Coils are 12 V via FETs; Teensy pin = FET gate. BMS_CAP_CONTACTOR_DRV=0 today. Sequence from TERYX_MAIN_POWER_PATH.md.",
 nodes:[
 ["bus","Common B+ bus (after 4 string fuses)",20,20,320,40,"S"],["msd","Volt MSD ≈350 A|SERVICE: step 1 pull MSD|step 2 pull all 4 A6T200",20,90,320,64,"U"],
@@ -131,12 +131,13 @@ nodes:[
 ["seq","1 key on + park set (PROPOSED) → 2 close B− → 3 precharge → 4 wait Kelly ≥95 % pack V → 5 close B+ → 6 precharge off · timeout → fault · weld check at key-off/before precharge (REQUIRED, not built)",20,420,1140,60,"P"]],
 wires:[["bus","msd","",0],["msd","evp","",0],["evp","kel","",0],["pre","evp","across",0],["kel","evn","",0],["hvs","pre","",1]],
 net:[["A pin 11 OUT1","FET → EV200 B+ coil","12 V coil","18 AWG","RD/BU","1N4007 flyback? EV200 economized","P"],["A pin 12 OUT2","FET → AEV14012 coil","12 V coil","18 AWG","RD/GN","","P"],["A pin 21 OUT4","FET → EV200 B− coil","12 V coil","18 AWG","RD/BK","","P"],["50 Ω 100 W","across EV200 B+ (with AEV14012)","HV","14 AWG HV","OR","value vs Kelly capacitance UNVERIFIED","U"]]},
-{id:"estop",title:"E-stop NC1 / NC2 chain",w:1100,h:560,desc:"Crew-approved in chat (chief + Sparky 2026-10-21). NOT yet in any repo doc: PROPOSED. Hardware cut, independent of park and software.",
-nodes:[["f","12 V coil feed fuse",20,40,220,40,"P"],["es","E-stop mushroom|latching, 2 NC blocks",300,40,240,50,"P"],
-["nc1","NC block 1",600,20,200,36,"P"],["nc2","NC block 2",600,140,200,36,"P"],
-["c1","AEV14012 precharge coil",860,10,220,36,"P"],["c2","Kelly KSI",860,60,220,36,"U"],["c3","EV200 B+ coil",860,130,220,36,"P"],["c4","EV200 B− coil",860,180,220,36,"P"]],
-wires:[["f","es","",0],["es","nc1","",0],["es","nc2","",0],["nc1","c1","",0],["nc1","c2","",0],["nc2","c3","",0],["nc2","c4","",0]],
-net:[["12 V fused","E-stop common","12 V","18 AWG","RD","fuse rating TBD","P"],["NC1","AEV14012 coil + Kelly KSI feed","12 V","18 AWG","RD/WH","Kelly KSI pin UNVERIFIED","P"],["NC2","EV200 B+ / B− coil supply (high side, FETs low side)","12 V","18 AWG","RD/OR","","P"]]},
+{id:"estop",title:"E-stop: NC1 cuts every coil + Kelly KSI, NC2 = log only",w:1150,h:600,desc:"docs/ESTOP.md (crew sign-off: chief, Sparky). Hardware cut, independent of park and software. Reset = twist-to-release + key cycle + new precharge. Contact block DC rating vs load UNVERIFIED.",
+nodes:[["f","12 V coil feed fuse|(rating TBD)",20,40,220,44,"P"],["es","E-stop mushroom, latching|Schneider XB4 metal or IDEC · IP65 guarded box",280,40,300,50,"P"],
+["nc1","NC block 1 (series cut)|load ≈0.26 A hold ×2 + precharge coil + KSI · inrush ≈3.8 A / 130 ms per EV200",620,20,380,50,"U"],
+["c3","EV200 B+ coil (FET A pin 11)",1040,0,200,36,"P"],["c4","EV200 B− coil (FET A pin 21)",1040,50,200,36,"P"],["c1","AEV14012 precharge coil (FET A pin 12)",1040,100,200,36,"P"],["c2","Kelly KSI / PWR (pin 7)",1040,150,200,36,"U"],
+["nc2","NC block 2 (signal only)",620,260,300,44,"P"],["tb","Teensy B input (log only)|pull-up, open = E-stop pressed · pin TBD",980,260,260,50,"U"]],
+wires:[["f","es","",0],["es","nc1","",0],["nc1","c3","",0],["nc1","c4","",0],["nc1","c1","",0],["nc1","c2","",0],["es","nc2","",0],["nc2","tb","",1]],
+net:[["12 V fused","E-stop NC1 in","12 V","18 AWG","RD","fuse rating TBD","P"],["NC1 out","EV200 B+ + EV200 B− + AEV14012 coil high sides + Kelly KSI","12 V","18 AWG","RD/WH","FETs stay low side; NC1 rating UNVERIFIED","U"],["NC2","Teensy B input → GND","signal","22 AWG","WH/BK","logging only, never the cut","P"]]},
 {id:"bms",title:"BMS + CAN wiring (CAN_LAYOUT_V2)",w:1300,h:760,desc:"From include/FlexCanCompat.h. Each bus: own SN65HVD230, 120 Ω both ends (BICM-end termination UNVERIFIED: meter ≈60 Ω powered off).",
 nodes:[
 ["ta","Teensy A",20,250,200,60,"S"],["tb","Teensy B",1080,250,200,60,"S"],
@@ -162,16 +163,16 @@ wires:[["dcdc","fm","",0],["fm","b12","",0],["b12","fk","",0],["b12","fd","",0],
 net:[["DC-DC 12 V out","Main fuse → 12 V bus","+12V","gauge TBD","RD","","P"],["12 V −","Frame (ground strap)","GND","strap","BK","Mechanic","P"],["Kelly case","Frame","GND","strap","BK","","P"],["12 V bus","5 V buck via 3 A","+12V","18 AWG","RD","","P"],["5 V block","Teensy A/B VIN","+5V","20 AWG","OR","","P"]]}
 ];
 window.CONFLICTS=[
-"docs/WIRING.md still describes the old bus map (CAN3 30/31 = BICM 125k, CAN2 0/1 = Elcon/Kelly 250k). Config.h + FlexCanCompat.h CAN_LAYOUT_V2 (dual build) = CAN1 22/23 125k S1/S3, CAN2 0/1 125k S2/S4, CAN3 30/31 250k vehicle. This tool follows CAN_LAYOUT_V2.",
+"docs/WIRING.md CAN map updated to CAN_LAYOUT_V2 (CAN1 22/23 125k S1/S3, CAN2 0/1 125k S2/S4, CAN3 30/31 250k vehicle).",
 "Config.h comment says PRECHARGE (pin 12) = 'TE EV11 / K1KABNA'; WIRING/SAFETY/COMPONENTS say Volt AEV14012. Tool shows AEV14012 (UNVERIFIED).",
 "String lead gauge: WIRING.md/main-power-path say 1/0; schematic/gen.py edges say 3/0.",
 "gen.py shows Blue Sea 5007100 Class T + a ~400 A combined fuse; bought parts are 4× Mersen A6T200 and no combined fuse. gen.py also shows 1 Teensy / 2 transceivers (pre-dual).",
 "MSD ≈350 A (gen.py) < 550 A Kelly launch current — REQUIRED BEFORE FIRST DRIVE: verify or replace with a combined bus fuse.",
 "COMPONENTS.md lists SN65HVD230 ×4 owned; CAN_LAYOUT_V2 needs 6 (2 more).",
-"E-stop NC1/NC2 chain was approved in chat but is in no repo doc; the Kelly KSI pin is not documented.",
+"E-stop now in docs/ESTOP.md. Kelly KSI (PWR pin 7 per V2.11 manual) on Adam's harness and the NC block DC rating are UNVERIFIED.",
 "Kelly pin numbers (3 throttle, 11 12 V, 15 Foot_SW, 22 ECO, 2 Brake_AN, 25 brake) come from the KLS-8080N V2.11 / HC V2.14 manuals; Adam's harness is UNVERIFIED. Kelly pin 11/22 ≠ Teensy pin 11/22.",
 "Pin 41 = POS_4WD on Teensy A but PEDAL_IN_B on Teensy B; pin 7 = RAD_FAN on A but B_THR_ALIVE on B; pin 4 = A_THR_ALIVE on A, B_FAULT_OUT on B. Not clashes (different boards) — label every harness by board.",
-"Pin 18 (park, committed b629bcf) conflicts with the MCP23017 I2C expander on A (BODY_IO.md). Uncommitted work in progress moves park to pin 32 and 18/19 to I2C: re-check this page before wiring the park switch."];
+"Park moved to direct pin 32 on A and B (18/19 = MCP23017 I2C). On Teensy A, pin 32 is free ONLY with the expander (595 latch moves to it); without the expander there is no free direct pin for park on A."];
 </script><script>
 const NS="http://www.w3.org/2000/svg",isR=s=>s!=="S";
 function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e}

@@ -293,6 +293,8 @@ void tickDual() {
     in.perStringTemps = true;            // fold S1-S4 temps; acts only when tempsValid
     in.tempsValid = TEMPS_VERIFIED != 0;  // 0: charge refused (F_TEMP_INVALID), drive unaffected
     in.currentValid = CurrentSense::valid();
+    in.currentExpected = CURRENT_SENSE_ENABLE != 0;   // 0 today: no Low cap for a sensor that isn't fitted yet
+    in.tempsExpected   = TEMPS_VERIFIED != 0;
     in.packA = CurrentSense::amps();
     const float hv = busV();
     in.busValid = hv > 0.0f || HV_ANALOG_ENABLE;

@@ -65,8 +65,8 @@ Also checked in `scripts/test_throttle_cross.cpp`: 120 s of random pedal, speed 
 | — | 100 nF decoupling | 4 | one per IC |
 
 ## Pins
-- **Teensy A:** pedal **pin 40 (A16)**, freed by moving the optional stock 4WD indicator to Teensy B pin 40 (`ST_4WD_B`, not read yet). MCP4131 on 35/36 (shared DATA/CLK) + CS 38. Alive = **pin 4**. Park brake contact 1 = **pin 18 (IN3)**. HV sense stays on 24.
-- **Teensy B:** pedal **pin 41 (A17)**, alive **pin 7**, stock 4WD switch pin 40, park brake contact 2 **pin 18 (IN3)**.
+- **Teensy A:** pedal **pin 40 (A16)**, freed by moving the optional stock 4WD indicator to Teensy B pin 40 (`ST_4WD_B`, not read yet). MCP4131 on 35/36 (shared DATA/CLK) + CS 38. Alive = **pin 4**. Park brake contact 1 = **pin 32** (needs BODY_IO_EXPANDER: 595 latch moves to the MCP23017). HV sense stays on 24.
+- **Teensy B:** pedal **pin 41 (A17)**, alive **pin 7**, stock 4WD switch pin 40, park brake contact 2 **pin 32**.
   - Pins B already uses: 0/1, 22/23, 30/31 (CAN), 4 (B fault), 2/3/5/6/11/12/20/21 (OUT pinModes), 13 (LED), 14/15/25 (LEM B), 16/17 (hub UART), 18/19 (IN3/IN4), 24 (HV sense).
   - 7, 40 and 41 are body-I/O pins on A only, and nothing on B drives them.
 

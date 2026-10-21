@@ -81,13 +81,18 @@ let tStop=-1;for(let i=0;i<200&&tStop<0;i++){X.sim_step(500);if(st().chargeWhy==
 X.sim_set_plug(0);X.sim_step(200);
 {const S=st();vk(S.state==="Open"&&S.mode==="IDLE"&&!S.chargerPath,"unplug, key off: mains open, IDLE",S.state);}
 X.sim_reset();X.sim_set_key(1);X.sim_step(4000);
-{let spd=40,peak=0,below=null;const p=Object.assign({},VM.VEH_DEF);
+{X.sim_set_temps(52.5,52.5);X.sim_step(500);const a=st();vk(a.kellyPct<60&&!a.kellyLimp,"soft derate (pack hot): current scaled, no Low cap",`${a.kellyPct.toFixed(0)} % limp=${a.kellyLimp}`);
+ X.sim_set_temps(20,22);X.sim_step(500);X.sim_lem_dropout(3000);X.sim_step(300);const b=st();X.sim_step(900);const c=st();
+ vk(!b.kellyLimp&&b.kellyPct<100&&c.kellyLimp&&c.limpWhy==="current sensor lost","hard (LEM lost): ramp ~1 s then Low cap",`${b.kellyPct.toFixed(0)} % -> ${c.kellyPct.toFixed(0)} % limp=${c.kellyLimp} ${c.limpWhy}`);
+ X.sim_step(2500);vk(!st().kellyLimp,"LEM back: Low cap released",st().limpWhy);}
+X.sim_reset();X.sim_set_key(1);X.sim_step(4000);
+{let spd=40,peak=0,below=null;const p=Object.assign({},VM.VEH_DEF,{analogBrake:true});
  for(let i=0;i<200;i++){const S=st();const o=VM.vehStep(p,{mph:spd},{thr:0,brake:80,gear:"H",closed:S.state==="Closed",allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV},0.1);
   X.sim_set_pack_amps(o.packA);X.sim_step(100);spd=o.mph;peak=Math.min(peak,st().packA);if(spd<1.5&&below==null)below=o;if(spd<=0)break;}
  vk(peak<=-35&&peak>=-36.5,"analog brake 80 % (Dead High) at 40 mph: regen = 60 A x BRK_AD 30/50 = 36 A",`${peak.toFixed(1)} A`);
  const lo=VM.vehStep(p,{mph:1.2},{thr:0,brake:30,gear:"H",closed:true,allowPct:100,regenOk:true,driveLocked:false,packV:140},0.01);
  vk(lo.regenA===0&&lo.Ffric>0&&below&&below.regenA<below.regenReqA,"below ~1.5 mph: regen faded, friction only",`${lo.regenA} A friction ${lo.Ffric.toFixed(0)} N`);}
-{const p=Object.assign({},VM.VEH_DEF),S=st();const o=VM.vehStep(p,{mph:30},{thr:0,brake:50,gear:"H",closed:true,allowPct:100,regenOk:true,driveLocked:false,packV:S.busV},0.1);
+{const p=Object.assign({},VM.VEH_DEF,{analogBrake:true}),S=st();const o=VM.vehStep(p,{mph:30},{thr:0,brake:50,gear:"H",closed:true,allowPct:100,regenOk:true,driveLocked:false,packV:S.busV},0.1);
  vk(o.regenA>9&&o.regenA<o.regenReqA+0.01&&Math.abs(o.regenReqA-18)<0.01,"analog brake 50 % = half way 20..80 %: 18 A asked (proportional)",`${o.regenA.toFixed(1)}/${o.regenReqA} A`);
  const n=VM.vehStep(p,{mph:30},{thr:0,brake:30,gear:"H",closed:true,allowPct:100,regenOk:false,driveLocked:false,packV:S.busV},0.1);
  vk(n.regenA===0&&n.Ffric>0&&/BMS/.test(n.regenWhy),"BMS regen not allowed (full/cold): friction only",n.regenWhy);

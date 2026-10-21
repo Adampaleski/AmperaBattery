@@ -2,21 +2,22 @@
 // SIM ONLY. Every default below is ASSUMED or PROPOSED (tagged in VEH_SETS), not measured on the Teryx.
 // Point-mass longitudinal model: motor torque (Kelly phase-amp limit x ASSUMED Kt) and Kelly battery-amp
 // limit -> wheel force through 16/32 sprockets (SOURCED) x 4.375 diff (SOURCED, 2008 owner's manual); minus rolling, aero, grade, friction brake
-// and regen. Brake pedal (2026-10-21, Kelly KLS-8080N manual V2.11, SOURCED): analog hall pedal 0-5 V on Kelly
+// and regen. DEFAULT (crew 2026-10-21, first drive): Kelly SWITCH regen at a fixed BRK_SW Brk level when the 12 V
+// brake switch closes. Brake_AN analog is DEFERRED (needs Kelly config readback + Boost OFF). Optional model: analog hall pedal 0-5 V on Kelly
 // Brake_AN pin 2 (Brake Type = 2, Boost OFF). Regen is PROPORTIONAL between Brake Dead Low (20 %) and Brake Dead
 // High (80 %), max = BRK_AD Brk strength (0-50 %, default 0 = off). Kelly exits regen below Brk_Speed Limit RPM.
 // The 12 V brake switch (Kelly pin 25 + brake light + Teensy) cuts the throttle here (Kelly-side: Brake H-Pedal).
 // Hydraulic friction is NOT blended: it always follows the pedal; regen adds on top. Regen is still capped by the
 // BMS (regenOk: cells full / pack cold) and a PROPOSED taper regenAllowPct (SOC + cold, from the sim page).
 const VEH_DEF={tireIn:24,sprFront:16,sprRear:32,diffRatio:4.375,massKg:900,crr:0.030,cdA:1.20,gradePct:0,
-  maxRegenA:60,regenBlendPct:30,brkDeadLo:20,brkDeadHi:80,brkAdPct:30,brkSwPct:3,brkMinRpm:100,analogBrake:true,liftRegen:false,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,battA:550,
+  maxRegenA:60,regenBlendPct:30,brkDeadLo:20,brkDeadHi:80,brkAdPct:30,brkSwPct:3,brkMinRpm:100,analogBrake:false,brkSwRegenPct:10,liftRegen:false,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,battA:550,
   frictionG:0.6,parkG:0.25,lowCapRpm:1225,fadeLoMph:1.5,fadeHiMph:4.5};
 // [key, label, unit, tag, min, max, step]
 const VEH_SETS=[['tireIn','Tire diameter','in','SOURCED: Adam (stock tires, 24")',18,40,0.5],['sprFront','Drive sprocket','teeth','SOURCED: cash ledger (#50 chain, 16T)',8,40,1],
   ['sprRear','Driven sprocket','teeth','SOURCED: cash ledger (#50 chain, 32T → 2.0:1)',16,80,1],['diffRatio','Diff ratio','× : 1','SOURCED: 2008 Teryx owner\'s manual 4.375:1 (35/8, front = rear) · total 2.0 × 4.375 = 8.75',1,12,0.005],
   ['massKg','Mass (with driver + pack)','kg','ASSUMED',400,1600,10],['crr','Rolling resistance Crr','','ASSUMED (dirt / ATV tires)',0.005,0.15,0.001],
   ['cdA','Drag area CdA','m²','ASSUMED',0.3,3,0.05],['gradePct','Grade','%','SIM input',-30,30,0.5],
-  ['maxRegenA','Max regen current','A','PROPOSED 60 A',0,200,5],['regenBlendPct','Regen brake blend (switch-only model)','% pedal','PROPOSED: only used with analog brake OFF',0,100,5],['analogBrake','Analog brake pedal on Kelly Brake_AN','on/off','SOURCED feature (KLS-8080N V2.11, Brake Type 2); Adam\'s pedal + harness UNVERIFIED',0,1,1],['brkDeadLo','Kelly Brake Dead Low','% pedal','SOURCED default 20 % (=1 V)',5,40,1],['brkDeadHi','Kelly Brake Dead High','% pedal','SOURCED default 80 % (=4 V)',60,95,1],['brkAdPct','Kelly BRK_AD Brk (pedal regen strength)','% (0-50)','SOURCED range 0-50 %, default 0; 30 PROPOSED; mapping to amps UNVERIFIED (maxRegenA scales it)',0,50,1],['brkSwPct','Brake switch closes above','% pedal','PROPOSED (switch position on pedal UNVERIFIED)',0,20,1],['brkMinRpm','Kelly Brk_Speed Limit','RPM','SOURCED range 0-500, default 0; 100 PROPOSED',0,500,10],
+  ['maxRegenA','Max regen current','A','PROPOSED 60 A',0,200,5],['analogBrake','Analog brake pedal on Kelly Brake_AN (DEFERRED)','on/off','DEFERRED for first drive (crew): needs Kelly config readback + Boost OFF confirmed. Default off = brake-switch regen at a fixed level',0,1,1],['brkSwRegenPct','Kelly BRK_SW Brk (switch regen strength)','% (0-50)','SOURCED range 0-50 %, default 10 %; amps mapping UNVERIFIED (× maxRegenA / 50)',0,50,1],['brkDeadLo','Kelly Brake Dead Low','% pedal','SOURCED default 20 % (=1 V)',5,40,1],['brkDeadHi','Kelly Brake Dead High','% pedal','SOURCED default 80 % (=4 V)',60,95,1],['brkAdPct','Kelly BRK_AD Brk (pedal regen strength)','% (0-50)','SOURCED range 0-50 %, default 0; 30 PROPOSED; mapping to amps UNVERIFIED (maxRegenA scales it)',0,50,1],['brkSwPct','Brake switch closes above','% pedal','PROPOSED (switch position on pedal UNVERIFIED)',0,20,1],['brkMinRpm','Kelly Brk_Speed Limit','RPM','SOURCED range 0-500, default 0; 100 PROPOSED',0,500,10],
   ['liftRegen','Throttle lift-off regen','on/off','PROPOSED off by default',0,1,1],['liftRegenA','Lift-off regen current','A','PROPOSED',0,100,5],
   ['lowCapRpm','Kelly Low speed cap (ECO pin 22)','RPM','PROPOSED 1225 RPM ≈ 10 mph (LowSpeed Forw ≈ 20 % of 6000); fail-safe relay, ECO pin + relay UNVERIFIED',300,6000,25],['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
   ['phaseA','Kelly phase current limit','A','SOURCED: Adam 550 A (Kelly config not yet read back)',50,800,10],['battA','Kelly battery current limit','A','SOURCED: Adam 550 A',50,800,10]];
@@ -84,7 +85,7 @@ function vehStep(p,st,inp,dt){
   let brkFrac=0;
   if(p.analogBrake){const lo=p.brkDeadLo/100,hi=p.brkDeadHi/100;brkFrac=Math.max(0,Math.min(1,(brake-lo)/Math.max(0.01,hi-lo)));
     if(brkFrac>0)regReq=p.maxRegenA*brkFrac*(p.brkAdPct/50);}                // proportional to pedal (Brake_AN)
-  else if(brkSw)regReq=p.maxRegenA*Math.min(1,p.regenBlendPct>0?brake/(p.regenBlendPct/100):1);
+  else if(brkSw)regReq=p.maxRegenA*(p.brkSwRegenPct/50);                    // DEFAULT: Kelly switch regen, fixed level (Brake Type 0)
   if(regReq===0&&!brkSw&&p.liftRegen&&thr===0)regReq=p.liftRegenA;          // Kelly RLS_TPS Brk (0-50 %, SOURCED)
   regReq*=(g.regen==null?100:g.regen)/100;                                   // mode regen strength (PROPOSED)
   const allow=inp.regenAllowPct==null?100:Math.max(0,Math.min(100,inp.regenAllowPct));const regReq0=regReq;regReq*=allow/100;
@@ -100,9 +101,8 @@ function vehStep(p,st,inp,dt){
   // regen force from the amps request, capped by motor torque and (on the pedal) by the driver's brake demand;
   // the pack current is then what that force really returns (low speed = little current).
   let Fregen=v>0.05?Math.min(regA*V*p.eta/v,p.ktNmA*p.phaseA*k/r):0;
-  if(brake>0&&!p.analogBrake)Fregen=Math.min(Fregen,Ftarget);             // switch model: blended; analog: adds
   regA=Fregen*v/(V*p.eta);
-  const Ffric=p.analogBrake?Ftarget:(brake>0?Math.max(0,Ftarget-Fregen):0)+(inp.parkBrake&&!(brake>0)?Ftarget:0);
+  const Ffric=Ftarget;                                                       // hydraulic friction always follows the pedal; regen adds
   const th=Math.atan((p.gradePct||0)/100),Fgrade=m*G*Math.sin(th)*dir;   // uphill opposes travel in the gear direction
   const Froll=p.crr*m*G*Math.cos(th),Faero=0.5*RHO*p.cdA*v*v;
   let s=dir*st.mph>=0?v:-v;                                              // speed along the gear direction

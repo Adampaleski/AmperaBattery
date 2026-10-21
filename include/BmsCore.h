@@ -142,6 +142,11 @@ struct Config {
     float    packSagBandV   = 0.10f;   // under load: pack-average taper from floor + band down to floor
     float    imbalanceA     = 100.0f;  // |LEM A - LEM B| above this ...
     uint32_t imbalanceMs    = 1000;    // ... for this long -> derate + warn
+    // Low cap (crew 2026-10-21): soft derates only scale kellyPct; the Kelly ECO 10 mph cap (kellyLimp) engages
+    // only on HARD faults, after ramping kellyPct down to limpRampPct over limpRampMs. All PROPOSED, adjustable.
+    float    limpCellV      = 3.00f;   // any cell below -> hard
+    uint32_t limpRampMs     = 1000;    // ~1 s ramp into the cap
+    float    limpRampPct    = 30.0f;   // power allowed at the end of the ramp (cap then holds speed)
     float    imbalancePct   = 50.0f;   // allowance while imbalanced. PLACEHOLDER: level not set by Adam
     // Derate logging (Adam 2026-10-21). PLACEHOLDER debounce, adjustable.
     uint32_t derateLogMs    = 100;     // a cutback must hold this long to count as a derate event
@@ -174,6 +179,8 @@ struct Inputs {
     bool     perStringTemps = false; // true: tMinC/tMaxC are folded from s[].t* (all used strings), stale -> F_TEMP_STALE
     bool     currentValid = false;
     float    packA        = 0;     // + = discharge
+    bool     currentExpected = false; // current sensing fitted+enabled (CURRENT_SENSE_ENABLE): !currentValid = LOST
+    bool     tempsExpected   = false; // temps verified (TEMPS_VERIFIED): !tempsValid = STALE
     bool     lemSplitValid= false; // both halves read (LEM A on Teensy A, LEM B over the link)
     float    lemA = 0, lemB = 0;   // strings 1+2 and 3+4, + = discharge
     bool     busValid     = false; // HV bus sense present
@@ -212,6 +219,7 @@ struct Outputs {
     float    kellyPct = 0;                 // throttle/discharge allowance 0..100
     bool     kellyLimp = false;            // assert low-speed input
     bool     kellyRegenOk = false;
+    const char *limpWhy = "";              // hard fault holding the Low cap ("" = none)
     const char *kellyWhy = "";             // active limiter ("" = full power)
     const char *regenWhy = "";             // why regen is inhibited ("" = allowed)
     uint8_t  derateNow  = D_NONE;          // raw limiter this tick (no debounce)
@@ -245,7 +253,7 @@ public:
         st_ = CState::Open; stMs_ = 0; retries_ = 0; latched_ = 0; chargeOvLatched_ = false;
         welded_ = false; keyBlock_ = false; ocSinceMs_ = 0; ocActive_ = false; full_ = false; openSinceMs_ = 0;
         imbSinceMs_ = 0; imbOver_ = false; imbOn_ = false;
-        derOn_ = D_NONE; derRaw_ = D_NONE; derSinceMs_ = derFullMs_ = 0; derMin_ = 100; derLast_ = D_NONE; derEvents_ = 0;
+        hardOn_ = false; hardSinceMs_ = 0; derOn_ = D_NONE; derRaw_ = D_NONE; derSinceMs_ = derFullMs_ = 0; derMin_ = 100; derLast_ = D_NONE; derEvents_ = 0;
         lowSinceMs_ = floorSinceMs_ = 0; lowBelow_ = floorBelow_ = false;
         logHead_ = 0; logCount_ = 0; prevFaults_ = 0; out_ = Outputs{}; started_ = false;
     }
@@ -407,6 +415,7 @@ private:
     bool     lowBelow_ = false, floorBelow_ = false;
     bool     imbOver_ = false, imbOn_ = false;
     uint8_t  retries_ = 0;
+    bool     hardOn_ = false; uint32_t hardSinceMs_ = 0;
     uint8_t  derOn_ = D_NONE, derRaw_ = D_NONE, derLast_ = D_NONE;
     uint32_t derSinceMs_ = 0, derFullMs_ = 0, derEvents_ = 0;
     float    derMin_ = 100;
@@ -611,9 +620,26 @@ private:
         if (cfg.maxDischargeA > 0 && in.currentValid && in.packA > cfg.maxDischargeA) {
             const float p = 100 * cfg.maxDischargeA / in.packA; if (p < pct) { pct = p; why = "discharge amps"; code = D_DISCHARGE_A; }
         }
+        // HARD faults -> Low cap (ramped). Soft derates above only scale pct.
+        const char *hard = "";
+        if (in.currentExpected && !in.currentValid) hard = "current sensor lost";
+        else if (in.tempsExpected && !in.tempsValid) hard = "temps stale";
+        else if (minCell > 0 && minCell < cfg.limpCellV) hard = "cell < 3.0 V";
+        else if (o.lemImbalance) hard = "LEM A/B mismatch";
+        if (hard[0]) {
+            if (!hardOn_) { hardOn_ = true; hardSinceMs_ = in.nowMs; logf(in.nowMs, "LOW CAP: %s (ramp %lu ms)", hard, (unsigned long)cfg.limpRampMs); }
+            const uint32_t t = in.nowMs - hardSinceMs_;
+            const float k = cfg.limpRampMs ? (t >= cfg.limpRampMs ? 1.0f : (float)t / cfg.limpRampMs) : 1.0f;
+            const float rp = 100 - (100 - cfg.limpRampPct) * k;
+            if (rp < pct) { pct = rp; why = hard; }
+            o.kellyLimp = t >= cfg.limpRampMs;
+        } else {
+            if (hardOn_) logf(in.nowMs, "LOW CAP released");
+            hardOn_ = false; o.kellyLimp = false;
+        }
+        o.limpWhy = hard;
         if (pct < 0) pct = 0;
         o.kellyPct = pct;
-        o.kellyLimp = pct < 100;
         o.kellyWhy = why;
         o.derateNow = pct < 100 ? code : D_NONE;
         const bool full = maxCell >= kCeil100V - 0.02f;

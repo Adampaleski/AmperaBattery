@@ -1,7 +1,7 @@
 #pragma once
 // Park detection (Adam 2026-10-21). Pure C++: firmware, sim parity, scripts/test_park.cpp. CREW REVIEW.
 // Hardware: parking-brake switch with TWO contacts (docs/PARK_BRAKE.md):
-//   NO contact 1 -> Teensy A pin 18 (IN3), NO contact 2 -> Teensy B pin 18 (IN3), each 10k pull-up to 3.3 V
+//   NO contact 1 -> Teensy A pin 32, NO contact 2 -> Teensy B pin 32 (direct GPIO, never the expander), each 10k pull-up to 3.3 V
 //   (PROPOSED). Brake SET closes the contact to GND -> LOW = set. Open/broken wire = HIGH = NOT parked.
 //   NC contact 3 (separate pole) in the 12 V feed to Kelly Foot_SW (pin 15): brake set -> Kelly cannot drive,
 //   whatever the software does (hardware interlock, non-negotiable).
