@@ -21,7 +21,7 @@ Hardware: dual board gets **J9A (1×14) + J9B (1×10) BODY** headers next to Tee
 | 28 / 29 | ACTDIF_IN1/IN2 | PWM out ×2 | H-bridge #2, diff actuator | UNVERIFIED |
 | 41 (A17) | POS_4WD | ADC | 4WD actuator pot wiper (3.3 V) | UNVERIFIED |
 | 39 (A15) | POS_DIFF | ADC | diff actuator pot wiper | UNVERIFIED |
-| 40 | ST_4WD (IN5) | in | optional stock 4WD switch on the front diff, 27k/10k divider | optional |
+| 40 | PEDAL_IN_A | in (analog A16) | throttle pedal wiper sense, 10k/18k divider + 100 nF (crew 2026-10-21). Stock 4WD switch moved to **Teensy B pin 40** (ST_4WD_B) | PROPOSED |
 | 37 | ACT_EN | out | R_EN+L_EN of BOTH BTS7960s, 10k pull-down (disabled at boot) | PROPOSED |
 | 26 (A12) / 27 (A13) | IS_4WD / IS_DIFF | ADC | BTS7960 IS current sense via 10k/18k (5 V → 3.21 V) + 100 nF; fault ~7 A PROPOSED, IS scale UNVERIFIED | PROPOSED |
 | 35 / 36 | LIGHT_DATA / LIGHT_CLK | out (bit-banged) | 2× 74HC595 lights; MCP4131 shares them | chief requirement |

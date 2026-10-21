@@ -87,4 +87,7 @@ constexpr uint32_t kLinkIdAStatus  = 0x6A8;  // A -> B  heartbeat + contactor st
 constexpr uint32_t kLinkIdBTemps   = 0x6A3;  // B -> A  per-string temps (2026-10-21, CREW REVIEW):
 //   [0] S1 min C+40  [1] S1 max C+40  [2] S1 hottest thermistor idx  [3-5] same for S2
 //   [6] bit0 S1 temps fresh, bit1 S2 fresh  [7] heartbeat. 0xFF = none. Sent every LINK_PERIOD_MS.
-// 0x6A4-0x6A7, 0x6A9-0x6AF reserved.
+constexpr uint32_t kLinkIdBThrottle= 0x6A4;  // B -> A  B's own pedal-map trim (20 ms, ThrottleTrim.cpp)
+constexpr uint32_t kLinkIdAThrottle= 0x6A9;  // A -> B  A's commanded trim + mode + ok/allow/speed (20 ms)
+constexpr uint32_t kLinkIdAProfile = 0x6AA;  // A -> B  profile sync, one field per frame (50 ms, 35 fields)
+// 0x6A5-0x6A7, 0x6AB-0x6AF reserved.

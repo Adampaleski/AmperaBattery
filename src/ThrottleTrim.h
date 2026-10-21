@@ -8,5 +8,7 @@ void begin();
 void tick();                          // loop(): commands + stats; the 1 kHz work runs in an IntervalTimer
 bool handleLine(const char *line);    // "M <key> [pin]", "MPIN <old> <new>", "MP <key> <field> <v>", "M?"
 void print();
-uint32_t maxLatencyUs();              // worst ISR period jitter + compute
+uint32_t maxLatencyUs();
+void linkTx(void (*send)(uint32_t id, const uint8_t *b));   // from Link::tick (dual build)
+void linkRx(uint32_t id, const uint8_t *b);                  // from Link::onFrame              // worst ISR period jitter + compute
 }

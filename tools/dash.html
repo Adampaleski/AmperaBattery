@@ -398,7 +398,7 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
  ['SoC / range','BmsCore::Soc coulomb count on LEM A + B, full-charge anchor; range = SoC × ASSUMED kWh ÷ Wh/mi','sim only · capAh UNVERIFIED'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → head unit','schema exists']];
-const DASH_BUILD='built on fbe2bfa+';
+const DASH_BUILD='built on d8e0f2f+';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');

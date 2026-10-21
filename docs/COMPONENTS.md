@@ -11,6 +11,7 @@ No JK BMS. The two Teensy 4.1s are the BMS; Volt BICMs do the sensing. Pack: 36S
 | Volt BICM M4 18S x2 | bottom+middle circuits (0x46C/0x46D) = 12S; 0x46E empty | yes |
 | Volt BICM M4 18S x2 (extra) | needed for 4 strings | NO (red) |
 | SN65HVD230 transceiver x4 | 3.3 V CAN, one per BICM bus | yes |
+| Throttle clamp: CD74HCT123E, CD74HC4066E, SN74AHCT125N + MCP4131-103E/P, R/C per docs/THROTTLE_CLAMP.md | Kelly throttle held at 0 V unless A AND B alive (crew 2026-10-21) | NO (PROPOSED, UNVERIFIED) |
 | SN65HVD230 transceiver x2 | 4 BICM buses + vehicle bus CAN3 on A + B = 6 total (4 listed) (Elcon/Kelly/link) | UNVERIFIED: not listed as owned |
 | Kelly KLS-8080N (8080NPS series, Sin/Cos), 144 V / 550 A config | SOURCED: Adam's order #81746 (2025-05-03, $1,214.90): model line 72–168 V, field weakening, bidirectional anti-slip, W3-GT2 liquid-cooling heatsink, 35-pin plug-and-play cable, USB cable, KLS test box. CAN2 broadcast only. 36S full charge ≈148–149 V is inside the 72–168 V model range (SOURCED: order listing #81746). Overvoltage cutout ≈173 V (earlier research), adjustable in Kelly software, factory default UNVERIFIED | yes |
 | Kelly coolant pump (Bosch 12 V) | PROPOSED: W3-GT2 loop on the stock Teryx radiator; on with key; unassigned Teensy B FET; fan relay at ~40 °C; no flow/temp sensor yet | NO |

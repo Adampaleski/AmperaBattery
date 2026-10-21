@@ -1,4 +1,5 @@
 #include "FlexCanCompat.h"
+#include "ThrottleTrim.h"
 #include "StringConfig.h"
 #if DUAL_STRING
 #include "Link.h"
@@ -56,6 +57,7 @@ void begin() {
 
 void tick() {
     const uint32_t now = millis();
+    ThrottleTrim::linkTx(send);
 #if !ROLE_IS_A && B_FAULT_PIN_ENABLE
     const uint8_t f = (StringMon::summary(0).faults | StringMon::summary(1).faults) & StringMon::kFaultMask;
     digitalWrite(Pins::B_FAULT_OUT, f ? LOW : HIGH);
@@ -110,6 +112,7 @@ void tick() {
 
 void onFrame(const CAN_message_t &m) {
     if (!m.flags.extended || m.len < 8) return;
+    ThrottleTrim::linkRx(m.id, m.buf);
     const uint32_t now = millis();
 #if ROLE_IS_A
     int s = -1;

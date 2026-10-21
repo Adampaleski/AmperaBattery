@@ -16,15 +16,15 @@ Every value is **PROPOSED** and adjustable (firmware: `MP <key> expo|cur|ramp|to
 
 ## Firmware: reduce-only throttle trim (`src/ThrottleTrim.*`, `THROTTLE_TRIM_ENABLE=0`)
 - MCP4131 as a divider in the throttle wiper: Kelly sees pedal × wiper/128, so the trim can only **lower** the pedal. Wiper rounds down.
-- 1 kHz IntervalTimer: pedal ADC on pin 24 (A10, PROPOSED, shares HV_SENSE: compile error if HV_ANALOG_ENABLE=1), 5 ms one-pole filter, curve y=(1−e)x+e·x³, × cap, × BMS allowance (kellyPct), top-speed taper over the last 2 mph (speed from Kelly RPM 0x0CF11E05 × 0.008161 mph/RPM), ramp-limited rise, instant release, clamp ≤ filtered and ≤ raw pedal.
+- 1 kHz IntervalTimer: pedal ADC on pin 40 A16 (A) / 41 A17 (B), 5 ms one-pole filter, curve y=(1−e)x+e·x³, × cap, × BMS allowance (kellyPct), top-speed taper over the last 2 mph (speed from Kelly RPM 0x0CF11E05 × 0.008161 mph/RPM), ramp-limited rise, instant release, clamp ≤ filtered and ≤ raw pedal.
 - Output 0 (wiper 0): contactors not Closed, any drive fault, Kid without a valid speed, trim disabled. `begin()` is the first line of `setup()`, so after a watchdog reset the wiper is written 0 before anything else.
 - Kid: can't be entered until a PIN is set (`MPIN 0 <1000-9999>`, change: `MPIN <old> <new>`, not while in Kid); leaving needs `M <key> <pin>`.
 - EEPROM (chief 2026-10-21, `include/DriveStore.h`): profiles + current mode + Kid PIN hash at 1310–1462, CRC-16; boot restores the last mode (Kid stays Kid). Blank/corrupt/out-of-bounds → PROPOSED defaults, High, no PIN. The PIN is stored only as a salted, iterated FNV-1a hash and never printed (`d` shows `kidPin=set/none`). A 4-digit PIN can still be brute-forced from the EEPROM bytes (10^4 values).
-- ON HOLD (Adam to decide: chief proposes pedal direct to Kelly, no digipot): hardware default-off clamp + alive one-shot, and moving the pedal input off pin 24. See KELLY_HPD.md for HPD.
+- Two-Teensy clamp + cross-check (crew approved 2026-10-21): docs/THROTTLE_CLAMP.md. Pedal now on A pin 40 / B pin 41 (not 24). Pedal-direct-to-Kelly fallback documented there. HPD: KELLY_HPD.md.
 - `d` prints mode, pedal, output, wiper, max ISR period and compute µs.
 
 ## Limits / UNVERIFIED (crew)
-- **MCP4131 powers up at mid-scale (50 % pass-through)** until `begin()` runs, and holds its last wiper if the Teensy hangs before the watchdog bites (~2 s). Needs a hardware default-off (e.g. pull the wiper path through a relay/FET enabled by the Teensy) — not designed yet.
+- MCP4131 powers up at mid-scale (50 %) and holds its last wiper if a Teensy hangs: covered by the two-Teensy clamp (THROTTLE_CLAMP.md); sim scenario "digipot stuck 50% + A fault".
 - Wiper topology (pot across pedal signal / ground) and the Kelly throttle input range are UNVERIFIED on the harness.
 - Bit-banged on LIGHT_DATA/LIGHT_CLK with own CS: future 595 light code must not shift while the ISR writes (`g_busLock`).
 - "Strong low end" cannot be added by a reduce-only trim; Mud/Sand are linear. Real boost would be a Kelly throttle-curve setting.

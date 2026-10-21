@@ -9,6 +9,7 @@
 // c13-18) is empty by design: not modelled as cells, never planned.
 #include <math.h>
 #include "BmsCore.h"
+#include "ThrottleCross.h"
 #include "FactoryBalancePlan.h"
 
 namespace BmsSim {
@@ -220,7 +221,7 @@ inline LemRead lemPair(float trueA, float trueB, bool deadA = false, bool deadB 
     return r;
 }
 
-constexpr int kScenarios = 26;
+constexpr int kScenarios = 31;
 
 inline int runAll(Result out[kScenarios]) {
     using namespace BmsCore;
@@ -341,6 +342,29 @@ inline int runAll(Result out[kScenarios]) {
     out[n++] = plugScenario("charge cold 5 C (0-10 C band)", "current <= 50% max (PLACEHOLDER) <= 3.5 s", 3500, 2);
     out[n++] = plugScenario("charge below 0 C (-2 C)", "charger off + charger path open, drive locked", 4500, 3);
     out[n++] = plugScenario("unplug with key on", "locked until key cycle, then DRIVE 100%", 0, 4);
+    // Two-Teensy throttle clamp (crew 2026-10-21, PROPOSED; THROTTLE_TRIM_ENABLE=0). Kelly input = wiper x clamp.
+    {
+        using ThrottleCross::Plant;
+        static Plant pl;
+        auto thrRun = [&](const char *name, const char *expect, uint32_t limitMs, void (*inject)(Plant &)) {
+            pl = Plant{}; pl.pedal = 60; pl.run(1000);   // driving, both alive, mode High
+            Result r{name, expect, limitMs, -1, false, ""};
+            const float before = pl.kellyPct;
+            inject(pl);
+            for (uint32_t t = 1; t <= limitMs + 1000; t++) { pl.step(); if (pl.kellyPct == 0) { r.gotMs = static_cast<int32_t>(t); break; } }
+            pl.run(500);
+            r.pass = before > 50 && r.gotMs >= 0 && static_cast<uint32_t>(r.gotMs) <= limitMs && pl.kellyPct == 0;
+            snprintf(r.note, sizeof r.note, "Kelly %.0f%% -> %.0f%%, A=%s B=%s", before, pl.kellyPct,
+                     pl.chkA.latched ? ThrottleCross::faultName(pl.chkA.latched) : (pl.hungA ? "hung" : "ok"),
+                     pl.chkB.latched ? ThrottleCross::faultName(pl.chkB.latched) : (pl.hungB ? "hung" : "ok"));
+            return r;
+        };
+        out[n++] = thrRun("throttle: Teensy A hangs", "clamp 0 V <= 10 ms (A one-shot lapses)", 10, [](Plant &p) { p.hungA = true; });
+        out[n++] = thrRun("throttle: Teensy B hangs", "clamp 0 V <= 10 ms (B one-shot lapses)", 10, [](Plant &p) { p.hungB = true; });
+        out[n++] = thrRun("throttle: A/B disagree (B pedal +10%)", "> 5% for 50 ms -> enables off <= 100 ms", 100, [](Plant &p) { p.pedalBOffset = 10; });
+        out[n++] = thrRun("throttle: profile mismatch on B", "CRC differs 50 ms -> enables off <= 80 ms", 80, [](Plant &p) { p.tabB.p[DriveProfile::M_H].currentPct = 80; });
+        out[n++] = thrRun("throttle: digipot stuck 50% + A fault", "A stops alive -> clamp holds 0 V <= 10 ms", 10, [](Plant &p) { p.potStuckPct = 50; p.faultA = true; });
+    }
     // Split-LEM scenarios (sim only).
     auto lemRes = [](const char *name, const char *expect, bool pass, const LemRead &l) {
         Result r{name, expect, 0, 0, pass, ""};
