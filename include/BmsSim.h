@@ -44,6 +44,9 @@ struct World {
     bool     currentFitted = true;
     float    tMin = 20, tMax = 22;
     bool     tempsValid = true;   // sim assumes verified temps
+    float    sTMax[4] = {-999, -999, -999, -999};  // per-string override (-999: use tMax)
+    bool     tempUp[4] = {true, true, true, true}; // string's temp frames arriving (S3/S4: link 0x6A3)
+    uint32_t tempLast[4] = {};
     bool     keyOn = false, chargeReq = false, plugIn = false, chargeStop = false;  // plugIn: charger present (charge mode)
     bool     chargerOnline = true;
     float    busForce = -1;       // interactive page: >= 0 forces the HV bus reading (volts)
@@ -54,6 +57,7 @@ struct World {
         in = BmsCore::Inputs{};
         now = 0; busV = 0; preOpenCircuit = false; welded = false; linkUp = true; linkLastMs = 0;
         packA = 0; lemShareA = 0.5f; tMin = 20; tMax = 22; tempsValid = true; keyOn = false; chargeReq = false; plugIn = false; chargeStop = false; chargeSoakA = 0;
+        for (int s = 0; s < 4; s++) { sTMax[s] = -999; tempUp[s] = true; tempLast[s] = 0; }
         currentFitted = true; busForce = -1;
         for (int b = 0; b < kBoards; b++) {
             silent[b] = false; lastSeen[b] = 0;
@@ -97,6 +101,13 @@ struct World {
         in.linkAgeMs = now - linkLastMs;
         in.linkFresh = in.linkAgeMs <= core.cfg.linkStaleMs;
         in.tempsValid = tempsValid; in.tMinC = tMin; in.tMaxC = tMax;
+        in.perStringTemps = true;
+        for (int s = 0; s < kStrings; s++) {
+            BmsCore::StringIn &si = in.s[s];
+            const uint32_t lim = si.remote ? core.cfg.linkStaleMs : core.cfg.stringSilentMs;
+            si.tFresh = (now - tempLast[s]) <= lim;
+            si.tMinC = tMin; si.tMaxC = sTMax[s] > -500 ? sTMax[s] : tMax; si.tHot = static_cast<uint8_t>(s);
+        }
         in.currentValid = currentFitted; in.packA = packA - chargeSoakA;
         in.lemSplitValid = currentFitted; in.lemA = in.packA * lemShareA; in.lemB = in.packA - in.lemA;
         in.busValid = true; in.busV = busV;
@@ -108,6 +119,7 @@ struct World {
         now += dtMs;
         for (int b = 0; b < kBoards; b++) if (!silent[b]) lastSeen[b] = now;
         if (linkUp) linkLastMs = now;
+        for (int s = 0; s < kStrings; s++) if (tempUp[s] && (s < 2 || linkUp)) tempLast[s] = now;
         const BmsCore::Outputs &o = core.out();
         const bool neg = o.mainNeg || welded, pos = o.mainPos || welded;
         float pack = stringV(0);
@@ -208,7 +220,7 @@ inline LemRead lemPair(float trueA, float trueB, bool deadA = false, bool deadB 
     return r;
 }
 
-constexpr int kScenarios = 23;
+constexpr int kScenarios = 26;
 
 inline int runAll(Result out[kScenarios]) {
     using namespace BmsCore;
@@ -232,6 +244,15 @@ inline int runAll(Result out[kScenarios]) {
         [](World &w) { w.packA = 700; }, openAndNoCharge);
     out[n++] = scenario("overcurrent 800 A spike (instant)", "open <= 0.02 s (750 A, no debounce)", 20, true,
         [](World &w) { w.packA = 800; }, openAndNoCharge);
+    // Per-string temps (2026-10-21): string 4 is on Teensy B, A sees it over link 0x6A3.
+    out[n++] = scenario("string 4 hot 52 C (B, link 0x6A3)", "A derates (pack hot), stays closed <= 0.2 s", 200, true,
+        [](World &w) { w.sTMax[3] = 52; },
+        [](World &w) { const auto &o = w.core.out(); return o.state == CState::Closed && o.derateNow == D_PACK_HOT && o.kellyPct < 100 && o.hotString == 3; });
+    out[n++] = scenario("string 4 overtemp 60 C (B, link 0x6A3)", "A opens + charger off <= 0.2 s", 200, true,
+        [](World &w) { w.sTMax[3] = 60; }, openAndNoCharge);
+    out[n++] = scenario("string 4 temp frame missing (0x6A3)", "TEMP-STALE: open + charger off <= 0.4 s", 400, true,
+        [](World &w) { w.tempUp[3] = false; },
+        [](World &w) { return w.allOpen() && !w.core.out().chargeEnable && ((w.core.out().faults | w.core.out().latched) & F_TEMP_STALE); });
     out[n++] = scenario("Teensy link loss", "open + charger off <= 1.2 s", 1200, true,
         [](World &w) { w.linkUp = false; }, openAndNoCharge);
     out[n++] = scenario("charge reaches limit (80% = 3.95 V)", "charger off at ceiling <= 1 s", 1000, true,

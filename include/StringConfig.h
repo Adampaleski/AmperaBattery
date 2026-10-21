@@ -81,4 +81,7 @@ constexpr uint32_t kLinkIdBString1 = 0x6A0;  // B -> A  string 1 summary
 constexpr uint32_t kLinkIdBString2 = 0x6A1;  // B -> A  string 2 summary
 constexpr uint32_t kLinkIdBStatus  = 0x6A2;  // B -> A  status / cell counts
 constexpr uint32_t kLinkIdAStatus  = 0x6A8;  // A -> B  heartbeat + contactor state
-// 0x6A3-0x6A7, 0x6A9-0x6AF reserved.
+constexpr uint32_t kLinkIdBTemps   = 0x6A3;  // B -> A  per-string temps (2026-10-21, CREW REVIEW):
+//   [0] S1 min C+40  [1] S1 max C+40  [2] S1 hottest thermistor idx  [3-5] same for S2
+//   [6] bit0 S1 temps fresh, bit1 S2 fresh  [7] heartbeat. 0xFF = none. Sent every LINK_PERIOD_MS.
+// 0x6A4-0x6A7, 0x6A9-0x6AF reserved.

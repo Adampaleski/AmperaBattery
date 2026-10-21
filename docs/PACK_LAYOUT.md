@@ -69,7 +69,7 @@ Source: Adam 2026-10-21. Bench envs (sniffer, k112_*, factory_bus, 1bicm, bench_
 
 Pins: CAN2 0/1 = Serial1 (unused; hub is Serial4 16/17), OUT5/OUT6 already moved to 2/3, no Config.h pin on 0/1/22/23/30/31 except the CAN pins. No conflict on A or B.
 
-Link: B → A every 100 ms with string V, cell min/max, faults, heartbeat (0x6A0/0x6A1) and cell counts (0x6A2). Cell avg = V / cells (derived on A, no new frame). Temps are NOT sent: BICM temps aren't decoded yet (TEMPS_VERIFIED=0); add a frame when they are. A: B heartbeat older than **200 ms (PROPOSED, `T linkMs`, 100–2000)** → F_LINK fault, mains open, logged. Was 1000 ms.
+Link: B → A every 100 ms with string V, cell min/max, faults, heartbeat (0x6A0/0x6A1) and cell counts (0x6A2). Cell avg = V / cells (derived on A, no new frame). Temps: per-string min/max + hottest index on 0x6A3 every 100 ms (see TEMPS.md; decode UNVERIFIED, acted on only when TEMPS_VERIFIED=1). A: B heartbeat older than **200 ms (PROPOSED, `T linkMs`, 100–2000)** → F_LINK fault, mains open, logged. Was 1000 ms.
 Spare controllers: none. A dedicated Kelly or vehicle bus later would need an external MCP2518FD (SPI) — not needed now. The Kelly CAN is broadcast-only and at 250k with the Elcon; that's the current Config; Kelly CAN rate itself is UNVERIFIED (docs/KELLY_CAN.md).
 
 **Transceivers:** one 3.3 V SN65HVD230 per controller = **6** (4 BICM + 2 on the vehicle bus). docs/COMPONENTS.md lists × 4 — **2 more needed** (or confirm the charger-bus ones are counted elsewhere).

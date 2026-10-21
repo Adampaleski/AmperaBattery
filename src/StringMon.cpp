@@ -2,6 +2,7 @@
 #include "StringConfig.h"
 #if DUAL_STRING
 #include "StringMon.h"
+#include "BmsCore.h"
 #include "Config.h"
 #include "FactoryCellMap.h"
 #include "FactoryBalancePlan.h"
@@ -30,6 +31,8 @@ struct Bus {
     uint32_t last[kFactoryFrameCount] = {};
     uint32_t count[kFactoryFrameCount] = {};
     uint32_t maxGap[kFactoryFrameCount] = {};
+    uint8_t  tRaw[16][2] = {};   // 0x7E0-0x7EF bytes 6-7 (UNVERIFIED decode)
+    uint32_t tLast[16] = {}, tCount[16] = {};
 };
 Bus      g_bus[kStrings];
 Summary  g_sum[kStrings];
@@ -117,6 +120,14 @@ void begin() {
 
 void onFrame(uint8_t s, const CAN_message_t &msg) {
     if (s >= kStrings || msg.flags.extended) return;
+    if (msg.id >= 0x7E0 && msg.id < 0x7F0) {   // BICM thermistor frame (UNVERIFIED layout)
+        if (msg.len < 8) return;
+        Bus &b = g_bus[s];
+        const int i = msg.id - 0x7E0;
+        b.tRaw[i][0] = msg.buf[6]; b.tRaw[i][1] = msg.buf[7];
+        b.tLast[i] = millis(); b.tCount[i]++;
+        return;
+    }
     for (int f = 0; f < kFactoryFrameCount; f++) {
         if (kFactoryFrames[f].id != msg.id) continue;
         Bus &b = g_bus[s];
@@ -132,6 +143,22 @@ void onFrame(uint8_t s, const CAN_message_t &msg) {
     }
 }
 
+void evalTemps(int s) {
+    const Bus &b = g_bus[s];
+    Summary &o = g_sum[s];
+    const uint32_t now = millis();
+    o.tFresh = false; o.tN = 0; o.tHot = 0xFF; o.tMinC = o.tMaxC = 0;
+    for (int i = 0; i < 16; i++) {
+        if (!b.tCount[i] || now - b.tLast[i] > STRING_SILENT_MS) continue;
+        const float t = BmsCore::bicmTempC(b.tRaw[i][0], b.tRaw[i][1]);
+        if (t < -40.0f || t > 120.0f) continue;   // implausible -> ignored (counts as missing)
+        if (!o.tN || t < o.tMinC) o.tMinC = t;
+        if (!o.tN || t > o.tMaxC) { o.tMaxC = t; o.tHot = static_cast<uint8_t>(i); }
+        o.tN++;
+    }
+    o.tFresh = o.tN > 0;
+}
+
 void tick() {
     if (millis() - g_balCycleMs >= FactoryBalance::kCycleMs) {
         g_balCycleMs = millis();
@@ -139,6 +166,7 @@ void tick() {
     }
     for (int s = 0; s < kStrings; s++) {
         evaluate(s);
+        evalTemps(s);
         const uint8_t nowF = g_sum[s].faults & kFaultMask;
         if (nowF != g_prevFaults[s]) {
             SERIALCONSOLE.print(F("STRING "));

@@ -268,6 +268,7 @@ BmsCore::StringIn toCore(const StringMon::Summary &s, bool remote) {
     o.sumV = s.v;
     o.minV = s.minV;
     o.maxV = s.maxV;
+    o.tFresh = s.tFresh; o.tMinC = s.tMinC; o.tMaxC = s.tMaxC; o.tHot = s.tHot;
     if (s.faults & (StringMon::kFSilent | StringMon::kFNoData)) o.oldestAgeMs = 0xFFFFFFFFu;  // -> F_SILENT
     if (s.faults & (StringMon::kFCellBad | StringMon::kFCount)) o.cellsOk = 0;                // -> F_COUNT
     return o;
@@ -289,6 +290,7 @@ void tickDual() {
     in.s[2] = toCore(Link::remote(0), true);
     in.s[3] = toCore(Link::remote(1), true);
     in.linkFresh = !(Link::remoteFaults() & StringMon::kFLinkStale);
+    in.perStringTemps = true;            // fold S1-S4 temps; acts only when tempsValid
     in.tempsValid = TEMPS_VERIFIED != 0;  // 0: charge refused (F_TEMP_INVALID), drive unaffected
     in.currentValid = CurrentSense::valid();
     in.packA = CurrentSense::amps();

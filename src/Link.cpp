@@ -20,6 +20,8 @@ struct Remote {
 };
 Remote   g_rem[StringMon::kStrings];
 uint8_t  g_remCells[StringMon::kStrings] = {};
+struct RemTemp { bool seen = false; uint32_t lastMs = 0; uint8_t hb = 0, b[8] = {}; };
+[[maybe_unused]] RemTemp g_remT;
 [[maybe_unused]] uint32_t g_peerMs = 0;
 [[maybe_unused]] bool     g_peerSeen = false;
 [[maybe_unused]] uint8_t  g_peerState = 0, g_peerFaults = 0, g_peerHb = 0;
@@ -86,6 +88,19 @@ void tick() {
     b[4] = (StringMon::summary(0).faults | StringMon::summary(1).faults) & StringMon::kFaultMask;
     b[5] = B_FAULT_PIN_ENABLE ? 1 : 0;
     send(kLinkIdBStatus, b);
+    memset(b, 0xFF, 8);
+    b[6] = 0;
+    for (int s = 0; s < StringMon::kStrings; s++) {
+        const StringMon::Summary r = StringMon::summary(s);
+        if (!r.tFresh) continue;
+        auto enc = [](float c) { const int v = static_cast<int>(c + 40.5f); return static_cast<uint8_t>(v < 0 ? 0 : (v > 254 ? 254 : v)); };
+        b[3 * s + 0] = enc(r.tMinC);
+        b[3 * s + 1] = enc(r.tMaxC);
+        b[3 * s + 2] = r.tHot;
+        b[6] |= static_cast<uint8_t>(1u << s);
+    }
+    b[7] = g_hb;
+    send(kLinkIdBTemps, b);
 #endif
 }
 
@@ -107,6 +122,12 @@ void onFrame(const CAN_message_t &m) {
         r.s.maxV = get16(m.buf + 4) / 1000.0f;
         r.s.faults = m.buf[6];
         r.s.expected = STRING_EXPECT_S;
+    } else if (m.id == kLinkIdBTemps) {
+        g_rx++;
+        if (!g_remT.seen || m.buf[7] != g_remT.hb) g_remT.lastMs = now;
+        g_remT.seen = true;
+        g_remT.hb = m.buf[7];
+        memcpy(g_remT.b, m.buf, 8);
     } else if (m.id == kLinkIdBStatus) {
         g_rx++;
         g_remCells[0] = m.buf[2];
@@ -130,6 +151,15 @@ StringMon::Summary remote(int s) {
     out = g_rem[s].s;
     out.cells = g_remCells[s];
     if (stale(g_rem[s])) out.faults |= StringMon::kFLinkStale;
+#if ROLE_IS_A
+    // Temps from 0x6A3: fresh only if its own heartbeat advanced within the stale limit.
+    const bool tf = g_remT.seen && (millis() - g_remT.lastMs) <= g_staleMs && (g_remT.b[6] & (1u << s));
+    out.tFresh = tf;
+    out.tN = tf ? 1 : 0;
+    out.tMinC = tf ? g_remT.b[3 * s] - 40.0f : 0;
+    out.tMaxC = tf ? g_remT.b[3 * s + 1] - 40.0f : 0;
+    out.tHot = tf ? g_remT.b[3 * s + 2] : 0xFF;
+#endif
     return out;
 }
 

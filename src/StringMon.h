@@ -23,6 +23,13 @@ struct Summary {
     float   v = 0, minV = 0, maxV = 0;  // valid only when cells == expected
     uint8_t cells = 0, expected = 0;
     uint8_t faults = 0;                 // bits above
+    // BICM temps from 0x7E0-0x7EF on this bus. Decode = Tom bytes 6-7 BE x -0.0324 + 150 C
+    // (BmsCore::bicmTempC). UNVERIFIED on our boards; thermistor -> cell map UNVERIFIED.
+    // Only acted on when TEMPS_VERIFIED=1 (stays 0).
+    bool    tFresh = false;             // >= 1 plausible temp frame within STRING_SILENT_MS
+    float   tMinC = 0, tMaxC = 0;
+    uint8_t tHot = 0xFF;                // hottest thermistor index (0x7E0 + n), 0xFF none
+    uint8_t tN = 0;                     // fresh thermistor frames
 };
 
 void begin();

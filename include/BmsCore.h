@@ -36,10 +36,11 @@ enum : uint32_t {
     F_CHARGE_OV   = 1u << 10,  // charge only: cell >= ceiling + 0.05 (latched to reboot)
     F_OVERTEMP_C  = 1u << 11,  // charge only: pack temp > chargeMaxTempC
     F_TEMP_INVALID= 1u << 12,  // charge only: no verified temperatures
+    F_TEMP_STALE  = 1u << 13,  // per-string temps verified but a string's temp data is stale/missing (CREW REVIEW)
 };
 // Faults that open the contactors.
 constexpr uint32_t kDriveFaults = F_SILENT | F_COUNT | F_CELL_HIGH | F_CELL_LOW | F_OVERTEMP |
-                                  F_OVERCURRENT | F_LINK | F_PRECHARGE | F_WELDED;
+                                  F_OVERCURRENT | F_LINK | F_PRECHARGE | F_WELDED | F_TEMP_STALE;
 // Faults that stop the charger (superset).
 constexpr uint32_t kChargeFaults = kDriveFaults | F_UNDERTEMP_C | F_CHARGE_OV | F_OVERTEMP_C | F_TEMP_INVALID;
 
@@ -66,6 +67,7 @@ inline const char *faultName(uint32_t bit) {
         case F_PRECHARGE: return "PRECHARGE-FAIL"; case F_WELDED: return "WELDED-CONTACTOR";
         case F_CHARGE_OV: return "CHARGE-OV";      case F_OVERTEMP_C: return "OVERTEMP-CHARGE";
         case F_TEMP_INVALID: return "TEMPS-NOT-VERIFIED";
+        case F_TEMP_STALE: return "TEMP-STALE";
         default: return "?";
     }
 }
@@ -156,6 +158,10 @@ struct StringIn {
     uint8_t  cellsOk   = 0;        // fresh, in-range cells
     float    sumV = 0, minV = 0, maxV = 0;
     uint32_t oldestAgeMs = 0;      // age of the stalest expected circuit
+    // Per-string BICM temps (2026-10-21). Local: StringMon 0x7E0-0x7EF; remote: link 0x6A3.
+    bool     tFresh = false;       // temp data fresh (local: STRING_SILENT_MS, remote: link stale limit)
+    float    tMinC = 20, tMaxC = 20;
+    uint8_t  tHot = 0xFF;          // hottest thermistor index on that string (0x7E0 + n), 0xFF none
 };
 
 struct Inputs {
@@ -165,6 +171,7 @@ struct Inputs {
     uint32_t linkAgeMs    = 0;
     bool     tempsValid   = false; // TEMPS_VERIFIED && fresh
     float    tMinC = 20, tMaxC = 20;
+    bool     perStringTemps = false; // true: tMinC/tMaxC are folded from s[].t* (all used strings), stale -> F_TEMP_STALE
     bool     currentValid = false;
     float    packA        = 0;     // + = discharge
     bool     lemSplitValid= false; // both halves read (LEM A on Teensy A, LEM B over the link)
@@ -197,6 +204,7 @@ inline const char *stateName(CState s) {
 
 struct Outputs {
     CState   state = CState::Open;
+    uint8_t  hotString = 0xFF, hotIdx = 0xFF;   // hottest string (0-3) / thermistor (per-string temps)
     bool     pre = false, mainPos = false, mainNeg = false;  // WANTED coil states
     bool     chargeEnable = false;
     float    chargeV = 0, chargeA = 0;     // Elcon request (0 A + stop byte when disabled)
@@ -242,6 +250,27 @@ public:
         logHead_ = 0; logCount_ = 0; prevFaults_ = 0; out_ = Outputs{}; started_ = false;
     }
 
+    // Per-string temps (only with in.perStringTemps && in.tempsValid, i.e. TEMPS_VERIFIED):
+    // pack min/max = over every used string (A sees strings 3/4 via the link), so heat
+    // derate and OVERTEMP cut cover all 4 strings. A used string without fresh temps
+    // -> F_TEMP_STALE (drive fault: mains open, logged). CREW REVIEW.
+    uint8_t hotS_ = 0xFF, hotI_ = 0xFF;
+    uint32_t foldTemps(Inputs &in) {
+        hotS_ = 0xFF; hotI_ = 0xFF;
+        if (!in.perStringTemps || !in.tempsValid) return 0;
+        uint32_t f = 0; bool any = false; float mn = 0, mx = 0;
+        for (int i = 0; i < kMaxStrings; i++) {
+            const StringIn &s = in.s[i];
+            if (!s.used) continue;
+            if (!s.tFresh) { f |= F_TEMP_STALE; continue; }
+            if (!any || s.tMinC < mn) mn = s.tMinC;
+            if (!any || s.tMaxC > mx) { mx = s.tMaxC; hotS_ = static_cast<uint8_t>(i); hotI_ = s.tHot; }
+            any = true;
+        }
+        if (any) { in.tMinC = mn; in.tMaxC = mx; } else in.tempsValid = false;
+        return f;
+    }
+
     const Outputs &out() const { return out_; }
     int logCount() const { return logCount_; }
     const Event &logAt(int i) const {  // 0 = oldest kept
@@ -249,7 +278,9 @@ public:
         return log_[(start + i) % kLogSize];
     }
 
-    const Outputs &step(const Inputs &in) {
+    const Outputs &step(const Inputs &inRaw) {
+        Inputs in = inRaw;
+        const uint32_t tStale = foldTemps(in);
         const uint32_t now = in.nowMs;
         if (!started_) { started_ = true; stMs_ = now; openSinceMs_ = now; }
         Outputs o;
@@ -261,6 +292,8 @@ public:
         cellStats(in, o);
         uint32_t f = evalFaults(in, o.lowestStringV, o.ceilingV);
         f |= cellLowLogic(in, o);
+        f |= tStale;
+        o.hotString = hotS_; o.hotIdx = hotI_;
 
         // ---- welded check (before the state machine): every coil commanded
         // open for weldCheckMs, yet the HV bus is still live.
