@@ -9,13 +9,17 @@ namespace BmsApp {
 namespace {
 
 void initPins() {
-    // IN1=17 / IN2=16 are Serial4 TX/RX for the teryx-ev-hub ESP32 link.
-    // Do not pinMode them as GPIO — HubStatus::begin() owns Serial4.
+    // Pins 16/17 are Serial4 RX/TX for the teryx-ev-hub ESP32 link (HubStatus::begin() owns them);
+    // 18/19 are I2C for the MCP23017. IN1-IN4 no longer sit on them (Config.h).
 #if BODY_IO_EXPANDER
     pinMode(Pins::PARK_IN_B, INPUT_PULLUP);  // pin 32 on A and B: park contact (docs/PARK_BRAKE.md), LOW = set; read only
 #endif
-    pinMode(Pins::IN3, INPUT);   // reserved: MCP23017 SDA when BODY_IO_EXPANDER (lights); park moved to pin 32
-    pinMode(Pins::IN4, INPUT);
+#if BODY_IO_EXPANDER  // without the expander pin 34 is the 595 /OE output, not IN1
+    if (Pins::IN1 >= 0) pinMode(Pins::IN1, INPUT);  // spare input, read by nothing yet
+#endif
+    if (Pins::IN2 >= 0) pinMode(Pins::IN2, INPUT);
+    if (Pins::IN3 >= 0) pinMode(Pins::IN3, INPUT);
+    if (Pins::IN4 >= 0) pinMode(Pins::IN4, INPUT);
 
     pinMode(Pins::OUT1, OUTPUT);
     pinMode(Pins::OUT2, OUTPUT);

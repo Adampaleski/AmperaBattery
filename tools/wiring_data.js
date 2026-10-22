@@ -37,7 +37,7 @@ nodes:[
 ["head","Dash head unit|Surface 3 (Linux), Wi-Fi",1240,600,240,44,"S"],
 ["leg","Red = PROPOSED / UNVERIFIED · dashed = opens sub-page",960,680,520,30,"S","hdr"]
 ],
-wires:[["s1","f","HV",0],["s2","f","",0],["s3","f","",0],["s4","f","",0],["f","bus","string leads 1/0 (WIRING) vs 3/0 (gen.py)",1],["bus","evp","",0],["evp","kel","B+",0],["pre","evp","across",0],["kel","mot","U/V/W + Sin/Cos",0],["kel","evn","B−",0],["lem","f","B− clamp",0],["nacs","elc","AC",1],["elc","bus","HV fuse ~40–60 A",1],["dcdc","bus","HV fuse 15–20 A",1],["dcdc","b12","12 V",0],["b12","ta","5 V",0],["ta","tb","CAN3 link",0],["ta","esp","UART",0],["esp","head","Wi-Fi",0],["ta","clamp","SPI+alive",1],["tb","en","pin 7",1],["ped","clamp","wiper",1],["pk","ta","pin 32",1],["es","b12","coil feeds",1],["low","kel","ECO 22",1]],
+wires:[["s1","f","HV",0],["s2","f","",0],["s3","f","",0],["s4","f","",0],["f","bus","string leads 1/0; pack-to-Kelly mains 3/0",1],["bus","evp","",0],["evp","kel","B+",0],["pre","evp","across",0],["kel","mot","U/V/W + Sin/Cos",0],["kel","evn","B−",0],["lem","f","B− clamp",0],["nacs","elc","AC",1],["elc","bus","HV fuse ~40–60 A",1],["dcdc","bus","HV fuse 15–20 A",1],["dcdc","b12","12 V",0],["b12","ta","5 V",0],["ta","tb","CAN3 link",0],["ta","esp","UART",0],["esp","head","Wi-Fi",0],["ta","clamp","SPI+alive",1],["tb","en","pin 7",1],["ped","clamp","wiper",1],["pk","ta","pin 32",1],["es","b12","coil feeds",1],["low","kel","ECO 22",1]],
 net:[
 ["String n (×4)","A6T200 fuse n","HV","1/0 AWG (WIRING) — 3/0 in gen.py","OR HV","CONFLICT: gauge","U"],
 ["4 fuses","Common B+ bus","HV","1/0 AWG","OR HV","","S"],

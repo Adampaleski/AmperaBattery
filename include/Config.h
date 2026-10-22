@@ -34,7 +34,7 @@ constexpr float kVoltGen1GroupAhAssumed = 45.0f; // ASSUMED: 3P x 15 Ah Gen1 cel
 constexpr float kTeryxPackAhAssumed  = kTeryxStringsP * kVoltGen1GroupAhAssumed;  // 180 Ah ASSUMED
 constexpr float kTeryxNominalV       = kTeryxStringS * 3.7f;  // ~133 V nominal (ASSUMED 3.7 V/cell); 147.6 V is FULL
 // Monitoring (SOURCED: Adam 2026-10-21): 2 BICMs per string (one 24S M2/M3 + one M4 18S using c1-12) = 8 BICMs,
-// 2 BICMs per string on 4 buses (Adam 2026-10-21): A CAN1=S1, CAN2=S2, CAN3=Kelly 250k; B CAN1=S3, CAN2=S4, CAN3=link (FlexCanCompat.h CAN_LAYOUT_V2)
+// 2 BICMs per string on 4 buses (Adam 2026-10-21): A CAN1=S1, CAN2=S2, CAN3=Kelly 250k; B CAN1=S3, CAN2=S4, CAN3=shared 250k vehicle bus (Kelly + Elcon + A-B link) (FlexCanCompat.h CAN_LAYOUT_V2)
 constexpr int   kBicmPerString       = 2;
 constexpr int   kBicmBuses           = 4;       // one per string; identical M4 IDs cannot share a bus
 static_assert(kBicmBuses == kTeryxStringsP && kBicmPerString * kTeryxStringsP == 8, "pack needs 8 BICMs on 4 buses");
@@ -156,10 +156,13 @@ constexpr float    kHvDividerRatio        = 60.606f;  // 200 V at 3.3 V; unused 
 // Pin map (matches VoltBMS carrier / Teensy 4.1 CAN3 bring-up)
 namespace Pins {
 constexpr int LED  = 13;
-constexpr int IN1  = 17;
-constexpr int IN2  = 16;
-constexpr int IN3  = 18;
-constexpr int IN4  = 19;
+// IN1-IN4 moved off 16/17 (Serial4 hub UART) and 18/19 (I2C SDA/SCL) — crew 2026-10-22.
+// Only pin 34 is free on BOTH boards (33 = reserved charge detect on A); IN2-IN4 = -1 (no free GPIO on A).
+// Spare inputs on B only: 8, 10, 27-29, 33-39 (docs/PINMAP.yaml). Nothing reads IN1-IN4 yet.
+constexpr int IN1  = 34;  // was 17; shares spare pin 34 with retired LIGHT_OE (nothing drives it)
+constexpr int IN2  = -1;  // was 16
+constexpr int IN3  = -1;  // was 18
+constexpr int IN4  = -1;  // was 19
 constexpr int OUT1 = 11;
 constexpr int OUT2 = 12;
 constexpr int OUT3 = 20;
@@ -178,9 +181,9 @@ constexpr int OUT8 = 6;
 
 // VoltBMSV2 names: OUT1=main+, OUT2=precharge, OUT4=main-.
 // 12 V coil FETs downstream — Teensy pin is the FET gate, not the coil.
-// Shop precharge coil is TE EV11 / K1KABNA on OUT2, not a third EV200.
+// Shop precharge contactor is the salvaged AEV14012 (~3 A peak coil) on OUT2 (crew 2026-10-22; TE EV11 dropped).
 constexpr int MAIN_POS  = OUT1;  // pin 11
-constexpr int PRECHARGE = OUT2;  // pin 12 — TE EV11 / K1KABNA
+constexpr int PRECHARGE = OUT2;  // pin 12 — AEV14012
 constexpr int MAIN_NEG  = OUT4;  // pin 21
 constexpr int HV_SENSE  = 24;    // A10, optional HV-bus divider
 // LEM DHAB S/44 (CURRENT_SENSE_ENABLE=1). Every input through 10k/18k divider + 100 nF.

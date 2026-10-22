@@ -11,7 +11,8 @@
 
 // Teensy 4.1 Serial4: RX pin 16, TX pin 17 @ 115200 8N1 → ESP32 UART2 hub.
 // Payload: one STATUS_SCHEMA v1 JSON object per line (teryx-ev-hub docs/STATUS_SCHEMA.md).
-// Do NOT use Serial1 / pins 0/1 — those are Elcon+Kelly CAN2.
+// Do NOT use Serial1 / pins 0/1 — with CAN_LAYOUT_V2 (FlexCanCompat.h) they are CAN2 = string 2 BICMs @125k (A) / string 4 (B).
+// Kelly + Elcon are on CAN3 pins 30/31 @250k.
 
 namespace HubStatus {
 
@@ -361,7 +362,7 @@ void printFrame(Print &out) {
 void begin() {
     g_bootMs = millis();
     g_lastEmitMs = 0;
-    // Serial4 claims pins 16/17 (RX/TX). BmsApp skips pinMode on IN1/IN2 for this.
+    // Serial4 claims pins 16/17 (RX/TX). IN1-IN4 no longer use 16-19 (Config.h).
     Serial4.begin(115200);
     SERIALCONSOLE.println(
         F("Serial4 hub emit ON — STATUS_SCHEMA v1 JSON @ 115200 (pins TX17/RX16)"));

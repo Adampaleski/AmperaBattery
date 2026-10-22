@@ -53,7 +53,7 @@ CRITICAL = truly blocks first drive (chief, crew review 2026-10-22: gates + Mech
 
 ## 3. Buy list — needs Adam OK (never buy)
 - **LATER** · 2× M4 18S BICM (VTSM#4, used Gen1 pulls, ~$50-70 ea) (Mechanic; shop log 2026-10-21 17:20)
-- **LATER** · 2× SN65HVD230 transceivers (need 6, own 4) (Mechanic; shop log 2026-10-21 17:20)
+- **LATER** · 2× SN65HVD230 transceivers for Gate 3 (need 6; the 4 owned cover the one-string bench). No purchase now. (Mechanic; shop log 2026-10-21 17:20)
 - **LATER** · Throttle clamp parts: CD74HCT123E, CD74HC4066E, SN74AHCT125N, MCP4131-103E/P + 100k/10k/1 µF/100 nF (Mechanic; docs/THROTTLE_CLAMP.md BOM)
 - **LATER** · E-stop: Schneider XB4 metal (or IDEC) mushroom, 2 NC blocks, guard ring, IP65 box + bracket, Deutsch connector (Mechanic; shop log 2026-10-21 17:45)
 - **LATER** · REQUIRED BEFORE FIRST DRIVE — dual-output Hall throttle pedal (2 independent tracks, A reads track 1, B reads track 2). Part TBD (Mechanic; shop log 2026-10-21 20:03 · BACKLOG VCU)

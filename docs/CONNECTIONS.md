@@ -11,9 +11,9 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: <0.5 Ω
 - [ ] **G03 BUCK GND** (CRITICAL, PROPOSED) — 5 V buck OUT- → TB-GND · GND · 20 AWG BK · fuse none  
   Meter: <0.5 Ω to 12V-
-- [ ] **P01 12V MAIN** (CRITICAL, UNVERIFIED) — DC-DC TDC-JH-144-12:+12V out → F-MAIN:in · +12V main · UNDEFINED AWG RD · fuse F-MAIN  
+- [ ] **P01 12V MAIN** (CRITICAL, UNVERIFIED) — DC-DC TDC-JH-144-12:+12V out → F-MAIN:in · +12V main · TBD: Adam reads TDC-JH-144-12 rated output (10 AWG ≤30 A, 8 AWG ≤40 A, 6 AWG ≤60 A) AWG RD · fuse F-MAIN  
   Meter: continuity end-to-end <1 Ω; NOT to chassis (>1 MΩ)
-- [ ] **P02 12V BUS** (CRITICAL, PROPOSED) — F-MAIN:out → 12V bus bar:+ · +12V main · UNDEFINED AWG RD · fuse F-MAIN  
+- [ ] **P02 12V BUS** (CRITICAL, PROPOSED) — F-MAIN:out → 12V bus bar:+ · +12V main · TBD: same as P01 AWG RD · fuse F-MAIN  
   Meter: continuity <1 Ω
 - [ ] **P03 KELLY PWR** (CRITICAL, UNVERIFIED) — 12V bus bar:+ → F-KEL:in -> Kelly PWR · +12V · 16 AWG RD/WH · fuse F-KEL  
   Meter: continuity; fuse rating written on label
@@ -96,13 +96,13 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: button released: 11-12 closed (<1 Ω); pushed: open
 - [ ] **E03 BLK2 PRE+KSI** (CRITICAL, UNVERIFIED) — E-stop block 2:12 → precharge relay coil + AND Kelly KSI/PWR pin 7 · 12V coil + KSI (cut) · 18 AWG RD/YE · fuse F-COIL  
   Meter: as E02; meter KSI current < 0.2 A
-- [ ] **E09 BLK3 TB-ESTOP** (CRITICAL, UNDEFINED) — E-stop block 3:11 -> TB-GND; block 3:12 → Teensy B: e-stop input pin UNDEFINED (PROPOSED pin 9, 10k pull-up) · e-stop sense (latch, never the cut) · 22 AWG BU/BK · fuse none  
+- [ ] **E09 BLK3 TB-ESTOP** (CRITICAL, PROPOSED) — E-stop block 3:11 -> TB-GND; block 3:12 → Teensy B:9 (10k pull-up) — free on B per this map · e-stop sense (latch, never the cut) · 22 AWG BU/BK · fuse none  
   Meter: released: pin reads LOW (closed to GND); pushed: HIGH
-- [ ] **K01 KELLY THR** (CRITICAL, UNVERIFIED) — U2b out (R1 100k to GND) → Kelly throttle input (pin 3) · throttle · 22 shielded AWG BU/WH · fuse none  
-  Meter: Gate 1: 0 V at Kelly pin 3 with clamp unpowered
-- [ ] **K02 FOOTSW PARK** (CRITICAL, UNVERIFIED) — Kelly pin 11 (12 V out) → Park pole 3 (NC) -> Kelly pin 15 Foot_SW · foot switch enable · 20 AWG RD/WH -> RD/YE · fuse none  
-  Meter: brake set: open; released: <1 Ω
-- [ ] **K03 ECO LOWCAP** (CRITICAL, UNVERIFIED) — Kelly pin 11 12 V -> relay 30; relay 87a (NC) → Kelly pin 22 ECO · Low cap (fail-safe) · 20 AWG RD/WH -> RD/VT · fuse none  
+- [ ] **K01 KELLY THR** (CRITICAL, UNVERIFIED) — U2b out (R1 100k to GND — the ONLY pull-down) → Kelly throttle input (pin 3) · throttle · 22 shielded AWG BU/WH · fuse none  
+  Meter: Gate 1: pin 3 < 0.2 V with both 4066s open; full pedal voltage at pin 3 at full pedal. 10k pull-down = PROPOSED bench option only if pin 3 floats, after confirming pedal + digipot still reach full voltage through the 4066 under that load
+- [ ] **K02 FOOTSW PARK** (CRITICAL, UNVERIFIED) — Kelly pin 11 (12 V out) → Park pole 3 (NC) -> contact closed only while BOTH Teensys are alive (series heartbeat contacts) -> Kelly pin 15 Foot_SW · foot switch enable · 20 AWG RD/WH -> RD/YE · fuse none  
+  Meter: brake set: open; either Teensy dead: open; both alive + released: <1 Ω
+- [ ] **K03 ECO LOWCAP** (CRITICAL, UNVERIFIED) — Kelly pin 11 12 V -> relay 30; relay 87a (NC) → Kelly pin 22 ECO · Low cap (fail-safe: relay NC, dead Teensy = Low) · 20 AWG RD/WH -> RD/VT · fuse none  
   Meter: relay off: Kelly pin 22 = 12 V
 - [ ] **P20 5V CLAMP** (CRITICAL, PROPOSED) — TB-5V → pedal 5 V + U1..U4 VCC (shared rail) · +5V · 20 AWG OR · fuse F-BUCK  
   Meter: 5 V at each chip VCC pin
@@ -126,13 +126,13 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: R4 ≈10 kΩ
 - [ ] **S14 PEDAL A** (CRITICAL, UNVERIFIED) — Pedal wiper (Hall, 0-5 V ASSUMED) → 10k/18k + 100 nF -> Teensy A:40 and MCP4131 P0A · throttle · 22 AWG BU · fuse none  
   Meter: pedal up / down voltages logged; ≈88 % max reading (chief #9)
-- [ ] **S15 PEDAL B** (CRITICAL, UNVERIFIED) — Pedal wiper (track 2) → own 10k/18k + 100 nF -> Teensy B:41 · throttle B · 22 AWG BU/WH · fuse none  
+- [ ] **S15 PEDAL B** (CRITICAL, PROPOSED) — Pedal track 2 → own 10k/18k + 100 nF -> Teensy B:41 (A17); A reads track 1 on pin 40 · throttle B · 22 AWG BU/WH · fuse none  
   Meter: as S14
 - [ ] **S16 PARK A** (CRITICAL, PROPOSED) — Park switch pole 1 (NO) -> GND → Teensy A:32 (10k pull-up 3V3 + 100 nF) · park A, LOW = set · 22 AWG BU/BK · fuse none  
   Meter: brake set: pin 0 V; released: 3.3 V
 - [ ] **S17 PARK B** (CRITICAL, PROPOSED) — Park switch pole 2 (NO) -> GND → Teensy B:32 · park B · 22 AWG BU/RD · fuse none  
   Meter: as S16
-- [ ] **S20 TA20 LOWCAP** (CRITICAL, PROPOSED) — Teensy A:20 (100 Ω, 10k pull-down) → low-side FET -> Low-cap relay coil 85 (86 = 12 V fused, 1N4007) · Low-cap release · board AWG — · fuse F-COIL  
+- [ ] **S20 TA20 LOWCAP** (CRITICAL, PROPOSED) — Teensy A:20 (100 Ω, 10k pull-down) → low-side FET -> Low-cap relay coil 85 (86 = vehicle 12 V bus via F-COIL, 1N4007) — coil NEVER on Kelly pin 11 (40 mA max) · Low-cap release · board AWG — · fuse F-COIL  
   Meter: Teensy off: relay de-energised (NC closed)
 - [ ] **S25 LEMB CH1** (CRITICAL, SOURCED) — LEM B DHAB pin 4 → divider -> Teensy B:14 · LEM B low · 22 AWG BU · fuse none  
   Meter: as S05
@@ -140,24 +140,24 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: as S05
 - [ ] **S27 LEMB VC** (CRITICAL, SOURCED) — LEM B 5 V sense → Teensy B:25 · LEM supply ref · 22 AWG OR · fuse F-BUCK  
   Meter: ≈3.2 V
-- [ ] **S40 12V SENSE** (CRITICAL, UNDEFINED) — 12V bus via divider (PROPOSED 47k/10k + 100 nF) → 12 V low alarm input — pin UNDEFINED (PROPOSED Teensy B:26) · 12 V sense · 22 AWG BU · fuse PROPOSED 1 A  
+- [ ] **S40 12V SENSE** (CRITICAL, PROPOSED) — 12V bus via divider (PROPOSED 47k/10k + 100 nF) → Teensy B:26 (A12) — free on B per this map · 12 V sense · 22 AWG BU · fuse PROPOSED 1 A  
   Meter: 13.8 V in -> ≈2.4 V at pin
 
 ## Step 7: HIGH VOLTAGE — LATER, Sparky present, string fuses OUT
 
-- [ ] **H01-H04 STRING n B+** (LATER, UNVERIFIED) — String 1..4 B+ → A6T200 fuse 1..4 (bus bar, insulated standoffs) · HV+ · 1/0 (CONFLICT 3/0) AWG OR HV, RED tape · fuse F-S1..S4  
+- [ ] **H01-H04 STRING n B+** (LATER, PROPOSED) — String 1..4 B+ → A6T200 fuse 1..4 (bus bar, insulated standoffs) · HV+ · 1/0 (each A6T200 string lead, ~138 A at a 550 A launch) AWG OR HV, RED tape · fuse F-S1..S4  
   Meter: torque to cut sheet; fuses OUT until first HV power-up
-- [ ] **H05 FUSE-BUS** (LATER, UNVERIFIED) — 4 fuses → common B+ bus · HV+ · 1/0 (CONFLICT 3/0) AWG OR HV, RED tape · fuse F-S1..S4  
+- [ ] **H05 FUSE-BUS** (LATER, PROPOSED) — 4 fuses → common B+ bus · HV+ · 1/0 (string side of each fuse) AWG OR HV, RED tape · fuse F-S1..S4  
   Meter: torque
-- [ ] **H06 BUS-EV200** (LATER, SOURCED) — common B+ bus (NO MSD — service = pull 4 fuses) → EV200 B+ line · HV+ · match bus AWG OR HV, RED tape · fuse F-S1..S4  
+- [ ] **H06 BUS-EV200** (LATER, SOURCED) — common B+ bus (NO MSD — service = pull 4 fuses) → EV200 B+ line · HV+ · 3/0 owned TEMCo (pack-to-Kelly main) AWG OR HV, RED tape · fuse F-S1..S4  
   Meter: torque
-- [ ] **H07 EV200-KELLY+** (LATER, SOURCED) — EV200 B+ load → Kelly B+ · HV+ · match bus AWG OR HV, RED tape · fuse none  
+- [ ] **H07 EV200-KELLY+** (LATER, SOURCED) — EV200 B+ load → Kelly B+ · HV+ · 3/0 owned TEMCo (pack-to-Kelly main) AWG OR HV, RED tape · fuse none  
   Meter: torque
 - [ ] **H08 PRECHARGE** (LATER, UNVERIFIED) — precharge relay + 50 Ω 100 W → across EV200 B+ · HV precharge · 14 HV AWG OR HV · fuse none  
   Meter: resistor ≈50 Ω
 - [ ] **H09 MOTOR** (LATER, SOURCED) — Kelly U/V/W + Sin/Cos → Zero 75-7R · motor · match bus AWG OR HV · fuse none  
   Meter: phase order per Kelly autotune
-- [ ] **H10 KELLY-EV200-** (LATER, SOURCED) — Kelly B- → EV200 B- -> LEM A/B -> string B- · HV- · match bus AWG OR HV, BLACK tape · fuse none  
+- [ ] **H10 KELLY-EV200-** (LATER, SOURCED) — Kelly B- → EV200 B- -> LEM A/B -> string B- · HV- · 3/0 owned TEMCo (pack-to-Kelly main) AWG OR HV, BLACK tape · fuse none  
   Meter: B- NEVER to chassis (>1 MΩ)
 - [ ] **H11 B- LEM** (LATER, SOURCED) — String B- leads → through LEM A (S1+S2) / LEM B (S3+S4) · HV- · 1/0 AWG OR HV, BLACK tape · fuse none  
   Meter: LEM arrow direction = discharge
