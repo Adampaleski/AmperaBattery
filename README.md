@@ -29,11 +29,8 @@ pio run -e teensy41_sniffer -t upload
 pio device monitor -b 115200
 ```
 
-BMS build (gated contactor GPIO only):
-
-```bash
-pio run -e teensy41_bms -t upload
-```
+BMS build: the old `teensy41_bms` env was deleted (chief review #1: it closed Main+ on a blind precharge timer).
+Vehicle builds are `teensy41_dual_a` / `teensy41_dual_b` (telemetry-only by default; every output off).
 
 ## Serial commands
 

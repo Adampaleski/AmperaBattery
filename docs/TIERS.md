@@ -8,7 +8,7 @@ CRITICAL = truly blocks first drive (chief, crew review 2026-10-22: gates + Mech
 - **CRITICAL** · Gate 2 — one string, wheels up (chief): precharge to 95 %; e-stop; weld check; precharge timeout; turn the safety flags on one at a time. First HV power-up one string at a time (Sparky). (Chief; BACKLOG.md:7)
 - **CRITICAL** · Gate 3 — four strings (chief): add strings one at a time, each within 1 V of the others; spin; regen direction; coolant flow; fan at 40 °C; 12 V alarm; HV leak detection. (Chief; BACKLOG.md:8)
 - **CRITICAL** · Gate 4 — first drive (chief): Kid / Low mode, 10 mph, flat ground, spotter. (Chief; BACKLOG.md:9)
-- **CRITICAL** · Chief review #1: ContactorSeq.cpp:367 single-string env with HV_ANALOG_ENABLE=0 closes Main+ on a blind 5 s precharge timer: must fault; fence/delete teensy41_bms env. (Chief; BACKLOG.md:28)
+- **CRITICAL** · Chief review #1: ContactorSeq.cpp:367 single-string env with HV_ANALOG_ENABLE=0 closes Main+ on a blind 5 s precharge timer: must fault; fence/delete teensy41_bms env. (env DELETED 2026-10-22; ContactorSeq.cpp:367 timer-close path still to make a fault.) (Chief; BACKLOG.md:28)
 - **CRITICAL** · Chief review #2: ContactorSeq.cpp:226 + Settings.cpp:170/165: serial U / I sim inputs feed the real precharge gate / force currentValid; compile out when TELEMETRY_ONLY=0. (Chief; BACKLOG.md:29)
 - **CRITICAL** · Chief review #3: ContactorSeq.cpp:288-312: lemA/lemB/valid never set; BmsCore.h:186-189 defaults valid=true, so dead-LEM, >60 A disagree and 400 A per-sensor trip can never fire. Default valid=false. (Chief; BACKLOG.md:30)
 - **CRITICAL** · Chief review #4: ContactorSeq.cpp:302: key-on is serial e only; no KSI, e-stop NC2, park or plug-in input fed to BmsCore. (Chief; BACKLOG.md:31)
