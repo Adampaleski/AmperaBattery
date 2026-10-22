@@ -61,7 +61,7 @@ void pinMode(int p, int m){ mode[p]=m; calls++; if (m==OUTPUT && lvl[p]==HIGH &&
 FN
 int main(){ for (int p=0;p<64;p++) lvl[p]=HIGH;  // worst case: output latch left HIGH
   safeOutputsFirst();
-  const int must[] = {Pins::OUT1,Pins::OUT2,Pins::OUT3,Pins::OUT4,Pins::OUT5,Pins::OUT6,Pins::OUT7,Pins::OUT8,
+  const int must[] = {Pins::OUT1,Pins::OUT2,Pins::OUT3,Pins::OUT4,Pins::OUT5,Pins::OUT6,Pins::OUT7,Pins::OUT8,Pins::OUT9,Pins::OUT10,
                       Pins::MAIN_POS,Pins::PRECHARGE,Pins::MAIN_NEG,Pins::LIGHT_DATA,Pins::LIGHT_CLK};
   int miss = 0; for (int p: must) if (p>=0 && !(mode[p]==OUTPUT && lvl[p]==LOW)) miss++;
   if (Pins::THR_CS>=0 && !(mode[Pins::THR_CS]==OUTPUT && lvl[Pins::THR_CS]==HIGH)) miss++;
@@ -75,6 +75,6 @@ for role in ("1", "0"):
     r = subprocess.run(CXX + ["-std=c++17", "-DTELEMETRY_ONLY=1", f"-DTEENSY_ROLE={role}", "-DDUAL_STRING=1",
                               "-I" + stub, "-Iscripts/hoststub", "-Iinclude", "-Isrc", str(src), "-o", exe], cwd=R, capture_output=True, text=True)
     out = r.stdout + r.stderr if r.returncode else subprocess.run([exe], capture_output=True, text=True).stdout
-    ok("bad=0 miss=0" in out, f"#3 role {'A' if role=='0' else 'B'}: every coil/PWM pin LOW-then-OUTPUT, never HIGH; THR_CS deselected ({out.strip()[:200]})")
+    ok("bad=0 miss=0" in out, f"#3 (+OUT9/OUT10) role {'A' if role=='0' else 'B'}: every coil/PWM pin LOW-then-OUTPUT, never HIGH; THR_CS deselected ({out.strip()[:200]})")
 print(f"review fixes: {fails} failed")
 sys.exit(1 if fails else 0)

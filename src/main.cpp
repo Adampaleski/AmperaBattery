@@ -235,7 +235,8 @@ void dispatchSerial() {
 // (hardware gate, chief review CRITICAL #10). Pins float from reset until here: 10k gate pull-downs (Gate 0).
 static void safeOutputsFirst() {
     static const int kLow[] = { Pins::OUT1, Pins::OUT2, Pins::OUT3, Pins::OUT4, Pins::OUT5, Pins::OUT6,
-                                Pins::OUT7, Pins::OUT8, Pins::LIGHT_DATA, Pins::LIGHT_CLK };
+                                Pins::OUT7, Pins::OUT8, Pins::OUT9, Pins::OUT10,   // OUT9 fan relay, OUT10 pump (chief OK 2026-10-22)
+                                Pins::LIGHT_DATA, Pins::LIGHT_CLK };
     for (int pin : kLow) { if (pin >= 0) { digitalWriteFast(pin, LOW); pinMode(pin, OUTPUT); digitalWriteFast(pin, LOW); } }
     if (Pins::THR_CS >= 0) { digitalWriteFast(Pins::THR_CS, HIGH); pinMode(Pins::THR_CS, OUTPUT); digitalWriteFast(Pins::THR_CS, HIGH); }
 }

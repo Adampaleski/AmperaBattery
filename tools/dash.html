@@ -22,7 +22,7 @@
 #tnav .lbl{margin-left:auto;padding-left:calc(10px*var(--k));color:#5f6368;font-size:calc(11px*var(--k));font-weight:400}
 body>header{top:calc(48px*var(--tnk,1) + env(safe-area-inset-top))!important}
 @media print{#tnav{display:none}}
-</style><div id="tnav" role="navigation" aria-label="Pages"><a href="index.html" target="teryx_sim">Sim</a><a href="dash.html?src=sim" class="on" aria-current="page">Dash</a><a href="wiring.html">Wiring</a><a href="checklist.html">Checklist</a><span class="lbl">dev build · 39fd0d0+</span></div><script>/* keep the bar thumb-sized when the browser shows the page zoomed out (dash fit-to-screen); measured at load/rotate only, not on pinch */
+</style><div id="tnav" role="navigation" aria-label="Pages"><a href="index.html" target="teryx_sim">Sim</a><a href="dash.html?src=sim" class="on" aria-current="page">Dash</a><a href="wiring.html">Wiring</a><a href="checklist.html">Checklist</a><span class="lbl">dev build · b845eda+</span></div><script>/* keep the bar thumb-sized when the browser shows the page zoomed out (dash fit-to-screen); measured at load/rotate only, not on pinch */
 (function(){function k(){const v=window.visualViewport,sc=v&&v.scale>0?v.scale:1;document.documentElement.style.setProperty('--tnk',String(Math.max(1,Math.min(4,1/sc))));}
  k();addEventListener('load',()=>{k();setTimeout(k,600);});addEventListener('orientationchange',()=>setTimeout(k,100));})();</script>
 <div id="dash"></div>
@@ -508,7 +508,7 @@ const TeryxLock={keyOn:false,phone:true,unlocked:false,verify:null,hasPin:null,s
 if(typeof document!=='undefined'){const guard=e=>{const t=e.target&&e.target.closest&&e.target.closest('[data-drive-lock]');if(!t||!TeryxLock.locked()||TeryxPad.isOpen())return;e.preventDefault();e.stopImmediatePropagation();if(e.type==='click')TeryxLock.prompt();if(e.type==='focusin'&&e.target.blur)e.target.blur();};
   ['pointerdown','mousedown','touchstart','click','focusin','keydown','input','change'].forEach(t=>document.addEventListener(t,guard,{capture:true,passive:false}));}
 if(typeof window!=='undefined'){window.TeryxPad=TeryxPad;window.TeryxLock=TeryxLock;}
-const DASH_BUILD='dev build · 39fd0d0+';
+const DASH_BUILD='dev build · b845eda+';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');
