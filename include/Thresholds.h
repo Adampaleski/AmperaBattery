@@ -39,6 +39,7 @@ static const ThrDef kThr[] = {
     THR_F("ocA",      overcurrentA,  "A",  100.0f, 650.0f, false),
     THR_U("ocMs",     overcurrentMs,       10,    100,     false),
     THR_F("instA",    instantTripA,  "A",  100.0f, 750.0f, false),
+    THR_F("lemOcA",   lemTripA,      "A",  100.0f, 450.0f, true),   // per LEM sensor, uses ocMs
     // temperatures: may only be lowered (Adam: the more conservative limit wins)
     THR_F("tripC",    overTempC,     "C",  30.0f,  55.0f,  true),
     THR_F("derateC",  derateTempC,   "C",  25.0f,  55.0f,  true),
@@ -53,6 +54,7 @@ static const ThrDef kThr[] = {
     THR_F("floorV",   hardFloorV,    "V",  2.80f,  3.30f,  true),
     THR_U("floorMs",  hardFloorMs,         50,    2000,    true),
     THR_F("packBand", packSagBandV,  "V",  0.02f,  0.30f,  true),
+    THR_F("drLowV",   derateLowV,    "V",  0.05f,  0.40f,  true),   // at-rest derate band above L
     // LEM A/B imbalance
     THR_F("imbA",     imbalanceA,    "A",  20.0f,  300.0f, true),
     THR_U("imbMs",    imbalanceMs,         100,   10000,   true),
@@ -70,7 +72,7 @@ constexpr int kThrN = static_cast<int>(sizeof(kThr) / sizeof(kThr[0]));
 class Thresholds {
 public:
     static constexpr int      kBase  = FaultLog::kEnd;   // 1216
-    static constexpr uint32_t kMagic = 0x54485231;       // "THR1"
+    static constexpr uint32_t kMagic = 0x54485232;       // "THR2" (THR1 + lemOcA, drLowV: old saves = defaults)
     static constexpr int      kSize  = 4 + 4 + 4 * kThrN + 2;
     static constexpr int      kEnd   = kBase + kSize;
     static_assert(kThrN <= 32, "override mask is 32 bits");

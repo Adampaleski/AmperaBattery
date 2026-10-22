@@ -11,8 +11,8 @@ to `BmsCore::Config` every tick (dual role A). Nothing here drives an output.
 | `TocA -` + Enter | that key back to the code default |
 | `TX` + Enter | all keys back to code defaults |
 
-Keys: `ocA ocMs instA` (current trip), `tripC derateC chgMaxC chgMinC chgColdC`
-(temps), `lowMs restA sagStart sagZero floorV floorMs packBand` (cells / sag),
+Keys: `ocA ocMs instA lemOcA` (current trip; `lemOcA` = per-LEM-sensor trip, default 400 A, tighten-only, max 450), `tripC derateC chgMaxC chgMinC chgColdC`
+(temps), `lowMs restA sagStart sagZero floorV floorMs packBand drLowV` (cells / sag; `drLowV` = at-rest derate band above L, default 0.20 V),
 `imbA imbMs imbPct` (LEM A/B imbalance), `drLogMs drClrMs` (derate logging).
 
 Rules
@@ -24,14 +24,16 @@ Rules
 - Defaults marked PLACEHOLDER are not Chevy/LG values. Temperature defaults still
   wait on the "more conservative of Chevy or EV community" check (backlog).
 
-Storage: EEPROM 1216..1305 (right after the FaultLog ring 256..1215), magic `THR1`,
-override bitmask, 20 floats, CRC-16. Blank or corrupt = no overrides.
+Storage: EEPROM 1216..1317 (right after the FaultLog ring 256..1215), magic `THR2`,
+override bitmask, 23 floats, CRC-16. Blank, corrupt or old `THR1` saves = no overrides
+(code defaults; re-enter any THR1 overrides). Defaults changed in Build 10: `derateC` 40
+(was 50), `drLowV` 0.20 (was 0.15); see docs/BMS_SETTINGS.md.
 
-Checks: `scripts/test_thresholds.cpp` (9). Not bench-tested on a Teensy yet.
+Checks: `scripts/test_thresholds.cpp` (10). Not bench-tested on a Teensy yet.
 
 ## In the simulator (tools/bms_sim.html, Settings tab)
 
-The **BMS thresholds** card lists all 20 keys with value, default, allowed range,
+The **BMS thresholds** card lists all 23 keys with value, default, allowed range,
 "lower only" / "raise only" (tighten-only), SET and PLACEHOLDER tags. Type a value and
 press Enter to apply; **Reset** puts one key back to the code default, **Reset all…**
 is `TX`.
@@ -44,7 +46,7 @@ is `TX`.
 - Applied values go into the simulated BmsCore at once, the same way
   `configureCore()` does it (code defaults, then the overrides), so the Drive tab
   charts and the fault scenarios you trigger by hand use them.
-- Stored on the simulated EEPROM at 1216–1305 (same layout + CRC as the Teensy)
+- Stored on the simulated EEPROM at 1216–1317 (same layout + CRC as the Teensy)
   and mirrored to this browser's localStorage (`teryx.thr.v1`), so they survive
   Reset, Power cycle and page reload. The scripted Scenarios tab always runs code
   defaults.

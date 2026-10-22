@@ -100,7 +100,7 @@ struct Config {
     float    overTempC      = 55.0f;   // drive: open contactors above
     float    chargeMaxTempC = 45.0f;
     float    chargeMinTempC = 0.0f;
-    float    derateTempC    = 50.0f;   // Kelly derate starts
+    float    derateTempC    = 40.0f;   // Kelly derate starts. PROPOSED 40 = SimpBMS DisTSetpoint (docs/BMS_SETTINGS.md), was 50
     // Charge mode (Adam 2026-10-21): plug-in wakes the BMS without key-on.
     float    chargeColdC    = 10.0f;   // pack below this: charge current reduced ... PLACEHOLDER
     float    chargeColdFrac = 0.50f;   // ... to this fraction of chargeMaxA. PLACEHOLDER (no LG/Chevy curve on file)
@@ -111,6 +111,7 @@ struct Config {
     float    overcurrentA   = 650.0f;  // |I| above this ...
     uint32_t overcurrentMs  = 100;     // ... for this long -> open
     float    instantTripA   = 750.0f;  // |I| above this on ANY sample -> open (no debounce)
+    float    lemTripA       = 400.0f;  // |LEM A| or |LEM B| (one sensor = 2 strings) above this for overcurrentMs -> open. PROPOSED (Sparky 400 A per sensor); 0 = off
     float    maxDischargeA  = 0.0f;    // Kelly "discharge amps" derate; 0 = off (250 A derate superseded 2026-10-20)
     // timing (Config.h / StringConfig.h)
     uint32_t stringSilentMs = 2000;
@@ -126,7 +127,7 @@ struct Config {
     float    weldBusFrac    = 0.50f;   // ... this fraction of the lowest string
     float    weldMinV       = 30.0f;   // ... and below this absolute floor never counts
     // Kelly
-    float    derateLowV     = 0.15f;   // start derating 150 mV above lowCutV
+    float    derateLowV     = 0.20f;   // start derating 200 mV above lowCutV (3.50 V). PROPOSED = SimpBMS DischV 3.2 + DisTaper 0.3 (docs/BMS_SETTINGS.md), was 0.15
     // Cell sag (Adam, 2026-10-21): RELATIVE, not a fixed per-cell voltage.
     //  * one cell well below the pack average -> "cell sag" derate (any load)
     //  * whole-pack sag is judged against load: under load (|I| > restA) a
@@ -254,7 +255,7 @@ public:
 
     void reset() {
         st_ = CState::Open; stMs_ = 0; retries_ = 0; latched_ = 0; chargeOvLatched_ = false;
-        welded_ = false; keyBlock_ = false; ocSinceMs_ = 0; ocActive_ = false; full_ = false; openSinceMs_ = 0;
+        welded_ = false; keyBlock_ = false; ocSinceMs_ = 0; ocActive_ = false; lemOcSinceMs_ = 0; lemOcActive_ = false; full_ = false; openSinceMs_ = 0;
         imbSinceMs_ = 0; imbOver_ = false; imbOn_ = false;
         hardOn_ = false; hardSinceMs_ = 0; derOn_ = D_NONE; derRaw_ = D_NONE; derSinceMs_ = derFullMs_ = 0; derMin_ = 100; derLast_ = D_NONE; derEvents_ = 0;
         lowSinceMs_ = floorSinceMs_ = 0; lowBelow_ = floorBelow_ = false;
@@ -414,6 +415,7 @@ public:
 
 private:
     CState   st_ = CState::Open;
+    uint32_t lemOcSinceMs_ = 0; bool lemOcActive_ = false;
     uint32_t stMs_ = 0, openSinceMs_ = 0, ocSinceMs_ = 0, imbSinceMs_ = 0, lowSinceMs_ = 0, floorSinceMs_ = 0;
     bool     lowBelow_ = false, floorBelow_ = false;
     bool     imbOver_ = false, imbOn_ = false;
@@ -480,6 +482,18 @@ private:
                 if (in.nowMs - ocSinceMs_ >= cfg.overcurrentMs) f |= F_OVERCURRENT;
             } else {
                 ocActive_ = false;
+            }
+            // per-sensor trip (Sparky): one LEM carries 2 strings, so it can be over its share while the total is fine
+            const float la = in.lemA < 0 ? -in.lemA : in.lemA, lb = in.lemB < 0 ? -in.lemB : in.lemB;
+            const float lm = la > lb ? la : lb;
+            if (cfg.lemTripA > 0 && lm > cfg.lemTripA) {
+                if (!lemOcActive_) { lemOcActive_ = true; lemOcSinceMs_ = in.nowMs; }
+                if (in.nowMs - lemOcSinceMs_ >= cfg.overcurrentMs) {
+                    if (!(prevFaults_ & F_OVERCURRENT)) logf(in.nowMs, "OC per sensor: A %.0f / B %.0f A > %.0f A", in.lemA, in.lemB, cfg.lemTripA);
+                    f |= F_OVERCURRENT;
+                }
+            } else {
+                lemOcActive_ = false;
             }
         }
         return f;

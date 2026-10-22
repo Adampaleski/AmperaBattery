@@ -150,7 +150,7 @@ const scFail=r.filter(x=>!x.pass).length;if(sf||df||scFail)process.exitCode=1;
  const ix=k=>tj().keys.findIndex(x=>x.key===k),val=k=>tj().keys[ix(k)].value;
  const tk=(ok,name,d)=>{tn++;if(!ok)tf++;console.log((ok?"PASS":"FAIL")+" thresholds-page "+name.padEnd(46),d);};
  X.sim_thr_reset_all();X.sim_reset();
- {const J=tj();tk(J.n===21&&J.overrides===0&&J.base===1216&&J.end===1310&&J.keys[ix("ocA")].only==="lower"&&J.keys[ix("chgMinC")].only==="raise"&&!J.keys[ix("ocA")].ph&&J.keys[ix("floorV")].ph,"21 keys, defaults, tighten-only + PLACEHOLDER tags",`n=${J.n} base=${J.base}`);}
+ {const J=tj();tk(J.n===23&&J.overrides===0&&J.base===1216&&J.end===1318&&J.keys[ix("ocA")].only==="lower"&&J.keys[ix("chgMinC")].only==="raise"&&!J.keys[ix("ocA")].ph&&J.keys[ix("floorV")].ph,"23 keys (THR2), defaults, tighten-only + PLACEHOLDER tags",`n=${J.n} base=${J.base}`);}
  {const m=cs(X.sim_thr_set(ix("ocA"),600));X.sim_set_key(1);X.sim_step(4000);X.sim_set_pack_amps(620);X.sim_step(200);const s=st();X.sim_set_pack_amps(0);
   tk(/saved: ocA=600/.test(m)&&val("ocA")===600&&s.cfg.overA===600&&tj().keys[ix("ocA")].set===1&&(s.faults|s.latched)&(1<<6),"set ocA 600 in bounds: applied live, 620 A trips",m);}
  X.sim_reset();

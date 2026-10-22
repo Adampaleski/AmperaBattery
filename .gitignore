@@ -3,3 +3,4 @@
 .vscode/ipch
 **/*.o
 **/*.d
+__pycache__/

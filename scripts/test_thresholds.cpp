@@ -53,17 +53,17 @@ int main() {
         Thresholds t(kStore); t.load();
         cmd(t, "TderateC 55");
         const bool r1 = said("derateC < tripC");
-        cmd(t, "TtripC 48");
-        const bool r2 = said("derateC < tripC");   // default derate 50 >= 48
+        cmd(t, "TtripC 38");
+        const bool r2 = said("derateC < tripC");   // default derate 40 >= 38
         cmd(t, "TsagStart 0.45");
         const bool r3 = said("sagStart < sagZero");
         Config base; base.lowCutV = 3.10f; t.setBase(base);
         cmd(t, "TfloorV 3.2");
         const bool r4 = said("floorV < low cutoff");
-        cmd(t, "TderateC 40");
+        cmd(t, "TderateC 30");
         cmd(t, "TtripC 48");
         Config c; t.apply(c);
-        check(r1 && r2 && r3 && r4 && c.derateTempC == 40.0f && c.overTempC == 48.0f,
+        check(r1 && r2 && r3 && r4 && c.derateTempC == 30.0f && c.overTempC == 48.0f,
               "order rules: derate<trip, sagStart<sagZero, floor<L; tightening both temps in order works");
     }
     {   // 5 reset one + reset all
@@ -110,6 +110,16 @@ int main() {
         }
         check(inb && Thresholds::kBase >= FaultLog::kEnd && Thresholds::kEnd <= 4284 && !Thresholds::orderError(d),
               "every code default is inside its bounds and passes order rules; storage after FaultLog");
+    }
+    {   // 10 THR2 keys: lemOcA (tighten-only, 400 A default) + drLowV
+        Thresholds t(kStore); t.load(); cmd(t, "TX");
+        Config d; const bool defs = d.lemTripA == 400.0f && d.derateLowV == 0.20f && d.derateTempC == 40.0f;
+        cmd(t, "TlemOcA 500"); const bool loosen = said("outside");
+        cmd(t, "TlemOcA 350"); cmd(t, "TdrLowV 0.25");
+        Thresholds t2(kStore); t2.load(); Config c; t2.apply(c);
+        check(defs && loosen && c.lemTripA == 350.0f && c.derateLowV == 0.25f && Thresholds::kMagic == 0x54485232,
+              "THR2: lemOcA 400 default, cannot exceed 450, set 350 + drLowV 0.25 persist; derateC default 40");
+        cmd(t, "TX");
     }
     printf("thresholds %d/%d\n", pass, pass + fail);
     return fail ? 1 : 0;

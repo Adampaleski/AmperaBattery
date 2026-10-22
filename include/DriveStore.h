@@ -8,7 +8,7 @@
 namespace DriveProfile {
 class Store {
 public:
-    static constexpr int      kBase  = BmsCore::Thresholds::kEnd;   // 1310
+    static constexpr int      kBase  = BmsCore::Thresholds::kEnd;   // 1318 (THR2; was 1310 with THR1: old drive-store saves read as blank)
     static constexpr uint32_t kMagic = 0x44525631;                  // "DRV1"
     static constexpr int      kNF    = 5;
     static constexpr int      kSize  = 4 + 1 + 4 + 4 * kNF * kModes + 2;
