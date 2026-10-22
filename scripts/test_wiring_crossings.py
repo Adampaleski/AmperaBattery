@@ -20,4 +20,17 @@ with sync_playwright() as p:
     print(('PASS' if not bad else 'FAIL'),'wiring: no unrelated wires overlap on any of',len(r),'pages')
     print(('PASS' if hops>0 and arcs else 'FAIL'),'wiring: crossings drawn as hop arcs (',hops,'hops)')
     print(('PASS' if not errs else 'FAIL'),'wiring: no page errors',errs[:2])
-    sys.exit(1 if bad or not hops or errs else 0)
+    # Build 3: install guide, parts panel, critical toggle
+    pg.evaluate("localStorage.removeItem('teryx-wiring-crit')");pg.reload();pg.wait_for_timeout(400)
+    nc=pg.locator('nav a').count();pg.click('#crit');pg.wait_for_timeout(200);na=pg.locator('nav a').count();pg.click('#crit')
+    t1=nc<na and na==len(r);print(('PASS' if t1 else 'FAIL'),'wiring: Critical-only is the default (',nc,'of',na,'pages) and toggles to all')
+    miss=[]
+    for pid in [x for x in r if x!='overview']:
+        pg.evaluate(f"location.hash='{pid}'");pg.wait_for_timeout(150)
+        if pg.locator('ol.steps li').count()<3 or 'Wire (from' not in pg.inner_text('ol.steps'): miss.append(pid)
+    t2=not miss;print(('PASS' if t2 else 'FAIL'),'wiring: every sub-page has an install guide (mount / wire / torque / test)',miss)
+    pg.evaluate("location.hash='precharge'");pg.wait_for_timeout(200);pg.locator('.n[data-id="evp"]').click();pg.wait_for_timeout(200)
+    t3='8.8' in pg.inner_text('#pp') and pg.locator('#pp.on').count()==1;print(('PASS' if t3 else 'FAIL'),'wiring: tapping EV200 opens its cut sheet with the sourced torque')
+    pg.click('#pp button');pg.wait_for_timeout(300);pg.click('#partsb');pg.wait_for_timeout(200);t4=pg.locator('#pp .box').count()==pg.evaluate('CUTSHEETS.length') and 'NO DATASHEET FOUND' in pg.inner_text('#pp')
+    print(('PASS' if t4 else 'FAIL'),'wiring: Parts panel lists every cut sheet and flags the missing ones')
+    sys.exit(1 if bad or not hops or errs or not (t1 and t2 and t3 and t4) else 0)
