@@ -142,6 +142,12 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: ≈3.2 V
 - [ ] **S40 12V SENSE** (CRITICAL, PROPOSED) — 12V bus via divider (PROPOSED 47k/10k + 100 nF) → Teensy B:26 (A12) — free on B per this map · 12 V sense · 22 AWG BU · fuse PROPOSED 1 A  
   Meter: 13.8 V in -> ≈2.4 V at pin
+- [ ] **S41 PLUG A33** (CRITICAL, PROPOSED) — Charge-plug detect (signal source UNVERIFIED: inlet proximity switch or charger AC-present 12 V — Adam to pick) -> opto LED (PROPOSED PC817 + 1k5 from 12 V) → opto transistor -> Teensy A:33 (10k pull-up 3V3 + 100 nF), LOW = plugged · plug-in detect · 22 AWG BU/GN · fuse PROPOSED 1 A  
+  Meter: unplugged: 3.3 V at A:33; plugged: <0.4 V
+- [ ] **S42 KEY A34** (CRITICAL, PROPOSED) — Key switch run (switched 12 V, Teryx circuit UNVERIFIED) -> opto ch1 LED (PROPOSED PC827 + 1k5) → opto ch1 transistor -> Teensy A:34 (10k pull-up 3V3 + 100 nF), LOW = key on · KEY-ON A · 22 AWG BU/YE · fuse PROPOSED 1 A  
+  Meter: key off: 3.3 V at A:34; key on: <0.4 V
+- [ ] **S43 KEY B34** (CRITICAL, PROPOSED) — Same key run 12 V -> opto ch2 LED (PROPOSED PC827 + 1k5) → opto ch2 transistor -> Teensy B:34 (10k pull-up 3V3 + 100 nF), LOW = key on · KEY-ON B · 22 AWG BU/YE · fuse shares S42 fuse  
+  Meter: as S42 at B:34
 
 ## Step 7: HIGH VOLTAGE — LATER, Sparky present, string fuses OUT
 

@@ -23,6 +23,9 @@ Tag `[CRITICAL sN]` = CRITICAL, checklist section N (0 gates, 2 shop, 3 buy, 4 f
 - [ ] [CRITICAL s4] E-stop latch (crew 2026-10-22): when block 3 (NC to Teensy B) reports open, drop every coil driver and latch until a key-cycle reset; releasing never closes anything. Logic + test done (include/EstopLatch.h, scripts/test_estop_latch.cpp 7/7); wire into the coil gate when BMS_CAP_CONTACTOR_DRV is enabled, then bench: press, release, unplug block 3 wire. Adam meters Kelly KSI draw (expected < 0.2 A).
 - [ ] [CRITICAL s3] Insulated boots / covers on every HV terminal (Sparky): the string side of each A6T200 stays LIVE with the fuses pulled.
 
+- [ ] [CRITICAL s2] Wire S41 charge plug-in detect -> A:33 and S42/S43 KEY-ON -> A:34 / B:34 (opto, 10k pull-up, LOW = active; PROPOSED, Sparky 2026-10-22). Plug-detect source and Teryx key-run circuit UNVERIFIED. Bench: idle 3.3 V, active <0.4 V.
+- [ ] [CRITICAL s4] Firmware: read KEY-ON (A:34/B:34) and plug-in (A:33) into BmsCore wake/plugIn, replacing the serial `e` dead-man (chief #4). Pins only in PINMAP so far.
+
 ## CRITICAL: chief firmware review cd7027f (2026-10-22) — TODO, NOT implemented in this task
 Source: /workspace/teryx/review/firmware_review_chief.md (the review lists 10 CRITICAL items; the request said 9, all are carried here).
 - [x] [CRITICAL s0] Chief review #1: ContactorSeq.cpp:367 single-string env with HV_ANALOG_ENABLE=0 closes Main+ on a blind 5 s precharge timer: must fault; fence/delete `teensy41_bms` env. (env DELETED 2026-10-22; ContactorSeq.cpp:367 timer-close path still to make a fault.) DONE 2026-10-22: timer path removed; include/PrechargeGate.h (bus >= 95% of valid pack after 200 ms, else fail at 5 s -> RetryWait 30 s, 2 retries, Lockout); scripts/test_precharge_gate.cpp.

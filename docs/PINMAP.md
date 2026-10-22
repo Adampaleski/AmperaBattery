@@ -9,19 +9,21 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 
 ## Pin conflicts and undefined pins (fix or accept before wiring)
 
-1. RESOLVED: IN1/IN2 were Serial4 17/16 — IN1 moved to pin 34 (free on A and B), IN2 retired (-1). A pin 16 (RX4) stays unconnected on purpose: the gateway is receive-only (TX17 -> ESP32 GPIO16).
-2. RESOLVED: IN3/IN4 were I2C 18/19 — retired (-1); 18/19 are only I2C_SDA/I2C_SCL now. No other free GPIO exists on A (33 reserved charge detect).
-3. INTENDED (not a conflict): A uses pins 4/40 (A_THR_ALIVE, PEDAL_IN_A), B uses 7/41 (B_THR_ALIVE, PEDAL_IN_B). Pin 7 = RAD_FAN on A, 41 = POS_4WD on A, 4 = B_FAULT_OUT on B, 40 = ST_4WD_B on B — different boards; label harness wires TA/TB.
-4. RESOLVED (PROPOSED pins, free on B per this map): e-stop block 3 -> B pin 9; 12 V low alarm -> B pin 26 (A12). No firmware const yet.
-5. ESP32 GPIO17: teryx-ev-hub firmware/esp32-gateway/docs/PINMAP.md says GPIO17 TX <- Teensy RX 16 (crossed pair); GATEWAY.md:18 says leave unconnected (RX-only). This map follows GATEWAY.md. Hub PINMAP.md is stale (other repo, not edited).
-6. FIXED: src/HubStatus.cpp:14 and include/Config.h:37 stale CAN comments corrected to CAN_LAYOUT_V2.
-7. FIXED: old wiring overview drew park on 'pin 18'; park is pin 32 on A and B.
-8. RESOLVED: precharge contactor = salvaged AEV14012 (~3 A peak coil, OK); TE EV11 dropped.
-9. RESOLVED: HV gauge — string leads from each A6T200 = 1/0 (~138 A at a 550 A launch); pack-to-Kelly mains = owned 3/0.
-10. RESOLVED: SN65HVD230 — 4 owned enough for the one-string bench; 2 extra on the buy list for Gate 3 (no purchase now).
-11. RESOLVED: PEDAL_IN_B = B pin 41, pedal track 2 via 10k/18k; A reads track 1 on pin 40.
-12. Kelly pin 3: ONE pull-down, the existing 100k (R1). Sparky's 10k NOT added — PROPOSED bench option only if pin 3 floats, after a full-voltage check through the 4066s.
-13. DC-DC on the shelf = Elcon TDC-JH-144-12 (not TDC-IY). F-MAIN and P01/P02 gauge TBD until its rated output is read.
+1. PROPOSED (Sparky 2026-10-22): KEY-ON on pin 34 (IN1 spare) on A and B — no free GPIO on A; IN2-IN4 deferred. LIGHT_OE (retired) also names 34; nothing drives it. Firmware does not read key-on or plug-in yet (later commit, chief #4).
+2. PROPOSED: plug-in detect has no B mirror; B:33 not assigned in this map (free per map, UNVERIFIED).
+3. RESOLVED: IN1/IN2 were Serial4 17/16 — IN1 moved to pin 34 (free on A and B), IN2 retired (-1). A pin 16 (RX4) stays unconnected on purpose: the gateway is receive-only (TX17 -> ESP32 GPIO16).
+4. RESOLVED: IN3/IN4 were I2C 18/19 — retired (-1); 18/19 are only I2C_SDA/I2C_SCL now. No other free GPIO exists on A (33 reserved charge detect).
+5. INTENDED (not a conflict): A uses pins 4/40 (A_THR_ALIVE, PEDAL_IN_A), B uses 7/41 (B_THR_ALIVE, PEDAL_IN_B). Pin 7 = RAD_FAN on A, 41 = POS_4WD on A, 4 = B_FAULT_OUT on B, 40 = ST_4WD_B on B — different boards; label harness wires TA/TB.
+6. RESOLVED (PROPOSED pins, free on B per this map): e-stop block 3 -> B pin 9; 12 V low alarm -> B pin 26 (A12). No firmware const yet.
+7. ESP32 GPIO17: teryx-ev-hub firmware/esp32-gateway/docs/PINMAP.md says GPIO17 TX <- Teensy RX 16 (crossed pair); GATEWAY.md:18 says leave unconnected (RX-only). This map follows GATEWAY.md. Hub PINMAP.md is stale (other repo, not edited).
+8. FIXED: src/HubStatus.cpp:14 and include/Config.h:37 stale CAN comments corrected to CAN_LAYOUT_V2.
+9. FIXED: old wiring overview drew park on 'pin 18'; park is pin 32 on A and B.
+10. RESOLVED: precharge contactor = salvaged AEV14012 (~3 A peak coil, OK); TE EV11 dropped.
+11. RESOLVED: HV gauge — string leads from each A6T200 = 1/0 (~138 A at a 550 A launch); pack-to-Kelly mains = owned 3/0.
+12. RESOLVED: SN65HVD230 — 4 owned enough for the one-string bench; 2 extra on the buy list for Gate 3 (no purchase now).
+13. RESOLVED: PEDAL_IN_B = B pin 41, pedal track 2 via 10k/18k; A reads track 1 on pin 40.
+14. Kelly pin 3: ONE pull-down, the existing 100k (R1). Sparky's 10k NOT added — PROPOSED bench option only if pin 3 floats, after a full-voltage check through the 4066s.
+15. DC-DC on the shelf = Elcon TDC-JH-144-12 (not TDC-IY). F-MAIN and P01/P02 gauge TBD until its rated output is read.
 
 ## Teensy A pins
 
@@ -67,9 +69,9 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | 30 |  | CAN3 RX vehicle bus -> SN65 #5 | C05 |  | SOURCED | FlexCanCompat.h:45 |
 | 31 |  | CAN3 TX vehicle bus | C05 |  | SOURCED | FlexCanCompat.h:45 |
 | 32 | PARK_IN_A | park brake contact 1 (direct GPIO, 10k pull-up, LOW = set) | S16 |  | SOURCED | Config.h:261 (BODY_IO_EXPANDER=1) |
-| 33 |  | RESERVED charge plug-in detect (PROPOSED, no wire yet) |  | LATER | PROPOSED | Config.h:254 |
+| 33 |  | CHARGE PLUG-IN detect (opto, 10k pull-up, LOW = plugged; Sparky 2026-10-22). Feeds BmsCore plugIn (chief #4); firmware read = later commit | S41 | CRITICAL | PROPOSED | Config.h:254 |
 | 34 | LIGHT_OE | spare (retired 595 /OE; nothing drives it) |  |  | SOURCED | Config.h:245 |
-| 34 | IN1 | IN1 spare input (moved off Serial4 17, crew 2026-10-22); pinMode INPUT only with BODY_IO_EXPANDER |  | LATER | PROPOSED | Config.h:171 |
+| 34 | IN1 | KEY-ON input (12 V key via opto, 10k pull-up, LOW = key on; Sparky 2026-10-22) — reuses IN1 spare (no other free GPIO on A). Firmware read = later commit (chief #4 KSI) | S42 | CRITICAL | PROPOSED | Config.h:171 |
 | -1 | IN2 | IN2 retired (was 16 = Serial4 RX): no free GPIO on A; DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:172 |
 | -1 | IN3 | IN3 retired (was 18 = I2C SDA); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:173 |
 | -1 | IN4 | IN4 retired (was 19 = I2C SCL); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:174 |
@@ -114,7 +116,7 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | 41 | PEDAL_IN_B | throttle pedal wiper (own 10k/18k + 100 nF) | S15 |  | SOURCED | Config.h:225 |
 | 9 |  | E-STOP block 3 latch input, 10k pull-up, LOW = released/closed (pin free on B; no firmware const yet — EstopLatch.h not wired, chief #5) | E09 |  | PROPOSED | crew 2026-10-22; docs/ESTOP.md |
 | 26 |  | 12 V LOW ALARM sense (A12) via 47k/10k + 100 nF (pin free on B; no firmware const yet; A has no free analog pin) | S40 |  | PROPOSED | crew 2026-10-22 |
-| 34 | IN1 | IN1 spare input (no wire) |  | LATER | PROPOSED | Config.h:171 |
+| 34 | IN1 | KEY-ON mirror (own opto channel, 10k pull-up, LOW = key on) — reuses IN1 spare, pin 34 free on B. Firmware read = later commit | S43 | CRITICAL | PROPOSED | Config.h:171 |
 
 ## ESP32 gateway pins
 
@@ -254,6 +256,9 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | S26 | 6 | wire | LEM B DHAB pin 3 | divider -> Teensy B:15 | LEM B high | 0-3.2 V | BU/WH | 22 | none | S26 LEMB CH2 | CRITICAL | SOURCED | Config.h:188 |
 | S27 | 6 | wire | LEM B 5 V sense | Teensy B:25 | LEM supply ref | 3.2 V | OR | 22 | F-BUCK | S27 LEMB VC | CRITICAL | SOURCED | Config.h:189 |
 | S40 | 6 | wire | 12V bus via divider (PROPOSED 47k/10k + 100 nF) | Teensy B:26 (A12) — free on B per this map | 12 V sense | ≤3.3 V | BU | 22 | PROPOSED 1 A | S40 12V SENSE | CRITICAL | PROPOSED | crew 2026-10-22; wiring_data power12 |
+| S41 | 6 | wire | Charge-plug detect (signal source UNVERIFIED: inlet proximity switch or charger AC-present 12 V — Adam to pick) -> opto LED (PROPOSED PC817 + 1k5 from 12 V) | opto transistor -> Teensy A:33 (10k pull-up 3V3 + 100 nF), LOW = plugged | plug-in detect | 12 V in / 3.3 V pin | BU/GN | 22 | PROPOSED 1 A | S41 PLUG A33 | CRITICAL | PROPOSED | Sparky 2026-10-22; chief review #4 (in.plugIn never set) |
+| S42 | 6 | wire | Key switch run (switched 12 V, Teryx circuit UNVERIFIED) -> opto ch1 LED (PROPOSED PC827 + 1k5) | opto ch1 transistor -> Teensy A:34 (10k pull-up 3V3 + 100 nF), LOW = key on | KEY-ON A | 12 V in / 3.3 V pin | BU/YE | 22 | PROPOSED 1 A | S42 KEY A34 | CRITICAL | PROPOSED | Sparky 2026-10-22; chief review #4 (key-on is serial e only) |
+| S43 | 6 | wire | Same key run 12 V -> opto ch2 LED (PROPOSED PC827 + 1k5) | opto ch2 transistor -> Teensy B:34 (10k pull-up 3V3 + 100 nF), LOW = key on | KEY-ON B | 12 V in / 3.3 V pin | BU/YE | 22 | shares S42 fuse | S43 KEY B34 | CRITICAL | PROPOSED | Sparky 2026-10-22 |
 | X02 | 6 | none | Teensy A/B park inputs | software Parked logic | software (no wire) | — | — | — | none | X02 SW PARK | CRITICAL | SOURCED | docs/PARK_BRAKE.md |
 | H01 | 7 | wire | String 1..4 B+ | A6T200 fuse 1..4 (bus bar, insulated standoffs) | HV+ | ≤147.6 V | OR HV, RED tape | 1/0 (each A6T200 string lead, ~138 A at a 550 A launch) | F-S1..S4 | H01-H04 STRING n B+ | LATER | PROPOSED | docs/WIRING.md:66-69; crew 2026-10-22 |
 | H05 | 7 | wire | 4 fuses | common B+ bus | HV+ | HV | OR HV, RED tape | 1/0 (string side of each fuse) | F-S1..S4 | H05 FUSE-BUS | LATER | PROPOSED | wiring_data overview net |
