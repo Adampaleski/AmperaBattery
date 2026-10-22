@@ -16,6 +16,8 @@
  "test":["Cells appear on serial; if none, swap CAN_H/CAN_L (H/L unconfirmed)","BICM temps vs a thermometer, then TEMPS_VERIFIED=1 (docs/TEMPS.md)","Dead-LEM: each output ≈2.5 V at 0 A; within 0.2 V of a rail = dead (Sparky, BACKLOG)","Kelly candump matches 0x0CF11E05/0x0CF11F05 before BMS_CAP_KELLY_RX=1 (docs/KELLY_CAN.md)"]},
 "kelly":{"tier":"CRITICAL","why":"Fail-safe Low cap engages when the Teensys are dead or a LEM is dead (hard limp).",
  "test":["Relay de-energised (Teensy off): full pedal stays ≤ cap RPM (docs/DRIVE_MODES.md)","Confirm the ECO pin on the harness (UNVERIFIED)"]},
+"gateway":{"tier": "LATER", "why": "Read-only telemetry to the iPad; not needed to drive.", "test": ["Teensy A pin 17 to ESP32 GPIO16 continuity; GPIO17 and Teensy pin 16 unconnected", "iPad joins the AP and the dash shows live pack data"]},
+"aux":{"tier": "LATER", "why": "Horn/lights convenience; not needed for first drive.", "test": ["Button released: 0 V at relay 86", "Pressed: load runs; fuse rating written on label"]},
 "power12":{"tier":"CRITICAL","safety":["Hold the 12 V− chassis bond until the DC-DC isolation test passes (shop log 2026-10-15 20:46)"],
  "test":["DC-DC TDC-JH isolation: power off, pack ± to 12 V− open / ≥1 MΩ (shop log 2026-10-15 20:46)","12 V low alarm at 11.5 V (PROPOSED, REQUIRED)"]}
 }}

@@ -1,0 +1,270 @@
+# Teryx EV MASTER PIN MAP — single source of truth.
+# Generated from this file: docs/PINMAP.md, docs/CONNECTIONS.md, checklist.html "Connections" tab,
+# wire numbers on tools/wiring.html and schematic/gen.py. Edit HERE, then run tools/build_pinmap.py.
+# Checked against firmware by scripts/test_pinmap.py (fails on any mismatch).
+#
+# status: SOURCED (cite file:line or doc) | ASSUMED | PROPOSED | UNVERIFIED | UNDEFINED (no pin/part chosen yet)
+# tier:   CRITICAL (needed for first drive) | LATER
+# step (build order): 1 12 V + grounds · 2 Teensys · 3 CAN · 4 BICMs · 5 ESP32 gateway
+#                     6 safety I/O + Kelly low voltage · 7 HV (LATER, Sparky present) · 8 body/aux (LATER)
+# kind: wire (you crimp it) | board (on a perfboard/daughterboard) | factory (existing harness) | none (wireless / software line)
+meta:
+  repo_commit_basis: "cd7027f + Build 10 BMS settings"
+  firmware_pins: include/Config.h namespace Pins (lines 157-271)
+  can_map: include/FlexCanCompat.h:41-60 (CAN_LAYOUT_V2=1, default when DUAL_STRING=1)
+  boards: {A: "Teensy 4.1 A, env teensy41_dual_a (TEENSY_ROLE=0) — BMS master, contactors, throttle",
+           B: "Teensy 4.1 B, env teensy41_dual_b (TEENSY_ROLE=1) — watchdog, can only open/cap",
+           E: "ESP32 DevKit gateway (teryx-ev-hub firmware/esp32-gateway), read-only"}
+
+colors:   # PROPOSED colour code (not in any doc except the factory BICM harness)
+  status: PROPOSED
+  "+12V unswitched": RD
+  "+12V switched/fused feed": RD/WH
+  "12V coil feed (after e-stop)": RD/YE
+  GND: BK
+  "+5V": OR
+  "+3V3": OR/WH
+  CAN-H: YE
+  CAN-L: GN
+  "analog signal": BU
+  "digital input": BU/BK
+  "heartbeat / enable": VT
+  "UART": WH
+  HV+: "orange HV cable, RED tape"
+  HV-: "orange HV cable, BLACK tape"
+gauges:   # PROPOSED gauge scheme
+  status: PROPOSED
+  signal / CAN / UART: "22 AWG (CAN = twisted pair, ~1 twist per inch)"
+  "5 V / 3.3 V logic power": "20 AWG"
+  "12 V coil feeds, relay coils, KSI": "18 AWG"
+  "12 V branch to Kelly PWR / electronics box": "16 AWG"
+  "12 V main (DC-DC out)": "UNDEFINED — size to the DC-DC output fuse (Sparky)"
+  HV: "1/0 AWG (docs/WIRING.md) — CONFLICT with 3/0 in old schematic/gen.py, Sparky to decide"
+
+buses:
+  - {id: CAN-A1, board: A, ctrl: CAN1, tx: 22, rx: 23, bitrate: 125000, frame: 11-bit, nodes: "Teensy A + String 1 BICMs (M2 24S + M4 c1-12)", ids: "0x460-0x47E BICM reports; 0x200/0x300/0x310 keep-alive/balance (TX only if flags)", term: "120 Ω at Teensy transceiver + BICM end (BICM-end built-in UNVERIFIED: meter ~60 Ω powered off)", transceiver: "SN65HVD230 #1", src: "include/FlexCanCompat.h:43; include/Config.h:9; include/StringConfig.h:11-15", status: SOURCED}
+  - {id: CAN-A2, board: A, ctrl: CAN2, tx: 1, rx: 0, bitrate: 125000, frame: 11-bit, nodes: "Teensy A + String 2 BICMs (M3 24S + M4)", ids: "same factory IDs as string 1 (own bus)", term: "120 Ω both ends (as CAN-A1)", transceiver: "SN65HVD230 #2", src: "include/FlexCanCompat.h:44", status: SOURCED}
+  - {id: CAN-B1, board: B, ctrl: CAN1, tx: 22, rx: 23, bitrate: 125000, frame: 11-bit, nodes: "Teensy B + String 3 BICMs", ids: "factory IDs", term: "120 Ω both ends", transceiver: "SN65HVD230 #3", src: "include/FlexCanCompat.h:43", status: SOURCED}
+  - {id: CAN-B2, board: B, ctrl: CAN2, tx: 1, rx: 0, bitrate: 125000, frame: 11-bit, nodes: "Teensy B + String 4 BICMs", ids: "factory IDs", term: "120 Ω both ends", transceiver: "SN65HVD230 #4", src: "include/FlexCanCompat.h:44", status: SOURCED}
+  - {id: CAN-V, board: "A+B", ctrl: CAN3, tx: 31, rx: 30, bitrate: 250000, frame: "29-bit (Kelly/Elcon) + 11-bit (A-B link)", nodes: "Teensy A (end, 120 Ω) · Teensy B (stub, no 120 Ω) · Kelly · Elcon (far end 120 Ω, built-in UNVERIFIED)", ids: "Kelly 0x0CF11E05/0x0CF11F05 (include/KellyLink.h:4); Elcon 0x1806E5F4 / 0x18FF50E5 (Config.h:88, StringConfig.h:81); link 0x6A0-0x6A4 B->A, 0x6A8-0x6AA A->B (StringConfig.h:83-93)", term: "120 Ω at Teensy A and at the far end only", transceiver: "SN65HVD230 #5 (A), #6 (B) — 2 more than COMPONENTS.md lists owned", src: "include/FlexCanCompat.h:45", status: SOURCED}
+
+# Every pin firmware names. test_pinmap.py: each 'const' must equal include/Config.h Pins::<const>,
+# and every Pins:: constant must appear here. 'shares' marks an intentional reuse on the same board.
+pins:
+  A:
+    - {pin: 0,  const: null,        use: "CAN2 RX -> SN65 #2 (string 2)", wire: C03, status: SOURCED, src: "FlexCanCompat.h:44"}
+    - {pin: 1,  const: null,        use: "CAN2 TX -> SN65 #2", wire: C03, status: SOURCED, src: "FlexCanCompat.h:44"}
+    - {pin: 2,  const: OUT5,        use: "OUT5 spare output (pinMode LOW at boot, BmsApp.cpp)", wire: null, status: SOURCED, src: "Config.h:169"}
+    - {pin: 3,  const: OUT6,        use: "OUT6 spare output", wire: null, status: SOURCED, src: "Config.h:170"}
+    - {pin: 4,  const: A_THR_ALIVE, use: "A throttle heartbeat 1 kHz -> U4 -> U1 B1", wire: S11, status: SOURCED, src: "Config.h:245"}
+    - {pin: 5,  const: SEAT_DRV,    use: "seat heater driver PWM (OUT7)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:199", shares: OUT7}
+    - {pin: 5,  const: OUT7,        use: "alias of SEAT_DRV", wire: null, status: SOURCED, src: "Config.h:176", shares: SEAT_DRV}
+    - {pin: 6,  const: SEAT_PAS,    use: "seat heater passenger PWM (OUT8)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:200", shares: OUT8}
+    - {pin: 6,  const: OUT8,        use: "alias of SEAT_PAS", wire: null, status: SOURCED, src: "Config.h:177", shares: SEAT_PAS}
+    - {pin: 7,  const: RAD_FAN,     use: "radiator fan relay coil (OUT9)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:201", shares: OUT9}
+    - {pin: 7,  const: OUT9,        use: "alias of RAD_FAN", wire: null, status: PROPOSED, src: "Config.h:201", shares: RAD_FAN}
+    - {pin: 8,  const: COOL_PUMP,   use: "coolant pump PWM (OUT10)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:202", shares: OUT10}
+    - {pin: 8,  const: OUT10,       use: "alias of COOL_PUMP", wire: null, status: PROPOSED, src: "Config.h:202", shares: COOL_PUMP}
+    - {pin: 9,  const: ACT4WD_IN1,  use: "4WD actuator H-bridge IN1", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:203"}
+    - {pin: 10, const: ACT4WD_IN2,  use: "4WD actuator H-bridge IN2", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:204"}
+    - {pin: 11, const: MAIN_POS,    use: "EV200 B+ coil FET gate (OUT1)", wire: S01, status: SOURCED, src: "Config.h:182", shares: OUT1}
+    - {pin: 11, const: OUT1,        use: "alias of MAIN_POS", wire: S01, status: SOURCED, src: "Config.h:163", shares: MAIN_POS}
+    - {pin: 12, const: PRECHARGE,   use: "precharge relay coil FET gate (OUT2)", wire: S02, status: SOURCED, src: "Config.h:183", shares: OUT2}
+    - {pin: 12, const: OUT2,        use: "alias of PRECHARGE", wire: S02, status: SOURCED, src: "Config.h:164", shares: PRECHARGE}
+    - {pin: 13, const: LED,         use: "on-board LED (no wire)", wire: null, status: SOURCED, src: "Config.h:158"}
+    - {pin: 14, const: CUR_LO,      use: "LEM A DHAB pin 4 (ch1 ±20 A) via 10k/18k + 100 nF", wire: S05, status: SOURCED, src: "Config.h:187"}
+    - {pin: 15, const: CUR_HI,      use: "LEM A DHAB pin 3 (ch2 -420..+230 A) via 10k/18k + 100 nF", wire: S06, status: SOURCED, src: "Config.h:188"}
+    - {pin: 16, const: IN2,         use: "Serial4 RX (hub UART) — IN2 GPIO unusable while UART is on", wire: null, status: SOURCED, src: "Config.h:160; src/HubStatus.cpp:12; src/BmsApp.cpp:12", shares: "Serial4 RX"}
+    - {pin: 17, const: IN1,         use: "Serial4 TX -> ESP32 GPIO16 — IN1 GPIO unusable", wire: S30, status: SOURCED, src: "Config.h:159; src/HubStatus.cpp:12", shares: "Serial4 TX"}
+    - {pin: 18, const: I2C_SDA,     use: "MCP23017 SDA (body expander, LATER)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:234", shares: IN3}
+    - {pin: 18, const: IN3,         use: "alias pin of I2C_SDA", wire: null, status: SOURCED, src: "Config.h:161", shares: I2C_SDA}
+    - {pin: 19, const: I2C_SCL,     use: "MCP23017 SCL", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:235", shares: IN4}
+    - {pin: 19, const: IN4,         use: "alias pin of I2C_SCL", wire: null, status: SOURCED, src: "Config.h:162", shares: I2C_SCL}
+    - {pin: 20, const: OUT3,        use: "Kelly Low-cap relay FET gate: HIGH = release cap, LOW/dead = capped", wire: S20, status: SOURCED, src: "Config.h:165; docs/DRIVE_MODES.md"}
+    - {pin: 21, const: MAIN_NEG,    use: "EV200 B- coil FET gate (OUT4)", wire: S03, status: SOURCED, src: "Config.h:184", shares: OUT4}
+    - {pin: 21, const: OUT4,        use: "alias of MAIN_NEG", wire: S03, status: SOURCED, src: "Config.h:166", shares: MAIN_NEG}
+    - {pin: 22, const: CAN1_TX,     use: "CAN1 TX -> SN65 #1 (string 1)", wire: C01, status: SOURCED, src: "Config.h:174"}
+    - {pin: 23, const: CAN1_RX,     use: "CAN1 RX", wire: C01, status: SOURCED, src: "Config.h:175"}
+    - {pin: 24, const: HV_SENSE,    use: "optional HV bus divider (HV_ANALOG_ENABLE=0)", wire: S08, status: UNVERIFIED, tier: LATER, src: "Config.h:185"}
+    - {pin: 25, const: CUR_VC,      use: "LEM A 5 V supply sense (ratiometric) via divider", wire: S07, status: SOURCED, src: "Config.h:189"}
+    - {pin: 26, const: IS_4WD,      use: "BTS7960 #1 current sense", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:218"}
+    - {pin: 27, const: IS_DIFF,     use: "BTS7960 #2 current sense", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:219"}
+    - {pin: 28, const: ACTDIF_IN1,  use: "diff-lock H-bridge IN1", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:205"}
+    - {pin: 29, const: ACTDIF_IN2,  use: "diff-lock H-bridge IN2", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:206"}
+    - {pin: 30, const: null,        use: "CAN3 RX vehicle bus -> SN65 #5", wire: C05, status: SOURCED, src: "FlexCanCompat.h:45"}
+    - {pin: 31, const: null,        use: "CAN3 TX vehicle bus", wire: C05, status: SOURCED, src: "FlexCanCompat.h:45"}
+    - {pin: 32, const: PARK_IN_A,   use: "park brake contact 1 (direct GPIO, 10k pull-up, LOW = set)", wire: S16, status: SOURCED, src: "Config.h:249 (BODY_IO_EXPANDER=1)"}
+    - {pin: 33, const: null,        use: "RESERVED charge plug-in detect (PROPOSED, no wire yet)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:254"}
+    - {pin: 34, const: LIGHT_OE,    use: "spare (retired 595 /OE; nothing drives it)", wire: null, status: SOURCED, src: "Config.h:233"}
+    - {pin: 35, const: LIGHT_DATA,  use: "bit-bang DATA -> U4 -> MCP4131 SDI (shared with lights)", wire: S10, status: PROPOSED, src: "Config.h:223"}
+    - {pin: 36, const: LIGHT_CLK,   use: "bit-bang CLK -> U4 -> MCP4131 SCK", wire: S10, status: PROPOSED, src: "Config.h:224"}
+    - {pin: 37, const: ACT_EN,      use: "both BTS7960 enables", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:217"}
+    - {pin: 38, const: THR_CS,      use: "MCP4131 /CS -> U4", wire: S10, status: PROPOSED, src: "Config.h:241"}
+    - {pin: 39, const: POS_DIFF,    use: "diff actuator pot wiper", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:208"}
+    - {pin: 40, const: PEDAL_IN_A,  use: "throttle pedal wiper (10k/18k + 100 nF)", wire: S14, status: SOURCED, src: "Config.h:211"}
+    - {pin: 41, const: POS_4WD,     use: "4WD actuator pot wiper", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:207"}
+    - {pin: -1, const: LIGHT_LATCH, use: "retired (lights on MCP23017)", wire: null, status: SOURCED, src: "Config.h:232"}
+    - {pin: null, const: null, use: "12 V LOW ALARM sense input — UNDEFINED: Teensy A has no free analog pin (14,15,24-27,38-41 all named). PROPOSED: Teensy B pin 26 (A12) via divider", wire: S40, status: UNDEFINED, src: "BACKLOG chief review should-fix '12 V low alarm'"}
+  B:
+    - {pin: 0,  const: null,        use: "CAN2 RX -> SN65 #4 (string 4)", wire: C04, status: SOURCED, src: "FlexCanCompat.h:44"}
+    - {pin: 1,  const: null,        use: "CAN2 TX", wire: C04, status: SOURCED, src: "FlexCanCompat.h:44"}
+    - {pin: 2,  const: OUT5,        use: "OUT5 pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:169"}
+    - {pin: 3,  const: OUT6,        use: "OUT6 pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:170"}
+    - {pin: 4,  const: B_FAULT_OUT, use: "B fault out HIGH=healthy (B_FAULT_PIN_ENABLE=0, disabled)", wire: null, status: UNVERIFIED, tier: LATER, src: "Config.h:173"}
+    - {pin: 5,  const: OUT7,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:176"}
+    - {pin: 6,  const: OUT8,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:177"}
+    - {pin: 7,  const: B_THR_ALIVE, use: "B throttle heartbeat 1 kHz -> U1 B2", wire: S12, status: SOURCED, src: "Config.h:214"}
+    - {pin: 11, const: OUT1,        use: "pinMode LOW; B never drives a coil (watchdog can only open)", wire: null, status: SOURCED, src: "Config.h:163"}
+    - {pin: 12, const: OUT2,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:164"}
+    - {pin: 13, const: LED,         use: "on-board LED", wire: null, status: SOURCED, src: "Config.h:158"}
+    - {pin: 14, const: CUR_LO,      use: "LEM B DHAB pin 4", wire: S25, status: SOURCED, src: "Config.h:187"}
+    - {pin: 15, const: CUR_HI,      use: "LEM B DHAB pin 3", wire: S26, status: SOURCED, src: "Config.h:188"}
+    - {pin: 16, const: IN2,         use: "Serial4 RX (not wired on B)", wire: null, status: ASSUMED, src: "Config.h:160 comment"}
+    - {pin: 17, const: IN1,         use: "Serial4 TX (not wired on B; gateway listens to A only)", wire: null, status: ASSUMED, src: "Config.h:159 comment"}
+    - {pin: 18, const: IN3,         use: "IN3 (no wire)", wire: null, status: SOURCED, src: "Config.h:161"}
+    - {pin: 19, const: IN4,         use: "IN4 (no wire)", wire: null, status: SOURCED, src: "Config.h:162"}
+    - {pin: 20, const: OUT3,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:165"}
+    - {pin: 21, const: OUT4,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:166"}
+    - {pin: 22, const: CAN1_TX,     use: "CAN1 TX -> SN65 #3 (string 3)", wire: C02, status: SOURCED, src: "Config.h:174"}
+    - {pin: 23, const: CAN1_RX,     use: "CAN1 RX", wire: C02, status: SOURCED, src: "Config.h:175"}
+    - {pin: 24, const: HV_SENSE,    use: "optional HV sense (no wire)", wire: null, status: UNVERIFIED, tier: LATER, src: "Config.h:185"}
+    - {pin: 25, const: CUR_VC,      use: "LEM B 5 V supply sense", wire: S27, status: SOURCED, src: "Config.h:189"}
+    - {pin: 30, const: null,        use: "CAN3 RX vehicle bus -> SN65 #6 (stub)", wire: C06, status: SOURCED, src: "FlexCanCompat.h:45"}
+    - {pin: 31, const: null,        use: "CAN3 TX vehicle bus", wire: C06, status: SOURCED, src: "FlexCanCompat.h:45"}
+    - {pin: 32, const: PARK_IN_B,   use: "park brake contact 2 (10k pull-up, LOW = set)", wire: S17, status: SOURCED, src: "Config.h:253"}
+    - {pin: 40, const: ST_4WD_B,    use: "OPTIONAL stock 4WD indicator (not read yet)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:212"}
+    - {pin: 41, const: PEDAL_IN_B,  use: "throttle pedal wiper (own 10k/18k + 100 nF)", wire: S15, status: SOURCED, src: "Config.h:213"}
+    - {pin: null, const: null, use: "E-STOP block 3 latch input — UNDEFINED in firmware (EstopLatch.h not wired; docs/ESTOP.md 'pin TBD'). PROPOSED: Teensy B pin 9 (free on B), 10k pull-up, LOW = released/closed", wire: E09, status: UNDEFINED, src: "docs/ESTOP.md; tools/wiring_data.js estop page"}
+  E:
+    - {pin: GPIO16, const: null, use: "UART2 RX <- Teensy A pin 17", wire: S30, status: SOURCED, src: "teryx-ev-hub firmware/esp32-gateway/docs/GATEWAY.md:17"}
+    - {pin: GPIO17, const: null, use: "UART2 TX — UNUSED, leave unconnected (gateway is RX-only, TX pin = -1)", wire: null, status: SOURCED, src: "GATEWAY.md:5,18"}
+    - {pin: GND,  const: null, use: "common LV ground with Teensy A", wire: G05, status: SOURCED, src: "GATEWAY.md:19"}
+    - {pin: 5V/VIN, const: null, use: "5 V from fused buck (never Teensy 3.3 V)", wire: P08, status: SOURCED, src: "GATEWAY.md:20"}
+
+connectors:
+  - {id: X2-S1..S4, what: "Volt BICM harness K16 X2 (one per string)", pins: "9 = 5 V (705 GY/RD) · 10 = GND (470 BK/VT) · 11 = CAN_L (6434 L-BU/YE) · 12 = CAN_H (6435 WH/YE)", status: SOURCED, src: "tools/wiring_data.js bms page; schematic/gen.py 'bo' (CAN H/L UNVERIFIED: swap if no cells)"}
+  - {id: KELLY-J, what: "Kelly KLS-8080N signal connector", pins: "3 throttle · 7 KSI/PWR · 11 12 V out · 15 Foot_SW · 22 ECO · 2 Brake_AN", status: UNVERIFIED, src: "KLS-8080N V2.11 / HC V2.14 manuals via docs/ESTOP.md:18, wiring_data.js CONFLICTS; Adam's harness unread"}
+  - {id: ESTOP, what: "XB5AS8442 (or XB4BS8442) head + 2x ZBE102 = 3 NC blocks", pins: "each block: terminals 11 (in) / 12 (out), NC", status: SOURCED, src: "docs/ESTOP.md; se.com XB5AS8442 page (1 NC in head)"}
+  - {id: EBOX-DT, what: "Electronics box Deutsch DT harness connector", pins: "UNDEFINED — pin-out not assigned yet", status: UNDEFINED, src: "schematic/gen.py 'dt'"}
+  - {id: TB-5V, what: "5 V terminal block", pins: "Teensy A VIN, Teensy B VIN, transceivers? (SN65 run on 3.3 V from each Teensy), LEM 5 V, pedal 5 V, clamp chips", status: PROPOSED, src: "tools/wiring_data.js power12/clamp"}
+  - {id: TB-GND, what: "GND terminal block (single point)", pins: "all LV grounds", status: SOURCED, src: "schematic/gen.py 'gnd'"}
+
+fuses:
+  - {id: F-MAIN, where: "DC-DC 12 V out", rating: UNDEFINED, status: UNVERIFIED, src: "gen.py fmain"}
+  - {id: F-COIL, where: "12 V coil feed -> e-stop blocks 1+2", rating: UNDEFINED, status: PROPOSED, src: "docs/ESTOP.md 'rating TBD'"}
+  - {id: F-KEL, where: "Kelly PWR logic", rating: UNDEFINED, status: UNVERIFIED, src: "gen.py fkel"}
+  - {id: F-EBOX, where: "electronics box 12 V", rating: UNDEFINED, status: UNVERIFIED, src: "gen.py fesp"}
+  - {id: F-BUCK, where: "12 V -> 5 V buck", rating: "3 A mini blade", status: SOURCED, src: "gen.py fbx"}
+  - {id: F-BICM, where: "5 V -> BICM 705 feed", rating: "1 A (resize after measuring BICM draw)", status: UNVERIFIED, src: "gen.py f705"}
+  - {id: F-TAB, where: "tablet USB-C PD feed", rating: UNDEFINED, status: UNVERIFIED, src: "gen.py ftab"}
+  - {id: F-AUX, where: "each aux load (horn, lights) via relay 30", rating: "size to load, PROPOSED 10-15 A", status: PROPOSED, src: "Adam 10/22 NO aux buttons through relay/fuse"}
+  - {id: F-S1..S4, where: "string fuses on bus bar (service disconnect)", rating: "Mersen A6T200 200 A Class T", status: SOURCED, src: "docs/WIRING.md:66-69"}
+  - {id: F-DCDC, where: "HV in to DC-DC", rating: "15-20 A >=250 V DC (confirm label)", status: UNVERIFIED, src: "gen.py fdi"}
+  - {id: F-ELC, where: "Elcon out -> pack", rating: "~40-60 A >=250 V DC", status: UNVERIFIED, src: "gen.py fel"}
+
+# Physical connections. dia: lines on tools/wiring.html that this wire number labels ("page|from|to|label").
+# schem: lines on schematic/gen.py ("from|to"). check: what to meter after crimping.
+wires:
+# ---- step 1: 12 V + grounds
+  - {id: P01, step: 1, kind: wire, from: "DC-DC TDC-JH-144-12:+12V out", to: "F-MAIN:in", signal: "+12V main", voltage: "12-14 V", color: RD, awg: UNDEFINED, fuse: F-MAIN, label: "P01 12V MAIN", tier: CRITICAL, status: UNVERIFIED, src: "gen.py; wiring_data power12", check: "continuity end-to-end <1 Ω; NOT to chassis (>1 MΩ)", dia: ["overview|dcdc|b12|12 V", "power12|dcdc|fm|"], schem: ["dcdc|fmain"]}
+  - {id: P02, step: 1, kind: wire, from: "F-MAIN:out", to: "12V bus bar:+", signal: "+12V main", voltage: "12-14 V", color: RD, awg: UNDEFINED, fuse: F-MAIN, label: "P02 12V BUS", tier: CRITICAL, status: PROPOSED, src: "gen.py", check: "continuity <1 Ω", dia: ["power12|fm|b12|"], schem: ["fmain|b12"]}
+  - {id: G01, step: 1, kind: wire, from: "12V bus bar:-", to: "frame ground strap", signal: GND, voltage: 0 V, color: BK, awg: "strap", fuse: none, label: "G01 12V- CHASSIS", tier: CRITICAL, status: PROPOSED, src: "wiring_data power12 net (Mechanic)", check: "12V- to frame <0.5 Ω", dia: [], schem: []}
+  - {id: G02, step: 1, kind: wire, from: "Kelly case", to: "frame", signal: GND, voltage: 0 V, color: BK, awg: strap, fuse: none, label: "G02 KELLY CASE", tier: CRITICAL, status: PROPOSED, src: "wiring_data power12", check: "<0.5 Ω", dia: [], schem: []}
+  - {id: P03, step: 1, kind: wire, from: "12V bus bar:+", to: "F-KEL:in -> Kelly PWR", signal: "+12V", voltage: 12 V, color: RD/WH, awg: 16, fuse: F-KEL, label: "P03 KELLY PWR", tier: CRITICAL, status: UNVERIFIED, src: "gen.py fkel", check: "continuity; fuse rating written on label", dia: ["power12|b12|fk|"], schem: ["b12|fkel", "fkel|kel"]}
+  - {id: P04, step: 1, kind: wire, from: "12V bus bar:+", to: "F-COIL:in", signal: "+12V coil feed", voltage: 12 V, color: RD/WH, awg: 18, fuse: F-COIL, label: "P04 COIL FEED", tier: CRITICAL, status: PROPOSED, src: "docs/ESTOP.md", check: "continuity", dia: ["power12|b12|fd|"], schem: ["b12|fdrv"]}
+  - {id: P05, step: 1, kind: wire, from: "12V bus bar:+", to: "F-EBOX:in (electronics box)", signal: "+12V", voltage: 12 V, color: RD/WH, awg: 16, fuse: F-EBOX, label: "P05 EBOX 12V", tier: CRITICAL, status: UNVERIFIED, src: "gen.py fesp", check: "continuity", dia: ["power12|b12|fe|"], schem: ["b12|fesp"]}
+  - {id: P06, step: 1, kind: wire, from: "12V bus bar:+", to: "F-TAB -> tablet USB-C PD", signal: "+12V", voltage: 12 V, color: RD/WH, awg: 18, fuse: F-TAB, label: "P06 TABLET", tier: LATER, status: UNVERIFIED, src: "gen.py ftab", check: "continuity", dia: ["power12|b12|ft|"], schem: ["b12|ftab"]}
+  - {id: P07, step: 1, kind: wire, from: "F-EBOX:out", to: "F-BUCK 3 A -> 5 V buck IN+", signal: "+12V", voltage: 12 V, color: RD/WH, awg: 18, fuse: F-BUCK, label: "P07 BUCK IN", tier: CRITICAL, status: SOURCED, src: "gen.py fbx", check: "continuity; buck output set 5.00 V BEFORE connecting loads", dia: ["power12|fe|f3|", "power12|f3|buck|"], schem: ["fesp|fbx", "fbx|conv"]}
+  - {id: P08, step: 1, kind: wire, from: "5 V buck OUT+", to: "TB-5V", signal: "+5V", voltage: "5.00 V", color: OR, awg: 20, fuse: F-BUCK, label: "P08 5V", tier: CRITICAL, status: PROPOSED, src: "gen.py conv/v5", check: "power on with nothing else connected: 4.95-5.05 V", dia: ["power12|buck|v5|", "overview|b12|ta|5 V", "gateway|buck|esp|5 V"], schem: ["conv|v5", "v5|esp"]}
+  - {id: P09, step: 1, kind: board, from: "Zener 1N5339B cathode", to: "TB-5V (anode to TB-GND)", signal: "5 V clamp", voltage: 5 V, color: "—", awg: "lead", fuse: none, label: "P09 ZENER", tier: CRITICAL, status: SOURCED, src: "gen.py z", check: "diode test: band end on +5V", dia: ["power12|z|v5|"], schem: ["z|v5"]}
+  - {id: G03, step: 1, kind: wire, from: "5 V buck OUT-", to: "TB-GND", signal: GND, voltage: 0 V, color: BK, awg: 20, fuse: none, label: "G03 BUCK GND", tier: CRITICAL, status: PROPOSED, src: "gen.py gnd", check: "<0.5 Ω to 12V-", dia: [], schem: []}
+  - {id: P10, step: 4, kind: wire, from: "TB-5V", to: "F-BICM 1 A -> BICM X2 pin 9 (705 GY/RD) x4 strings", signal: "+5V BICM", voltage: 5 V, color: "GY/RD (factory)", awg: factory, fuse: F-BICM, label: "P10 BICM 5V", tier: CRITICAL, status: UNVERIFIED, src: "gen.py f705; wiring_data bms", check: "NEVER to Teensy I/O; 5 V at X2 pin 9", dia: ["power12|v5|f1|"], schem: ["v5|bo"]}
+# ---- step 2: Teensys
+  - {id: P11, step: 2, kind: wire, from: "TB-5V", to: "Teensy A:VIN (VIN/VUSB pad CUT)", signal: "+5V", voltage: 5 V, color: OR, awg: 20, fuse: F-BUCK, label: "P11 TA VIN", tier: CRITICAL, status: SOURCED, src: "gen.py teensy; wiring_data power12", check: "before plugging USB: VIN/VUSB pad cut (meter open between VIN and VUSB)", dia: [], schem: ["v5|ta"]}
+  - {id: P12, step: 2, kind: wire, from: "TB-5V", to: "Teensy B:VIN (VIN/VUSB pad CUT)", signal: "+5V", voltage: 5 V, color: OR, awg: 20, fuse: F-BUCK, label: "P12 TB VIN", tier: CRITICAL, status: SOURCED, src: "as P11", check: "as P11", dia: [], schem: ["v5|tb"]}
+  - {id: G04, step: 2, kind: wire, from: "Teensy A:GND", to: "TB-GND", signal: GND, voltage: 0 V, color: BK, awg: 20, fuse: none, label: "G04 TA GND", tier: CRITICAL, status: PROPOSED, src: "gen.py", check: "<0.5 Ω", dia: [], schem: ["gnd|ta"]}
+  - {id: G06, step: 2, kind: wire, from: "Teensy B:GND", to: "TB-GND", signal: GND, voltage: 0 V, color: BK, awg: 20, fuse: none, label: "G06 TB GND", tier: CRITICAL, status: PROPOSED, src: "gen.py", check: "<0.5 Ω", dia: [], schem: ["gnd|tb"]}
+# ---- step 3: CAN
+  - {id: C01, step: 3, kind: board, from: "Teensy A:22 TX / 23 RX + 3V3 + GND", to: "SN65HVD230 #1 TXD/RXD/VCC/GND", signal: "CAN logic", voltage: 3.3 V, color: "—", awg: board, fuse: none, label: "C01 A-CAN1", tier: CRITICAL, status: SOURCED, src: "Config.h:174-175", check: "TX->TXD, RX->RXD (NOT crossed for SN65); 3.3 V at VCC", dia: ["bms|ta|a1|"], schem: ["ta|x1"]}
+  - {id: C03, step: 3, kind: board, from: "Teensy A:1 TX / 0 RX + 3V3 + GND", to: "SN65HVD230 #2", signal: "CAN logic", voltage: 3.3 V, color: "—", awg: board, fuse: none, label: "C03 A-CAN2", tier: CRITICAL, status: SOURCED, src: "FlexCanCompat.h:44", check: "as C01", dia: ["bms|ta|a2|"], schem: ["ta|x2"]}
+  - {id: C02, step: 3, kind: board, from: "Teensy B:22/23", to: "SN65HVD230 #3", signal: "CAN logic", voltage: 3.3 V, color: "—", awg: board, fuse: none, label: "C02 B-CAN1", tier: CRITICAL, status: SOURCED, src: "Config.h:174-175", check: "as C01", dia: ["bms|tb|b1|"], schem: ["tb|x3"]}
+  - {id: C04, step: 3, kind: board, from: "Teensy B:1/0", to: "SN65HVD230 #4", signal: "CAN logic", voltage: 3.3 V, color: "—", awg: board, fuse: none, label: "C04 B-CAN2", tier: CRITICAL, status: SOURCED, src: "FlexCanCompat.h:44", check: "as C01", dia: ["bms|tb|b2|"], schem: ["tb|x4"]}
+  - {id: C05, step: 3, kind: board, from: "Teensy A:31 TX / 30 RX", to: "SN65HVD230 #5 + 120 Ω", signal: "CAN logic", voltage: 3.3 V, color: "—", awg: board, fuse: none, label: "C05 A-CAN3", tier: CRITICAL, status: SOURCED, src: "FlexCanCompat.h:45", check: "as C01", dia: ["bms|ta|veh|"], schem: ["ta|x5"]}
+  - {id: C06, step: 3, kind: board, from: "Teensy B:31/30", to: "SN65HVD230 #6 (no 120 Ω)", signal: "CAN logic", voltage: 3.3 V, color: "—", awg: board, fuse: none, label: "C06 B-CAN3", tier: CRITICAL, status: SOURCED, src: "FlexCanCompat.h:45", check: "as C01", dia: ["bms|tb|veh|"], schem: ["tb|x6"]}
+  - {id: C10, step: 3, kind: wire, from: "SN65 #5 CANH/CANL (A)", to: "SN65 #6 CANH/CANL (B) -> Kelly -> Elcon (daisy chain)", signal: "CAN-V 250k", voltage: "CAN", color: "YE (H) / GN (L) twisted", awg: 22, fuse: none, label: "C10 VEH CAN", tier: CRITICAL, status: PROPOSED, src: "FlexCanCompat.h:45; wiring_data bms", check: "power OFF: CANH-CANL ≈ 60 Ω (two 120 Ω ends); 120 Ω = one end missing; open = none", dia: ["overview|ta|tb|CAN3 link", "enables|ta|link|", "enables|tb|link|", "bms|veh|kel|", "bms|veh|elc|"], schem: ["x5|x6", "x6|kel"]}
+# ---- step 4: BICMs
+  - {id: C11, step: 4, kind: wire, from: "SN65 #1 CANH/CANL", to: "String 1 X2 pin 12 CAN_H (6435 WH/YE) / pin 11 CAN_L (6434 L-BU/YE)", signal: "CAN-A1 125k", voltage: CAN, color: "YE/GN -> factory WH/YE, L-BU/YE", awg: 22, fuse: none, label: "C11 S1 CAN", tier: CRITICAL, status: UNVERIFIED, src: "wiring_data bms net (H/L unconfirmed: swap if no cells)", check: "power OFF ≈60 Ω; power on: cells appear on console", dia: ["bms|a1|s1|"], schem: ["x1|bo"]}
+  - {id: C12, step: 4, kind: wire, from: "SN65 #2 CANH/CANL", to: "String 2 X2 pins 12/11", signal: "CAN-A2 125k", voltage: CAN, color: "YE/GN", awg: 22, fuse: none, label: "C12 S2 CAN", tier: CRITICAL, status: UNVERIFIED, src: "as C11", check: "as C11", dia: ["bms|a2|s2|"], schem: ["x2|bo"]}
+  - {id: C13, step: 4, kind: wire, from: "SN65 #3 CANH/CANL", to: "String 3 X2 pins 12/11", signal: "CAN-B1 125k", voltage: CAN, color: "YE/GN", awg: 22, fuse: none, label: "C13 S3 CAN", tier: CRITICAL, status: UNVERIFIED, src: "as C11", check: "as C11", dia: [], schem: ["x3|bo"]}
+  - {id: C14, step: 4, kind: wire, from: "SN65 #4 CANH/CANL", to: "String 4 X2 pins 12/11", signal: "CAN-B2 125k", voltage: CAN, color: "YE/GN", awg: 22, fuse: none, label: "C14 S4 CAN", tier: CRITICAL, status: UNVERIFIED, src: "as C11", check: "as C11", dia: [], schem: ["x4|bo"]}
+  - {id: G07, step: 4, kind: wire, from: "X2 pin 10 GND (470 BK/VT) x4", to: "TB-GND", signal: GND, voltage: 0 V, color: "BK/VT (factory)", awg: factory, fuse: none, label: "G07 BICM GND", tier: CRITICAL, status: SOURCED, src: "gen.py bo", check: "<0.5 Ω", dia: [], schem: ["gnd|bo"]}
+  - {id: S50, step: 4, kind: wire, from: "BICM 5139 fault loop", to: "pull-up few kΩ -> 5 V", signal: "fault loop", voltage: 5 V, color: factory, awg: factory, fuse: none, label: "S50 5139 PULLUP", tier: LATER, status: SOURCED, src: "gen.py pu", check: "5 V idle", dia: [], schem: ["pu|bo"]}
+# ---- step 5: ESP32 gateway
+  - {id: S30, step: 5, kind: wire, from: "Teensy A:17 (Serial4 TX)", to: "ESP32:GPIO16 (UART2 RX)", signal: "UART 115200 8N1", voltage: 3.3 V, color: WH, awg: 22, fuse: none, label: "S30 TA17-ESP16", tier: LATER, status: SOURCED, src: "GATEWAY.md:17; HubStatus.cpp:12", check: "continuity; Teensy pin 16 and ESP32 GPIO17 stay UNCONNECTED", dia: ["overview|ta|esp|UART", "gateway|ta|esp|pin 17 → GPIO16"], schem: ["ta|esp"]}
+  - {id: G05, step: 5, kind: wire, from: "Teensy A:GND", to: "ESP32:GND", signal: GND, voltage: 0 V, color: BK, awg: 22, fuse: none, label: "G05 TA-ESP GND", tier: LATER, status: SOURCED, src: "GATEWAY.md:19", check: "<0.5 Ω", dia: ["gateway|ta|esp|GND"], schem: ["gnd|esp"]}
+  - {id: X01, step: 5, kind: none, from: "ESP32 Wi-Fi AP 192.168.4.1", to: "iPad / head unit", signal: "Wi-Fi (no wire)", voltage: "—", color: "—", awg: "—", fuse: none, label: "X01 WIFI", tier: LATER, status: SOURCED, src: "GATEWAY.md", check: "iPad joins AP, dash shows live data", dia: ["overview|esp|head|Wi-Fi", "gateway|esp|ipad|Wi-Fi"], schem: ["esp|tab"]}
+# ---- step 6: safety I/O + Kelly low voltage
+  - {id: E01, step: 6, kind: wire, from: "F-COIL:out", to: "E-stop block 1:11 + block 2:11 (jumper)", signal: "+12V coil feed", voltage: 12 V, color: RD/WH, awg: 18, fuse: F-COIL, label: "E01 ESTOP FEED", tier: CRITICAL, status: PROPOSED, src: "docs/ESTOP.md:112-113", check: "12 V at both terminal 11s", dia: ["overview|es|b12|coil feeds", "estop|f|es|"], schem: ["fdrv|es1", "fdrv|es2"]}
+  - {id: E02, step: 6, kind: wire, from: "E-stop block 1:12", to: "EV200 B+ coil + AND EV200 B- coil + (high sides)", signal: "12V coil (cut)", voltage: 12 V, color: RD/YE, awg: 18, fuse: F-COIL, label: "E02 BLK1 MAIN COILS", tier: CRITICAL, status: SOURCED, src: "docs/ESTOP.md:112 (0.26 A break measured, OK)", check: "button released: 11-12 closed (<1 Ω); pushed: open", dia: ["estop|es|nc1|", "estop|nc1|c3|", "estop|nc1|c4|"], schem: ["es1|evp", "es1|evn"]}
+  - {id: E03, step: 6, kind: wire, from: "E-stop block 2:12", to: "precharge relay coil + AND Kelly KSI/PWR pin 7", signal: "12V coil + KSI (cut)", voltage: 12 V, color: RD/YE, awg: 18, fuse: F-COIL, label: "E03 BLK2 PRE+KSI", tier: CRITICAL, status: UNVERIFIED, src: "docs/ESTOP.md:113 (KSI draw: Adam meters; Kelly pin 7 from manual)", check: "as E02; meter KSI current < 0.2 A", dia: ["estop|es|nc2|", "estop|nc2|c1|", "estop|nc2|c2|"], schem: ["es2|pre", "es2|kel"]}
+  - {id: E09, step: 6, kind: wire, from: "E-stop block 3:11 -> TB-GND; block 3:12", to: "Teensy B: e-stop input pin UNDEFINED (PROPOSED pin 9, 10k pull-up)", signal: "e-stop sense (latch, never the cut)", voltage: 3.3 V, color: BU/BK, awg: 22, fuse: none, label: "E09 BLK3 TB-ESTOP", tier: CRITICAL, status: UNDEFINED, src: "docs/ESTOP.md; EstopLatch.h not wired (chief review #5)", check: "released: pin reads LOW (closed to GND); pushed: HIGH", dia: ["estop|es|nc3|", "estop|nc3|tb|"], schem: ["es3|tb", "gnd|es3"]}
+  - {id: S01, step: 6, kind: board, from: "Teensy A:11 via 100 Ω (10k pull-down to GND)", to: "FET Q-B+ gate; drain -> EV200 B+ coil -", signal: "coil drive", voltage: 3.3 V gate / 12 V coil, color: "RD/BU (coil lead)", awg: "18 (coil lead)", fuse: F-COIL, label: "S01 TA11 MAIN+", tier: CRITICAL, status: PROPOSED, src: "Config.h:182; wiring_data precharge net", check: "Gate 0: 10k gate pull-down present (meter gate-GND ≈10 kΩ) — chief review #10", dia: [], schem: ["ta|drv", "drv|evp"]}
+  - {id: S02, step: 6, kind: board, from: "Teensy A:12 via 100 Ω (10k pull-down)", to: "FET Q-PRE gate; drain -> precharge coil -", signal: "coil drive", voltage: "3.3 / 12 V", color: "RD/GN", awg: 18, fuse: F-COIL, label: "S02 TA12 PRE", tier: CRITICAL, status: PROPOSED, src: "Config.h:183", check: "as S01", dia: ["precharge|pre|evp|across"], schem: ["drv|pre"]}
+  - {id: S03, step: 6, kind: board, from: "Teensy A:21 via 100 Ω (10k pull-down)", to: "FET Q-B- gate; drain -> EV200 B- coil -", signal: "coil drive", voltage: "3.3 / 12 V", color: "RD/BK", awg: 18, fuse: F-COIL, label: "S03 TA21 MAIN-", tier: CRITICAL, status: PROPOSED, src: "Config.h:184", check: "as S01", dia: ["precharge|kel|evn|"], schem: ["drv|evn"]}
+  - {id: S05, step: 6, kind: wire, from: "LEM A DHAB pin 4 (ch1)", to: "10k/18k + 100 nF -> Teensy A:14", signal: "LEM A low range", voltage: "0-5 V -> 0-3.2 V", color: BU, awg: 22, fuse: none, label: "S05 LEMA CH1", tier: CRITICAL, status: SOURCED, src: "Config.h:187", check: "no current: ≈2.5 V at DHAB, ≈1.6 V at pin", dia: ["overview|lem|f|B− clamp"], schem: ["lem|ta"]}
+  - {id: S06, step: 6, kind: wire, from: "LEM A DHAB pin 3 (ch2)", to: "10k/18k + 100 nF -> Teensy A:15", signal: "LEM A high range", voltage: "0-5 V -> 0-3.2 V", color: BU/WH, awg: 22, fuse: none, label: "S06 LEMA CH2", tier: CRITICAL, status: SOURCED, src: "Config.h:188", check: "as S05", dia: [], schem: []}
+  - {id: S07, step: 6, kind: wire, from: "TB-5V -> LEM A 5 V; sense via divider", to: "Teensy A:25", signal: "LEM supply ref", voltage: "5 V -> 3.2 V", color: OR, awg: 22, fuse: F-BUCK, label: "S07 LEMA VC", tier: CRITICAL, status: SOURCED, src: "Config.h:189", check: "≈3.2 V at pin 25", dia: [], schem: []}
+  - {id: S25, step: 6, kind: wire, from: "LEM B DHAB pin 4", to: "divider -> Teensy B:14", signal: "LEM B low", voltage: "0-3.2 V", color: BU, awg: 22, fuse: none, label: "S25 LEMB CH1", tier: CRITICAL, status: SOURCED, src: "Config.h:187", check: "as S05", dia: [], schem: ["lem|tb"]}
+  - {id: S26, step: 6, kind: wire, from: "LEM B DHAB pin 3", to: "divider -> Teensy B:15", signal: "LEM B high", voltage: "0-3.2 V", color: BU/WH, awg: 22, fuse: none, label: "S26 LEMB CH2", tier: CRITICAL, status: SOURCED, src: "Config.h:188", check: "as S05", dia: [], schem: []}
+  - {id: S27, step: 6, kind: wire, from: "LEM B 5 V sense", to: "Teensy B:25", signal: "LEM supply ref", voltage: "3.2 V", color: OR, awg: 22, fuse: F-BUCK, label: "S27 LEMB VC", tier: CRITICAL, status: SOURCED, src: "Config.h:189", check: "≈3.2 V", dia: [], schem: []}
+  - {id: S14, step: 6, kind: wire, from: "Pedal wiper (Hall, 0-5 V ASSUMED)", to: "10k/18k + 100 nF -> Teensy A:40 and MCP4131 P0A", signal: "throttle", voltage: "0-5 V -> 0-3.2 V", color: BU, awg: 22, fuse: none, label: "S14 PEDAL A", tier: CRITICAL, status: UNVERIFIED, src: "Config.h:215; docs/THROTTLE_CLAMP.md (pedal not chosen; chief review #9 calibration)", check: "pedal up / down voltages logged; ≈88 % max reading (chief #9)", dia: ["overview|ped|clamp|wiper", "clamp|ped|u3|P0A", "clamp|ped|da|"], schem: ["ped|clamp"]}
+  - {id: S15, step: 6, kind: wire, from: "Pedal wiper (track 2)", to: "own 10k/18k + 100 nF -> Teensy B:41", signal: "throttle B", voltage: "0-3.2 V", color: BU/WH, awg: 22, fuse: none, label: "S15 PEDAL B", tier: CRITICAL, status: UNVERIFIED, src: "Config.h:217 (comment says same wiper; chief #9: track 2 TBD)", check: "as S14", dia: ["clamp|ped|db|"], schem: []}
+  - {id: P20, step: 6, kind: wire, from: "TB-5V", to: "pedal 5 V + U1..U4 VCC (shared rail)", signal: "+5V", voltage: 5 V, color: OR, awg: 20, fuse: F-BUCK, label: "P20 5V CLAMP", tier: CRITICAL, status: PROPOSED, src: "docs/THROTTLE_CLAMP.md", check: "5 V at each chip VCC pin", dia: ["clamp|v5|ped|"], schem: []}
+  - {id: S10, step: 6, kind: board, from: "Teensy A:35 DATA / 36 CLK / 38 CS", to: "U4 74AHCT125 -> U3 MCP4131 SDI/SCK/CS", signal: "bit-bang SPI", voltage: "3.3 -> 5 V", color: "—", awg: board, fuse: none, label: "S10 TA SPI", tier: CRITICAL, status: PROPOSED, src: "Config.h:221-236", check: "continuity per pin", dia: ["overview|ta|clamp|SPI+alive", "clamp|ta|u4|35/36/38", "clamp|u4|u3|SDI/SCK/CS"], schem: ["ta|clamp"]}
+  - {id: S11, step: 6, kind: board, from: "Teensy A:4 (R6 10k pull-down)", to: "U4 buffer -> U1 B1", signal: "A alive 1 kHz", voltage: "3.3 -> 5 V", color: VT, awg: 22, fuse: none, label: "S11 TA4 ALIVE", tier: CRITICAL, status: PROPOSED, src: "Config.h:243", check: "R6 ≈10 kΩ pin 4 to GND", dia: ["clamp|ta|r6|", "clamp|ta|u4|pin 4", "clamp|u4|u1|→B1", "enables|ta|q1|"], schem: []}
+  - {id: S12, step: 6, kind: board, from: "Teensy B:7 (R4 10k pull-down)", to: "U1 B2", signal: "B alive 1 kHz", voltage: 3.3 V, color: VT/WH, awg: 22, fuse: none, label: "S12 TB7 ALIVE", tier: CRITICAL, status: PROPOSED, src: "Config.h:218", check: "R4 ≈10 kΩ", dia: ["overview|tb|en|pin 7", "clamp|tb|u1|pin 7→B2", "clamp|tb|r4|", "enables|tb|q2|"], schem: ["tb|clamp"]}
+  - {id: B01, step: 6, kind: board, from: "U1 /CLR (R5 10k -> 5 V, C5 1 µF, 1N4148)", to: "U1 /CLR1 /CLR2", signal: "power-on clear", voltage: 5 V, color: "—", awg: board, fuse: none, label: "B01 U1 CLR", tier: CRITICAL, status: PROPOSED, src: "docs/THROTTLE_CLAMP.md", check: "continuity", dia: ["clamp|clr|u1|"], schem: []}
+  - {id: B02, step: 6, kind: board, from: "U3 P0W", to: "U2a -> U2b (series 4066)", signal: throttle, voltage: "0-5 V", color: "—", awg: board, fuse: none, label: "B02 WIPER-4066", tier: CRITICAL, status: PROPOSED, src: "docs/THROTTLE_CLAMP.md", check: "Gate 1 clamp test: digipot powers up mid-scale — output must be 0 V with either Teensy off (chief #10)", dia: ["clamp|u3|u2a|P0W", "clamp|u2a|u2b|series", "enables|q1|sw|", "enables|q2|sw|"], schem: []}
+  - {id: B03, step: 6, kind: board, from: "U1 Q1 / Q2", to: "U2a ctl / U2b ctl", signal: "enables", voltage: 5 V, color: "—", awg: board, fuse: none, label: "B03 Q-CTL", tier: CRITICAL, status: PROPOSED, src: "docs/THROTTLE_CLAMP.md", check: "continuity", dia: ["clamp|u1|u2a|Q1", "clamp|u1|u2b|Q2"], schem: []}
+  - {id: K01, step: 6, kind: wire, from: "U2b out (R1 100k to GND)", to: "Kelly throttle input (pin 3)", signal: throttle, voltage: "0-5 V", color: BU/WH, awg: "22 shielded", fuse: none, label: "K01 KELLY THR", tier: CRITICAL, status: UNVERIFIED, src: "docs/THROTTLE_CLAMP.md; Kelly pin from manual", check: "Gate 1: 0 V at Kelly pin 3 with clamp unpowered", dia: ["clamp|u2b|kt|", "clamp|kt|r1|", "enables|sw|k|"], schem: ["clamp|kel"]}
+  - {id: S16, step: 6, kind: wire, from: "Park switch pole 1 (NO) -> GND", to: "Teensy A:32 (10k pull-up 3V3 + 100 nF)", signal: "park A, LOW = set", voltage: 3.3 V, color: BU/BK, awg: 22, fuse: none, label: "S16 PARK A", tier: CRITICAL, status: PROPOSED, src: "Config.h:249; docs/PARK_BRAKE.md (switch fit UNVERIFIED)", check: "brake set: pin 0 V; released: 3.3 V", dia: ["overview|pk|ta|pin 32", "park|sw|a|pole 1 → GND"], schem: ["pk|ta"]}
+  - {id: S17, step: 6, kind: wire, from: "Park switch pole 2 (NO) -> GND", to: "Teensy B:32", signal: "park B", voltage: 3.3 V, color: BU/RD, awg: 22, fuse: none, label: "S17 PARK B", tier: CRITICAL, status: PROPOSED, src: "Config.h:253", check: "as S16", dia: ["park|sw|b|pole 2 → GND"], schem: ["pk|tb"]}
+  - {id: K02, step: 6, kind: wire, from: "Kelly pin 11 (12 V out)", to: "Park pole 3 (NC) -> Kelly pin 15 Foot_SW", signal: "foot switch enable", voltage: 12 V, color: RD/WH -> RD/YE, awg: 20, fuse: none, label: "K02 FOOTSW PARK", tier: CRITICAL, status: UNVERIFIED, src: "docs/PARK_BRAKE.md; Kelly pins from manual", check: "brake set: open; released: <1 Ω", dia: ["park|k12|sw3|", "park|sw3|fs|"], schem: []}
+  - {id: X02, step: 6, kind: none, from: "Teensy A/B park inputs", to: "software Parked logic", signal: "software (no wire)", voltage: "—", color: "—", awg: "—", fuse: none, label: "X02 SW PARK", tier: CRITICAL, status: SOURCED, src: "docs/PARK_BRAKE.md", check: "console shows parked", dia: ["park|a|sws|", "park|b|sws|"], schem: []}
+  - {id: S20, step: 6, kind: board, from: "Teensy A:20 (100 Ω, 10k pull-down)", to: "low-side FET -> Low-cap relay coil 85 (86 = 12 V fused, 1N4007)", signal: "Low-cap release", voltage: "3.3 V / 12 V", color: "—", awg: board, fuse: F-COIL, label: "S20 TA20 LOWCAP", tier: CRITICAL, status: PROPOSED, src: "Config.h:167; docs/DRIVE_MODES.md", check: "Teensy off: relay de-energised (NC closed)", dia: ["kelly|a|fet|gate", "kelly|fet|coil|"], schem: ["ta|low"]}
+  - {id: K03, step: 6, kind: wire, from: "Kelly pin 11 12 V -> relay 30; relay 87a (NC)", to: "Kelly pin 22 ECO", signal: "Low cap (fail-safe)", voltage: 12 V, color: "RD/WH -> RD/VT", awg: 20, fuse: none, label: "K03 ECO LOWCAP", tier: CRITICAL, status: UNVERIFIED, src: "docs/DRIVE_MODES.md; Kelly pin 22 from manual", check: "relay off: Kelly pin 22 = 12 V", dia: ["overview|low|kel|ECO 22", "kelly|k12|nc|", "kelly|nc|eco|"], schem: ["low|kel"]}
+  - {id: S40, step: 6, kind: wire, from: "12V bus via divider (PROPOSED 47k/10k + 100 nF)", to: "12 V low alarm input — pin UNDEFINED (PROPOSED Teensy B:26)", signal: "12 V sense", voltage: "≤3.3 V", color: BU, awg: 22, fuse: "PROPOSED 1 A", label: "S40 12V SENSE", tier: CRITICAL, status: UNDEFINED, src: "wiring_data power12 'REQUIRED before first drive, pin TBD'", check: "13.8 V in -> ≈2.4 V at pin", dia: [], schem: []}
+# ---- step 7: HV (LATER, Sparky present, pack fuses OUT)
+  - {id: H01, step: 7, kind: wire, from: "String 1..4 B+", to: "A6T200 fuse 1..4 (bus bar, insulated standoffs)", signal: HV+, voltage: "≤147.6 V", color: "OR HV, RED tape", awg: "1/0 (CONFLICT 3/0)", fuse: F-S1..S4, label: "H01-H04 STRING n B+", tier: LATER, status: UNVERIFIED, src: "docs/WIRING.md:66-69", check: "torque to cut sheet; fuses OUT until first HV power-up", dia: ["overview|s1|f|HV", "overview|s2|f|", "overview|s3|f|", "overview|s4|f|"], schem: ["s1|f", "s2|f", "s3|f", "s4|f"]}
+  - {id: H05, step: 7, kind: wire, from: "4 fuses", to: "common B+ bus", signal: HV+, voltage: HV, color: "OR HV, RED tape", awg: "1/0 (CONFLICT 3/0)", fuse: F-S1..S4, label: "H05 FUSE-BUS", tier: LATER, status: UNVERIFIED, src: "wiring_data overview net", check: "torque", dia: ["overview|f|bus|string leads 1/0 (WIRING) vs 3/0 (gen.py)"], schem: ["f|bus"]}
+  - {id: H06, step: 7, kind: wire, from: "common B+ bus (NO MSD — service = pull 4 fuses)", to: "EV200 B+ line", signal: HV+, voltage: HV, color: "OR HV, RED tape", awg: "match bus", fuse: F-S1..S4, label: "H06 BUS-EV200", tier: LATER, status: SOURCED, src: "wiring_data overview net (MSD removed 2026-10-22)", check: "torque", dia: ["overview|bus|evp|", "precharge|bus|evp|"], schem: ["bus|evp"]}
+  - {id: H07, step: 7, kind: wire, from: "EV200 B+ load", to: "Kelly B+", signal: HV+, voltage: HV, color: "OR HV, RED tape", awg: "match bus", fuse: none, label: "H07 EV200-KELLY+", tier: LATER, status: SOURCED, src: "wiring_data", check: "torque", dia: ["overview|evp|kel|B+", "precharge|evp|kel|"], schem: ["evp|kel"]}
+  - {id: H08, step: 7, kind: wire, from: "precharge relay + 50 Ω 100 W", to: "across EV200 B+", signal: HV precharge, voltage: HV, color: "OR HV", awg: "14 HV", fuse: none, label: "H08 PRECHARGE", tier: LATER, status: UNVERIFIED, src: "wiring_data precharge net (part AEV14012 vs TE EV11 CONFLICT)", check: "resistor ≈50 Ω", dia: ["overview|pre|evp|across"], schem: ["pre|evp", "pres|pre"]}
+  - {id: H09, step: 7, kind: wire, from: "Kelly U/V/W + Sin/Cos", to: "Zero 75-7R", signal: "motor", voltage: HV, color: "OR HV", awg: "match bus", fuse: none, label: "H09 MOTOR", tier: LATER, status: SOURCED, src: "wiring_data", check: "phase order per Kelly autotune", dia: ["overview|kel|mot|U/V/W + Sin/Cos"], schem: ["kel|mot"]}
+  - {id: H10, step: 7, kind: wire, from: "Kelly B-", to: "EV200 B- -> LEM A/B -> string B-", signal: HV-, voltage: HV, color: "OR HV, BLACK tape", awg: "match bus", fuse: none, label: "H10 KELLY-EV200-", tier: LATER, status: SOURCED, src: "wiring_data", check: "B- NEVER to chassis (>1 MΩ)", dia: ["overview|kel|evn|B−", "precharge|kel|evn|"], schem: ["kel|evn", "evn|lem"]}
+  - {id: H11, step: 7, kind: wire, from: "String B- leads", to: "through LEM A (S1+S2) / LEM B (S3+S4)", signal: HV-, voltage: HV, color: "OR HV, BLACK tape", awg: "1/0", fuse: none, label: "H11 B- LEM", tier: LATER, status: SOURCED, src: "wiring_data overview", check: "LEM arrow direction = discharge", dia: [], schem: ["lem|s1"]}
+  - {id: H12, step: 7, kind: wire, from: "HV bus", to: "F-DCDC -> DC-DC HV in", signal: HV, voltage: HV, color: "OR HV", awg: "14 HV", fuse: F-DCDC, label: "H12 DCDC IN", tier: LATER, status: UNVERIFIED, src: "gen.py fdi", check: "fuse rating vs label", dia: ["overview|dcdc|bus|HV fuse 15–20 A"], schem: ["bus|fdi", "fdi|dcdc"]}
+  - {id: H13, step: 7, kind: wire, from: "Elcon out", to: "F-ELC -> pack bus", signal: HV, voltage: HV, color: "OR HV", awg: "8 HV PROPOSED", fuse: F-ELC, label: "H13 ELCON OUT", tier: LATER, status: UNVERIFIED, src: "gen.py fel", check: "fuse", dia: ["overview|elc|bus|HV fuse ~40–60 A"], schem: ["elc|fel", "fel|bus"]}
+  - {id: H14, step: 7, kind: wire, from: "NACS inlet (AC)", to: "Elcon AC in", signal: "AC 240 V", voltage: AC, color: "per AC code", awg: "per charger", fuse: none, label: "H14 AC IN", tier: LATER, status: UNVERIFIED, src: "wiring_data", check: "—", dia: ["overview|nacs|elc|AC"], schem: ["inlet|elc"]}
+  - {id: S08, step: 7, kind: wire, from: "Kelly-side HV divider (60.6:1)", to: "Teensy A:24 (HV_ANALOG_ENABLE=0)", signal: "HV sense", voltage: "≤3.3 V", color: BU, awg: 22, fuse: "PROPOSED 0.5 A HV-rated", label: "S08 HV SENSE", tier: LATER, status: UNVERIFIED, src: "Config.h:185, 156", check: "divider ratio", dia: ["precharge|hvs|pre|"], schem: []}
+# ---- step 8: body / aux (LATER) — NO buttons, through relay + fuse (Adam 10/22)
+  - {id: A01, step: 8, kind: wire, from: "12V bus (switched) -> F-AUX", to: "aux relay 30", signal: "+12V load", voltage: 12 V, color: RD/WH, awg: "14 (size to load)", fuse: F-AUX, label: "A01 AUX FEED", tier: LATER, status: PROPOSED, src: "Adam 2026-10-22 (NO contacts, relay/fuse >1 A)", check: "fuse rating on label", dia: ["aux|f12|rly|30"], schem: ["b12|faux", "faux|rly"]}
+  - {id: A02, step: 8, kind: wire, from: "12V switched (small fuse)", to: "NO push button (ZBE101) -> relay 86", signal: "button", voltage: 12 V, color: RD/WH, awg: 20, fuse: "PROPOSED 2 A", label: "A02 AUX BTN", tier: LATER, status: PROPOSED, src: "Adam 2026-10-22", check: "pressed: 12 V at 86; released: 0 V", dia: ["aux|f12|btn|", "aux|btn|rly|86"], schem: ["auxb|rly"]}
+  - {id: A03, step: 8, kind: wire, from: "relay 85", to: "GND", signal: GND, voltage: 0 V, color: BK, awg: 20, fuse: none, label: "A03 RELAY GND", tier: LATER, status: PROPOSED, src: "standard automotive relay", check: "<0.5 Ω", dia: ["aux|rly|gnd|85"], schem: []}
+  - {id: A04, step: 8, kind: wire, from: "relay 87", to: "horn / lights +", signal: "+12V load", voltage: 12 V, color: "RD/GN", awg: "14 (size to load)", fuse: F-AUX, label: "A04 AUX LOAD", tier: LATER, status: PROPOSED, src: "Adam 2026-10-22", check: "load works only while pressed", dia: ["aux|rly|load|87"], schem: ["rly|load"]}
+  - {id: A05, step: 8, kind: wire, from: "load -", to: "GND", signal: GND, voltage: 0 V, color: BK, awg: 14, fuse: none, label: "A05 LOAD GND", tier: LATER, status: PROPOSED, src: "standard", check: "<0.5 Ω", dia: ["aux|load|gnd|"], schem: []}
+
+conflicts:   # pin / doc conflicts found while building this map (see docs/PINMAP.md)
+  - "A pins 16/17 are both IN2/IN1 (Config.h:159-160) and Serial4 RX/TX for the ESP32 (HubStatus.cpp:12). Resolved in code (BmsApp.cpp:12 never pinModes them) — IN1/IN2 are unavailable as inputs. OK, but never wire anything else to 16/17."
+  - "A pins 18/19 are IN3/IN4 (Config.h:161-162) and I2C SDA/SCL for the MCP23017 (Config.h:228-229, BODY_IO_EXPANDER=1). Intentional; IN3/IN4 are not usable as inputs on A."
+  - "Pin 4: A_THR_ALIVE on A, B_FAULT_OUT on B; pin 7: RAD_FAN on A, B_THR_ALIVE on B; pin 40: PEDAL_IN_A on A, ST_4WD_B on B; pin 41: POS_4WD on A, PEDAL_IN_B on B. Not clashes (different boards) — label every harness wire by board (TA/TB)."
+  - "E-stop block 3 -> Teensy B input pin is UNDEFINED in firmware (docs/ESTOP.md 'pin TBD'; EstopLatch.h not called). PROPOSED B pin 9."
+  - "12 V low alarm: REQUIRED before first drive but no pin. Teensy A has NO free analog pin. PROPOSED Teensy B pin 26 (A12)."
+  - "ESP32 GPIO17: teryx-ev-hub firmware/esp32-gateway/docs/PINMAP.md says GPIO17 TX <- Teensy RX 16 (crossed pair); GATEWAY.md:18 says leave unconnected (RX-only). This map follows GATEWAY.md (newer, matches code TX pin = -1). Hub PINMAP.md also still says pins 0/1 are 'CAN2 Elcon + Kelly @250k' and 'Soft-AP out of scope' — both stale."
+  - "src/HubStatus.cpp:14 comment says pins 0/1 are Elcon+Kelly CAN2; CAN_LAYOUT_V2 (FlexCanCompat.h:44) makes them string-2 BICM @125k. Comment stale."
+  - "include/Config.h:37 comment says B CAN3 = link only; FlexCanCompat.h:45 has B on the shared 250k vehicle bus (Kelly + Elcon + link). Follow FlexCanCompat."
+  - "Old wiring overview drew park on 'pin 18'; park is pin 32 on A and B (Config.h:249,253). Fixed in the drawing."
+  - "Precharge relay: Config.h:183 says TE EV11 / K1KABNA; WIRING/SAFETY/COMPONENTS say AEV14012."
+  - "HV string lead gauge 1/0 (WIRING.md) vs 3/0 (old gen.py)."
+  - "SN65HVD230: 6 needed (CAN_LAYOUT_V2), COMPONENTS.md lists 4 owned."
+  - "Config.h:217 says PEDAL_IN_B reads 'same pedal wiper'; crew agreed a second (half-scale) track — chief review #9."

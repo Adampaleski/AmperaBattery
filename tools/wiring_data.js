@@ -37,7 +37,7 @@ nodes:[
 ["head","Dash head unit|Surface 3 (Linux), Wi-Fi",1240,600,240,44,"S"],
 ["leg","Red = PROPOSED / UNVERIFIED · dashed = opens sub-page",960,680,520,30,"S","hdr"]
 ],
-wires:[["s1","f","HV",0],["s2","f","",0],["s3","f","",0],["s4","f","",0],["f","bus","string leads 1/0 (WIRING) vs 3/0 (gen.py)",1],["bus","evp","",0],["evp","kel","B+",0],["pre","evp","across",0],["kel","mot","U/V/W + Sin/Cos",0],["kel","evn","B−",0],["lem","f","B− clamp",0],["nacs","elc","AC",1],["elc","bus","HV fuse ~40–60 A",1],["dcdc","bus","HV fuse 15–20 A",1],["dcdc","b12","12 V",0],["b12","ta","5 V",0],["ta","tb","CAN3 link",0],["ta","esp","UART",0],["esp","head","Wi-Fi",0],["ta","clamp","SPI+alive",1],["tb","en","pin 7",1],["ped","clamp","wiper",1],["pk","ta","pin 18",1],["es","b12","coil feeds",1],["low","kel","ECO 22",1]],
+wires:[["s1","f","HV",0],["s2","f","",0],["s3","f","",0],["s4","f","",0],["f","bus","string leads 1/0 (WIRING) vs 3/0 (gen.py)",1],["bus","evp","",0],["evp","kel","B+",0],["pre","evp","across",0],["kel","mot","U/V/W + Sin/Cos",0],["kel","evn","B−",0],["lem","f","B− clamp",0],["nacs","elc","AC",1],["elc","bus","HV fuse ~40–60 A",1],["dcdc","bus","HV fuse 15–20 A",1],["dcdc","b12","12 V",0],["b12","ta","5 V",0],["ta","tb","CAN3 link",0],["ta","esp","UART",0],["esp","head","Wi-Fi",0],["ta","clamp","SPI+alive",1],["tb","en","pin 7",1],["ped","clamp","wiper",1],["pk","ta","pin 32",1],["es","b12","coil feeds",1],["low","kel","ECO 22",1]],
 net:[
 ["String n (×4)","A6T200 fuse n","HV","1/0 AWG (WIRING) — 3/0 in gen.py","OR HV","CONFLICT: gauge","U"],
 ["4 fuses","Common B+ bus","HV","1/0 AWG","OR HV","","S"],
@@ -134,6 +134,12 @@ nodes:[["k12","Kelly 12 V out (pin 11)",20,40,240,40,"S"],["nc","Relay NC contac
 ["a","Teensy A OUT3 pin 20|HIGH = release cap",20,200,240,50,"S"],["fet","Logic FET low side",320,200,200,40,"P"],["coil","Relay coil 12 V + 1N4007",580,200,260,40,"P"]],
 wires:[["k12","nc","",0],["nc","eco","",0],["a","fet","gate",0],["fet","coil","",0]],
 net:[["Kelly pin 11","Relay 30","12 V","20 AWG","RD/WH","","P"],["Relay 87a (NC)","Kelly pin 22 ECO","12 V","20 AWG","RD/VT","harness bring-out UNVERIFIED","U"],["Teensy A pin 20","FET gate (100 Ω / 10k pull-down)","logic","on board","—","","P"],["12 V fused","Relay 86 / FET → 85","coil","20 AWG","RD / BK","","P"]]},
+{id:"gateway",title:"ESP32 gateway (read-only hub link)",w:1100,h:300,desc:"teryx-ev-hub firmware/esp32-gateway/docs/GATEWAY.md: Teensy A pin 17 (Serial4 TX, 115200) → ESP32 GPIO16 (UART2 RX) + common GND. ESP32 GPIO17 UNUSED — leave unconnected (RX-only, cannot command the BMS).",
+nodes:[["ta","Teensy A|pin 17 Serial4 TX · GND",20,40,260,50,"S"],["esp","ESP32 DevKit gateway|GPIO16 RX · GPIO17 unused · 5V/VIN · GND",420,40,300,60,"S"],["buck","5 V buck (fused 3 A)",20,160,260,44,"P"],["ipad","iPad / head unit (Wi-Fi AP 192.168.4.1)",820,40,240,44,"S"]],
+wires:[["ta","esp","pin 17 → GPIO16",0],["ta","esp","GND",0],["buck","esp","5 V",0],["esp","ipad","Wi-Fi",0]],net:[]},
+{id:"aux",title:"Aux buttons (horn / lights): NO button → relay → fused load",w:1100,h:300,desc:"Adam 2026-10-22: normally-OPEN aux buttons switch only a relay coil; the load current goes through a fuse and the relay contact. PROPOSED — no part numbers chosen.",
+nodes:[["f12","12 V switched → F-AUX fuse",20,40,220,44,"P"],["btn","NO push button (ZBE101)|small fuse 2 A",20,160,220,50,"P"],["rly","12 V automotive relay|30 / 87 / 85 / 86",360,90,240,60,"P"],["load","Horn / lights load",720,40,220,44,"P"],["gnd","Chassis GND",720,180,220,44,"P"]],
+wires:[["f12","rly","30",0],["f12","btn","",0],["btn","rly","86",0],["rly","gnd","85",0],["rly","load","87",0],["load","gnd","",0]],net:[]},
 {id:"power12",title:"12 V system + bench power",w:1100,h:640,desc:"From schematic/gen.py (Mechanic review fixes) + WIRING.md. Fuse sizes marked where known.",
 nodes:[["dcdc","Elcon TDC-JH-144-12 DC-DC|HV in fuse 15–20 A ≥250 V DC",20,30,300,50,"U"],["fm","Main 12 V fuse at DC-DC out|rating TBD",380,30,280,44,"U"],["b12","12 V bus|−12 V bonded to chassis (strap)",380,110,280,44,"S"],
 ["fk","Fuse: Kelly PWR",20,210,200,36,"U"],["fd","Fuse: driver + coil feed",240,210,200,36,"U"],["fe","Fuse: electronics box",460,210,200,36,"U"],["ft","Fuse: tablet USB-C PD",680,210,200,36,"U"],
@@ -143,6 +149,7 @@ wires:[["dcdc","fm","",0],["fm","b12","",0],["b12","fk","",0],["b12","fd","",0],
 net:[["DC-DC 12 V out","Main fuse → 12 V bus","+12V","gauge TBD","RD","","P"],["12 V −","Frame (ground strap)","GND","strap","BK","Mechanic","P"],["Kelly case","Frame","GND","strap","BK","","P"],["12 V bus","5 V buck via 3 A","+12V","18 AWG","RD","","P"],["5 V block","Teensy A/B VIN","+5V","20 AWG","OR","","P"]]}
 ];
 window.CONFLICTS=[
+"Pin map: docs/PINMAP.yaml is now the single source; every line on these drawings carries its wire number from it (see docs/PINMAP.md for all pin conflicts).",
 "docs/WIRING.md CAN map updated to CAN_LAYOUT_V2 (CAN1 22/23 125k S1/S3, CAN2 0/1 125k S2/S4, CAN3 30/31 250k vehicle).",
 "Config.h comment says PRECHARGE (pin 12) = 'TE EV11 / K1KABNA'; WIRING/SAFETY/COMPONENTS say Volt AEV14012. Tool shows AEV14012 (UNVERIFIED).",
 "String lead gauge: WIRING.md/main-power-path say 1/0; schematic/gen.py edges say 3/0.",
