@@ -44,3 +44,16 @@ Adam asked that every power cut or derate be logged as a fault, with its reason.
 - Outputs `derateCode`, `lastDerate`, `derateMinPct` and `derateEvents` are for the dash and STATUS_SCHEMA. They are shown in the simulator (Drive tab line, Faults tab Fault log card). The live reason already reaches the dash as `powerWhy`.
 
 All debounce and cap values are PLACEHOLDER and adjustable. Firmware still does not write FaultLog (BmsApp wiring is next).
+
+## Firmware wiring (2026-10-21 10 PM)
+
+`src/FaultLogRun.{h,cpp}` runs this same `include/FaultLog.h` on the Teensy
+emulated EEPROM (`EEPROM.read` / `EEPROM.update`, bytes 256..1215). Dual-string
+role A only (where BmsCore runs); every other env compiles to no-ops.
+
+- `begin()` after `Settings::begin()` and `BmsApp::begin()`: scans the log, starts a new boot number, prints the record count.
+- `tick()` after `BmsApp::tick()` each loop: BmsCore active-fault-word edges (set/clear) and debounced derate edges, same rules as the simulator (cell mV for CELL-HIGH/CELL-LOW/CHARGE-OV, pack amps for OVERCURRENT when the current sensor is valid; derate set = power %, clear = lowest %).
+- Serial: `f` prints the log newest first; `FCLEAR` + Enter erases it (anything else starting with `F` erases nothing).
+- No pins, no outputs; it only writes EEPROM on edges, inside FaultLog's rate limits (1 s per edge, 24 per boot, 12 derates).
+- Note: with TEMPS_VERIFIED=0, TEMPS-NOT-VERIFIED is active from boot, so each boot logs one SET for it (one 20-byte record).
+- NOT bench-tested. Still to do: power-pull test on a bench Teensy, STATUS_SCHEMA field for the hub.

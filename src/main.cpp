@@ -9,6 +9,7 @@
 #include "BicmSniffer.h"
 #include "BicmDecode.h"
 #include "BmsApp.h"
+#include "FaultLogRun.h"
 #include "BmsCapabilities.h"
 #include "BicmPackProfile.h"
 #include "BalanceTx.h"
@@ -76,6 +77,7 @@ void printHelp() {
     SERIALCONSOLE.println(F("  g  toggle charge request; shows refusal reason + would-be Elcon frame"));
     SERIALCONSOLE.println(F("  y  Kelly CAN2 RX counts/raw"));
     SERIALCONSOLE.println(F("  j  one STATUS_SCHEMA v1 JSON line (hub format)"));
+    SERIALCONSOLE.println(F("  f  fault log (survives power-off; dual role A)   FCLEAR + Enter = erase it"));
     SERIALCONSOLE.println(F("  h/?  this page"));
 #if BENCH_BLEED_TEST
     SERIALCONSOLE.println(F("  bleed M C + Enter  BENCH: bleed ONE cell (module M ch C) 10 s; x aborts"));
@@ -146,6 +148,9 @@ void runCommand(char c) {
                 KellyDecode::printStatus();
                 KellyLimit::printStatus();
                 break;
+            case 'f':
+                FaultLogRun::print();
+                break;
             case 'j':
                 SERIALCONSOLE.println(F("--- hub STATUS_SCHEMA v1 (USB one-shot) ---"));
                 HubStatus::printFrame(SERIALCONSOLE);
@@ -188,7 +193,7 @@ void dispatchSerial() {
         }
 #endif
         if (!g_inLine && (c == 'P' || c == 'V' || c == 'L' || c == 'W' || c == 'X' || c == 'U' ||
-                          c == 'T' || c == 'Z' || c == 'I')) {
+                          c == 'T' || c == 'Z' || c == 'I' || c == 'F')) {
             g_inLine = true;
             g_lineLen = 0;
         }
@@ -202,6 +207,7 @@ void dispatchSerial() {
                     if (!BenchBleedRun::handleLine(g_line)) runCommand('b');
                 } else
 #endif
+                if (!FaultLogRun::handleLine(g_line))
                 if (!ThrottleTrim::handleLine(g_line))
                 Settings::handleLine(g_line);
             } else if (g_lineLen < sizeof(g_line) - 1) {
@@ -315,7 +321,7 @@ void setup() {
     SERIALCONSOLE.print(PACK_S_CELLS);
     SERIALCONSOLE.println(F(" cells."));
 #endif
-    SERIALCONSOLE.println(F("Keys: c s d b k r e p g y j ?  (no Enter — click terminal first)"));
+    SERIALCONSOLE.println(F("Keys: c s d b k r e p g y j f ?  (no Enter — click terminal first)"));
     SERIALCONSOLE.println(F("b/e/p/g = PRINT-ONLY dry-runs. ID list + cells every 10 s."));
 
     Settings::begin();  // prints ceiling / low cutoff / deadband from EEPROM
@@ -348,6 +354,7 @@ void setup() {
     ChargeTx::begin();
     KellyDecode::begin();
     BmsApp::begin();
+    FaultLogRun::begin();  // after Settings (EEPROM) + BmsApp; logs only, no pins
     HubStatus::begin();  // Serial4 after BmsApp so UART owns pins 16/17
     Watchdog::begin(2000);
     SERIALCONSOLE.println(F("Watchdog: WDOG3 ~2 s, fed from loop()"));
@@ -368,6 +375,7 @@ void loop() {
     ChargeTx::tick();
     KellyDecode::tick();
     BmsApp::tick();
+    FaultLogRun::tick();   // after ContactorSeq ran BmsCore this loop
     ThrottleTrim::tick();
     HubStatus::tick();
     dispatchSerial();
