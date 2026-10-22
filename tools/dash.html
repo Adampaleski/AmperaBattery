@@ -4,7 +4,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000"><title>Teryx Dash</title>
 <style>html,body{margin:0;background:#000;height:100%;overflow:hidden}</style></head><body><a href="wiring.html" style="position:fixed;right:6px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Wiring</a><a href="checklist.html" style="position:fixed;right:52px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Checklist</a>
-<div id="dash"></div><span style="position:fixed;left:6px;top:4px;z-index:99;color:#444;font:11px system-ui;pointer-events:none">Build 2 · cfc8256 · Oct 21 8:56 PM CT</span>
+<div id="dash"></div><span style="position:fixed;left:6px;top:4px;z-index:99;color:#444;font:11px system-ui;pointer-events:none">Build 3 · 8e2afdc · Oct 22 7:09 AM CT</span>
 <script>// Vehicle model for tools/bms_sim.html (Cluster tab), drive cycles and scripts/check_bms_sim_wasm.js.
 // SIM ONLY. Every default below is ASSUMED or PROPOSED (tagged in VEH_SETS), not measured on the Teryx.
 // Point-mass longitudinal model: motor torque (Kelly phase-amp limit x ASSUMED Kt) and Kelly battery-amp
@@ -445,7 +445,7 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
  ['SoC / range','BmsCore::Soc coulomb count on LEM A + B, full-charge anchor; range = SoC × ASSUMED kWh ÷ Wh/mi','sim only · capAh UNVERIFIED'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → head unit','schema exists']];
-const DASH_BUILD='Build 2 · cfc8256 · Oct 21 8:56 PM CT';
+const DASH_BUILD='Build 3 · 8e2afdc · Oct 22 7:09 AM CT';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');
