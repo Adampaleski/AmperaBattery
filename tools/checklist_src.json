@@ -5,7 +5,7 @@
    "s": 1,
    "o": "Adam",
    "src": "shop log 2026-10-21 17:45 · docs/ESTOP.md",
-   "t": "Install the e-stop: mushroom twist-release, NC1 in series with both EV200 coils + AEV14012 coil + Kelly KSI, NC2 to Teensy B log; IP65 guarded box"
+   "t": "Install the e-stop: XB4/XB5 40 mm twist-release + 3× ZBE102 direct (no relay): block 1 both EV200 coils, block 2 precharge coil + Kelly KSI, block 3 Teensy B latch input; IP65 guarded box"
   },
   {
    "s": 1,
@@ -166,13 +166,13 @@
    "s": 3,
    "o": "Mechanic",
    "src": "shop log 2026-10-20 05:42",
-   "t": "Branch fuses: charger 60-70 A ≥250 VDC, DC-DC 15-20 A, with holders"
+   "t": "Branch fuses: charger 60-70 A ≥250 VDC, DC-DC 15-20 A; any holder at pack voltage rated > 160 VDC (string A6T200s need no holders)"
   },
   {
    "s": 3,
    "o": "Mechanic",
    "src": "shop log 2026-10-20 05:42 / 10-19 20:04",
-   "t": "12 V side: key switch, 12 V battery, fused distribution block, 16-20 AWG TXL, Deutsch DT pins/seals + crimper, 3 inline mini-blade holders, 3 TVS, IRLB8721 FETs, panel-mount USB extension"
+   "t": "12 V side: key switch, 12 V battery, fused distribution block, 16-20 AWG TXL, Deutsch DT pins/seals + crimper, 3 inline mini-blade holders, 3 TVS, IRLB3813 FETs (IRLB8721 discontinued), panel-mount USB extension"
   },
   {
    "s": 3,

@@ -70,16 +70,6 @@
    ]
   },
   {
-   "id": "msd",
-   "name": "Volt MSD (manual service disconnect)",
-   "mfr": "GM (Chevrolet Volt)",
-   "missing": "No manufacturer datasheet found. Rating ≈350 A is from schematic/gen.py, UNVERIFIED (BACKLOG: verify vs 550 A launch or use a bus fuse).",
-   "match": "MSD",
-   "specs": [
-    "Service step 1 pull MSD, step 2 pull all 4 A6T200 (Mechanic 2026-10-21)"
-   ]
-  },
-  {
    "id": "dhab",
    "name": "LEM DHAB S/44 current sensor ×2 (Volt pack)",
    "mfr": "LEM",
@@ -185,15 +175,18 @@
   },
   {
    "id": "irlb",
-   "name": "Infineon IRLB8721 logic FET (coil drivers)",
+   "name": "Infineon IRLB3813 logic FET (coil drivers; IRLB8721 discontinued)",
    "mfr": "Infineon",
-   "doc": "IRLB8721PbF datasheet",
-   "url": "https://www.infineon.com/dgdl/irlb8721pbf.pdf?fileId=5546d462533600a40153566056732591",
-   "sha": "8a313aecdd1e7725",
+   "doc": "IRLB3813PbF datasheet",
+   "url": "https://www.infineon.com/assets/row/public/documents/24/49/infineon-irlb3813-datasheet-en.pdf?fileId=5546d462533600a4015356603cfe258b",
+   "sha": "8406328ff856ce1a",
    "match": "FET",
    "specs": [
-    "Logic-level N-MOSFET (buy list)"
-   ]
+    "30 V, RDS(on) 1.95 mΩ @10 V / 2.6 mΩ @4.5 V, VGS(th) 1.35–2.35 V, Ciss 8420 pF (datasheet)",
+    "Gate drive at 3.3 V not specified in the datasheet: UNVERIFIED (bench the coil current at the Teensy gate level)"
+   ],
+   "page": "https://www.infineon.com/part/IRLB3813",
+   "kw": "IRLB3813"
   },
   {
    "id": "elcon",
@@ -230,18 +223,19 @@
   },
   {
    "id": "estop",
-   "name": "E-stop: Schneider Harmony XB4BS8442 (candidate, not bought)",
+   "name": "E-stop: Harmony XB4/XB5 40 mm twist-release + 3× Schneider ZBE102 NC (crew spec, not bought)",
    "mfr": "Schneider Electric",
-   "doc": "XB4BS8442 product datasheet",
-   "url": "https://www.se.com/uk/en/product/XB4BS8442/",
-   "mirror": "https://cdn.yesss.co.uk/documents/2104421_03_XB4BS8442_Datasheet_377fc6d0bf7c2710a16578008252e2fa.pdf",
-   "sha": "7acb26925dd7ce1a",
-   "note": "se.com blocks automated fetches (403); mirror is Schneider's datasheet. Ships 1 NC: a 2nd NC block (for NC2) is extra; DC make rating vs ≈7.6 A inrush UNVERIFIED",
-   "match": "E-stop|NC block|NC1|NC2",
+   "doc": "ZBE102 contact block datasheet",
+   "url": "https://static.datasheets.com/doc/13749203-schneider-zbe102-ds.pdf",
+   "sha": "e52a10d9b77be132",
+   "kw": "ZBE102",
+   "match": "E-stop|ZBE102|NC block|block [123]",
    "specs": [
-    "Metal, red Ø40 mushroom, Ø22 hole, turn to release, 1 NC (datasheet)"
+    "Ie DC-13: 0.55 A @125 V, 0.27 A @250 V (Q600); Ith 10 A; 1 M cycles DC-13 0.5 A @24 V (datasheet)",
+    "Block 1: both EV200 coils · Block 2: AEV14012 + Kelly KSI · Block 3: Teensy B latch input",
+    "DC-13 rating at 12–24 V (crew target ≥ 2 A) not on the datasheet: UNVERIFIED, Sparky confirming"
    ],
-   "kw": "XB4BS8442"
+   "note": "Previous candidate XB4BS8442 head datasheet: https://cdn.yesss.co.uk/documents/2104421_03_XB4BS8442_Datasheet_377fc6d0bf7c2710a16578008252e2fa.pdf (head only; the exact XB4/XB5 head P/N is TBD)"
   },
   {
    "id": "pedal",

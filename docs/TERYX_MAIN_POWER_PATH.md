@@ -23,9 +23,9 @@ Tick boxes on GitHub or in VS Code. Prices are verified new prices (Oct 2026); T
 From `docs/COMPONENTS.md`, `../diagram/components.json`, `../perfboard/BOM.md`:
 - [x] EV200HAANA main + (bought 2026-10-20, eBay ecrunch, $31.65)
 - [x] EV200HAANA main − (bought 2026-10-20, eBay ecrunch, $31.65)
-- [x] Mersen A6T200 200 A Class T ×4 — **BOUGHT 2026-10-20** ($36.20 ea, unitedfuses.com); A6T is 300 V class, check the body on arrival
+- [x] Mersen A6T200 200 A Class T ×4 — **BOUGHT 2026-10-20** ($36.20 ea, unitedfuses.com); A6T is 300 V class, check the body on arrival; bolt straight to the bus bar on insulated standoffs (no holders), tool-only cover with captive screws
 - [ ] Volt BICM M4 18S ×2 (extra, needed for 4 strings)
-- [ ] Perfboard parts: 90×150 perfboard, female headers, 120 Ω terminators + jumper, 100 µF caps, SMBJ18A TVS, 10 k/18 k 1% resistors, 100 nF caps, JST-XH headers/housings/pins, DT04/DT06 bulkheads, IRLB8721 FETs ×6 per board, 100 Ω/10 k gate resistors, 1N4007, inline blade fuse holders + 1 A fuses, panel-mount micro-USB extension, M3 standoffs, zip-ties
+- [ ] Perfboard parts: 90×150 perfboard, female headers, 120 Ω terminators + jumper, 100 µF caps, SMBJ18A TVS, 10 k/18 k 1% resistors, 100 nF caps, JST-XH headers/housings/pins, DT04/DT06 bulkheads, IRLB3813 FETs ×6 (IRLB8721 discontinued) per board, 100 Ω/10 k gate resistors, 1N4007, inline blade fuse holders + 1 A fuses, panel-mount micro-USB extension, M3 standoffs, zip-ties
 
 ## Remaining buys
 | Item | Part number | Price | Status |

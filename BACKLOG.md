@@ -8,19 +8,20 @@ Tag `[CRITICAL sN]` = CRITICAL, checklist section N (0 gates, 2 shop, 3 buy, 4 f
 - [ ] [CRITICAL s0] Gate 3 — four strings (chief): add strings one at a time, each within 1 V of the others; spin; regen direction; coolant flow; fan at 40 °C; 12 V alarm; HV leak detection.
 - [ ] [CRITICAL s0] Gate 4 — first drive (chief): Kid / Low mode, 10 mph, flat ground, spotter.
 - [ ] [CRITICAL s3] Mechanic shop order 1: 1/0 HV leads + crimper (needs Adam OK, never buy).
-- [ ] [CRITICAL s3] Mechanic shop order 2: bus bar + bus bar cover (needs Adam OK).
+- [ ] [CRITICAL s3] Mechanic shop order 2: bus bar + insulated standoffs + tool-to-remove cover with captive screws; 4 A6T200 bolt direct (no fuse holders), all reachable from one side; any holder at pack voltage > 160 VDC (needs Adam OK).
 - [ ] [CRITICAL s3] Mechanic shop order 3: EV200 mounts + HV component plate (needs Adam OK).
-- [ ] [CRITICAL s3] Mechanic shop order 4: e-stop parts (needs Adam OK).
+- [ ] [CRITICAL s3] Mechanic shop order 4: e-stop parts: Harmony XB4/XB5 40 mm twist-release head + 3× Schneider ZBE102 NC blocks + IP65 guarded box (needs Adam OK). Block DC-13 ≥ 2 A at 12–24 V UNVERIFIED (datasheet: 0.55 A @125 V, 10 A Ith; Sparky confirming).
 - [ ] [CRITICAL s3] Mechanic shop order 5: Kelly coolant loop + fan relay (needs Adam OK).
 - [ ] [CRITICAL s3] Mechanic shop order 6: chain guard + tensioner (needs Adam OK).
 - [ ] [CRITICAL s3] Mechanic shop order 7: pack tie-downs, grommets / loom, ground straps (needs Adam OK).
 - [ ] [CRITICAL s3] Mechanic shop order 8: sealed Teensy enclosure + Hall pedal bracket (needs Adam OK).
-- [ ] [CRITICAL s2] Measure before ordering (Adam): 1/0 lead run lengths (pack → MSD → fuses → EV200 → Kelly), bus bar span + stud size, EV200 / HV plate footprint, chain line + guard clearance, tie-down points, grommet hole diameters, ground-strap runs, Teensy enclosure size, Hall pedal mounting / travel. List per Mechanic's hardware; dimensions UNVERIFIED until measured.
-- [ ] [CRITICAL s4] Volt MSD internal fuse? (Sparky): find out whether the Volt MSD is fused. If it is, use a plain > 500 A disconnect instead (rating UNVERIFIED).
+- [ ] [CRITICAL s2] Measure before ordering (Adam): 1/0 lead run lengths (string → A6T200 on the bus bar → EV200 → Kelly), bus bar span + stud size, EV200 / HV plate footprint, chain line + guard clearance, tie-down points, grommet hole diameters, ground-strap runs, Teensy enclosure size, Hall pedal mounting / travel. List per Mechanic's hardware; dimensions UNVERIFIED until measured.
 - [ ] [CRITICAL s4] Branch fuses (Sparky): DC-DC branch fuse 15–20 A; Elcon output fuse 1.25 × max charger current, ≥ 250 VDC rated.
 - [ ] [CRITICAL s4] LEM zero offset (Sparky): store the zero-current offset; fault if the reading is > 5 A off at zero current.
 - [ ] [CRITICAL s4] HV leak / isolation detection (Sparky): add before Gate 3.
-- [ ] [CRITICAL s3] Insulated boots / covers on every HV terminal (Sparky): string fuses stay LIVE with the MSD pulled.
+- [ ] [CRITICAL s3] Insulated wrench for pulling the string fuses (crew 2026-10-22; needs Adam OK).
+- [ ] [CRITICAL s4] E-stop latch (crew 2026-10-22): when block 3 (NC to Teensy B) reports open, drop every coil driver and latch until a key-cycle reset; releasing never closes anything. Logic + test done (include/EstopLatch.h, scripts/test_estop_latch.cpp 7/7); wire into the coil gate when BMS_CAP_CONTACTOR_DRV is enabled, then bench: press, release, unplug block 3 wire. Adam meters Kelly KSI draw (expected < 0.2 A).
+- [ ] [CRITICAL s3] Insulated boots / covers on every HV terminal (Sparky): the string side of each A6T200 stays LIVE with the fuses pulled.
 
 ## Priority list (standing dev routine)
 
@@ -75,8 +76,7 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 - [ ] **REQUIRED BEFORE FIRST DRIVE:** contactor weld check. Bus voltage vs pack with mains commanded open at key-off and before precharge (sim has a welded-contactor toggle; firmware not built).
 - [ ] **REQUIRED BEFORE FIRST DRIVE:** isolation monitoring (HV to chassis). Part not chosen.
 - [ ] **REQUIRED BEFORE FIRST DRIVE:** 12 V low alarm at 11.5 V (PROPOSED). Needs a 12 V sense divider pin.
-- [ ] Service disconnect (SOURCED: Mechanic 2026-10-21): the Volt MSD sits on the **common B+ bus after the 4 string fuses**. Procedure: **Step 1** pull the MSD (Kelly side safe). **Step 2** also pull all 4 Mersen A6T200 string fuses before working on the packs or the bus.
-- [ ] **REQUIRED BEFORE FIRST DRIVE:** MSD rating ≈350 A (schematic/gen.py) is below the 550 A launch current. Verify against Volt specs or replace with a combined bus fuse.
+- [ ] Service disconnect (crew 2026-10-22, replaces the Volt MSD): **pull all 4 Mersen A6T200 string fuses**. Key off, e-stop pressed, wait for the Kelly caps, remove the tool-only cover (captive screws), pull fuses 1–4 with the insulated wrench, meter bus B+ to B− = 0 V, boot the string-side studs (still LIVE). Volt MSD removed from the current path.
 
 ## Mechanical (Mechanic 2026-10-21) — TODO
 - [ ] **REQUIRED BEFORE FIRST DRIVE:** Chain guard + chain tensioner (#50 chain, 16/32T).
@@ -93,7 +93,7 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 
 - [x] 2026-10-21 crew review of b629bcf: park on direct pin 32 (A needs BODY_IO_EXPANDER), Brake_AN DEFERRED (switch regen default), Low cap only on hard faults with a 1 s ramp, docs/ESTOP.md + wiring aid e-stop page fixed, WIRING.md CAN_LAYOUT_V2 map.
 - [ ] Before Brake_AN: read back the Kelly config (Brake Type, Boost OFF, BRK_AD/BRK_SW, Foot Switch, Three Gears/Speed) and save it in docs/.
-- [ ] E-stop NC block DC rating (bench/datasheet): makes ≈7.6 A combined EV200 inrush for 130 ms, breaks only hold (≈0.52 A + precharge + KSI). No interposing relay (Sparky).
+- [ ] E-stop ZBE102 DC rating at 12 V (Sparky confirming): block 1 makes ≈7.6 A EV200 inrush for 130 ms, breaks ≈0.52 A hold; block 2 breaks ≈0.35 A + KSI. Direct, no relay.
 
 - [ ] REQUIRED BEFORE FIRST DRIVE: firmware dead-LEM detection. Read each LEM separately and flag one reading nothing or out of range (>450 A, PROPOSED) as a hard fault that engages the 10 mph cap. Today this check runs only in the sim. (chief, 2026-10-21)
 - [ ] Dead-LEM detail (Sparky): each output should sit near 2.5 V at 0 A; within about 0.2 V of 0 V or 5 V = dead or disconnected (hard fault). Key-on self-test: below about 15 A, the low-range and high-range channels must agree.
@@ -115,6 +115,8 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 - [x] Kid: entering asks no PIN (parked only); first time with no PIN set, a one-time "Set Kid exit PIN" pad (keeps firmware NO_PIN_SET rule). Leaving Kid = modal PIN pad (digits, ⌫, Cancel, Enter, keyboard, wrong-PIN shake). Old text box removed.
 - [ ] Phone-as-key (PROPOSED): no Bluetooth phone key → PIN pad before any drive setting (modes, thresholds, limits); key off → drive settings locked; Night/dim stay unlocked. Sim toggle "Phone key present". Decide: BLE module + pairing, which PIN (sim reuses the Kid PIN hash), firmware mirror.
 - [ ] Synthetic neutral: N = Kelly zero throttle + no regen (freewheel), no mechanical decoupling; motor still spins, so back-EMF and overspeed limits still apply. Kelly "Three Gears Switch: Forward, Neutral, Reverse" (item 90) and NTL Brk default 0 (item 45) SOURCED; "neutral = FWD and REV pins both open" UNVERIFIED, bench it on the Kelly before relying on it. Sim + dash show N; Parked = park brake + 0 RPM + N.
+
+- [ ] Bench IRLB3813 coil drivers at the Teensy gate level: datasheet specifies RDS(on) at 4.5 V and 10 V only (VGS(th) 1.35–2.35 V, Ciss 8420 pF); confirm the EV200/AEV14012 coils pull in fully. IRLB8721 is discontinued.
 
 ## Later
 - [ ] Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built.

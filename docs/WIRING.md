@@ -61,6 +61,14 @@ VoltBMSV2 names on `Pins::OUT1..OUT8`. Teensy pin = FET gate, **not** the coil.
 
 Mechanic's HV kit (assumed present in the sequence, not encoded as P/Ns): 2× TE EV200HAANA (B+ and B−, owned), 1× Volt AEV14012 precharge, 50 Ω 100 W precharge resistor, 4× Mersen A6T200 200 A Class T (owned), 1/0 string leads.
 
+### HV bus panel + service disconnect (crew 2026-10-22)
+- **No Volt MSD in the current path** (removed). Path: string n → A6T200 n → common B+ bus → EV200 B+ → Kelly.
+- **No fuse holders:** the 4 A6T200s bolt straight to the bus bar on **insulated standoffs**, all 4 reachable from **one side**.
+- **Cover:** tool-to-remove, **captive screws** — the string side of each fuse stays LIVE with the fuses pulled.
+- Any fuse holder used elsewhere at pack voltage must be rated **> 160 VDC**.
+- **Service disconnect = pull all 4 string fuses:** key off, e-stop pressed, wait (Kelly caps), remove cover, pull fuses 1–4 with the **insulated wrench**, meter bus B+ to B− = 0 V, boots on the live string-side studs. Reverse to restore, then a normal precharge.
+- Coil-driver FETs: **IRLB3813** (IRLB8721 is discontinued).
+
 Do **not** wire coils until `BMS_CAP_CONTACTOR_DRV` is intentionally set to 1. Default flag is 0; `e` only dry-runs intended pin states.
 
 Optional HV-bus analog: pin 24 (`A10`), compile with `HV_ANALOG_ENABLE=1`. Default is timer-only (5 s).
@@ -100,8 +108,10 @@ Kelly 12V (pin 11) -- park pole 3 (NC, opens when set) -- Kelly Foot_SW (pin 15)
 Kelly 12V (pin 11) -- relay NC -- Kelly ECO (pin 22)      relay coil <- FET <- Teensy A OUT3 pin 20 (HIGH = release Low cap)
 Teensy A pin 4 (A_THR_ALIVE, 10k pull-down) -> 74AHCT125 -> 74HCT123 #1 B   (heartbeat; CS no longer used as alive)
 4066 VCC = shared 5 V rail; Kelly throttle pull-down 100k
-E-stop (docs/ESTOP.md): 12 V fused -> mushroom NC1 -> EV200 B+ coil, EV200 B- coil, AEV14012 coil (high sides), Kelly KSI/PWR pin 7
-                         NC2 -> Teensy B input (log only)
+E-stop (docs/ESTOP.md): XB4/XB5 40 mm twist-release + 3x ZBE102 NC, wired DIRECT (no relay)
+  12 V fused -> block 1 -> EV200 B+ coil, EV200 B- coil (high sides)
+  12 V fused -> block 2 -> AEV14012 precharge coil (high side) + Kelly KSI/PWR pin 7
+                block 3 -> Teensy B input (log; open = drop all coil drivers + LATCH until key-cycle reset, include/EstopLatch.h)
 Brake_AN (pin 2): NOT WIRED for first drive (DEFERRED: Kelly config readback + Boost OFF confirmed first).
   First drive: Brake Type = 0 (switch regen, BRK_SW Brk fixed level)
 Brake switch 12 V -> Kelly pin 25 + brake light; state readable on Kelly CAN 0x0CF11F05 b5 bit3
