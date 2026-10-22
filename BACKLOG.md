@@ -133,6 +133,7 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 - [ ] Bench IRLB3813 coil drivers at the Teensy gate level: datasheet specifies RDS(on) at 4.5 V and 10 V only (VGS(th) 1.35–2.35 V, Ciss 8420 pF); confirm the EV200/AEV14012 coils pull in fully. IRLB8721 is discontinued.
 
 ## Later
+- [ ] [LATER] Spare inputs IN2/IN3/IN4 (Config.h Pins, all -1 today): deferred until after first drive (chief 2026-10-22). Checked: none of chief review CRITICAL #1-#10 or the Path-to-first-drive items needs IN2-IN4 (key-on / plug-in / e-stop / park get their own pins). Needs pins freed first (no free GPIO on A).
 - [ ] Odometer that survives power-down (EEPROM, wear-leveled) plus hour counter (key-on hours and drive hours). Requested by Adam; do not implement until after first drive. (LATER / after first drive)
 - [ ] Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built.
 

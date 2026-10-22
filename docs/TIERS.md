@@ -96,8 +96,9 @@ CRITICAL = truly blocks first drive (chief, crew review 2026-10-22: gates + Mech
 - **LATER** · Decide: PIN to drive (UNDECIDED; sim option, off by default; uses the Kid PIN hash). (Gilfoyle; BACKLOG.md:124)
 - **LATER** · Hall pedal spec (Sparky): track 2 at half scale (e.g. 0.5-4.5 V and 0.25-2.25 V). Both tracks go through 10k/18k dividers (4.5 V reads 2.89 V at the pin). Compare the tracks as % of travel, not raw volts. (Sparky; BACKLOG.md:125)
 - **LATER** · Phone-as-key (PROPOSED): no Bluetooth phone key → PIN pad before any drive setting (modes, thresholds, limits); key off → drive settings locked; Night/dim stay unlocked. Sim toggle "Phone key present". Decide: BLE module + pairing, which PIN (sim reuses the Kid PIN hash), firmware mirror. (Gilfoyle; BACKLOG.md:130)
-- **LATER** · Odometer that survives power-down (EEPROM, wear-leveled) plus hour counter (key-on hours and drive hours). Requested by Adam; do not implement until after first drive. (LATER / after first drive) (Gilfoyle; BACKLOG.md:136)
-- **LATER** · Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built. (Gilfoyle; BACKLOG.md:137)
+- **LATER** · [LATER] Spare inputs IN2/IN3/IN4 (Config.h Pins, all -1 today): deferred until after first drive (chief 2026-10-22). Checked: none of chief review CRITICAL #1-#10 or the Path-to-first-drive items needs IN2-IN4 (key-on / plug-in / e-stop / park get their own pins). Needs pins freed first (no free GPIO on A). (Gilfoyle; BACKLOG.md:136)
+- **LATER** · Odometer that survives power-down (EEPROM, wear-leveled) plus hour counter (key-on hours and drive hours). Requested by Adam; do not implement until after first drive. (LATER / after first drive) (Gilfoyle; BACKLOG.md:137)
+- **LATER** · Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built. (Gilfoyle; BACKLOG.md:138)
 
 ## 5. Bench verifications
 - **LATER** · Recheck the pedal curve with the 100k Kelly-side pull-down fitted (0/25/50/75/100 % × wiper, ±2 %) (Adam; docs/THROTTLE_CLAMP.md)

@@ -70,9 +70,9 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | 33 |  | RESERVED charge plug-in detect (PROPOSED, no wire yet) |  | LATER | PROPOSED | Config.h:254 |
 | 34 | LIGHT_OE | spare (retired 595 /OE; nothing drives it) |  |  | SOURCED | Config.h:245 |
 | 34 | IN1 | IN1 spare input (moved off Serial4 17, crew 2026-10-22); pinMode INPUT only with BODY_IO_EXPANDER |  | LATER | PROPOSED | Config.h:171 |
-| -1 | IN2 | IN2 retired (was 16 = Serial4 RX): no free GPIO on A |  | LATER | PROPOSED | Config.h:172 |
-| -1 | IN3 | IN3 retired (was 18 = I2C SDA) |  | LATER | PROPOSED | Config.h:173 |
-| -1 | IN4 | IN4 retired (was 19 = I2C SCL) |  | LATER | PROPOSED | Config.h:174 |
+| -1 | IN2 | IN2 retired (was 16 = Serial4 RX): no free GPIO on A; DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:172 |
+| -1 | IN3 | IN3 retired (was 18 = I2C SDA); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:173 |
+| -1 | IN4 | IN4 retired (was 19 = I2C SCL); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:174 |
 | 35 | LIGHT_DATA | bit-bang DATA -> U4 -> MCP4131 SDI (shared with lights) | S10 |  | PROPOSED | Config.h:235 |
 | 36 | LIGHT_CLK | bit-bang CLK -> U4 -> MCP4131 SCK | S10 |  | PROPOSED | Config.h:236 |
 | 37 | ACT_EN | both BTS7960 enables |  | LATER | PROPOSED | Config.h:229 |

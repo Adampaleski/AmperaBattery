@@ -95,9 +95,9 @@ pins:
     - {pin: 33, const: null,        use: "RESERVED charge plug-in detect (PROPOSED, no wire yet)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:254"}
     - {pin: 34, const: LIGHT_OE,    use: "spare (retired 595 /OE; nothing drives it)", wire: null, status: SOURCED, src: "Config.h:245", shares: IN1}
     - {pin: 34, const: IN1,         use: "IN1 spare input (moved off Serial4 17, crew 2026-10-22); pinMode INPUT only with BODY_IO_EXPANDER", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:171", shares: LIGHT_OE}
-    - {pin: -1, const: IN2,         use: "IN2 retired (was 16 = Serial4 RX): no free GPIO on A", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:172", shares: "IN3, IN4, LIGHT_LATCH (all -1 = unassigned)"}
-    - {pin: -1, const: IN3,         use: "IN3 retired (was 18 = I2C SDA)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:173", shares: "-1"}
-    - {pin: -1, const: IN4,         use: "IN4 retired (was 19 = I2C SCL)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:174", shares: "-1"}
+    - {pin: -1, const: IN2,         use: "IN2 retired (was 16 = Serial4 RX): no free GPIO on A; DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:172", shares: "IN3, IN4, LIGHT_LATCH (all -1 = unassigned)"}
+    - {pin: -1, const: IN3,         use: "IN3 retired (was 18 = I2C SDA); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:173", shares: "-1"}
+    - {pin: -1, const: IN4,         use: "IN4 retired (was 19 = I2C SCL); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:174", shares: "-1"}
     - {pin: 35, const: LIGHT_DATA,  use: "bit-bang DATA -> U4 -> MCP4131 SDI (shared with lights)", wire: S10, status: PROPOSED, src: "Config.h:235"}
     - {pin: 36, const: LIGHT_CLK,   use: "bit-bang CLK -> U4 -> MCP4131 SCK", wire: S10, status: PROPOSED, src: "Config.h:236"}
     - {pin: 37, const: ACT_EN,      use: "both BTS7960 enables", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:229"}
