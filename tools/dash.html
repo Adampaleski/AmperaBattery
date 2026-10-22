@@ -6,12 +6,26 @@
    and let the browser scale it to fit. Pinch-zoom and pan stay enabled (no maximum-scale / user-scalable=no). */
 (function(){const vp=document.getElementById('vp');function fit(){const sw=Math.min(screen.width,screen.height),lw=Math.max(screen.width,screen.height);
   const port=matchMedia('(orientation: portrait)').matches,W=port?820:1280,dev=port?sw:lw;
-  vp.setAttribute('content',dev<W?'width='+W+',viewport-fit=cover':'width=device-width,initial-scale=1,viewport-fit=cover');}
+  document.documentElement.style.setProperty('--tnk',dev<W?String(W/dev):'1');vp.setAttribute('content',dev<W?'width='+W+',viewport-fit=cover':'width=device-width,initial-scale=1,viewport-fit=cover');}
  fit();addEventListener('orientationchange',()=>setTimeout(fit,50));matchMedia('(orientation: portrait)').addEventListener('change',fit);})();</script>
 <meta name="theme-color" content="#000"><title>Teryx Dash</title>
 <style>html,body{margin:0;background:#000;min-height:100%;overflow:auto;-webkit-text-size-adjust:100%;touch-action:manipulation}
-@media(max-width:900px){#dash .tdash .dock .seatb{flex:1 0 22%}}</style></head><body><a href="wiring.html" style="position:fixed;right:6px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Wiring</a><a href="checklist.html" style="position:fixed;right:52px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Checklist</a>
-<div id="dash"></div><span style="position:fixed;left:6px;top:4px;z-index:99;color:#444;font:11px system-ui;pointer-events:none">Build 8 · 53edf65 · Oct 22 12:08 PM CT</span>
+#dash .tdash.full{height:calc(100vh - 48px*var(--tnk,1) - env(safe-area-inset-top))}
+@media(max-width:900px){#dash .tdash .dock .seatb{flex:1 0 22%}}</style></head><body><style id="tnav-css">
+#tnav{--k:var(--tnk,1);position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:calc(6px*var(--k));
+ height:calc(48px*var(--k));padding:0 calc(8px*var(--k));padding-top:env(safe-area-inset-top);box-sizing:content-box;
+ background:rgba(0,0,0,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid #1f1f22;
+ font:500 calc(15px*var(--k))/1 system-ui,-apple-system,"Inter","Segoe UI",Roboto,sans-serif;overflow-x:auto;white-space:nowrap}
+#tnav a{display:flex;align-items:center;min-height:calc(44px*var(--k));padding:0 calc(14px*var(--k));border-radius:calc(10px*var(--k));
+ color:#a1a1a8;text-decoration:none;-webkit-tap-highlight-color:transparent}
+#tnav a.on{color:#f5f5f7;background:#1c1c1e;box-shadow:inset 0 calc(-2px*var(--k)) 0 #3e6ae1}
+#tnav .lbl{margin-left:auto;padding-left:calc(10px*var(--k));color:#5f6368;font-size:calc(11px*var(--k));font-weight:400}
+body>header{top:calc(48px*var(--tnk,1) + env(safe-area-inset-top))!important}
+@media print{#tnav{display:none}}
+</style><div id="tnav" role="navigation" aria-label="Pages"><a href="index.html" target="teryx_sim">Sim</a><a href="dash.html?src=sim" class="on" aria-current="page">Dash</a><a href="wiring.html">Wiring</a><a href="checklist.html">Checklist</a><span class="lbl">Build 9 · 6d4d434 · Oct 22 12:36 PM CT</span></div><script>/* keep the bar thumb-sized when the browser shows the page zoomed out (dash fit-to-screen); measured at load/rotate only, not on pinch */
+(function(){function k(){const v=window.visualViewport,sc=v&&v.scale>0?v.scale:1;document.documentElement.style.setProperty('--tnk',String(Math.max(1,Math.min(4,1/sc))));}
+ k();addEventListener('load',()=>{k();setTimeout(k,600);});addEventListener('orientationchange',()=>setTimeout(k,100));})();</script>
+<div id="dash"></div>
 <script>// Vehicle model for tools/bms_sim.html (Cluster tab), drive cycles and scripts/check_bms_sim_wasm.js.
 // SIM ONLY. Every default below is ASSUMED or PROPOSED (tagged in VEH_SETS), not measured on the Teryx.
 // Point-mass longitudinal model: motor torque (Kelly phase-amp limit x ASSUMED Kt) and Kelly battery-amp
@@ -494,7 +508,7 @@ const TeryxLock={keyOn:false,phone:true,unlocked:false,verify:null,hasPin:null,s
 if(typeof document!=='undefined'){const guard=e=>{const t=e.target&&e.target.closest&&e.target.closest('[data-drive-lock]');if(!t||!TeryxLock.locked()||TeryxPad.isOpen())return;e.preventDefault();e.stopImmediatePropagation();if(e.type==='click')TeryxLock.prompt();if(e.type==='focusin'&&e.target.blur)e.target.blur();};
   ['pointerdown','mousedown','touchstart','click','focusin','keydown','input','change'].forEach(t=>document.addEventListener(t,guard,{capture:true,passive:false}));}
 if(typeof window!=='undefined'){window.TeryxPad=TeryxPad;window.TeryxLock=TeryxLock;}
-const DASH_BUILD='Build 8 · 53edf65 · Oct 22 12:08 PM CT';
+const DASH_BUILD='Build 9 · 6d4d434 · Oct 22 12:36 PM CT';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');

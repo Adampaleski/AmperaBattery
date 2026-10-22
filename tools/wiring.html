@@ -20,7 +20,20 @@ ol.steps{padding-left:22px}ol.steps li{margin:6px 0;cursor:pointer}ol.steps h4{m
 @media (max-width:700px){nav{order:3;flex-basis:100%}.view{height:auto;aspect-ratio:var(--ar);min-height:300px}}
 @media print{header nav,.zb,button,.pp{display:none}body{background:#fff;color:#000}.view{height:auto;border:none;background:#fff}.view svg{height:auto}
 .n rect{fill:#fff;stroke:#000}.n text,.wl{fill:#000;stroke:none}.n.r text.t0,.wl.r,.bad{fill:#c00;color:#c00}.w{stroke:#000}.w.r,.n.r rect{stroke:#c00}.jd{fill:#000}th,td{border-color:#999;color:#000}.grid{display:none}.box{background:#fff;color:#000}}
-</style></head><body><header><h1>Teryx EV · Wiring aid</h1><span class="buildlbl" style="color:#5f6368;font-size:11px;margin-left:10px;white-space:nowrap">Build 8 · 53edf65 · Oct 22 12:08 PM CT</span><nav id="nav"></nav><button id="crit">Critical only ✓</button><button id="partsb">Parts</button><button onclick="print()">Print</button><a href="dash.html" style="color:var(--mut);font-size:13px">Dash</a><a href="checklist.html" style="color:var(--mut);font-size:13px;margin-left:10px">Checklist</a></header>
+</style></head><body><style id="tnav-css">
+#tnav{--k:var(--tnk,1);position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:calc(6px*var(--k));
+ height:calc(48px*var(--k));padding:0 calc(8px*var(--k));padding-top:env(safe-area-inset-top);box-sizing:content-box;
+ background:rgba(0,0,0,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid #1f1f22;
+ font:500 calc(15px*var(--k))/1 system-ui,-apple-system,"Inter","Segoe UI",Roboto,sans-serif;overflow-x:auto;white-space:nowrap}
+#tnav a{display:flex;align-items:center;min-height:calc(44px*var(--k));padding:0 calc(14px*var(--k));border-radius:calc(10px*var(--k));
+ color:#a1a1a8;text-decoration:none;-webkit-tap-highlight-color:transparent}
+#tnav a.on{color:#f5f5f7;background:#1c1c1e;box-shadow:inset 0 calc(-2px*var(--k)) 0 #3e6ae1}
+#tnav .lbl{margin-left:auto;padding-left:calc(10px*var(--k));color:#5f6368;font-size:calc(11px*var(--k));font-weight:400}
+body>header{top:calc(48px*var(--tnk,1) + env(safe-area-inset-top))!important}
+@media print{#tnav{display:none}}
+</style><div id="tnav" role="navigation" aria-label="Pages"><a href="index.html" target="teryx_sim">Sim</a><a href="dash.html?src=sim" target="teryx_dash">Dash</a><a href="wiring.html" class="on" aria-current="page">Wiring</a><a href="checklist.html">Checklist</a><span class="lbl">Build 9 · 6d4d434 · Oct 22 12:36 PM CT</span></div><script>/* keep the bar thumb-sized when the browser shows the page zoomed out (dash fit-to-screen); measured at load/rotate only, not on pinch */
+(function(){function k(){const v=window.visualViewport,sc=v&&v.scale>0?v.scale:1;document.documentElement.style.setProperty('--tnk',String(Math.max(1,Math.min(4,1/sc))));}
+ k();addEventListener('load',()=>{k();setTimeout(k,600);});addEventListener('orientationchange',()=>setTimeout(k,100));})();</script><header><h1>Teryx EV · Wiring aid</h1><nav id="nav"></nav><button id="crit">Critical only ✓</button><button id="partsb">Parts</button><button onclick="print()">Print</button><a href="dash.html" style="color:var(--mut);font-size:13px">Dash</a><a href="checklist.html" style="color:var(--mut);font-size:13px;margin-left:10px">Checklist</a></header>
 <main id="m"></main><aside class="pp" id="pp"></aside><script>// Teryx EV wiring aid data. Status: S=SOURCED (docs/Config.h), P=PROPOSED, U=UNVERIFIED. Red = P or U.
 // Proposed wire colour code (PROPOSED, none of these colours are in the docs except the BICM harness):
 window.COLORS={"+12V":"RD","12V sw":"RD/WH","GND":"BK","+5V":"OR","3V3":"OR/WH","CAN-H":"YE","CAN-L":"GN","signal":"BU","enable/heartbeat":"VT","HV+":"OR cable (HV)","HV-":"OR cable + BK tape"};
