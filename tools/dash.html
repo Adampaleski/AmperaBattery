@@ -3,7 +3,7 @@
      Read-only display: it never sends commands. Data source configurable (see docs/DASH.md). -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000"><title>Teryx Dash</title>
-<style>html,body{margin:0;background:#000;height:100%;overflow:hidden}</style></head><body><a href="wiring.html" style="position:fixed;right:6px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Wiring</a>
+<style>html,body{margin:0;background:#000;height:100%;overflow:hidden}</style></head><body><a href="wiring.html" style="position:fixed;right:6px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Wiring</a><a href="checklist.html" style="position:fixed;right:52px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Checklist</a>
 <div id="dash"></div>
 <script>// Vehicle model for tools/bms_sim.html (Cluster tab), drive cycles and scripts/check_bms_sim_wasm.js.
 // SIM ONLY. Every default below is ASSUMED or PROPOSED (tagged in VEH_SETS), not measured on the Teryx.
@@ -429,7 +429,7 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
  ['SoC / range','BmsCore::Soc coulomb count on LEM A + B, full-charge anchor; range = SoC × ASSUMED kWh ÷ Wh/mi','sim only · capAh UNVERIFIED'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → head unit','schema exists']];
-const DASH_BUILD='built on f1c51a9+';
+const DASH_BUILD='built on af3217b+';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');

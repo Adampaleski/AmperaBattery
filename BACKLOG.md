@@ -73,3 +73,13 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 
 - [ ] REQUIRED BEFORE FIRST DRIVE: firmware dead-LEM detection. Read each LEM separately and flag one reading nothing or out of range (>450 A, PROPOSED) as a hard fault that engages the 10 mph cap. Today this check runs only in the sim. (chief, 2026-10-21)
 - [ ] Dead-LEM detail (Sparky): each output should sit near 2.5 V at 0 A; within about 0.2 V of 0 V or 5 V = dead or disconnected (hard fault). Key-on self-test: below about 15 A, the low-range and high-range channels must agree.
+
+## VCU safety items (Sparky VCU compare, 2026-10-21)
+- [ ] **REQUIRED BEFORE FIRST DRIVE:** two-track pedal. Today ONE pedal wiper is read by both Teensys (A pin 40, B pin 41, same signal through two dividers; docs/THROTTLE_CLAMP.md), so a pedal fault looks identical on both. Fit a dual-output Hall pedal (two independent tracks, e.g. one track ×½) with a plausibility check between tracks (PROPOSED: > 10 % for 100 ms → throttle 0 + fault). Part not chosen.
+- [ ] Brake overrides throttle: both pressed > 0.5 s → throttle 0 until the pedal returns to 0 (PROPOSED). Partly covered: sim brake switch cuts throttle (sim/vehicle.js); Kelly "Brake H-Pedal" option (docs/KELLY_CAN_ROLES.md) is a config check. Firmware Teensy rule not built.
+- [x] Precharge timeout — COVERED: dual-string precharge (Config.h kPcDualMinMs 300 / kPcDualTimeoutMs 3000 / 2 retries 30 s apart → lockout; ContactorSeq, BmsCore F_PRECHARGE): main never closes unless the bus ≥ 95 % of the lowest string. Bench-verify on the Kelly (docs/BENCH.md).
+- [ ] Direction change only at 0 RPM with the brake on (PROPOSED). Sim refuses R above 1 mph; no firmware rule yet (Kelly F/N/R readback on CAN 0x0CF11F05 b5, docs/KELLY_CAN_ROLES.md).
+- [ ] Kelly CAN timeout (> 200 ms, PROPOSED) → derate + fault (KELLY-CAN-LOST). Today stale Kelly CAN only makes Park false (include/ParkState.h); BMS_CAP_KELLY_RX=0.
+- [x] EV200 coil economizer — COVERED by hardware: EV200HAANA has a built-in economizer + suppression (shop log 2026-10-20 06:31; docs/ESTOP.md hold ≈0.26 A). No extra circuit.
+- [ ] Kelly/motor cooling control: pump on with key (COOL_PUMP pin 8), radiator fan relay at ~40 °C from Kelly CAN temp (RAD_FAN pin 7), PROPOSED pins reserved in Config.h, not built; Kelly derates itself at 90 °C case (SOURCED manual).
+- [ ] Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built.
