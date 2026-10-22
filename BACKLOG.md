@@ -23,8 +23,11 @@ Tag `[CRITICAL sN]` = CRITICAL, checklist section N (0 gates, 2 shop, 3 buy, 4 f
 - [ ] [CRITICAL s4] E-stop latch (crew 2026-10-22): when block 3 (NC to Teensy B) reports open, drop every coil driver and latch until a key-cycle reset; releasing never closes anything. Logic + test done (include/EstopLatch.h, scripts/test_estop_latch.cpp 7/7); wire into the coil gate when BMS_CAP_CONTACTOR_DRV is enabled, then bench: press, release, unplug block 3 wire. Adam meters Kelly KSI draw (expected < 0.2 A).
 - [ ] [CRITICAL s3] Insulated boots / covers on every HV terminal (Sparky): the string side of each A6T200 stays LIVE with the fuses pulled.
 
-- [ ] [CRITICAL s2] Wire S41 charge plug-in detect -> A:33 and S42/S43 KEY-ON -> A:34 / B:34 (opto, 10k pull-up, LOW = active; PROPOSED, Sparky 2026-10-22). Plug-detect source and Teryx key-run circuit UNVERIFIED. Bench: idle 3.3 V, active <0.4 V.
-- [ ] [CRITICAL s4] Firmware: read KEY-ON (A:34/B:34) and plug-in (A:33) into BmsCore wake/plugIn, replacing the serial `e` dead-man (chief #4). Pins only in PINMAP so far.
+- [ ] [CRITICAL s2] Wire S41 charge plug-in detect -> A:33 and S42/S43 KEY-ON -> A:34 / B:34, S44 plug mirror -> B:33 (opto, 10k pull-up, LOW = active; PROPOSED, Sparky 2026-10-22). Plug source = NACS proximity; key source = stock key switch output (colour UNVERIFIED). Bench: idle 3.3 V, active <0.4 V.
+- [ ] [CRITICAL s2] Backprobe the stock Teryx key switch switched output (S42/S43 source, fed from the TDC-JH 12 V bus): 0 V key off, 12 V key on; record the wire colour (UNVERIFIED) in PINMAP. Sparky: pick its own small fuse rating (TBD) before tapping it to the optos.
+- [ ] [CRITICAL s2] Wire S41 (A:33) + S44 mirror (B:33) plug-in detect from the NACS inlet proximity via the pilot/proximity board plug-present output into the opto (~150 Ω latched or ~480 Ω button pressed = plugged; open = not plugged). If the board has no plug-present output: PROPOSED divider on the proximity line to a free analog pin. Plugged = drive blocked on BOTH boards, like park.
+- [ ] [CRITICAL s2] Mechanic: mount the 50 Ω/100 W precharge resistor (H08) on the HV panel aluminum backplate with thermal paste, away from the loom.
+- [ ] [CRITICAL s4] Firmware: read KEY-ON (A:34/B:34) and plug-in (A:33/B:33) into BmsCore wake/plugIn (plugged = no drive on both boards, like park), replacing the serial `e` dead-man (chief #4). Pins only in PINMAP so far.
 
 ## CRITICAL: chief firmware review cd7027f (2026-10-22) — TODO, NOT implemented in this task
 Source: /workspace/teryx/review/firmware_review_chief.md (the review lists 10 CRITICAL items; the request said 9, all are carried here).

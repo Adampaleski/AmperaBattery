@@ -142,12 +142,14 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: ≈3.2 V
 - [ ] **S40 12V SENSE** (CRITICAL, PROPOSED) — 12V bus via divider (PROPOSED 47k/10k + 100 nF) → Teensy B:26 (A12) — free on B per this map · 12 V sense · 22 AWG BU · fuse PROPOSED 1 A  
   Meter: 13.8 V in -> ≈2.4 V at pin
-- [ ] **S41 PLUG A33** (CRITICAL, PROPOSED) — Charge-plug detect (signal source UNVERIFIED: inlet proximity switch or charger AC-present 12 V — Adam to pick) -> opto LED (PROPOSED PC817 + 1k5 from 12 V) → opto transistor -> Teensy A:33 (10k pull-up 3V3 + 100 nF), LOW = plugged · plug-in detect · 22 AWG BU/GN · fuse PROPOSED 1 A  
-  Meter: unplugged: 3.3 V at A:33; plugged: <0.4 V
-- [ ] **S42 KEY A34** (CRITICAL, PROPOSED) — Key switch run (switched 12 V, Teryx circuit UNVERIFIED) -> opto ch1 LED (PROPOSED PC827 + 1k5) → opto ch1 transistor -> Teensy A:34 (10k pull-up 3V3 + 100 nF), LOW = key on · KEY-ON A · 22 AWG BU/YE · fuse PROPOSED 1 A  
-  Meter: key off: 3.3 V at A:34; key on: <0.4 V
-- [ ] **S43 KEY B34** (CRITICAL, PROPOSED) — Same key run 12 V -> opto ch2 LED (PROPOSED PC827 + 1k5) → opto ch2 transistor -> Teensy B:34 (10k pull-up 3V3 + 100 nF), LOW = key on · KEY-ON B · 22 AWG BU/YE · fuse shares S42 fuse  
+- [ ] **S41 PLUG A33** (CRITICAL, PROPOSED) — NACS inlet PROXIMITY (SOURCED Adam 2026-10-22: ~150 Ω latch released = plugged, ~480 Ω button pressed = plugged, open = not plugged; NOT charger AC-present) -> pilot/proximity board plug-present output -> opto LED (PROPOSED PC827 ch1 + 1k5). FALLBACK if the board has no plug-present output: PROPOSED divider on the proximity line to a free analog pin (values TBD, Sparky) → opto transistor -> Teensy A:33 (10k pull-up 3V3 + 100 nF), LOW = plugged · plug-in detect A (drive blocked on A when plugged, like park) · 22 AWG BU/GN · fuse PROPOSED 1 A  
+  Meter: unplugged (prox open): 3.3 V at A:33; plugged latched (~150 Ω) and button pressed (~480 Ω): <0.4 V
+- [ ] **S42 KEY A34** (CRITICAL, PROPOSED) — Stock Teryx key switch SWITCHED output (SOURCED Adam 2026-10-22; wire colour UNVERIFIED — Adam backprobes: 0 V key off, 12 V key on), fed from the TDC-JH 12 V bus, through its OWN small fuse (rating TBD, Sparky) -> opto ch1 LED (PROPOSED PC827 + 1k5) → opto ch1 transistor -> Teensy A:34 (10k pull-up 3V3 + 100 nF), LOW = key on · KEY-ON A · 22 AWG BU/YE · fuse own small fuse, rating TBD (Sparky)  
+  Meter: BEFORE wiring: backprobe key switch output 0 V key off / 12 V key on (record colour). Then key off: 3.3 V at A:34; key on: <0.4 V
+- [ ] **S43 KEY B34** (CRITICAL, PROPOSED) — Same stock key switch switched output (after the S42 fuse) -> opto ch2 LED (PROPOSED PC827 + 1k5) → opto ch2 transistor -> Teensy B:34 (10k pull-up 3V3 + 100 nF), LOW = key on · KEY-ON B · 22 AWG BU/YE · fuse shares S42 fuse  
   Meter: as S42 at B:34
+- [ ] **S44 PLUG B33** (CRITICAL, PROPOSED) — Same plug-present output as S41 -> opto ch2 LED (PROPOSED PC827 ch2 + 1k5) → opto ch2 transistor -> Teensy B:33 (10k pull-up 3V3 + 100 nF), LOW = plugged · plug-in detect B mirror (drive blocked on B when plugged, like park) · 22 AWG BU/GN · fuse shares S41 fuse  
+  Meter: as S41 at B:33
 
 ## Step 7: HIGH VOLTAGE — LATER, Sparky present, string fuses OUT
 
@@ -160,7 +162,7 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
 - [ ] **H07 EV200-KELLY+** (LATER, SOURCED) — EV200 B+ load → Kelly B+ · HV+ · 3/0 owned TEMCo (pack-to-Kelly main) AWG OR HV, RED tape · fuse none  
   Meter: torque
 - [ ] **H08 PRECHARGE** (LATER, UNVERIFIED) — precharge relay + 50 Ω 100 W → across EV200 B+ · HV precharge · 14 HV AWG OR HV · fuse none  
-  Meter: resistor ≈50 Ω
+  Meter: resistor ≈50 Ω. MOUNT (Mechanic 2026-10-22): 50 Ω/100 W resistor on the HV panel aluminum backplate with thermal paste, away from the loom
 - [ ] **H09 MOTOR** (LATER, SOURCED) — Kelly U/V/W + Sin/Cos → Zero 75-7R · motor · match bus AWG OR HV · fuse none  
   Meter: phase order per Kelly autotune
 - [ ] **H10 KELLY-EV200-** (LATER, SOURCED) — Kelly B- → EV200 B- -> LEM A/B -> string B- · HV- · 3/0 owned TEMCo (pack-to-Kelly main) AWG OR HV, BLACK tape · fuse none  

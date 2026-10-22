@@ -10,7 +10,7 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 ## Pin conflicts and undefined pins (fix or accept before wiring)
 
 1. PROPOSED (Sparky 2026-10-22): KEY-ON on pin 34 (IN1 spare) on A and B — no free GPIO on A; IN2-IN4 deferred. LIGHT_OE (retired) also names 34; nothing drives it. Firmware does not read key-on or plug-in yet (later commit, chief #4).
-2. PROPOSED: plug-in detect has no B mirror; B:33 not assigned in this map (free per map, UNVERIFIED).
+2. RESOLVED (Adam 2026-10-22): plug-in detect B mirror = S44 on B:33 (free per this map and Config.h B spare list).
 3. RESOLVED: IN1/IN2 were Serial4 17/16 — IN1 moved to pin 34 (free on A and B), IN2 retired (-1). A pin 16 (RX4) stays unconnected on purpose: the gateway is receive-only (TX17 -> ESP32 GPIO16).
 4. RESOLVED: IN3/IN4 were I2C 18/19 — retired (-1); 18/19 are only I2C_SDA/I2C_SCL now. No other free GPIO exists on A (33 reserved charge detect).
 5. INTENDED (not a conflict): A uses pins 4/40 (A_THR_ALIVE, PEDAL_IN_A), B uses 7/41 (B_THR_ALIVE, PEDAL_IN_B). Pin 7 = RAD_FAN on A, 41 = POS_4WD on A, 4 = B_FAULT_OUT on B, 40 = ST_4WD_B on B — different boards; label harness wires TA/TB.
@@ -69,7 +69,7 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | 30 |  | CAN3 RX vehicle bus -> SN65 #5 | C05 |  | SOURCED | FlexCanCompat.h:45 |
 | 31 |  | CAN3 TX vehicle bus | C05 |  | SOURCED | FlexCanCompat.h:45 |
 | 32 | PARK_IN_A | park brake contact 1 (direct GPIO, 10k pull-up, LOW = set) | S16 |  | SOURCED | Config.h:260 (BODY_IO_EXPANDER=1) |
-| 33 |  | CHARGE PLUG-IN detect (opto, 10k pull-up, LOW = plugged; Sparky 2026-10-22). Feeds BmsCore plugIn (chief #4); firmware read = later commit | S41 | CRITICAL | PROPOSED | Config.h:254 |
+| 33 |  | CHARGE PLUG-IN detect from NACS inlet PROXIMITY (via pilot/proximity board plug-present output -> opto, 10k pull-up, LOW = plugged). Plugged = drive blocked on both boards (like park). Feeds BmsCore plugIn (chief #4); firmware read = later commit | S41 | CRITICAL | PROPOSED | Config.h:254 |
 | 34 | LIGHT_OE | spare (retired 595 /OE; nothing drives it) |  |  | SOURCED | Config.h:244 |
 | 34 | IN1 | KEY-ON input (12 V key via opto, 10k pull-up, LOW = key on; Sparky 2026-10-22) — reuses IN1 spare (no other free GPIO on A). Firmware read = later commit (chief #4 KSI) | S42 | CRITICAL | PROPOSED | Config.h:170 |
 | -1 | IN2 | IN2 retired (was 16 = Serial4 RX): no free GPIO on A; DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:171 |
@@ -116,6 +116,7 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | 41 | PEDAL_IN_B | throttle pedal wiper (own 10k/18k + 100 nF) | S15 |  | SOURCED | Config.h:224 |
 | 9 |  | E-STOP block 3 latch input, 10k pull-up, LOW = released/closed (pin free on B; no firmware const yet — EstopLatch.h not wired, chief #5) | E09 |  | PROPOSED | crew 2026-10-22; docs/ESTOP.md |
 | 26 |  | 12 V LOW ALARM sense (A12) via 47k/10k + 100 nF (pin free on B; no firmware const yet; A has no free analog pin) | S40 |  | PROPOSED | crew 2026-10-22 |
+| 33 |  | CHARGE PLUG-IN mirror (own opto channel from the same plug-present output, 10k pull-up, LOW = plugged). Plugged = drive blocked on B too (like park). B:33 free per this map (Config.h spare list 33-39). Firmware read = later commit | S44 | CRITICAL | PROPOSED | Adam 2026-10-22 |
 | 34 | IN1 | KEY-ON mirror (own opto channel, 10k pull-up, LOW = key on) — reuses IN1 spare, pin 34 free on B. Firmware read = later commit | S43 | CRITICAL | PROPOSED | Config.h:170 |
 
 ## ESP32 gateway pins
@@ -256,9 +257,10 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | S26 | 6 | wire | LEM B DHAB pin 3 | divider -> Teensy B:15 | LEM B high | 0-3.2 V | BU/WH | 22 | none | S26 LEMB CH2 | CRITICAL | SOURCED | Config.h:188 |
 | S27 | 6 | wire | LEM B 5 V sense | Teensy B:25 | LEM supply ref | 3.2 V | OR | 22 | F-BUCK | S27 LEMB VC | CRITICAL | SOURCED | Config.h:189 |
 | S40 | 6 | wire | 12V bus via divider (PROPOSED 47k/10k + 100 nF) | Teensy B:26 (A12) — free on B per this map | 12 V sense | ≤3.3 V | BU | 22 | PROPOSED 1 A | S40 12V SENSE | CRITICAL | PROPOSED | crew 2026-10-22; wiring_data power12 |
-| S41 | 6 | wire | Charge-plug detect (signal source UNVERIFIED: inlet proximity switch or charger AC-present 12 V — Adam to pick) -> opto LED (PROPOSED PC817 + 1k5 from 12 V) | opto transistor -> Teensy A:33 (10k pull-up 3V3 + 100 nF), LOW = plugged | plug-in detect | 12 V in / 3.3 V pin | BU/GN | 22 | PROPOSED 1 A | S41 PLUG A33 | CRITICAL | PROPOSED | Sparky 2026-10-22; chief review #4 (in.plugIn never set) |
-| S42 | 6 | wire | Key switch run (switched 12 V, Teryx circuit UNVERIFIED) -> opto ch1 LED (PROPOSED PC827 + 1k5) | opto ch1 transistor -> Teensy A:34 (10k pull-up 3V3 + 100 nF), LOW = key on | KEY-ON A | 12 V in / 3.3 V pin | BU/YE | 22 | PROPOSED 1 A | S42 KEY A34 | CRITICAL | PROPOSED | Sparky 2026-10-22; chief review #4 (key-on is serial e only) |
-| S43 | 6 | wire | Same key run 12 V -> opto ch2 LED (PROPOSED PC827 + 1k5) | opto ch2 transistor -> Teensy B:34 (10k pull-up 3V3 + 100 nF), LOW = key on | KEY-ON B | 12 V in / 3.3 V pin | BU/YE | 22 | shares S42 fuse | S43 KEY B34 | CRITICAL | PROPOSED | Sparky 2026-10-22 |
+| S41 | 6 | wire | NACS inlet PROXIMITY (SOURCED Adam 2026-10-22: ~150 Ω latch released = plugged, ~480 Ω button pressed = plugged, open = not plugged; NOT charger AC-present) -> pilot/proximity board plug-present output -> opto LED (PROPOSED PC827 ch1 + 1k5). FALLBACK if the board has no plug-present output: PROPOSED divider on the proximity line to a free analog pin (values TBD, Sparky) | opto transistor -> Teensy A:33 (10k pull-up 3V3 + 100 nF), LOW = plugged | plug-in detect A (drive blocked on A when plugged, like park) | 12 V in / 3.3 V pin | BU/GN | 22 | PROPOSED 1 A | S41 PLUG A33 | CRITICAL | PROPOSED | Adam 2026-10-22 (NACS proximity); Sparky 2026-10-22 (opto); chief review #4 (in.plugIn never set) |
+| S42 | 6 | wire | Stock Teryx key switch SWITCHED output (SOURCED Adam 2026-10-22; wire colour UNVERIFIED — Adam backprobes: 0 V key off, 12 V key on), fed from the TDC-JH 12 V bus, through its OWN small fuse (rating TBD, Sparky) -> opto ch1 LED (PROPOSED PC827 + 1k5) | opto ch1 transistor -> Teensy A:34 (10k pull-up 3V3 + 100 nF), LOW = key on | KEY-ON A | 12 V in / 3.3 V pin | BU/YE | 22 | own small fuse, rating TBD (Sparky) | S42 KEY A34 | CRITICAL | PROPOSED | Adam 2026-10-22 (stock key switch source); Sparky 2026-10-22; chief review #4 (key-on is serial e only) |
+| S43 | 6 | wire | Same stock key switch switched output (after the S42 fuse) -> opto ch2 LED (PROPOSED PC827 + 1k5) | opto ch2 transistor -> Teensy B:34 (10k pull-up 3V3 + 100 nF), LOW = key on | KEY-ON B | 12 V in / 3.3 V pin | BU/YE | 22 | shares S42 fuse | S43 KEY B34 | CRITICAL | PROPOSED | Sparky 2026-10-22 |
+| S44 | 6 | wire | Same plug-present output as S41 -> opto ch2 LED (PROPOSED PC827 ch2 + 1k5) | opto ch2 transistor -> Teensy B:33 (10k pull-up 3V3 + 100 nF), LOW = plugged | plug-in detect B mirror (drive blocked on B when plugged, like park) | 12 V in / 3.3 V pin | BU/GN | 22 | shares S41 fuse | S44 PLUG B33 | CRITICAL | PROPOSED | Adam 2026-10-22 |
 | X02 | 6 | none | Teensy A/B park inputs | software Parked logic | software (no wire) | — | — | — | none | X02 SW PARK | CRITICAL | SOURCED | docs/PARK_BRAKE.md |
 | H01 | 7 | wire | String 1..4 B+ | A6T200 fuse 1..4 (bus bar, insulated standoffs) | HV+ | ≤147.6 V | OR HV, RED tape | 1/0 (each A6T200 string lead, ~138 A at a 550 A launch) | F-S1..S4 | H01-H04 STRING n B+ | LATER | PROPOSED | docs/WIRING.md:66-69; crew 2026-10-22 |
 | H05 | 7 | wire | 4 fuses | common B+ bus | HV+ | HV | OR HV, RED tape | 1/0 (string side of each fuse) | F-S1..S4 | H05 FUSE-BUS | LATER | PROPOSED | wiring_data overview net |
