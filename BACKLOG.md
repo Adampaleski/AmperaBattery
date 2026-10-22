@@ -25,7 +25,7 @@ Tag `[CRITICAL sN]` = CRITICAL, checklist section N (0 gates, 2 shop, 3 buy, 4 f
 
 ## CRITICAL: chief firmware review cd7027f (2026-10-22) — TODO, NOT implemented in this task
 Source: /workspace/teryx/review/firmware_review_chief.md (the review lists 10 CRITICAL items; the request said 9, all are carried here).
-- [ ] [CRITICAL s0] Chief review #1: ContactorSeq.cpp:367 single-string env with HV_ANALOG_ENABLE=0 closes Main+ on a blind 5 s precharge timer: must fault; fence/delete `teensy41_bms` env. (env DELETED 2026-10-22; ContactorSeq.cpp:367 timer-close path still to make a fault.)
+- [x] [CRITICAL s0] Chief review #1: ContactorSeq.cpp:367 single-string env with HV_ANALOG_ENABLE=0 closes Main+ on a blind 5 s precharge timer: must fault; fence/delete `teensy41_bms` env. (env DELETED 2026-10-22; ContactorSeq.cpp:367 timer-close path still to make a fault.) DONE 2026-10-22: timer path removed; include/PrechargeGate.h (bus >= 95% of valid pack after 200 ms, else fail at 5 s -> RetryWait 30 s, 2 retries, Lockout); scripts/test_precharge_gate.cpp.
 - [x] [CRITICAL s0] Chief review #2: ContactorSeq.cpp:226 + Settings.cpp:170/165: serial `U` / `I` sim inputs feed the real precharge gate / force currentValid; compile out when TELEMETRY_ONLY=0. (DONE 2026-10-22: BENCH_SIM_INPUTS=0 default, bench_30s/2x30s only, #error with TELEMETRY_ONLY=0; scripts/test_review_fixes.py.)
 - [ ] [CRITICAL s0] Chief review #3: ContactorSeq.cpp:288-312: lemA/lemB/valid never set; BmsCore.h:186-189 defaults valid=true, so dead-LEM, >60 A disagree and 400 A per-sensor trip can never fire. Default valid=false.
 - [ ] [CRITICAL s0] Chief review #4: ContactorSeq.cpp:302: key-on is serial `e` only; no KSI, e-stop NC2, park or plug-in input fed to BmsCore.

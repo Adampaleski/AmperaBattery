@@ -7,6 +7,7 @@
 #include "StringConfig.h"
 #include "ChargeTx.h"
 #include "CurrentSense.h"
+#include "PrechargeGate.h"
 #if DUAL_STRING
 #include "BmsCore.h"
 #include "Link.h"
@@ -177,21 +178,21 @@ void checkPackFaults() {
     }
 }
 
-bool analogGateOk(uint32_t elapsed) {
+// Chief review CRITICAL #1 (2026-10-22): Main+ closes ONLY on a measured bus within the agreed delta
+// of the pack (include/PrechargeGate.h). No HV sense / no pack reading / timeout -> precharge FAIL.
+const PrechargeGate::Cfg kPcCfg{kPrechargeMinMs, kPrechargeTimeMs, kPcDualRetryWaitMs, kPcDualMaxRetries,
+                                kPrechargeRatio, 50.0f};
+
+PrechargeGate::Step prechargeStep(uint32_t elapsed) {
 #if HV_ANALOG_ENABLE
-    if (elapsed < kPrechargeMinMs) {
-        return false;
-    }
-    const float hv   = readHvBusV();
-    const float pack = BicmDecode::packVoltage();
-    if (pack > 50.0f) {
-        return hv >= pack * kPrechargeRatio;
-    }
-    return hv >= kPrechargeMinBusV;
+    const bool  busValid = true;
+    const float bus      = readHvBusV();
 #else
-    (void)elapsed;
-    return false;
+    const bool  busValid = false;   // no bus measurement: precharge can never pass (fails safe)
+    const float bus      = 0.0f;
 #endif
+    const float pack = BicmDecode::packVoltage();
+    return PrechargeGate::precharge(elapsed, busValid, bus, BicmDecode::packStable(), pack, kPcCfg);
 }
 
 }  // namespace
@@ -347,6 +348,7 @@ void tick() {
     switch (g_state) {
         case State::Open:
             if (g_deadman) {
+                g_retries = 0;
                 enter(State::Precharge, "deadman");
             }
             break;
@@ -356,17 +358,20 @@ void tick() {
                 openAll("deadman");
                 break;
             }
-            if (analogGateOk(elapsed)) {
-                enter(State::MainClose, "hv gate");
-                break;
+            {
+                const PrechargeGate::Step st = prechargeStep(elapsed);
+                if (st == PrechargeGate::Step::CloseMain) {
+                    enter(State::MainClose, "bus within delta of pack");
+                    break;
+                }
+                if (st == PrechargeGate::Step::Fail) {
+                    g_faultWhy = "precharge fail";   // mains never closed; no timer path to Main+
+                    if (PrechargeGate::retryAllowed(g_retries, kPcCfg)) enter(State::RetryWait, "precharge fail: retry");
+                    else { enter(State::Lockout, "precharge failed 3x: lockout"); g_faultWhy = "precharge lockout"; }
+                    break;
+                }
             }
-            if (elapsed >= kPrechargeTimeMs) {
-#if HV_ANALOG_ENABLE
-                enter(State::Fault, "precharge timeout");
-#else
-                enter(State::MainClose, "precharge timer");
-#endif
-            } else if (now - g_lastPrintMs >= 1000) {
+            if (now - g_lastPrintMs >= 1000) {
                 g_lastPrintMs = now;
                 SERIALCONSOLE.print(F("CONTACTOR Precharge t="));
                 SERIALCONSOLE.print(elapsed);
@@ -393,8 +398,11 @@ void tick() {
             }
             break;
 
-        case State::Fault:
         case State::RetryWait:
+            applyPins(outputsFor(State::Fault));
+            if (elapsed >= kPcDualRetryWaitMs) enter(State::Precharge, "precharge retry");
+            break;
+        case State::Fault:
         case State::Lockout:
             applyPins(outputsFor(State::Fault));
             break;

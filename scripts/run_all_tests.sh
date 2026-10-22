@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 CXX="/workspace/tmp/zigvenv/bin/python -m ziglang c++"
 fail=0
 run(){ echo "== $1"; if eval "$2" >/tmp/rt_$1.log 2>&1; then tail -2 /tmp/rt_$1.log; else echo "FAILED $1"; tail -15 /tmp/rt_$1.log; fail=1; fi; }
-for t in bench_bleed drive_profile estop_latch factory_balance fault_log kelly_link lem_health limp park thresholds throttle_cross; do
+for t in bench_bleed drive_profile estop_latch precharge_gate factory_balance fault_log kelly_link lem_health limp park thresholds throttle_cross; do
   run $t "$CXX -std=c++17 -O1 -Iinclude scripts/test_$t.cpp -o /tmp/rt_$t && /tmp/rt_$t"
 done
 run soc_run "$CXX -std=c++17 -DDUAL_STRING=1 -DTEENSY_ROLE=0 -Iscripts/hoststub -Iinclude -Isrc scripts/test_soc_run.cpp -o /tmp/rt_soc && /tmp/rt_soc"

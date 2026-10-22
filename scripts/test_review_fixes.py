@@ -76,5 +76,11 @@ for role in ("1", "0"):
                               "-I" + stub, "-Iscripts/hoststub", "-Iinclude", "-Isrc", str(src), "-o", exe], cwd=R, capture_output=True, text=True)
     out = r.stdout + r.stderr if r.returncode else subprocess.run([exe], capture_output=True, text=True).stdout
     ok("bad=0 miss=0" in out, f"#3 (+OUT9/OUT10) role {'A' if role=='0' else 'B'}: every coil/PWM pin LOW-then-OUTPUT, never HIGH; THR_CS deselected ({out.strip()[:200]})")
+
+# ---- CRITICAL #1 (code): no timer path to Main+ in the single-string sequencer ----
+cs = (R / "src/ContactorSeq.cpp").read_text()
+ok("precharge timer" not in cs and "analogGateOk" not in cs, "#1 ContactorSeq: blind 5 s 'precharge timer' -> MainClose path removed")
+ok(cs.count("enter(State::MainClose") == 1 and "PrechargeGate::Step::CloseMain" in cs, "#1 ContactorSeq: MainClose only from PrechargeGate CloseMain (bus within delta of pack)")
+ok("enter(State::RetryWait" in cs and "enter(State::Lockout" in cs, "#1 ContactorSeq: precharge fail -> RetryWait / Lockout")
 print(f"review fixes: {fails} failed")
 sys.exit(1 if fails else 0)
