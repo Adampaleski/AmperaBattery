@@ -42,7 +42,7 @@
 - [ ] (Optional) IVT-S 1000 A integration — dual LEM A + B is the primary sensing; ISA IVT-S is optional only: decide own CAN bus vs reconfigure to 250k; parser + DHAB cross-check (sim scenario 14 models it).
 - [ ] Split-LEM firmware: read LEM A on Teensy A and LEM B on Teensy B, sign flip (discharge on −420 A side), share B's reading over the A–B link, port sim lemPair() pair-imbalance and sensor-fault checks into BmsCore. Thresholds (30%, 40 A, 100 A) are placeholders.
 - [ ] HV path (2026-10-20, see docs/TERYX_MAIN_POWER_PATH.md): two main contactors, used TE EV200 on pack + and pack −. Volt AEV14012s only on charger/DC-DC/precharge branches.
-- [ ] String fuses: 4× Mersen A6T200 200 A Class T, planned; size to be confirmed vs 650 A trip (Sparky).
+- [x] String fuses: 4× Mersen A6T200 200 A Class T — FINAL, bought 2026-10-20 (shop log 10/20; docs/TERYX_MAIN_POWER_PATH.md). Supersedes the 10/17 A6T150 proposal.
 - [ ] Strings: 36S each, built from 24S + 18S BICM boards (no 30S).
 
 ## Safety gaps (crew 2026-10-21) — TODO, NOT BUILT
@@ -79,7 +79,9 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 - [ ] **REQUIRED BEFORE FIRST DRIVE:** brake overrides throttle: brake and throttle both pressed > 0.5 s → throttle cut to 0 until the pedal returns to 0 (PROPOSED). Partly covered: sim brake switch cuts throttle (sim/vehicle.js); Kelly "Brake H-Pedal" option (docs/KELLY_CAN_ROLES.md) is a config check. Firmware Teensy rule not built.
 - [x] Precharge timeout — COVERED: dual-string precharge (Config.h kPcDualMinMs 300 / kPcDualTimeoutMs 3000 / 2 retries 30 s apart → lockout; ContactorSeq, BmsCore F_PRECHARGE): main never closes unless the bus ≥ 95 % of the lowest string. Bench-verify on the Kelly (docs/BENCH.md).
 - [ ] Direction change only at 0 RPM with the brake on (PROPOSED). Sim refuses R above 1 mph; no firmware rule yet (Kelly F/N/R readback on CAN 0x0CF11F05 b5, docs/KELLY_CAN_ROLES.md).
-- [ ] Kelly CAN timeout (> 200 ms, PROPOSED) → derate + fault (KELLY-CAN-LOST). Today stale Kelly CAN only makes Park false (include/ParkState.h); BMS_CAP_KELLY_RX=0.
+- [ ] **REQUIRED BEFORE FIRST DRIVE:** Kelly CAN timeout (> 200 ms, PROPOSED) → derate + fault (KELLY-CAN-LOST). Today stale Kelly CAN only makes Park false (include/ParkState.h); BMS_CAP_KELLY_RX=0.
 - [x] EV200 coil economizer — COVERED by hardware: EV200HAANA has a built-in economizer + suppression (shop log 2026-10-20 06:31; docs/ESTOP.md hold ≈0.26 A). No extra circuit.
-- [ ] Kelly/motor cooling control: pump on with key (COOL_PUMP pin 8), radiator fan relay at ~40 °C from Kelly CAN temp (RAD_FAN pin 7), PROPOSED pins reserved in Config.h, not built; Kelly derates itself at 90 °C case (SOURCED manual).
+- [ ] **REQUIRED BEFORE FIRST DRIVE:** Kelly/motor cooling control from Kelly controller + motor temps (Kelly CAN): pump on with key (COOL_PUMP pin 8), radiator fan relay at ~40 °C (RAD_FAN pin 7), PROPOSED pins reserved in Config.h, not built; Kelly derates itself at 90 °C case (SOURCED manual).
+
+## Later
 - [ ] Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built.

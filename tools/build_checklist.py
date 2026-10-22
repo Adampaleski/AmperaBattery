@@ -11,6 +11,7 @@ def backlog():
     out, sec = [], ""
     for n, line in enumerate((R / "BACKLOG.md").read_text().splitlines(), 1):
         if line.startswith("## "): sec = line[3:].strip(); continue
+        if sec.startswith("Later"): continue
         m = re.match(r"^\s*- \[ \] (.*)$", line)
         if not m: continue
         t = m.group(1).strip()

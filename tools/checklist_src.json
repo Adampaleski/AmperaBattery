@@ -22,7 +22,7 @@
   {"s":3,"o":"Mechanic","src":"shop log 2026-10-21 17:20","t":"2× SN65HVD230 transceivers (need 6, own 4)"},
   {"s":3,"o":"Mechanic","src":"docs/THROTTLE_CLAMP.md BOM","t":"Throttle clamp parts: CD74HCT123E, CD74HC4066E, SN74AHCT125N, MCP4131-103E/P + 100k/10k/1 µF/100 nF"},
   {"s":3,"o":"Mechanic","src":"shop log 2026-10-21 17:45","t":"E-stop: Schneider XB4 metal (or IDEC) mushroom, 2 NC blocks, guard ring, IP65 box + bracket, Deutsch connector"},
-  {"s":3,"o":"Mechanic","src":"shop log 2026-10-21 19:58 · BACKLOG VCU","t":"Dual-track Hall throttle pedal (2 independent outputs)"},
+  {"s":3,"o":"Mechanic","src":"shop log 2026-10-21 20:03 · BACKLOG VCU","t":"REQUIRED BEFORE FIRST DRIVE — dual-output Hall throttle pedal (2 independent tracks, A reads track 1, B reads track 2). Part TBD"},
   {"s":3,"o":"Mechanic","src":"docs/COMPONENTS.md","t":"3-pole parking-brake switch (2 NO + 1 NC) + 12 V SPDT relay for the Kelly ECO Low cap + FET + 1N4007"},
   {"s":3,"o":"Mechanic","src":"shop log 2026-10-21 09:25/09:28","t":"2× Glideforce LACT4P-12V-10 actuators (-20 if cable > 30 lb) + 2× BTS7960 H-bridge modules"},
   {"s":3,"o":"Mechanic","src":"shop log 2026-10-20 15:44/15:45","t":"Cooling: Bosch 0392022010 12 V pump (~$162), hose reducers, hose + clamps, 50/50 coolant, fan relay + fuse"},

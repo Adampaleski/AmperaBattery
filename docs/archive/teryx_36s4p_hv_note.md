@@ -22,8 +22,8 @@ String capacity is 45 Ah (36S3P of 15 Ah Gen1 cells, **[UNVERIFIED]** cell size,
 - **Littelfuse JLLN200 is rated only 125 V DC** (JLLN 70–1200 A: 125 V DC, 20 kA). That's below your 148 V. **Don't use it.** ([JLLN200](https://www.littelfuse.com/products/fuses-overcurrent-protection/fuses/ul-class-fuses/class-t-fuses/jlln/jlln200))
 - Mersen A3T is rated 160 V DC / 50 kA. That's legal, but with little margin. ([A3T200](https://www.mersen.com/en/products/a3t-class-t-fast-acting/a3t200))
 - **Pick:** a **300 V DC Class T in 150 A**:
-  - **Mersen A6T150**: A6T series is 300 V DC, **100 kA DC**. ([A3T/A6T datasheet](https://www.mersen.com/sites/default/files/medias/PIM/files/DS-A3T-A6T-Class-T-Fast-Acting-Mersen.pdf))
-  - **Littelfuse JLLS150**: JLLS series is 300 V DC, 20 kA DC (DC rating self-certified by Littelfuse). ([JLLS catalog page](https://pim.galco.com/Manufacturer/Littelfuse/TechDocument/Catalog%20Page/littelfuse_powrgard2020_p24-25_cp.pdf))
+  - **Mersen A6T150** (SUPERSEDED: final = 4× A6T200, bought 2026-10-20): A6T series is 300 V DC, **100 kA DC**. ([A3T/A6T datasheet](https://www.mersen.com/sites/default/files/medias/PIM/files/DS-A3T-A6T-Class-T-Fast-Acting-Mersen.pdf))
+  - **Littelfuse JLLS150** (SUPERSEDED): JLLS series is 300 V DC, 20 kA DC (DC rating self-certified by Littelfuse). ([JLLS catalog page](https://pim.galco.com/Manufacturer/Littelfuse/TechDocument/Catalog%20Page/littelfuse_powrgard2020_p24-25_cp.pdf))
   - Part numbers follow each series' naming pattern. Confirm the 150 A size is stocked before ordering **[UNVERIFIED]**.
 - **Why 150 A:** it carries 133 A for 1 minute with one string dropped, and 40–67 A continuous without heating. It still blows well before a string cable cooks. Size each string's cable for the fuse, at least **2 AWG** (the mains stay 3/0). With 200 A fuses each string would need 2/0 cable, and a string fault would be cleared much more slowly.
 - The pack has a **Volt MSD (~350 A)** as a service disconnect and main backstop. Its exact rating is **[UNVERIFIED]**; use it as the disconnect, not as the main protection.
