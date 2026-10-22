@@ -10,7 +10,7 @@
 // Hydraulic friction is NOT blended: it always follows the pedal; regen adds on top. Regen is still capped by the
 // BMS (regenOk: cells full / pack cold) and a PROPOSED taper regenAllowPct (SOC + cold, from the sim page).
 const VEH_DEF={tireIn:24,sprFront:16,sprRear:32,diffRatio:4.375,massKg:900,crr:0.030,cdA:1.20,gradePct:0,
-  maxRegenA:60,regenBlendPct:30,brkDeadLo:20,brkDeadHi:80,brkAdPct:30,brkSwPct:3,brkMinRpm:100,analogBrake:false,brkSwRegenPct:10,liftRegen:false,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,battA:550,
+  maxRegenA:60,regenBlendPct:30,brkDeadLo:20,brkDeadHi:80,brkAdPct:30,brkSwPct:3,brkMinRpm:100,analogBrake:false,brkSwRegenPct:10,liftRegen:false,ntlBrkPct:0,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,battA:550,
   frictionG:0.6,dtDragN:60,parkG:0.25,lowCapRpm:1225,fadeLoMph:1.5,fadeHiMph:4.5};
 // [key, label, unit, tag, min, max, step]
 const VEH_SETS=[['tireIn','Tire diameter','in','SOURCED: Adam (stock tires, 24")',18,40,0.5],['sprFront','Drive sprocket','teeth','SOURCED: cash ledger (#50 chain, 16T)',8,40,1],
@@ -18,7 +18,7 @@ const VEH_SETS=[['tireIn','Tire diameter','in','SOURCED: Adam (stock tires, 24")
   ['massKg','Mass (with driver + pack)','kg','ASSUMED',400,1600,10],['crr','Rolling resistance Crr','','ASSUMED (dirt / ATV tires)',0.005,0.15,0.001],
   ['cdA','Drag area CdA','m²','ASSUMED',0.3,3,0.05],['gradePct','Grade (+ = nose uphill)','%','SIM input',-30,30,0.5],['dtDragN','Drivetrain drag','N','ASSUMED (chain + diffs + motor iron loss)',0,500,5],
   ['maxRegenA','Max regen current','A','PROPOSED 60 A',0,200,5],['analogBrake','Analog brake pedal on Kelly Brake_AN (DEFERRED)','on/off','DEFERRED for first drive (crew): needs Kelly config readback + Boost OFF confirmed. Default off = brake-switch regen at a fixed level',0,1,1],['brkSwRegenPct','Kelly BRK_SW Brk (switch regen strength)','% (0-50)','SOURCED range 0-50 %, default 10 %; amps mapping UNVERIFIED (× maxRegenA / 50)',0,50,1],['brkDeadLo','Kelly Brake Dead Low','% pedal','SOURCED default 20 % (=1 V)',5,40,1],['brkDeadHi','Kelly Brake Dead High','% pedal','SOURCED default 80 % (=4 V)',60,95,1],['brkAdPct','Kelly BRK_AD Brk (pedal regen strength)','% (0-50)','SOURCED range 0-50 %, default 0; 30 PROPOSED; mapping to amps UNVERIFIED (maxRegenA scales it)',0,50,1],['brkSwPct','Brake switch closes above','% pedal','PROPOSED (switch position on pedal UNVERIFIED)',0,20,1],['brkMinRpm','Kelly Brk_Speed Limit','RPM','SOURCED range 0-500, default 0; 100 PROPOSED',0,500,10],
-  ['liftRegen','Throttle lift-off regen','on/off','PROPOSED off by default',0,1,1],['liftRegenA','Lift-off regen current','A','PROPOSED',0,100,5],
+  ['ntlBrkPct','Regen in Neutral (Kelly NTL Brk)','%','SOURCED: Kelly manual item 45 NTL Brk, 0–50 %, default 0 = no regen in neutral',0,50,1],['liftRegen','Throttle lift-off regen','on/off','PROPOSED off by default',0,1,1],['liftRegenA','Lift-off regen current','A','PROPOSED',0,100,5],
   ['lowCapRpm','Kelly Low speed cap (ECO pin 22)','RPM','PROPOSED 1225 RPM ≈ 10 mph (LowSpeed Forw ≈ 20 % of 6000); fail-safe relay, ECO pin + relay UNVERIFIED',300,6000,25],['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
   ['phaseA','Kelly phase current limit','A','SOURCED: Adam 550 A (Kelly config not yet read back)',50,800,10],['battA','Kelly battery current limit','A','SOURCED: Adam 550 A',50,800,10]];
 // Drive modes = pedal-map profiles (Adam approved 2026-10-21). Mirror of include/DriveProfile.h kDefaults
@@ -65,7 +65,10 @@ function vehStep(p,st,inp,dt){
   const V=Math.max(1,inp.packV||0),m=p.massKg,v=Math.abs(st.mph)*MPS_PER_MPH;
   const live=!!inp.closed&&!inp.driveLocked,rpm=vehRpm(p,st.mph),w=rpm*2*Math.PI/60;
   // drive torque: throttle x gear scale x BMS allowance (Teensy scales the throttle line, never raises it)
-  const thr=Math.max(0,Math.min(100,inp.thr))/100,brake=Math.max(0,Math.min(100,inp.brake))/100;
+  // Synthetic neutral (Build 4): Kelly 'Three Gears Switch: Forward, Neutral, Reverse' (manual Rev 2.1.1 item 90, SOURCED)
+  // gives zero drive torque in N; how the Teensy makes N (FWD + REV pins both open) is UNVERIFIED. No mechanical
+  // decoupling: the motor still turns with the wheels, so back-EMF and the overspeed guard below still apply.
+  const ntl=!!inp.neutral,thr=ntl?0:Math.max(0,Math.min(100,inp.thr))/100,brake=Math.max(0,Math.min(100,inp.brake))/100;
   let T=0,why='';
   const brkSw=brake*100>(p.brkSwPct==null?0:p.brkSwPct);                 // 12 V brake switch: overrides throttle
   if(live&&thr>0&&!brkSw&&!inp.parkBrake){
@@ -87,6 +90,7 @@ function vehStep(p,st,inp,dt){
     if(brkFrac>0)regReq=p.maxRegenA*brkFrac*(p.brkAdPct/50);}                // proportional to pedal (Brake_AN)
   else if(brkSw)regReq=p.maxRegenA*(p.brkSwRegenPct/50);                    // DEFAULT: Kelly switch regen, fixed level (Brake Type 0)
   if(regReq===0&&!brkSw&&p.liftRegen&&thr===0)regReq=p.liftRegenA;          // Kelly RLS_TPS Brk (0-50 %, SOURCED)
+  if(ntl){regReq=(p.ntlBrkPct||0)>0&&brkSw?p.maxRegenA*p.ntlBrkPct/50:0;if(!regReq)rwhy='Neutral: freewheel, no regen (Kelly NTL Brk 0 %, SOURCED default)';}
   regReq*=(g.regen==null?100:g.regen)/100;                                   // mode regen strength (PROPOSED)
   const allow=inp.regenAllowPct==null?100:Math.max(0,Math.min(100,inp.regenAllowPct));const regReq0=regReq;regReq*=allow/100;
   const fade=vehFade(p,st.mph);let regA=regReq*fade;
@@ -129,5 +133,6 @@ function vehStep(p,st,inp,dt){
   if(sgn!==0&&Math.sign(s1)!==sgn&&(brake>0||inp.parkBrake||Fdrive===0&&Math.abs(Fgrade)<=Froll))s1=0;  // brakes/rolling stop, no reversal
   const mph=dir*s1/MPS_PER_MPH;
   const packA=live?driveA-regA:0;if(overWhy&&!why)why=overWhy;
-  return {Fover,mph,rpm:vehRpm(p,mph),packA,brakeSwitch:brkSw,brakeFrac:brkFrac,driveA,regenA:regA,regenReqA:regReq,fade,Fdrive,Fregen,Ffric,Froll,Faero,Fgrade,why,regenWhy:rwhy};
+  const bemfWarn=ntl&&rpm>(V/0.026)?'Neutral but motor spinning above base speed: back-EMF ≈ '+Math.round(rpm*0.026)+' V vs pack '+Math.round(V)+' V (0.026 V/RPM SOURCED Sparky)':'';
+  return {neutral:ntl,bemfWarn,Fover,mph,rpm:vehRpm(p,mph),packA,brakeSwitch:brkSw,brakeFrac:brkFrac,driveA,regenA:regA,regenReqA:regReq,fade,Fdrive,Fregen,Ffric,Froll,Faero,Fgrade,why,regenWhy:rwhy};
 }

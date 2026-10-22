@@ -88,5 +88,11 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 - [ ] Decide: PIN to drive (UNDECIDED; sim option, off by default; uses the Kid PIN hash).
 - [ ] Hall pedal spec (Sparky): track 2 at half scale (e.g. 0.5-4.5 V and 0.25-2.25 V). Both tracks go through 10k/18k dividers (4.5 V reads 2.89 V at the pin). Compare the tracks as % of travel, not raw volts.
 
+## Build 4 (Adam's Build 2 testing, 2026-10-22) — sim/dash only, firmware unchanged
+- [x] Brake-to-wake feedback: "Hold brake… waking", then "Waking — precharging"; a refusal names the reason (parking brake released / park contact fault). Root cause: every sim toast went to an undefined `dashToast`, so refusals were silent. UI test drags the dash brake slider.
+- [x] Kid: entering asks no PIN (parked only); first time with no PIN set, a one-time "Set Kid exit PIN" pad (keeps firmware NO_PIN_SET rule). Leaving Kid = modal PIN pad (digits, ⌫, Cancel, Enter, keyboard, wrong-PIN shake). Old text box removed.
+- [ ] Phone-as-key (PROPOSED): no Bluetooth phone key → PIN pad before any drive setting (modes, thresholds, limits); key off → drive settings locked; Night/dim stay unlocked. Sim toggle "Phone key present". Decide: BLE module + pairing, which PIN (sim reuses the Kid PIN hash), firmware mirror.
+- [ ] Synthetic neutral: N = Kelly zero throttle + no regen (freewheel), no mechanical decoupling; motor still spins, so back-EMF and overspeed limits still apply. Kelly "Three Gears Switch: Forward, Neutral, Reverse" (item 90) and NTL Brk default 0 (item 45) SOURCED; "neutral = FWD and REV pins both open" UNVERIFIED, bench it on the Kelly before relying on it. Sim + dash show N; Parked = park brake + 0 RPM + N.
+
 ## Later
 - [ ] Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built.

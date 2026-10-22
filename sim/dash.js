@@ -195,6 +195,43 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
  ['SoC / range','BmsCore::Soc coulomb count on LEM A + B, full-charge anchor; range = SoC × ASSUMED kWh ÷ Wh/mi','sim only · capAh UNVERIFIED'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → head unit','schema exists']];
+
+// ---- PIN pad (modal) + drive-settings lock (Build 4, PROPOSED). Shared by the sim page and dash.html.
+const TeryxPad=(()=>{let ov=null;
+  function css(){if(document.getElementById('tpad-css'))return;const st=document.createElement('style');st.id='tpad-css';st.textContent=`.tpad-ov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9999;display:flex;align-items:center;justify-content:center}
+.tpad{background:#111214;border:1px solid #2c2c30;border-radius:18px;padding:18px;width:min(340px,92vw);color:#f5f5f7;font:16px system-ui,-apple-system,sans-serif;text-align:center}
+.tpad .tpt{font-size:17px;font-weight:600;margin-bottom:8px}.tpad .tpd{font-size:30px;letter-spacing:10px;margin:6px 0}.tpad .tpm{min-height:22px;color:#a1a1a8;font-size:14px}.tpad .tpm.bad{color:#ff6b6f;font-weight:600}
+.tpad .tpk{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.tpad button{min-height:56px;border-radius:12px;border:0;background:#1f2024;color:#f5f5f7;font-size:22px}
+.tpad .tpb{display:flex;gap:10px}.tpad .tpb button{flex:1;font-size:17px}.tpad .tpb .go{background:#3e6ae1}@keyframes tpsh{0%,100%{transform:none}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}.tpad.shake{animation:tpsh .3s}
+.tlock-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f2024;color:#f5f5f7;border:1px solid #3a3a3e;border-radius:12px;padding:10px 16px;z-index:10000;font:15px system-ui;max-width:90vw}
+body.drive-locked [data-drive-lock]{opacity:.55;position:relative}body.drive-locked [data-drive-lock]::before{content:"🔒 " attr(data-lock-msg);display:block;font:600 13px system-ui;color:#d6a33a;margin:2px 0 4px}`;document.head.appendChild(st);}
+  function close(){if(ov){ov.remove();ov=null;document.removeEventListener('keydown',kd,true);}}
+  let kd=null;
+  function open(o){css();close();ov=document.createElement('div');ov.className='tpad-ov';ov.setAttribute('data-f','pinpad');
+    ov.innerHTML=`<div class="tpad" role="dialog" aria-modal="true" aria-label="${o.title}"><div class="tpt">${o.title}</div><div class="tpd" data-p="d"></div><div class="tpm" data-p="m">${o.note||''}</div><div class="tpk">${[1,2,3,4,5,6,7,8,9,'⌫',0,'C'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><div class="tpb"><button data-a="cancel">Cancel</button><button data-a="enter" class="go">Enter</button></div></div>`;
+    document.body.appendChild(ov);let pin='';const P=ov.querySelector('.tpad'),Dd=ov.querySelector('[data-p=d]'),M=ov.querySelector('[data-p=m]');
+    const paint=()=>{Dd.textContent='●'.repeat(pin.length)+'○'.repeat(Math.max(0,4-pin.length));};paint();
+    const fail=m=>{M.textContent=m;M.className='tpm bad';pin='';paint();P.classList.remove('shake');void P.offsetWidth;P.classList.add('shake');};
+    const enter=async()=>{if(pin.length!==4){fail('Enter 4 digits');return;}let r=o.onEnter(pin);if(r&&r.then)r=await r;if(r)fail(r);else close();};
+    const key=k=>{if(/^[0-9]$/.test(k)){if(pin.length<4)pin+=k;M.className='tpm';M.textContent=o.note||'';paint();if(pin.length===4&&o.autoEnter)enter();}else if(k==='⌫'||k==='Backspace'){pin=pin.slice(0,-1);paint();}else if(k==='C'){pin='';paint();}};
+    ov.querySelectorAll('[data-k]').forEach(b=>b.onclick=e=>{e.stopPropagation();key(String(b.dataset.k));});
+    ov.querySelector('[data-a=enter]').onclick=e=>{e.stopPropagation();enter();};ov.querySelector('[data-a=cancel]').onclick=e=>{e.stopPropagation();close();if(o.onCancel)o.onCancel();};
+    kd=e=>{if(!ov)return;if(/^[0-9]$/.test(e.key)||e.key==='Backspace'){key(e.key);e.preventDefault();e.stopPropagation();}else if(e.key==='Enter'){enter();e.preventDefault();e.stopPropagation();}else if(e.key==='Escape'){close();if(o.onCancel)o.onCancel();}};
+    document.addEventListener('keydown',kd,true);return ov;}
+  let tt=null;function toast(m){css();let t=document.querySelector('.tlock-toast');if(!t){t=document.createElement('div');t.className='tlock-toast';document.body.appendChild(t);}t.textContent=m;t.style.display='';clearTimeout(tt);tt=setTimeout(()=>{t.style.display='none';},3500);}
+  return {open,close,toast,isOpen:()=>!!ov};})();
+// Drive settings (modes, thresholds, limits) lock. PROPOSED phone-as-key: key OFF = locked; key ON + no phone key = PIN pad first.
+// Display-only settings (night, dim, style) are never marked data-drive-lock.
+const TeryxLock={keyOn:false,phone:true,unlocked:false,verify:null,hasPin:null,setPin:null,
+  locked(){return !this.keyOn||(!this.phone&&!this.unlocked);},
+  msg(){return !this.keyOn?'Drive settings locked — key is off':'Drive settings locked — no phone key: tap to enter PIN';},
+  set(o){const was=this.keyOn;Object.assign(this,o);if(!this.keyOn||this.phone)this.unlocked=false;if(typeof document!=='undefined'){document.body.classList.toggle('drive-locked',this.locked());document.querySelectorAll('[data-drive-lock]').forEach(e=>e.setAttribute('data-lock-msg',this.msg()));}},
+  prompt(){if(!this.keyOn){TeryxPad.toast(this.msg());return;}if(!this.verify){TeryxPad.toast('No PIN available');return;}
+    if(this.hasPin&&!this.hasPin()){TeryxPad.toast('Set a PIN first (enter Kid mode once to set it)');return;}
+    TeryxPad.open({title:'Enter PIN to change drive settings',note:'No phone key detected (PROPOSED)',onEnter:p=>{const r=this.verify(p);const ok=r&&r.then?r.then(x=>x):r;const fin=x=>{if(x){this.unlocked=true;this.set({});TeryxPad.toast('Drive settings unlocked until key off');return '';}return 'Wrong PIN — try again';};return ok&&ok.then?ok.then(fin):fin(ok);}});}};
+if(typeof document!=='undefined'){const guard=e=>{const t=e.target&&e.target.closest&&e.target.closest('[data-drive-lock]');if(!t||!TeryxLock.locked()||TeryxPad.isOpen())return;e.preventDefault();e.stopImmediatePropagation();if(e.type==='click')TeryxLock.prompt();if(e.type==='focusin'&&e.target.blur)e.target.blur();};
+  ['pointerdown','mousedown','touchstart','click','focusin','keydown','input','change'].forEach(t=>document.addEventListener(t,guard,{capture:true,passive:false}));}
+if(typeof window!=='undefined'){window.TeryxPad=TeryxPad;window.TeryxLock=TeryxLock;}
 const DASH_BUILD='@@BUILD@@';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
@@ -207,7 +244,7 @@ function create(root,opt){
       <label>Throttle <input type="range" min="0" max="100" value="0" data-sv="thr"><b data-f="sv_thr">0 %</b></label>
       <label>Brake <input type="range" min="0" max="100" value="0" data-sv="brk"><b data-f="sv_brk">0 %</b></label>
       <label>Grade <input type="range" min="-20" max="20" step="0.5" value="0" data-sv="grade"><b data-f="sv_grade">0 %</b></label>
-      <span class="sr" data-f="sgear">${['H','M','L','SNOW','MUD','SAND','KID','R'].map(g=>`<button data-sg="${g}">${MODE_NAME[g]}</button>`).join('')}</span><input data-f="kidpin" type="password" inputmode="numeric" maxlength="4" placeholder="Kid PIN" aria-label="Kid PIN" style="width:110px"></div>
+      <span class="sr" data-f="sgear" data-drive-lock>${['H','M','L','SNOW','MUD','SAND','KID','R'].map(g=>`<button data-sg="${g}">${MODE_NAME[g]}</button>`).join('')}</span></div>
      <div class="sr">${[['launch','Hard launch'],['regen','Regen stop'],['coast','Coast'],['climb','Climb'],['lowcell','Low cell'],['hotpack','Hot pack'],['lemimb','LEM imbalance'],['weld','Contactor weld'],['lemdrop','LEM dropout'],['chglim','Charge to limit'],['pcycle','Power cycle'],['wake','Wake'],['reset','Reset…']].map(([k,t])=>`<button data-sc="${k}"${k==='reset'||k==='weld'?' class="red"':''}>${t}</button>`).join('')}</div>
      <div class="sr"><span>Drive cycle</span><span class="sr" data-f="scyc"></span><button data-sc="cycle" data-f="scgo" class="go">Start</button><button data-sc="speed20" data-f="s20">20× speed</button><span data-f="scst" class="k"></span></div>
      <div class="ro" data-f="sro"></div></div></div>`;
@@ -278,11 +315,11 @@ function create(root,opt){
       <div class="k" data-f="apos"></div><div class="note">Steering angle not sensed (UNAVAILABLE): keep the wheels straight before locking the diff.</div>
       <div class="row"><button class="mb" data-f="aclr" style="display:none">Clear actuator fault</button>${opt.simControls?'<label class="k"><input type="checkbox" data-f="st4"> sim: stall 4WD actuator</label> <label class="k"><input type="checkbox" data-f="std"> sim: stall diff actuator</label>':''}</div>
       <div class="note" data-f="cmsg"></div>
-      <div class="k">Settings · all PROPOSED · each change asks first</div><div class="cset" data-f="cset"></div></section>
+      <div class="k">Settings · all PROPOSED · each change asks first</div><div class="cset" data-f="cset" data-drive-lock></div></section>
      <section data-s2="flt"><h3>Faults &amp; log</h3><div class="k">Active now</div><div class="lst" data-f="mfa"></div><div class="k">Power cutback (derate)</div><div class="kv" data-f="mfd"></div><div class="k">Seen on this screen</div><div class="lst" data-f="mfh"></div><div class="k">Event log <span class="tag" data-f="mflT"></span></div><div class="lst" data-f="mfl"></div></section>
      <section data-s2="cool"><h3>Cooling</h3><div class="kv" data-f="mco"></div><div class="row"><button class="mb" data-f="mfan">Fan override</button><span class="tag" data-f="mfanN"></span></div>
       <div class="k">Pump: PROPOSED Bosch 12 V pump on the stock radiator, on whenever the key is on. Fan: PROPOSED relay, auto at ~40 °C. No flow or coolant-temp sensor yet, so those read —.</div></section>
-     <section data-s2="veh"><h3>Vehicle settings</h3><div class="note">Tire 24 in (SOURCED: Adam, stock tires). At the PROPOSED 6000 RPM High cap the top speed is ≈49 mph; 55 mph would need ≈6740 RPM. Top speed falls as the pack drains (SOURCED: Sparky, back-EMF 0.026 V/RPM): base speed ≈ pack V ÷ 0.026 = ≈5680 RPM (≈46 mph) at 147.6 V full, ≈5120 RPM (≈42 mph) at 133 V nominal, ≈4570 RPM (≈37 mph) at the 118.8 V low cut; above base speed the Kelly must field-weaken, up to the 6000 RPM cap (≈49 mph). mph from the 24in tire and 8.75 ratio; sag under load lowers it further (not modelled). Total ratio 8.75 = sprockets 16T/32T 2.0:1 (SOURCED: cash ledger) × diff 4.375:1 (SOURCED: 2008 owner's manual).</div><div data-f="mveh"></div></section>
+     <section data-s2="veh" data-drive-lock><h3>Vehicle settings</h3><div class="note">Tire 24 in (SOURCED: Adam, stock tires). At the PROPOSED 6000 RPM High cap the top speed is ≈49 mph; 55 mph would need ≈6740 RPM. Top speed falls as the pack drains (SOURCED: Sparky, back-EMF 0.026 V/RPM): base speed ≈ pack V ÷ 0.026 = ≈5680 RPM (≈46 mph) at 147.6 V full, ≈5120 RPM (≈42 mph) at 133 V nominal, ≈4570 RPM (≈37 mph) at the 118.8 V low cut; above base speed the Kelly must field-weaken, up to the 6000 RPM cap (≈49 mph). mph from the 24in tire and 8.75 ratio; sag under load lowers it further (not modelled). Total ratio 8.75 = sprockets 16T/32T 2.0:1 (SOURCED: cash ledger) × diff 4.375:1 (SOURCED: 2008 owner's manual).</div><div data-f="mveh"></div></section>
      <section data-s2="disp"><h3>Display</h3><div class="k">Cluster style</div><div class="row" data-f="sty">${STY.map(s=>`<button class="mb" data-s="${s}">${s[0].toUpperCase()+s.slice(1)}</button>`).join('')}</div>
       <div class="row"><button class="mb" data-f="nightb">Night mode: off</button><span class="k">Dim</span><input type="range" min="20" max="100" step="5" data-f="dimr" aria-label="Night dim level" style="width:160px"><b data-f="dimv">60 %</b><span class="k"><span class="tag">screen brightness while Night is on</span></span></div>
       <div class="row"><span class="k">Sleep while charging after</span><input type="number" min="10" max="3600" step="10" data-f="msl"><span class="k">s <span class="tag">PROPOSED 120 s</span></span></div>
@@ -449,9 +486,11 @@ function create(root,opt){
   if(sim){const send=(c,v)=>sim.send(c,v);let drag={};
     F('simcol').onclick=()=>{const c=F('simp').classList.toggle('col');localStorage.setItem('teryxSimPanelCol',c?'1':'0');F('simcol').textContent=c?'Show ▾':'Hide ▴';};
     D.querySelectorAll('[data-sv]').forEach(e=>{const k=e.dataset.sv;e.oninput=()=>{drag[k]=performance.now();F('sv_'+k).textContent=e.value+' %';send(k,+e.value);};});
-    D.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>{const pe=F('kidpin'),pin=pe?pe.value:'';if(pe)pe.value='';send('gear',b.dataset.sg+(pin?':'+pin:''));});
+    D.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>{const g=b.dataset.sg,I=(lastSim&&lastSim.simInfo)||{},cur=I.gear;
+      if(cur==='KID'&&g!=='KID'){TeryxPad.open({title:'Enter Kid PIN to leave Kid',note:'Parked only',onEnter:pin=>{send('gear',g+':'+pin);return new Promise(res=>setTimeout(()=>{const J=(lastSim&&lastSim.simInfo)||{};res(J.gear==='KID'?(J.modeMsg&&!/PIN/i.test(J.modeMsg)?J.modeMsg:'Wrong PIN — try again'):'');},450));}});return;}
+      send('gear',g);});
     D.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>{const k=b.dataset.sc;if(k==='wake')wake('sim Wake button');if(k==='reset'&&!confirm('Reset the simulator? Cells, faults and the log go back to start.'))return;send(k,k==='cycle'?simCyc:undefined);});
-    var simCyc=null,simPaint=s=>{const Dr=(s&&s.drive)||{},B=(s&&s.bms)||{},I=(s&&s.simInfo)||{},n=performance.now();
+    var lastSim=null,simCyc=null,simPaint=s=>{lastSim=s;const Dr=(s&&s.drive)||{},B=(s&&s.bms)||{},I=(s&&s.simInfo)||{},n=performance.now();
       [['thr',Dr.throttlePct],['brk',Dr.brakePct],['grade',I.gradePct]].forEach(([k,v])=>{const e=D.querySelector(`[data-sv="${k}"]`);if(num(v)&&!(n-(drag[k]||0)<600)){e.value=v;F('sv_'+k).textContent=(+v).toFixed(k==='grade'?1:0)+' %';}});
       D.querySelectorAll('[data-sg]').forEach(b=>b.classList.toggle('on',(I.gear||Dr.gear)===b.dataset.sg));
       if(F('spark')){const pk=!!I.parkBrake;F('spark').textContent=pk?'Ⓟ PARK BRAKE SET · tap to release':'Park brake released · tap to set';F('spark').classList.toggle('red',pk);F('spark').classList.toggle('on',!pk);
@@ -513,6 +552,9 @@ function create(root,opt){
     if(r.msg&&r.msg!==toastMsg&&performance.now()-toastT>300)toast(r.msg);if(performance.now()-toastT>6000&&F('toast').textContent)F('toast').textContent='';
     if(sim)simPaint(s);}
   function update(s,meta){
+    {const I=(s&&s.simInfo)||{},B=(s&&s.bms)||{};const k=I.key!=null?!!I.key:(s&&s.keyOn!=null?!!s.keyOn:/Closed|Precharge|MainClose/.test(String(B.state||'')));
+     TeryxLock.set({keyOn:k,phone:I.phoneKey!=null?!!I.phoneKey:false});
+     if(!opt.hostLock&&!TeryxLock.verify){TeryxLock.verify=p=>{try{const h=(JSON.parse(localStorage.getItem('teryx.modes.v1')||'{}').hash)>>>0;return !!h&&typeof vehHashPin==='function'&&vehHashPin(p)===h;}catch(_){return false;}};TeryxLock.hasPin=()=>{try{return !!(JSON.parse(localStorage.getItem('teryx.modes.v1')||'{}').hash>>>0);}catch(_){return false;}};}}
     meta=meta||{};const now=performance.now(),dt=lastT?Math.min(2,(now-lastT)/1000):0;lastT=now;
     const live=!!s&&!meta.stale,B=(s&&s.bms)||{},Dr=(s&&s.drive)||{},E=(s&&s.energy)||{},C=(s&&s.contactors)||{},A=(s&&s.aux12v)||{},L=A.loads||{};
     const packV=live&&B.wired&&num(B.packV)?B.packV:null,packA=live&&B.wired&&num(B.packA)?B.packA:null;
@@ -540,7 +582,7 @@ function create(root,opt){
     put('rpm',rpm,rpm!=null?rpm.toFixed(0):'');tag('rpmTag',rt);
     // gear
     const gr=live?(Dr.gear||null):null,closed=C.mainPositive==='closed'&&C.mainNegative==='closed';
-    F('gear').innerHTML=['P','R','L','M','H'].map(x=>`<span class="${gr===x||(x==='P'&&live&&!closed)?'on':''}">${x}</span>`).join('')+(gr&&!['P','R','L','M','H'].includes(gr)?`<span class="on">${MODE_NAME[gr]||gr}</span>`:'')+(gr==null&&live?'<span class="na" style="font-size:16px"> gear not wired</span>':'');
+    const pkd=!!(Dr.park&&Dr.park.parked),neu=Dr.fnr==='N';F('gear').innerHTML=['P','R','N','L','M','H'].map(x=>`<span class="${(x==='P'&&live&&(!closed||pkd))||(x==='N'&&live&&neu&&!pkd)||(!neu&&!pkd&&gr===x)?'on':''}">${x}</span>`).join('')+(gr&&!neu&&!pkd&&!['P','R','N','L','M','H'].includes(gr)?`<span class="on">${MODE_NAME[gr]||gr}</span>`:'')+(gr==null&&live?'<span class="na" style="font-size:16px"> gear not wired</span>':'');
     // battery / range
     const soc=live&&B.wired&&num(B.socPct)?B.socPct:null;put('soc',soc,soc!=null?`${soc.toFixed(0)}<span class="u">%</span>`:'');F('sbar').style.width=(soc||0)+'%';
     tag('socTag',soc!=null&&B.socState?B.socState:(live&&soc==null?(B.socWhy||'unknown'):''));
@@ -574,7 +616,7 @@ function create(root,opt){
     lastS=s;lastMeta=meta;homePaint(s,live);if((split.on||F('menu').classList.contains('on'))&&++mp%3===0)menuPaint();
   }
   update(null);if(split.on)applySplit();
-  return {update,controls:CT,root:D,setStyle,F,wake,openMenu,setSplit,getSplit:()=>Object.assign({},split),isAsleep:()=>cs.asleep};
+  return {toast,update,controls:CT,root:D,setStyle,F,wake,openMenu,setSplit,getSplit:()=>Object.assign({},split),isAsleep:()=>cs.asleep};
 }
-g.TeryxDash={create,IOMAP,SEC:TeryxDash_SEC,ASSUMED_WHMI,ASSUMED_PACK_KWH,RPM_PER_MPH};
+g.TeryxDash={TeryxPad,TeryxLock,create,IOMAP,SEC:TeryxDash_SEC,ASSUMED_WHMI,ASSUMED_PACK_KWH,RPM_PER_MPH};
 })(window);
