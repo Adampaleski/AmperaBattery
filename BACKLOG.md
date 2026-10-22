@@ -72,3 +72,4 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 - [ ] E-stop NC block DC rating (bench/datasheet): makes ≈7.6 A combined EV200 inrush for 130 ms, breaks only hold (≈0.52 A + precharge + KSI). No interposing relay (Sparky).
 
 - [ ] REQUIRED BEFORE FIRST DRIVE: firmware dead-LEM detection. Read each LEM separately and flag one reading nothing or out of range (>450 A, PROPOSED) as a hard fault that engages the 10 mph cap. Today this check runs only in the sim. (chief, 2026-10-21)
+- [ ] Dead-LEM detail (Sparky): each output should sit near 2.5 V at 0 A; within about 0.2 V of 0 V or 5 V = dead or disconnected (hard fault). Key-on self-test: below about 15 A, the low-range and high-range channels must agree.
