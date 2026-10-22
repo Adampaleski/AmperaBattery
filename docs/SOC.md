@@ -30,8 +30,7 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 
 ## Not done yet
 
-- Wire into `BmsApp` (needs CURRENT_SENSE_ENABLE and the split-LEM firmware read, see BACKLOG).
-- `socPct` in STATUS_SCHEMA v1 (HubStatus prints null today).
+- Go live: CURRENT_SENSE_ENABLE=1 plus LEM B's amps over the A-B link (then `kHaveLemB` in src/SocRun.cpp), and a measured capAh. Until then `socPct` stays null.
 - Persist used Ah + anchor at power-off (item 5).
 - ~~Simulator page SoC readout.~~ Done 2026-10-20 (see below).
 
@@ -42,3 +41,12 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 - Capacity on the page: 180 Ah = 4 strings (SOURCED: Adam 2026-10-21, 36S × 4P) × 45 Ah per Volt Gen1 cell group (ASSUMED, 3P × 15 Ah). The real `capAh` stays 0 = unknown (UNVERIFIED).
 - Sim truth: lowest cell on a SIM-ASSUMED linear map 3.30 V = 0 % -> 4.10 V = 100 %. The sim drains every cell along that map with load current (mains closed), so truth and estimate move together; the offset left after a P80 anchor (about -1.4 %) comes from the two linear maps not matching. It is not a measured error.
 - Checks: `node scripts/check_bms_sim_wasm.js /tmp/bms_sim.wasm` (8 "socpage" checks).
+
+## Firmware wiring (2026-10-22, not bench-tested)
+
+`src/SocRun.{h,cpp}` runs the same `BmsCore::Soc` on Teensy A (dual string role A only; no-op elsewhere). Inputs each loop: `CurrentSense::valid()/amps()` (LEM A only), Core `chargeWhy == "at charge limit"` as the anchor, Settings P and L. Read-only: no pins, no EEPROM.
+
+- USB `p` prints a `SOC` line (state, Ah used, percent or unknown, why).
+- Hub frame: `bms.socPct` comes from SocRun but stays **null** while the count is half the bank (LEM B not shared, `halfBank:true`) or capAh is unknown. Optional key `"soc":{available,known,state,usedAh,pct,drift,why,halfBank,capAh}`; off role A `{"available":false}`.
+- With CURRENT_SENSE_ENABLE=0 the count only runs on the bench `I<amps>` dry-run.
+- Host check: `g++ -std=c++17 -DDUAL_STRING=1 -DTEENSY_ROLE=0 -Iscripts/hoststub -Iinclude -Isrc scripts/test_soc_run.cpp -o /tmp/tsr && /tmp/tsr` (5 checks).

@@ -96,3 +96,6 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 
 ## Later
 - [ ] Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built.
+
+## Done notes (appended so open-item line numbers above stay stable)
+- [x] 2026-10-22 10 AM (item 3, wiring step): src/SocRun.{h,cpp} runs the real SocEstimator in firmware (role A dual only, no pins, no EEPROM): CurrentSense amps + Core "at charge limit" anchor + Settings P/L. `p` prints a SOC line. Hub frame: `socPct` now comes from SocRun (still null: LEM B not shared over the link, so the count is half the bank, and capAh 0 UNVERIFIED) plus an optional read-only `soc` object (known/state/usedAh/pct/drift/why/halfBank/capAh). 5 host checks (scripts/test_soc_run.cpp + scripts/hoststub). 12/12 envs, 31/31 scenarios, trip 6/6, derate 15/15, soc 10/10. Sim page unchanged. Still open (line 24): CURRENT_SENSE_ENABLE + LEM B over the link, then socPct goes live.

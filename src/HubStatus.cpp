@@ -5,6 +5,7 @@
 #include "Config.h"
 #include "ContactorSeq.h"
 #include "FaultLogRun.h"
+#include "SocRun.h"
 #include "ChargeTx.h"
 #include "Watchdog.h"
 
@@ -74,7 +75,8 @@ void printBms(Print &out) {
         printBool(out, BicmDecode::moduleLowLive(m));  // report-only
         out.print('}');
     }
-    out.print(F("],\"packA\":null,\"socPct\":null"));
+    out.print(F("],\"packA\":null,\"socPct\":"));
+    SocRun::printSocPct(out);  // null until split LEM read + capacity known
     const float mn = BicmDecode::minCellVoltage();
     const float mx = BicmDecode::maxCellVoltage();
     const bool have = mn > 0.0f && mx > 0.0f;
@@ -142,7 +144,7 @@ void printBms(Print &out) {
     printNull(out);  // no pack current sensor in this firmware yet
 
     out.print(F(",\"socPct\":"));
-    printNull(out);  // SOC not computed
+    SocRun::printSocPct(out);  // null until split LEM read + capacity known
 
     out.print(F(",\"cellMinV\":"));
     if (haveCells) {
@@ -350,6 +352,8 @@ void printFrame(Print &out) {
     printFaults(out);
     out.print(',');
     FaultLogRun::printJson(out);  // optional key: saved fault-log summary (read-only)
+    out.print(',');
+    SocRun::printJson(out);       // optional key: SoC count state (read-only)
     out.print(F(",\"events\":[]"));
     out.println('}');
 }
