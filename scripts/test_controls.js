@@ -51,5 +51,18 @@ c.setLight('high',true);r=run({mph:0},100);ok(r.out.headLow&&r.out.headHigh&&r.o
  const dead=drive({teensyDead:true,kellyLowCap:true}),kid=drive({gear:'KID',kellyLowCap:true}),free=drive({});
  ok(dead.rpm<=p.lowCapRpm+1&&free.rpm>p.lowCapRpm*2,'both Teensys dead: Kelly Low cap holds ('+dead.rpm.toFixed(0)+' RPM ≈ '+dead.mph.toFixed(1)+' mph)');
  ok(kid.rpm<=p.lowCapRpm+1,'Kid mode engages the Kelly Low cap');}
+// ---- grade physics sign + no runaway (Build 1 bug: 0 throttle on 15 % reached 80 mph rolling back)
+{const vm=require('vm');const ctx={};vm.createContext(ctx);vm.runInContext(require('fs').readFileSync(__dirname+'/../sim/vehicle.js','utf8')+';this.V=vehStep;this.D=VEH_DEF;this.M=vehMphAtRpm;this.R=vehRpm;',ctx);
+ const run=(g,gear,m0,x,secs)=>{const p=Object.assign({},ctx.D,{gradePct:g});let st={mph:m0},o,mx=0,first=null;for(let i=0;i<(secs||60)*20;i++){o=ctx.V(p,st,Object.assign({thr:0,brake:0,gear,closed:true,allowPct:100,regenOk:true,packV:140},x||{}),0.05);if(i===0)first=o.mph;st.mph=o.mph;mx=Math.max(mx,Math.abs(o.mph));}return {end:o.mph,mx,first,o};};
+ const cap=ctx.M(ctx.D,6000);
+ {const r=run(15,'H',20);ok(r.first<20,'uphill 15 %, 0 throttle: decelerates ('+r.first.toFixed(2)+' mph after 50 ms)');ok(r.end<0,'uphill: then rolls back ('+r.end.toFixed(1)+' mph)');ok(r.mx<=20+1e-6,'uphill: never faster than entry speed');}
+ {const r=run(-15,'H',0,null,5);ok(r.end>0,'downhill 15 %, 0 throttle: accelerates forward ('+r.end.toFixed(1)+' mph at 5 s)');}
+ for(const [g,gear,x,lbl] of [[15,'H',null,'rollback live'],[-15,'H',null,'downhill live'],[-30,'H',null,'30 % downhill live'],[15,'H',{closed:false},'rollback contactors open'],[-30,'H',{regenOk:false},'downhill regen vetoed'],[-15,'R',null,'reverse gear downhill']]){
+  const r=run(g,gear,0,x,120);ok(r.mx<=cap+1e-6,'0 throttle never above the 6000 RPM cap: '+lbl+' (max '+r.mx.toFixed(1)+' ≤ '+cap.toFixed(1)+' mph)');}
+ {const r=run(-15,'H',0,null,120);ok(r.mx<=cap&&r.o.regenA>0,'downhill: Kelly overspeed regen holds near the cap (regen '+r.o.regenA.toFixed(0)+' A)');}
+ {const r=run(15,'H',0,null,120);ok(Math.abs(r.end)<=ctx.M(ctx.D,1100)+1e-6,'rollback held at the reverse cap ('+r.end.toFixed(1)+' mph)');}
+ {const r=run(-15,'H',0,{thr:100},120);ok(r.mx<=cap+1e-6,'full throttle downhill: never above the cap ('+r.mx.toFixed(1)+')');}
+ {const r=run(15,'H',0,{brake:100},20);ok(Math.abs(r.end)<1e-9,'uphill + full brake: holds at 0');}
+ {const r=run(15,'H',0,{parkBrake:true},20);ok(Math.abs(r.end)<1e-9,'uphill 15 % + park brake: holds at 0');}}
 console.log(`controls: ${n-f}/${n} passed`);process.exit(f?1:0);
 

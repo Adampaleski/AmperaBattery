@@ -11,12 +11,12 @@
 // BMS (regenOk: cells full / pack cold) and a PROPOSED taper regenAllowPct (SOC + cold, from the sim page).
 const VEH_DEF={tireIn:24,sprFront:16,sprRear:32,diffRatio:4.375,massKg:900,crr:0.030,cdA:1.20,gradePct:0,
   maxRegenA:60,regenBlendPct:30,brkDeadLo:20,brkDeadHi:80,brkAdPct:30,brkSwPct:3,brkMinRpm:100,analogBrake:false,brkSwRegenPct:10,liftRegen:false,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,battA:550,
-  frictionG:0.6,parkG:0.25,lowCapRpm:1225,fadeLoMph:1.5,fadeHiMph:4.5};
+  frictionG:0.6,dtDragN:60,parkG:0.25,lowCapRpm:1225,fadeLoMph:1.5,fadeHiMph:4.5};
 // [key, label, unit, tag, min, max, step]
 const VEH_SETS=[['tireIn','Tire diameter','in','SOURCED: Adam (stock tires, 24")',18,40,0.5],['sprFront','Drive sprocket','teeth','SOURCED: cash ledger (#50 chain, 16T)',8,40,1],
   ['sprRear','Driven sprocket','teeth','SOURCED: cash ledger (#50 chain, 32T → 2.0:1)',16,80,1],['diffRatio','Diff ratio','× : 1','SOURCED: 2008 Teryx owner\'s manual 4.375:1 (35/8, front = rear) · total 2.0 × 4.375 = 8.75',1,12,0.005],
   ['massKg','Mass (with driver + pack)','kg','ASSUMED',400,1600,10],['crr','Rolling resistance Crr','','ASSUMED (dirt / ATV tires)',0.005,0.15,0.001],
-  ['cdA','Drag area CdA','m²','ASSUMED',0.3,3,0.05],['gradePct','Grade','%','SIM input',-30,30,0.5],
+  ['cdA','Drag area CdA','m²','ASSUMED',0.3,3,0.05],['gradePct','Grade (+ = nose uphill)','%','SIM input',-30,30,0.5],['dtDragN','Drivetrain drag','N','ASSUMED (chain + diffs + motor iron loss)',0,500,5],
   ['maxRegenA','Max regen current','A','PROPOSED 60 A',0,200,5],['analogBrake','Analog brake pedal on Kelly Brake_AN (DEFERRED)','on/off','DEFERRED for first drive (crew): needs Kelly config readback + Boost OFF confirmed. Default off = brake-switch regen at a fixed level',0,1,1],['brkSwRegenPct','Kelly BRK_SW Brk (switch regen strength)','% (0-50)','SOURCED range 0-50 %, default 10 %; amps mapping UNVERIFIED (× maxRegenA / 50)',0,50,1],['brkDeadLo','Kelly Brake Dead Low','% pedal','SOURCED default 20 % (=1 V)',5,40,1],['brkDeadHi','Kelly Brake Dead High','% pedal','SOURCED default 80 % (=4 V)',60,95,1],['brkAdPct','Kelly BRK_AD Brk (pedal regen strength)','% (0-50)','SOURCED range 0-50 %, default 0; 30 PROPOSED; mapping to amps UNVERIFIED (maxRegenA scales it)',0,50,1],['brkSwPct','Brake switch closes above','% pedal','PROPOSED (switch position on pedal UNVERIFIED)',0,20,1],['brkMinRpm','Kelly Brk_Speed Limit','RPM','SOURCED range 0-500, default 0; 100 PROPOSED',0,500,10],
   ['liftRegen','Throttle lift-off regen','on/off','PROPOSED off by default',0,1,1],['liftRegenA','Lift-off regen current','A','PROPOSED',0,100,5],
   ['lowCapRpm','Kelly Low speed cap (ECO pin 22)','RPM','PROPOSED 1225 RPM ≈ 10 mph (LowSpeed Forw ≈ 20 % of 6000); fail-safe relay, ECO pin + relay UNVERIFIED',300,6000,25],['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
@@ -109,9 +109,25 @@ function vehStep(p,st,inp,dt){
   const sgn=s>0?1:s<0?-1:0;
   let Fnet=Fdrive-Fgrade-sgn*(Froll+Faero+Ffric+Fregen);
   if(sgn===0){const resist=Froll+Ffric;if(Math.abs(Fdrive-Fgrade)<=resist)Fnet=0;else Fnet=(Fdrive-Fgrade)-Math.sign(Fdrive-Fgrade)*resist;}
+  // Overspeed hold (PROPOSED, Kelly behaviour UNVERIFIED): with contactors closed the Kelly regen-brakes any travel
+  // above its RPM cap (gear cap forward, reverse cap when rolling the other way), up to the phase-current torque.
+  // Grade sign: + = nose uphill. Fgrade>0 opposes travel in the gear direction, so uphill + no throttle decelerates
+  // and then rolls BACK; downhill accelerates until rolling + aero + drivetrain drag + regen balance it.
+  const Fdt=p.dtDragN==null?60:p.dtDragN;                                   // ASSUMED drivetrain drag (chain, diffs, motor iron loss)
+  const capFwd=(inp.kellyLowCap?Math.min(g.rpm,p.lowCapRpm):g.rpm),capBack=(VEH_GEARS.R||{rpm:1100}).rpm;
+  const capOver=sgn>=0?capFwd:Math.min(capBack,capFwd);let Fover=0,overWhy='';
+  if(sgn!==0&&rpm>capOver*0.95){
+    const f=Math.min(1,(rpm-capOver*0.95)/(capOver*0.05)),Fmax=p.ktNmA*p.phaseA*k/r;
+    if(live&&inp.regenOk!==false){Fover=f*Fmax;overWhy='Kelly overspeed regen ('+capOver+' RPM cap)';}
+  }
+  Fnet-=sgn*(Fdt+Fover);if(sgn===0&&Fnet!==0){const a0=Math.abs(Fnet);Fnet=a0<=Fdt?0:Fnet-Math.sign(Fnet)*Fdt;}
   let s1=s+Fnet/m*dt;
+  if(sgn!==0&&Math.sign(s1)!==sgn&&Fover>0)s1=0;
+  const vMax=vehMphAtRpm(p,6000)*MPS_PER_MPH;                                // hard guard: never above the 6000 RPM motor/Kelly cap
+  if(Math.abs(s1)>vMax)s1=Math.sign(s1)*vMax;
+  if(Fover>0){const add=Fover*v/(V*p.eta);regA+=add;if(!rwhy)rwhy=overWhy;}
   if(sgn!==0&&Math.sign(s1)!==sgn&&(brake>0||inp.parkBrake||Fdrive===0&&Math.abs(Fgrade)<=Froll))s1=0;  // brakes/rolling stop, no reversal
   const mph=dir*s1/MPS_PER_MPH;
-  const packA=live?driveA-regA:0;
-  return {mph,rpm:vehRpm(p,mph),packA,brakeSwitch:brkSw,brakeFrac:brkFrac,driveA,regenA:regA,regenReqA:regReq,fade,Fdrive,Fregen,Ffric,Froll,Faero,Fgrade,why,regenWhy:rwhy};
+  const packA=live?driveA-regA:0;if(overWhy&&!why)why=overWhy;
+  return {Fover,mph,rpm:vehRpm(p,mph),packA,brakeSwitch:brkSw,brakeFrac:brkFrac,driveA,regenA:regA,regenReqA:regReq,fade,Fdrive,Fregen,Ffric,Froll,Faero,Fgrade,why,regenWhy:rwhy};
 }

@@ -10,15 +10,15 @@ nav a.on{background:var(--acc);border-color:var(--acc)}main{padding:12px;max-wid
 .view svg{width:100%;height:100%;cursor:grab}.zb{position:absolute;right:8px;top:8px;display:flex;gap:4px}
 .n rect{fill:#1f2226;stroke:#4a4f57;stroke-width:1.5;rx:8}.n.r rect{stroke:var(--red);stroke-width:2.5}.n.l rect{stroke-dasharray:6 4;stroke:var(--acc)}.n.l{cursor:pointer}
 .n.h rect{fill:none;stroke:none}.n text{fill:var(--tx);font-size:14px}.n.r text.t0{fill:#ffb3b3}.n text.t0{font-weight:600}.n.h text{fill:var(--mut);font-weight:700}
-.w{stroke:#7d8590;stroke-width:2;fill:none}.w.r{stroke:var(--red);stroke-dasharray:6 4}.wl{fill:#c9d1d9;font-size:12px;paint-order:stroke;stroke:#17191c;stroke-width:4}.wl.r{fill:var(--red)}
+.w{stroke:#7d8590;stroke-width:2;fill:none}.w.r{stroke:var(--red);stroke-dasharray:6 4}.wl{fill:#c9d1d9;font-size:12px;paint-order:stroke;stroke:#17191c;stroke-width:4}.wl.r{fill:var(--red)}.jd{fill:#c9d1d9;stroke:none}
 table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}th,td{border-bottom:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}th{color:var(--mut);font-weight:600}
 .tw{overflow-x:auto}.bad{color:var(--red);font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:12px}
 .th{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--tx);text-decoration:none}.th svg{width:100%;height:110px;pointer-events:none}.th b{font-size:13px}
 .box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:12px;font-size:13px}
 @media (max-width:700px){nav{order:3;flex-basis:100%}.view{height:auto;aspect-ratio:var(--ar);min-height:300px}}
 @media print{header nav,.zb,button{display:none}body{background:#fff;color:#000}.view{height:auto;border:none;background:#fff}.view svg{height:auto}
-.n rect{fill:#fff;stroke:#000}.n text,.wl{fill:#000;stroke:none}.n.r text.t0,.wl.r,.bad{fill:#c00;color:#c00}.w{stroke:#000}.w.r,.n.r rect{stroke:#c00}th,td{border-color:#999;color:#000}.grid{display:none}.box{background:#fff;color:#000}}
-</style></head><body><header><h1>Teryx EV · Wiring aid</h1><span class="buildlbl" style="color:#5f6368;font-size:11px;margin-left:10px;white-space:nowrap">Build 1 · bfb307d · Oct 21 8:29 PM CT</span><nav id="nav"></nav><button onclick="print()">Print</button><a href="dash.html" style="color:var(--mut);font-size:13px">Dash</a><a href="checklist.html" style="color:var(--mut);font-size:13px;margin-left:10px">Checklist</a></header>
+.n rect{fill:#fff;stroke:#000}.n text,.wl{fill:#000;stroke:none}.n.r text.t0,.wl.r,.bad{fill:#c00;color:#c00}.w{stroke:#000}.w.r,.n.r rect{stroke:#c00}.jd{fill:#000}th,td{border-color:#999;color:#000}.grid{display:none}.box{background:#fff;color:#000}}
+</style></head><body><header><h1>Teryx EV · Wiring aid</h1><span class="buildlbl" style="color:#5f6368;font-size:11px;margin-left:10px;white-space:nowrap">dev build · ac94ea4+</span><nav id="nav"></nav><button onclick="print()">Print</button><a href="dash.html" style="color:var(--mut);font-size:13px">Dash</a><a href="checklist.html" style="color:var(--mut);font-size:13px;margin-left:10px">Checklist</a></header>
 <main id="m"></main><script>// Teryx EV wiring aid data. Status: S=SOURCED (docs/Config.h), P=PROPOSED, U=UNVERIFIED. Red = P or U.
 // Proposed wire colour code (PROPOSED, none of these colours are in the docs except the BICM harness):
 window.COLORS={"+12V":"RD","12V sw":"RD/WH","GND":"BK","+5V":"OR","3V3":"OR/WH","CAN-H":"YE","CAN-L":"GN","signal":"BU","enable/heartbeat":"VT","HV+":"OR cable (HV)","HV-":"OR cable + BK tape"};
@@ -178,9 +178,33 @@ const NS="http://www.w3.org/2000/svg",isR=s=>s!=="S";
 function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e}
 function draw(pg,svg,thumb){svg.setAttribute("viewBox",`0 0 ${pg.w} ${pg.h}`);const N={};pg.nodes.forEach(n=>N[n[0]]=n);
  const cx=n=>[n[2]+n[4]/2,n[3]+n[5]/2];
- pg.wires.forEach(([a,b,l,r])=>{const A=N[a],B=N[b];if(!A||!B)return;let[x1,y1]=cx(A),[x2,y2]=cx(B);
-  const p=Math.abs(x2-x1)>Math.abs(y2-y1)?`M${A[2]+(x2>x1?A[4]:0)} ${y1} H${(x1+x2)/2} V${y2} H${B[2]+(x2>x1?0:B[4])}`:`M${x1} ${A[3]+(y2>y1?A[5]:0)} V${(y1+y2)/2} H${x2} V${B[3]+(y2>y1?0:B[5])}`;
-  el("path",{d:p,class:"w"+(r?" r":"")},svg);if(l&&!thumb){const t=el("text",{x:(x1+x2)/2+4,y:(y1+y2)/2-4,class:"wl"+(r?" r":"")},svg);t.textContent=l+(r?" (UNVERIFIED)":"")}});
+ // Drawing standard (Adam, Build 2): wires that cross without connecting get a HOP arc on the horizontal wire;
+ // a real junction (two wires leaving the same terminal and splitting) gets a FILLED DOT. No bare 4-way crossings.
+ const W=[];pg.wires.forEach(([a,b,l,r])=>{const A=N[a],B=N[b];if(!A||!B)return;let[x1,y1]=cx(A),[x2,y2]=cx(B);
+  const pts=Math.abs(x2-x1)>Math.abs(y2-y1)?[[A[2]+(x2>x1?A[4]:0),y1],[(x1+x2)/2,y1],[(x1+x2)/2,y2],[B[2]+(x2>x1?0:B[4]),y2]]:[[x1,A[3]+(y2>y1?A[5]:0)],[x1,(y1+y2)/2],[x2,(y1+y2)/2],[x2,B[3]+(y2>y1?0:B[5])]];
+  W.push({a,b,l,r,pts,x1,y1,x2,y2,hops:[]})});
+ // unrelated wires must never run on top of each other (reads as one wire): nudge the movable middle run
+ const ovl=(p,q,r,t)=>{const H=p[1]===q[1]&&r[1]===t[1]&&p[1]===r[1],V=p[0]===q[0]&&r[0]===t[0]&&p[0]===r[0];if(!H&&!V)return false;const c=H?0:1;
+  return Math.min(Math.max(p[c],q[c]),Math.max(r[c],t[c]))-Math.max(Math.min(p[c],q[c]),Math.min(r[c],t[c]))>1};
+ const clash=(w,lim)=>W.slice(0,lim).some(o=>![o.a,o.b].some(x=>x===w.a||x===w.b)&&[0,1,2].some(k=>[0,1,2].some(m=>ovl(w.pts[k],w.pts[k+1],o.pts[m],o.pts[m+1]))));
+ W.forEach((w,j)=>{const c=w.pts[1][0]===w.pts[2][0]?0:1,base=w.pts[1][c];for(let t=1;t<9&&clash(w,j);t++){const d=(t%2?1:-1)*12*Math.ceil(t/2);w.pts[1][c]=base+d;w.pts[2][c]=base+d;}});
+ svg._W=W;
+ const segs=w=>w.pts.slice(1).map((q,i)=>({p:w.pts[i],q,h:Math.abs(w.pts[i][1]-q[1])<1e-6&&Math.abs(w.pts[i][0]-q[0])>1e-6,v:Math.abs(w.pts[i][0]-q[0])<1e-6&&Math.abs(w.pts[i][1]-q[1])>1e-6,i})),M=6,R=6,dots=[];
+ const inside=(v,a,b,m)=>v>Math.min(a,b)+m&&v<Math.max(a,b)-m;
+ W.forEach((wi,i)=>W.forEach((wj,j)=>{if(i===j)return;const share=wi.a===wj.a||wi.a===wj.b||wi.b===wj.a||wi.b===wj.b;
+  segs(wi).filter(s=>s.h).forEach(H=>segs(wj).filter(s=>s.v).forEach(V=>{const x=V.p[0],y=H.p[1];
+   if(inside(x,H.p[0],H.q[0],M)&&inside(y,V.p[1],V.q[1],M))wi.hops.push([H.i,x]);                 // true crossing: hop
+   else if(inside(x,H.p[0],H.q[0],M)&&(Math.abs(V.p[1]-y)<1e-6||Math.abs(V.q[1]-y)<1e-6)){if(share)dots.push([x,y]);else wi.hops.push([H.i,x]);}   // T: junction only if same terminal
+  }))}));
+ // overlapping runs from a shared terminal that split = real junction (filled dot at the split)
+ W.forEach((wi,i)=>W.forEach((wj,j)=>{if(j<=i)return;if(!(wi.a===wj.a||wi.b===wj.b||wi.a===wj.b||wi.b===wj.a))return;
+  for(let k=1;k<3;k++){const P=wi.pts[k];if(wj.pts.some((Q,m)=>m>0&&m<3&&Math.abs(Q[0]-P[0])<1e-6&&Math.abs(Q[1]-P[1])<1e-6)&&JSON.stringify(wi.pts[k+1])!==JSON.stringify(wj.pts[k+1]))dots.push(P)}}));
+ W.forEach(w=>{let d=`M${w.pts[0][0]} ${w.pts[0][1]}`;w.pts.slice(1).forEach((q,i)=>{const p=w.pts[i];
+   const hs=w.hops.filter(h=>h[0]===i).map(h=>h[1]).filter((x,k,a)=>a.indexOf(x)===k),dir=q[0]>=p[0]?1:-1;hs.sort((u,v)=>(u-v)*dir);
+   hs.forEach(x=>{d+=` L${x-R*dir} ${p[1]} A${R} ${R} 0 0 ${dir>0?1:0} ${x+R*dir} ${p[1]}`});d+=` L${q[0]} ${q[1]}`});
+  el("path",{d,class:"w"+(w.r?" r":"")},svg);if(w.l&&!thumb){const t=el("text",{x:(w.x1+w.x2)/2+4,y:(w.y1+w.y2)/2-4,class:"wl"+(w.r?" r":"")},svg);t.textContent=w.l+(w.r?" (UNVERIFIED)":"")}});
+ const seen={};dots.forEach(([x,y])=>{const k=x+","+y;if(seen[k])return;seen[k]=1;el("circle",{cx:x,cy:y,r:4.5,class:"jd"},svg)});
+ svg.dataset.hops=W.reduce((s,w)=>s+w.hops.length,0);svg.dataset.dots=Object.keys(seen).length;
  pg.nodes.forEach(n=>{const[id,lab,x,y,w,h,s,k]=n,hd=k==="hdr";const g=el("g",{class:"n"+(hd?" h":"")+(isR(s)&&!hd?" r":"")+(k&&!hd?" l":"")},svg);
   el("rect",{x,y,width:w,height:h},g);const L=lab.split("|");if(isR(s)&&!hd&&!thumb)L[0]+=s==="P"?"  [PROPOSED]":"  [UNVERIFIED]";
   L.forEach((s2,i)=>{const t=el("text",{x:x+8,y:y+18+i*16,class:"t"+i},g);t.textContent=s2});
@@ -199,7 +223,7 @@ function render(){const id=location.hash.slice(1)||"overview",pg=PAGES.find(p=>p
  const svg=m.querySelector("svg");draw(pg,svg);const z=panzoom(svg,pg),r=svg.getBoundingClientRect();
  zi.onclick=()=>z.zoom(.75,r.left+r.width/2,r.top+r.height/2);zo.onclick=()=>z.zoom(1.33,r.left+r.width/2,r.top+r.height/2);zr.onclick=z.reset;
  if(pg.id==="overview"){const g=document.createElement("div");g.className="grid";PAGES.slice(1).forEach(p=>{const a=document.createElement("a");a.className="th";a.href="#"+p.id;a.innerHTML=`<b>${p.title} ⤢</b>`;const s=el("svg",{},a);draw(p,s,1);g.appendChild(a)});m.appendChild(g);
-  m.insertAdjacentHTML("beforeend",`<div class="box"><b>Proposed wire colour code</b> <span class="bad">PROPOSED — not in the docs</span> (only the BICM harness colours are sourced): `+Object.entries(COLORS).map(([k,v])=>`${k} = ${v}`).join(" · ")+`</div><div class="box"><b>Conflicts found (fix before wiring)</b><ul>${CONFLICTS.map(c=>`<li>${c}</li>`).join("")}</ul></div>`)}
+  m.insertAdjacentHTML("beforeend",`<div class="box"><b>How to read these drawings</b>: wires that cross without connecting have a small <b>hop</b> (arc); a <b>filled dot</b> is a real junction (same terminal). No dot = no connection.</div><div class="box"><b>Proposed wire colour code</b> <span class="bad">PROPOSED — not in the docs</span> (only the BICM harness colours are sourced): `+Object.entries(COLORS).map(([k,v])=>`${k} = ${v}`).join(" · ")+`</div><div class="box"><b>Conflicts found (fix before wiring)</b><ul>${CONFLICTS.map(c=>`<li>${c}</li>`).join("")}</ul></div>`)}
  m.insertAdjacentHTML("beforeend",`<h3>Parts &amp; connections (from → to)</h3><div class="tw"><table><tr><th>From</th><th>To</th><th>Signal</th><th>Gauge</th><th>Colour</th><th>Notes</th><th>Status</th></tr>${pg.net.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td class="${r[3]!=="factory"&&r[4]!=="—"?"bad":""}">${r[4]}${r[3]!=="factory"&&r[4]!=="—"?" (PROPOSED)":" (SOURCED)"}</td><td>${r[5]}</td><td class="${isR(r[6])?"bad":""}">${{S:"SOURCED",P:"PROPOSED",U:"UNVERIFIED"}[r[6]]}</td></tr>`).join("")}</table></div>`);scrollTo(0,0)}
 onhashchange=render;render();
 </script></body></html>

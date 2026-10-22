@@ -150,6 +150,47 @@ with sync_playwright() as p:
     J("document.getElementById('cparkb').checked=true"); pg.wait_for_timeout(600)
     ok('PARK-CONTACT-DISAGREE' in J("document.getElementById('pkdet').textContent"), 'contact B open: PARK-CONTACT-DISAGREE shown')
     J("document.getElementById('cparkb').checked=false;document.getElementById('cparkclr').click()")
+    # ---- Build 2: park control, false CELL-COUNT/BAD from navigation, brake-to-wake, night dim
+    J("document.getElementById('cparkb').checked=false"); pg.wait_for_timeout(300)
+    p0 = J("document.getElementById('cpark').checked"); J("document.getElementById('hpark').click()"); pg.wait_for_timeout(300)
+    ok(J("document.getElementById('cpark').checked") != p0 and 'Park' in J("document.getElementById('hpark').textContent"), 'header Park button toggles the parking brake (visible set/release)')
+    J("document.getElementById('hpark').click()"); pg.wait_for_timeout(300)
+    ok(pg.locator(D + '[data-sc="park"]').count() == 1 and 'PARK' in pg.inner_text(D + '[data-sc="park"]').upper(), 'dash sim panel: Park brake set/release button')
+    J("simCmd('reset')"); pg.wait_for_timeout(2500)
+    F0 = J("(S.faults|0)&2")
+    # stuck drag: a touch that starts on a cell bar (edit off) and drags to the top of the screen while scrolling the menus
+    J("""(()=>{const el=document.querySelector('.cell[data-b="0"]');const r=el.getBoundingClientRect();
+      el.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,isPrimary:true,pointerId:7,clientX:r.left+2,clientY:r.top+5}));
+      for(let i=0;i<20;i++)document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,isPrimary:true,pointerId:7,clientX:300,clientY:-500}));
+      document.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true,pointerId:7}));})()""")
+    for _ in range(6): pg.mouse.move(300, 50); pg.mouse.wheel(0, 600); pg.mouse.move(300, 900); pg.wait_for_timeout(150)
+    J("document.querySelectorAll('[data-s2]').forEach(x=>x.scrollIntoView&&x.scrollIntoView())"); pg.wait_for_timeout(2500)
+    ok(F0 == 0 and J("(S.faults|0)&2") == 0, 'scrolling / pointer moves over the cell bars and menus: no CELL-COUNT/BAD fault')
+    J("document.getElementById('celledit').checked=true;document.getElementById('celledit').dispatchEvent(new Event('change'))")
+    v = J("""(()=>{const el=document.querySelector('.cell[data-b="0"]');const r=el.getBoundingClientRect();
+      el.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,isPrimary:true,pointerId:8,clientX:r.left+2,clientY:r.top+5}));
+      document.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true,pointerId:8}));
+      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,isPrimary:true,pointerId:8,clientX:300,clientY:-500}));
+      return document.getElementById('bro0').textContent})()""")
+    pg.wait_for_timeout(1500)
+    ok(J("(S.faults|0)&2") == 0, 'edit on: drag tops out at 4.30 V and a cancelled drag stops following the pointer (no CELL-COUNT/BAD) ' + str(v))
+    J("document.getElementById('celledit').checked=false;document.getElementById('celledit').dispatchEvent(new Event('change'));simCmd('reset')"); pg.wait_for_timeout(1500)
+    # brake-to-wake (PROPOSED)
+    J("if(keyOn)document.getElementById('key').click();document.getElementById('cpark').checked=true;document.getElementById('cneut').checked=true;document.getElementById('cpark').dispatchEvent(new Event('change'))"); pg.wait_for_timeout(800)
+    J("setSl('cbrk',100)"); pg.wait_for_timeout(400); k1 = J("keyOn"); pg.wait_for_timeout(1600); k2 = J("keyOn")
+    ok(k1 is False and k2 is True, 'brake-to-wake: full brake held ≈1 s turns the key on (not instantly)')
+    J("document.getElementById('key').click();setSl('cbrk',0)"); pg.wait_for_timeout(300)
+    J("document.getElementById('cpark').checked=false;document.getElementById('cpark').dispatchEvent(new Event('change'));setSl('cbrk',100)"); pg.wait_for_timeout(2000)
+    ok(J("keyOn") is False, 'brake-to-wake still refused when precharge is blocked (park released)')
+    J("setSl('cbrk',0);document.getElementById('cpark').checked=true;document.getElementById('cpark').dispatchEvent(new Event('change'))")
+    ok(J("document.getElementById('dpin').checked") is False, 'PIN to drive: optional, off by default')
+    # night toggle + dim
+    J("document.querySelector('#dashHost [data-f=\"nightb\"]').click()"); pg.wait_for_timeout(200)
+    ok(J("document.querySelector('#dashHost .tdash').classList.contains('night')"), 'Night mode is a toggle')
+    J("const r=document.querySelector('#dashHost [data-f=\"dimr\"]');r.value=40;r.dispatchEvent(new Event('input'))"); pg.wait_for_timeout(200)
+    ok('0.4' in J("document.querySelector('#dashHost .tdash').style.filter"), 'Night dim slider sets the screen level (40 %)')
+    J("document.querySelector('#dashHost [data-f=\"nightb\"]').click()"); pg.wait_for_timeout(200)
+    ok(J("document.querySelector('#dashHost .tdash').style.filter") == '', 'Night off: full brightness')
     ok(not errs, 'no page errors ' + '; '.join(errs[:3]))
     # dash.html real mode: no sim panel; ?src=sim: panel present
     d = b.new_page(viewport={'width': 1366, 'height': 1024}); d.goto((root / 'dash.html').as_uri() + '?src=none'); d.wait_for_timeout(500)

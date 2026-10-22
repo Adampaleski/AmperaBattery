@@ -10,7 +10,7 @@ const CSS=`
  border-radius:18px;padding:18px 26px 20px;overflow:hidden;user-select:none;aspect-ratio:16/7;min-height:420px;display:flex;flex-direction:column;gap:12px}
 .tdash.full{border-radius:0;aspect-ratio:auto;height:100vh;min-height:0;padding:1.5vh 2vw}
 .tdash.full .xl{font-size:min(150px,24vh)}.tdash.full .lg{font-size:min(64px,11vh)}.tdash.full .md{font-size:min(34px,6vh)}.tdash.full .ana svg{max-height:42vh}.tdash.full .cell .v{font-size:min(24px,4.2vh)}.tdash.full .main{gap:1vh 20px}.tdash.full .col{gap:1.2vh}
-.tdash.night{--tx:#c9c9cf;--mut:#76767c;--dim:#3a3a3e;--card:#060607;filter:brightness(.78)}
+.tdash.night{--tx:#c9c9cf;--mut:#76767c;--dim:#3a3a3e;--card:#060607}
 .tdash .top{display:flex;align-items:center;gap:10px;min-height:40px}
 .tdash .tt{display:flex;gap:10px;flex:1;flex-wrap:wrap}.tdash .tt i{width:34px;height:34px;display:inline-grid;place-items:center;opacity:.16;transition:opacity .2s}
 .tdash .tt i.on{opacity:1}.tdash .tt svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -160,7 +160,7 @@ const IC={ // simple line icons
  car:'<path d="M3 16v-4l2-5h14l2 5v4zM3 16v2M21 16v2"/><circle cx="7.5" cy="13" r="1"/><circle cx="16.5" cy="13" r="1"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
  disp:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',wire:'<path d="M4 6h6v4h4v4h6M4 18h4"/><circle cx="4" cy="6" r="1.5"/><circle cx="20" cy="14" r="1.5"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'};
 const TT=[['turnL','g','Left turn'],['d4wd','a','4WD engaged (status input UNVERIFIED)'],['diff','r','Diff locked (actuator UNVERIFIED)'],['high','b','High beam'],['hazard','r','Hazard'],['fault','r','BMS fault'],['hv','a','HV contactors open'],['batt','a','Low cell'],['temp','r','Pack hot'],['limp','a','Limp / derate'],['regen','a','Regen off'],['imb','a','LEM imbalance'],['link','a','No data'],['lights','g','Lights'],['fan','b','Cooling fan'],['seat','a','Seat heater'],['pump','b','Kelly coolant pump on'],['coolant','r','Coolant warning (no live source yet)'],['alarm','r','Alarm'],['turnR','g','Right turn']];
-const STY=['digital','analog','minimal','night'];
+const STY=['digital','analog','minimal'];   // Night is a separate toggle + dim level (Adam, Build 2)
 const ASSUMED_WHMI=350;           // PROPOSED fallback, docs/DASH.md
 const ASSUMED_PACK_KWH=36*3.6*180/1000; // SIM-ASSUMED 180 Ah (4 × 45 Ah) × 36 × 3.6 V
 const RPM_PER_MPH=8.75*1056/(Math.PI*24/12); // ≈122.5 RPM/mph: 16/32 chain × 4.375 diff = 8.75 (SOURCED) on 24" stock tires (SOURCED: Adam)
@@ -203,6 +203,7 @@ function create(root,opt){
   const sim=opt.simPanel||null;
   const simHtml=!sim?'':`<div class="simp${localStorage.getItem('teryxSimPanelCol')==='1'?' col':''}" data-f="simp"><div class="sh"><span>SIMULATOR · fake inputs, not the Teryx</span><button data-f="simcol">${localStorage.getItem('teryxSimPanelCol')==='1'?'Show ▾':'Hide ▴'}</button></div>
     <div class="sb"><div class="sr">${sim.hostKey?'':'<button data-sc="key" data-f="skey">Key: OFF</button><button data-sc="plug" data-f="splug">Plug in</button>'}
+      <button data-sc="park" data-f="spark" class="pkb" title="Parking brake (2 contacts + Kelly Foot_SW interlock): Kelly disabled while set">Ⓟ Park brake</button><button data-sc="neut" data-f="sneut" title="F/N/R selector">F/N/R</button>
       <label>Throttle <input type="range" min="0" max="100" value="0" data-sv="thr"><b data-f="sv_thr">0 %</b></label>
       <label>Brake <input type="range" min="0" max="100" value="0" data-sv="brk"><b data-f="sv_brk">0 %</b></label>
       <label>Grade <input type="range" min="-20" max="20" step="0.5" value="0" data-sv="grade"><b data-f="sv_grade">0 %</b></label>
@@ -283,6 +284,7 @@ function create(root,opt){
       <div class="k">Pump: PROPOSED Bosch 12 V pump on the stock radiator, on whenever the key is on. Fan: PROPOSED relay, auto at ~40 °C. No flow or coolant-temp sensor yet, so those read —.</div></section>
      <section data-s2="veh"><h3>Vehicle settings</h3><div class="note">Tire 24 in (SOURCED: Adam, stock tires). At the PROPOSED 6000 RPM High cap the top speed is ≈49 mph; 55 mph would need ≈6740 RPM. Top speed falls as the pack drains (SOURCED: Sparky, back-EMF 0.026 V/RPM): base speed ≈ pack V ÷ 0.026 = ≈5680 RPM (≈46 mph) at 147.6 V full, ≈5120 RPM (≈42 mph) at 133 V nominal, ≈4570 RPM (≈37 mph) at the 118.8 V low cut; above base speed the Kelly must field-weaken, up to the 6000 RPM cap (≈49 mph). mph from the 24in tire and 8.75 ratio; sag under load lowers it further (not modelled). Total ratio 8.75 = sprockets 16T/32T 2.0:1 (SOURCED: cash ledger) × diff 4.375:1 (SOURCED: 2008 owner's manual).</div><div data-f="mveh"></div></section>
      <section data-s2="disp"><h3>Display</h3><div class="k">Cluster style</div><div class="row" data-f="sty">${STY.map(s=>`<button class="mb" data-s="${s}">${s[0].toUpperCase()+s.slice(1)}</button>`).join('')}</div>
+      <div class="row"><button class="mb" data-f="nightb">Night mode: off</button><span class="k">Dim</span><input type="range" min="20" max="100" step="5" data-f="dimr" aria-label="Night dim level" style="width:160px"><b data-f="dimv">60 %</b><span class="k"><span class="tag">screen brightness while Night is on</span></span></div>
       <div class="row"><span class="k">Sleep while charging after</span><input type="number" min="10" max="3600" step="10" data-f="msl"><span class="k">s <span class="tag">PROPOSED 120 s</span></span></div>
       <div class="k">Wakes on tap, brake, key, door/button input, charge fault or charge complete.</div>
       ${opt.sourceUI?`<div class="k">Data source</div><div class="row" data-f="srcs"><button class="mb" data-src="sim">Simulator</button><button class="mb" data-src="http">HTTP poll</button><button class="mb" data-src="ws">WebSocket</button><button class="mb" data-src="none">None</button></div>
@@ -299,7 +301,12 @@ function create(root,opt){
   const D=root.firstElementChild,F=n=>D.querySelector(`[data-f="${n}"]`);
   let style=localStorage.getItem('teryxDashStyle')||'digital',ack=null,lastT=0,trip=JSON.parse(localStorage.getItem('teryxDashTrip')||'null')||{mi:0,kwh:0,reg:0},win=[];
   const setStyle=s=>{style=s;STY.forEach(x=>D.classList.toggle(x,x===s));D.querySelectorAll('[data-s]').forEach(b=>b.classList.toggle('on',b.dataset.s===s));localStorage.setItem('teryxDashStyle',s);};
-  setStyle(STY.includes(style)?style:'digital');
+  let night=localStorage.getItem('teryxDashNight')==='1'||style==='night',dimPct=+localStorage.getItem('teryxDashDim')||60;
+  const setNight=(on,pct)=>{night=!!on;if(pct!=null)dimPct=Math.max(20,Math.min(100,+pct));D.classList.toggle('night',night);D.style.filter=night?`brightness(${dimPct/100})`:'';
+    localStorage.setItem('teryxDashNight',night?'1':'0');localStorage.setItem('teryxDashDim',String(dimPct));
+    const b=F('nightb');if(b){b.textContent='Night mode: '+(night?'ON':'off');b.classList.toggle('on',night);F('dimr').value=dimPct;F('dimv').textContent=dimPct+' %';}};
+  setStyle(STY.includes(style)?style:'digital');setNight(night);
+  F('nightb').onclick=()=>setNight(!night);F('dimr').oninput=e=>setNight(true,e.target.value);
   D.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>setStyle(b.dataset.s));
   F('trst').onclick=()=>{trip={mi:0,kwh:0,reg:0};win=[];localStorage.setItem('teryxDashTrip',JSON.stringify(trip));};
   F('ack').onclick=()=>{ack=curFaultKey;F('ban').classList.remove('on');};
@@ -447,6 +454,8 @@ function create(root,opt){
     var simCyc=null,simPaint=s=>{const Dr=(s&&s.drive)||{},B=(s&&s.bms)||{},I=(s&&s.simInfo)||{},n=performance.now();
       [['thr',Dr.throttlePct],['brk',Dr.brakePct],['grade',I.gradePct]].forEach(([k,v])=>{const e=D.querySelector(`[data-sv="${k}"]`);if(num(v)&&!(n-(drag[k]||0)<600)){e.value=v;F('sv_'+k).textContent=(+v).toFixed(k==='grade'?1:0)+' %';}});
       D.querySelectorAll('[data-sg]').forEach(b=>b.classList.toggle('on',(I.gear||Dr.gear)===b.dataset.sg));
+      if(F('spark')){const pk=!!I.parkBrake;F('spark').textContent=pk?'Ⓟ PARK BRAKE SET · tap to release':'Park brake released · tap to set';F('spark').classList.toggle('red',pk);F('spark').classList.toggle('on',!pk);
+        F('sneut').textContent=I.neutral?'F/N/R: Neutral · tap for drive':'F/N/R: Drive · tap for neutral';F('sneut').classList.toggle('on',!I.neutral);}
       if(F('skey')){F('skey').textContent=I.key?'Key: ON · tap for off':'Key: OFF · tap for on';F('skey').classList.toggle('on',!!I.key);F('splug').textContent=I.plug?'Unplug':'Plug in';F('splug').classList.toggle('on',!!I.plug);}
       const cy=I.cycles||[];if(F('scyc').childElementCount!==cy.length){F('scyc').innerHTML=cy.map(([k,t])=>`<button data-cy="${k}">${t}</button>`).join('');F('scyc').querySelectorAll('[data-cy]').forEach(b=>b.onclick=()=>{simCyc=b.dataset.cy;send('cyclesel',simCyc);});}
       F('scyc').querySelectorAll('[data-cy]').forEach(b=>b.classList.toggle('on',b.dataset.cy===I.cycleSel));
