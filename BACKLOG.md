@@ -1,5 +1,27 @@
 # Backlog
 
+## Path to first drive (crew review 2026-10-22) — the ONLY CRITICAL items; everything else is LATER
+Tag `[CRITICAL sN]` = CRITICAL, checklist section N (0 gates, 2 shop, 3 buy, 4 firmware/design, 5 bench). Chief: trim CRITICAL to ≈20 that truly block first drive. Moved to LATER: brake-to-wake, phone-key lock, synthetic neutral, Snow/Mud/Sand modes, proportional (analog) regen.
+- [ ] [CRITICAL s0] Gate 0 — 12 V bench (chief): flash on 12 V only; link fault < 200 ms; Kelly config readback: Boost OFF, High Pedal Disable ON, Foot_SW + 3-gear (F/N/R) behaviour, OV cutoff ≈160 V (PROPOSED value, read back and record).
+- [ ] [CRITICAL s0] Gate 1 — sensors (chief): BICM cells within 10 mV of a meter; temp / ID mapping; LEM zero at 2.5 V + dead-LEM detect; pedal tracks; park contacts; e-stop NC2; brake override; clamp kill-A / kill-B test with the Kid (Low) cap engaging when unpowered.
+- [ ] [CRITICAL s0] Gate 2 — one string, wheels up (chief): precharge to 95 %; e-stop; weld check; precharge timeout; turn the safety flags on one at a time. First HV power-up one string at a time (Sparky).
+- [ ] [CRITICAL s0] Gate 3 — four strings (chief): add strings one at a time, each within 1 V of the others; spin; regen direction; coolant flow; fan at 40 °C; 12 V alarm; HV leak detection.
+- [ ] [CRITICAL s0] Gate 4 — first drive (chief): Kid / Low mode, 10 mph, flat ground, spotter.
+- [ ] [CRITICAL s3] Mechanic shop order 1: 1/0 HV leads + crimper (needs Adam OK, never buy).
+- [ ] [CRITICAL s3] Mechanic shop order 2: bus bar + bus bar cover (needs Adam OK).
+- [ ] [CRITICAL s3] Mechanic shop order 3: EV200 mounts + HV component plate (needs Adam OK).
+- [ ] [CRITICAL s3] Mechanic shop order 4: e-stop parts (needs Adam OK).
+- [ ] [CRITICAL s3] Mechanic shop order 5: Kelly coolant loop + fan relay (needs Adam OK).
+- [ ] [CRITICAL s3] Mechanic shop order 6: chain guard + tensioner (needs Adam OK).
+- [ ] [CRITICAL s3] Mechanic shop order 7: pack tie-downs, grommets / loom, ground straps (needs Adam OK).
+- [ ] [CRITICAL s3] Mechanic shop order 8: sealed Teensy enclosure + Hall pedal bracket (needs Adam OK).
+- [ ] [CRITICAL s2] Measure before ordering (Adam): 1/0 lead run lengths (pack → MSD → fuses → EV200 → Kelly), bus bar span + stud size, EV200 / HV plate footprint, chain line + guard clearance, tie-down points, grommet hole diameters, ground-strap runs, Teensy enclosure size, Hall pedal mounting / travel. List per Mechanic's hardware; dimensions UNVERIFIED until measured.
+- [ ] [CRITICAL s4] Volt MSD internal fuse? (Sparky): find out whether the Volt MSD is fused. If it is, use a plain > 500 A disconnect instead (rating UNVERIFIED).
+- [ ] [CRITICAL s4] Branch fuses (Sparky): DC-DC branch fuse 15–20 A; Elcon output fuse 1.25 × max charger current, ≥ 250 VDC rated.
+- [ ] [CRITICAL s4] LEM zero offset (Sparky): store the zero-current offset; fault if the reading is > 5 A off at zero current.
+- [ ] [CRITICAL s4] HV leak / isolation detection (Sparky): add before Gate 3.
+- [ ] [CRITICAL s3] Insulated boots / covers on every HV terminal (Sparky): string fuses stay LIVE with the MSD pulled.
+
 ## Priority list (standing dev routine)
 
 1. [x] Tesla-style restyle + live Diagram tab in tools/bms_sim.html (034a3ae).
