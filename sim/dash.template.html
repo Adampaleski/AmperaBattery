@@ -6,12 +6,13 @@
    and let the browser scale it to fit. Pinch-zoom and pan stay enabled (no maximum-scale / user-scalable=no). */
 (function(){const vp=document.getElementById('vp');function fit(){const sw=Math.min(screen.width,screen.height),lw=Math.max(screen.width,screen.height);
   const port=matchMedia('(orientation: portrait)').matches,W=port?820:1280,dev=port?sw:lw;
-  vp.setAttribute('content',dev<W?'width='+W+',viewport-fit=cover':'width=device-width,initial-scale=1,viewport-fit=cover');}
+  document.documentElement.style.setProperty('--tnk',dev<W?String(W/dev):'1');vp.setAttribute('content',dev<W?'width='+W+',viewport-fit=cover':'width=device-width,initial-scale=1,viewport-fit=cover');}
  fit();addEventListener('orientationchange',()=>setTimeout(fit,50));matchMedia('(orientation: portrait)').addEventListener('change',fit);})();</script>
 <meta name="theme-color" content="#000"><title>Teryx Dash</title>
 <style>html,body{margin:0;background:#000;min-height:100%;overflow:auto;-webkit-text-size-adjust:100%;touch-action:manipulation}
-@media(max-width:900px){#dash .tdash .dock .seatb{flex:1 0 22%}}</style></head><body><a href="wiring.html" style="position:fixed;right:6px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Wiring</a><a href="checklist.html" style="position:fixed;right:52px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Checklist</a>
-<div id="dash"></div><span style="position:fixed;left:6px;top:4px;z-index:99;color:#444;font:11px system-ui;pointer-events:none">@@BUILD_LABEL@@</span>
+#dash .tdash.full{height:calc(100vh - 48px*var(--tnk,1) - env(safe-area-inset-top))}
+@media(max-width:900px){#dash .tdash .dock .seatb{flex:1 0 22%}}</style></head><body>@@TOPNAV@@
+<div id="dash"></div>
 <script>@@VEHICLE_JS@@</script>
 <script>@@DASH_JS@@</script>
 <script>
