@@ -265,21 +265,26 @@ inline int runAll(Result out[kScenarios]) {
     out[n++] = scenario("charge taper near limit (3.93 V)", "current < max, > 0 <= 0.2 s", 200, true,
         [](World &w) { w.cell[B_M2][0] = 3.93f; },
         [](World &w) { const auto &o = w.core.out(); return o.chargeEnable && o.chargeA < 4.9f && o.chargeA > 0.9f; });
-    // Precharge timeout: resistor/relay open from the start; 3 tries + 2 x 30 s waits -> lockout.
+    // Precharge timeout: resistor/relay open. ONE fail -> PRECHARGE-FAIL lockout (no auto retry, chief 2026-10-22);
+    // stays locked with key on; key cycle clears.
     {
         static World w;
         w.reset();
         w.preOpenCircuit = true; w.keyOn = true;
-        Result r{"precharge timeout (resistor open)", "lockout <= 75 s, main+ never closed", 75000, -1, false, ""};
+        Result r{"precharge timeout (resistor open)", "lockout after ONE fail (precharge start ~2 s + 3 s) <= 5.5 s, no retry, key cycle clears", 5500, -1, false, ""};
         bool mainEver = false;
-        for (uint32_t t = 0; t < 90000; t += 10) {
+        for (uint32_t t = 0; t < 10000; t += 10) {
             w.step(10);
             if (w.core.out().mainPos) mainEver = true;
             if (w.core.out().state == CState::Lockout) { r.gotMs = static_cast<int32_t>(w.now); break; }
         }
-        r.pass = r.gotMs >= 0 && r.gotMs <= 75000 && !mainEver && w.allOpen();
-        snprintf(r.note, sizeof r.note, "state=%s main+ever=%d faults=0x%03X", stateName(w.core.out().state),
-                 mainEver, static_cast<unsigned>(w.core.out().latched));
+        bool reTried = false;   // key held on 60 s: must stay locked, precharge never re-energised
+        for (uint32_t t = 0; t < 60000; t += 10) { w.step(10); if (w.core.out().state != CState::Lockout || w.core.out().pre || w.core.out().mainPos) reTried = true; }
+        const bool latched = w.core.out().latched & F_PRECHARGE;
+        w.keyOn = false; w.run(500); const bool cleared = w.core.out().state == CState::Open;
+        r.pass = r.gotMs >= 0 && r.gotMs <= 5500 && !mainEver && !reTried && latched && cleared;
+        snprintf(r.note, sizeof r.note, "main+ever=%d retried=%d PRECHARGE-FAIL=%d keycycle->%s", mainEver, reTried,
+                 latched, stateName(w.core.out().state));
         out[n++] = r;
     }
     // Normal key-off must NOT look welded (bus bleeds down through the controller).

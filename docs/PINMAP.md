@@ -31,58 +31,58 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 |---|---|---|---|---|---|---|
 | 0 |  | CAN2 RX -> SN65 #2 (string 2) | C03 |  | SOURCED | FlexCanCompat.h:44 |
 | 1 |  | CAN2 TX -> SN65 #2 | C03 |  | SOURCED | FlexCanCompat.h:44 |
-| 2 | OUT5 | OUT5 spare output (pinMode LOW at boot, BmsApp.cpp) |  |  | SOURCED | Config.h:181 |
-| 3 | OUT6 | OUT6 spare output |  |  | SOURCED | Config.h:182 |
-| 4 | A_THR_ALIVE | A throttle heartbeat 1 kHz -> U4 -> U1 B1 | S11 |  | SOURCED | Config.h:257 |
-| 5 | SEAT_DRV | seat heater driver PWM (OUT7) |  | LATER | PROPOSED | Config.h:211 |
-| 5 | OUT7 | alias of SEAT_DRV |  |  | SOURCED | Config.h:188 |
-| 6 | SEAT_PAS | seat heater passenger PWM (OUT8) |  | LATER | PROPOSED | Config.h:212 |
-| 6 | OUT8 | alias of SEAT_PAS |  |  | SOURCED | Config.h:189 |
-| 7 | RAD_FAN | radiator fan relay coil (OUT9) |  | LATER | PROPOSED | Config.h:213 |
-| 7 | OUT9 | alias of RAD_FAN |  |  | PROPOSED | Config.h:213 |
-| 8 | COOL_PUMP | coolant pump PWM (OUT10) |  | LATER | PROPOSED | Config.h:214 |
-| 8 | OUT10 | alias of COOL_PUMP |  |  | PROPOSED | Config.h:214 |
-| 9 | ACT4WD_IN1 | 4WD actuator H-bridge IN1 |  | LATER | PROPOSED | Config.h:215 |
-| 10 | ACT4WD_IN2 | 4WD actuator H-bridge IN2 |  | LATER | PROPOSED | Config.h:216 |
-| 11 | MAIN_POS | EV200 B+ coil FET gate (OUT1) | S01 |  | SOURCED | Config.h:194 |
-| 11 | OUT1 | alias of MAIN_POS | S01 |  | SOURCED | Config.h:175 |
-| 12 | PRECHARGE | precharge relay coil FET gate (OUT2) | S02 |  | SOURCED | Config.h:195 |
-| 12 | OUT2 | alias of PRECHARGE | S02 |  | SOURCED | Config.h:176 |
-| 13 | LED | on-board LED (no wire) |  |  | SOURCED | Config.h:167 |
-| 14 | CUR_LO | LEM A DHAB pin 4 (ch1 ±20 A) via 10k/18k + 100 nF | S05 |  | SOURCED | Config.h:199 |
-| 15 | CUR_HI | LEM A DHAB pin 3 (ch2 -420..+230 A) via 10k/18k + 100 nF | S06 |  | SOURCED | Config.h:200 |
+| 2 | OUT5 | OUT5 spare output (pinMode LOW at boot, BmsApp.cpp) |  |  | SOURCED | Config.h:180 |
+| 3 | OUT6 | OUT6 spare output |  |  | SOURCED | Config.h:181 |
+| 4 | A_THR_ALIVE | A throttle heartbeat 1 kHz -> U4 -> U1 B1 | S11 |  | SOURCED | Config.h:256 |
+| 5 | SEAT_DRV | seat heater driver PWM (OUT7) |  | LATER | PROPOSED | Config.h:210 |
+| 5 | OUT7 | alias of SEAT_DRV |  |  | SOURCED | Config.h:187 |
+| 6 | SEAT_PAS | seat heater passenger PWM (OUT8) |  | LATER | PROPOSED | Config.h:211 |
+| 6 | OUT8 | alias of SEAT_PAS |  |  | SOURCED | Config.h:188 |
+| 7 | RAD_FAN | radiator fan relay coil (OUT9) |  | LATER | PROPOSED | Config.h:212 |
+| 7 | OUT9 | alias of RAD_FAN |  |  | PROPOSED | Config.h:212 |
+| 8 | COOL_PUMP | coolant pump PWM (OUT10) |  | LATER | PROPOSED | Config.h:213 |
+| 8 | OUT10 | alias of COOL_PUMP |  |  | PROPOSED | Config.h:213 |
+| 9 | ACT4WD_IN1 | 4WD actuator H-bridge IN1 |  | LATER | PROPOSED | Config.h:214 |
+| 10 | ACT4WD_IN2 | 4WD actuator H-bridge IN2 |  | LATER | PROPOSED | Config.h:215 |
+| 11 | MAIN_POS | EV200 B+ coil FET gate (OUT1) | S01 |  | SOURCED | Config.h:193 |
+| 11 | OUT1 | alias of MAIN_POS | S01 |  | SOURCED | Config.h:174 |
+| 12 | PRECHARGE | precharge relay coil FET gate (OUT2) | S02 |  | SOURCED | Config.h:194 |
+| 12 | OUT2 | alias of PRECHARGE | S02 |  | SOURCED | Config.h:175 |
+| 13 | LED | on-board LED (no wire) |  |  | SOURCED | Config.h:166 |
+| 14 | CUR_LO | LEM A DHAB pin 4 (ch1 ±20 A) via 10k/18k + 100 nF | S05 |  | SOURCED | Config.h:198 |
+| 15 | CUR_HI | LEM A DHAB pin 3 (ch2 -420..+230 A) via 10k/18k + 100 nF | S06 |  | SOURCED | Config.h:199 |
 | 16 |  | Serial4 RX4 — UNCONNECTED ON PURPOSE: the gateway is receive-only (Teensy TX17 -> ESP32 GPIO16; ESP32 GPIO17 unused). Never wire anything else here. |  |  | SOURCED | src/HubStatus.cpp:12; GATEWAY.md:5,18 |
 | 17 |  | Serial4 TX4 -> ESP32 GPIO16 (hub UART 115200) | S30 |  | SOURCED | src/HubStatus.cpp:12 |
-| 18 | I2C_SDA | MCP23017 SDA (body expander, LATER) |  | LATER | PROPOSED | Config.h:246 |
-| 19 | I2C_SCL | MCP23017 SCL |  | LATER | PROPOSED | Config.h:247 |
-| 20 | OUT3 | Kelly Low-cap relay FET gate: HIGH = release cap, LOW/dead = capped | S20 |  | SOURCED | Config.h:177; docs/DRIVE_MODES.md |
-| 21 | MAIN_NEG | EV200 B- coil FET gate (OUT4) | S03 |  | SOURCED | Config.h:196 |
-| 21 | OUT4 | alias of MAIN_NEG | S03 |  | SOURCED | Config.h:178 |
-| 22 | CAN1_TX | CAN1 TX -> SN65 #1 (string 1) | C01 |  | SOURCED | Config.h:186 |
-| 23 | CAN1_RX | CAN1 RX | C01 |  | SOURCED | Config.h:187 |
-| 24 | HV_SENSE | optional HV bus divider (HV_ANALOG_ENABLE=0) | S08 | LATER | UNVERIFIED | Config.h:197 |
-| 25 | CUR_VC | LEM A 5 V supply sense (ratiometric) via divider | S07 |  | SOURCED | Config.h:201 |
-| 26 | IS_4WD | BTS7960 #1 current sense |  | LATER | PROPOSED | Config.h:230 |
-| 27 | IS_DIFF | BTS7960 #2 current sense |  | LATER | PROPOSED | Config.h:231 |
-| 28 | ACTDIF_IN1 | diff-lock H-bridge IN1 |  | LATER | PROPOSED | Config.h:217 |
-| 29 | ACTDIF_IN2 | diff-lock H-bridge IN2 |  | LATER | PROPOSED | Config.h:218 |
+| 18 | I2C_SDA | MCP23017 SDA (body expander, LATER) |  | LATER | PROPOSED | Config.h:245 |
+| 19 | I2C_SCL | MCP23017 SCL |  | LATER | PROPOSED | Config.h:246 |
+| 20 | OUT3 | Kelly Low-cap relay FET gate: HIGH = release cap, LOW/dead = capped | S20 |  | SOURCED | Config.h:176; docs/DRIVE_MODES.md |
+| 21 | MAIN_NEG | EV200 B- coil FET gate (OUT4) | S03 |  | SOURCED | Config.h:195 |
+| 21 | OUT4 | alias of MAIN_NEG | S03 |  | SOURCED | Config.h:177 |
+| 22 | CAN1_TX | CAN1 TX -> SN65 #1 (string 1) | C01 |  | SOURCED | Config.h:185 |
+| 23 | CAN1_RX | CAN1 RX | C01 |  | SOURCED | Config.h:186 |
+| 24 | HV_SENSE | optional HV bus divider (HV_ANALOG_ENABLE=0) | S08 | LATER | UNVERIFIED | Config.h:196 |
+| 25 | CUR_VC | LEM A 5 V supply sense (ratiometric) via divider | S07 |  | SOURCED | Config.h:200 |
+| 26 | IS_4WD | BTS7960 #1 current sense |  | LATER | PROPOSED | Config.h:229 |
+| 27 | IS_DIFF | BTS7960 #2 current sense |  | LATER | PROPOSED | Config.h:230 |
+| 28 | ACTDIF_IN1 | diff-lock H-bridge IN1 |  | LATER | PROPOSED | Config.h:216 |
+| 29 | ACTDIF_IN2 | diff-lock H-bridge IN2 |  | LATER | PROPOSED | Config.h:217 |
 | 30 |  | CAN3 RX vehicle bus -> SN65 #5 | C05 |  | SOURCED | FlexCanCompat.h:45 |
 | 31 |  | CAN3 TX vehicle bus | C05 |  | SOURCED | FlexCanCompat.h:45 |
-| 32 | PARK_IN_A | park brake contact 1 (direct GPIO, 10k pull-up, LOW = set) | S16 |  | SOURCED | Config.h:261 (BODY_IO_EXPANDER=1) |
+| 32 | PARK_IN_A | park brake contact 1 (direct GPIO, 10k pull-up, LOW = set) | S16 |  | SOURCED | Config.h:260 (BODY_IO_EXPANDER=1) |
 | 33 |  | CHARGE PLUG-IN detect (opto, 10k pull-up, LOW = plugged; Sparky 2026-10-22). Feeds BmsCore plugIn (chief #4); firmware read = later commit | S41 | CRITICAL | PROPOSED | Config.h:254 |
-| 34 | LIGHT_OE | spare (retired 595 /OE; nothing drives it) |  |  | SOURCED | Config.h:245 |
-| 34 | IN1 | KEY-ON input (12 V key via opto, 10k pull-up, LOW = key on; Sparky 2026-10-22) — reuses IN1 spare (no other free GPIO on A). Firmware read = later commit (chief #4 KSI) | S42 | CRITICAL | PROPOSED | Config.h:171 |
-| -1 | IN2 | IN2 retired (was 16 = Serial4 RX): no free GPIO on A; DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:172 |
-| -1 | IN3 | IN3 retired (was 18 = I2C SDA); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:173 |
-| -1 | IN4 | IN4 retired (was 19 = I2C SCL); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:174 |
-| 35 | LIGHT_DATA | bit-bang DATA -> U4 -> MCP4131 SDI (shared with lights) | S10 |  | PROPOSED | Config.h:235 |
-| 36 | LIGHT_CLK | bit-bang CLK -> U4 -> MCP4131 SCK | S10 |  | PROPOSED | Config.h:236 |
-| 37 | ACT_EN | both BTS7960 enables |  | LATER | PROPOSED | Config.h:229 |
-| 38 | THR_CS | MCP4131 /CS -> U4 | S10 |  | PROPOSED | Config.h:253 |
-| 39 | POS_DIFF | diff actuator pot wiper |  | LATER | PROPOSED | Config.h:220 |
-| 40 | PEDAL_IN_A | throttle pedal wiper (10k/18k + 100 nF) | S14 |  | SOURCED | Config.h:223 |
-| 41 | POS_4WD | 4WD actuator pot wiper |  | LATER | PROPOSED | Config.h:219 |
-| -1 | LIGHT_LATCH | retired (lights on MCP23017) |  |  | SOURCED | Config.h:244 |
+| 34 | LIGHT_OE | spare (retired 595 /OE; nothing drives it) |  |  | SOURCED | Config.h:244 |
+| 34 | IN1 | KEY-ON input (12 V key via opto, 10k pull-up, LOW = key on; Sparky 2026-10-22) — reuses IN1 spare (no other free GPIO on A). Firmware read = later commit (chief #4 KSI) | S42 | CRITICAL | PROPOSED | Config.h:170 |
+| -1 | IN2 | IN2 retired (was 16 = Serial4 RX): no free GPIO on A; DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:171 |
+| -1 | IN3 | IN3 retired (was 18 = I2C SDA); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:172 |
+| -1 | IN4 | IN4 retired (was 19 = I2C SCL); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list) |  | LATER | PROPOSED | Config.h:173 |
+| 35 | LIGHT_DATA | bit-bang DATA -> U4 -> MCP4131 SDI (shared with lights) | S10 |  | PROPOSED | Config.h:234 |
+| 36 | LIGHT_CLK | bit-bang CLK -> U4 -> MCP4131 SCK | S10 |  | PROPOSED | Config.h:235 |
+| 37 | ACT_EN | both BTS7960 enables |  | LATER | PROPOSED | Config.h:228 |
+| 38 | THR_CS | MCP4131 /CS -> U4 | S10 |  | PROPOSED | Config.h:252 |
+| 39 | POS_DIFF | diff actuator pot wiper |  | LATER | PROPOSED | Config.h:219 |
+| 40 | PEDAL_IN_A | throttle pedal wiper (10k/18k + 100 nF) | S14 |  | SOURCED | Config.h:222 |
+| 41 | POS_4WD | 4WD actuator pot wiper |  | LATER | PROPOSED | Config.h:218 |
+| -1 | LIGHT_LATCH | retired (lights on MCP23017) |  |  | SOURCED | Config.h:243 |
 
 ## Teensy B pins
 
@@ -90,33 +90,33 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 |---|---|---|---|---|---|---|
 | 0 |  | CAN2 RX -> SN65 #4 (string 4) | C04 |  | SOURCED | FlexCanCompat.h:44 |
 | 1 |  | CAN2 TX | C04 |  | SOURCED | FlexCanCompat.h:44 |
-| 2 | OUT5 | OUT5 pinMode LOW, no wire |  |  | SOURCED | Config.h:181 |
-| 3 | OUT6 | OUT6 pinMode LOW, no wire |  |  | SOURCED | Config.h:182 |
-| 4 | B_FAULT_OUT | B fault out HIGH=healthy (B_FAULT_PIN_ENABLE=0, disabled) |  | LATER | UNVERIFIED | Config.h:185 |
-| 5 | OUT7 | pinMode LOW, no wire |  |  | SOURCED | Config.h:188 |
-| 6 | OUT8 | pinMode LOW, no wire |  |  | SOURCED | Config.h:189 |
-| 7 | B_THR_ALIVE | B throttle heartbeat 1 kHz -> U1 B2 | S12 |  | SOURCED | Config.h:226 |
-| 11 | OUT1 | pinMode LOW; B never drives a coil (watchdog can only open) |  |  | SOURCED | Config.h:175 |
-| 12 | OUT2 | pinMode LOW, no wire |  |  | SOURCED | Config.h:176 |
-| 13 | LED | on-board LED |  |  | SOURCED | Config.h:167 |
-| 14 | CUR_LO | LEM B DHAB pin 4 | S25 |  | SOURCED | Config.h:199 |
-| 15 | CUR_HI | LEM B DHAB pin 3 | S26 |  | SOURCED | Config.h:200 |
+| 2 | OUT5 | OUT5 pinMode LOW, no wire |  |  | SOURCED | Config.h:180 |
+| 3 | OUT6 | OUT6 pinMode LOW, no wire |  |  | SOURCED | Config.h:181 |
+| 4 | B_FAULT_OUT | B fault out HIGH=healthy (B_FAULT_PIN_ENABLE=0, disabled) |  | LATER | UNVERIFIED | Config.h:184 |
+| 5 | OUT7 | pinMode LOW, no wire |  |  | SOURCED | Config.h:187 |
+| 6 | OUT8 | pinMode LOW, no wire |  |  | SOURCED | Config.h:188 |
+| 7 | B_THR_ALIVE | B throttle heartbeat 1 kHz -> U1 B2 | S12 |  | SOURCED | Config.h:225 |
+| 11 | OUT1 | pinMode LOW; B never drives a coil (watchdog can only open) |  |  | SOURCED | Config.h:174 |
+| 12 | OUT2 | pinMode LOW, no wire |  |  | SOURCED | Config.h:175 |
+| 13 | LED | on-board LED |  |  | SOURCED | Config.h:166 |
+| 14 | CUR_LO | LEM B DHAB pin 4 | S25 |  | SOURCED | Config.h:198 |
+| 15 | CUR_HI | LEM B DHAB pin 3 | S26 |  | SOURCED | Config.h:199 |
 | 16 |  | Serial4 RX (not wired on B) |  |  | ASSUMED | HubStatus.cpp:12 |
 | 17 |  | Serial4 TX (not wired on B; gateway listens to A only) |  |  | ASSUMED | HubStatus.cpp:12 |
-| 20 | OUT3 | pinMode LOW, no wire |  |  | SOURCED | Config.h:177 |
-| 21 | OUT4 | pinMode LOW, no wire |  |  | SOURCED | Config.h:178 |
-| 22 | CAN1_TX | CAN1 TX -> SN65 #3 (string 3) | C02 |  | SOURCED | Config.h:186 |
-| 23 | CAN1_RX | CAN1 RX | C02 |  | SOURCED | Config.h:187 |
-| 24 | HV_SENSE | optional HV sense (no wire) |  | LATER | UNVERIFIED | Config.h:197 |
-| 25 | CUR_VC | LEM B 5 V supply sense | S27 |  | SOURCED | Config.h:201 |
+| 20 | OUT3 | pinMode LOW, no wire |  |  | SOURCED | Config.h:176 |
+| 21 | OUT4 | pinMode LOW, no wire |  |  | SOURCED | Config.h:177 |
+| 22 | CAN1_TX | CAN1 TX -> SN65 #3 (string 3) | C02 |  | SOURCED | Config.h:185 |
+| 23 | CAN1_RX | CAN1 RX | C02 |  | SOURCED | Config.h:186 |
+| 24 | HV_SENSE | optional HV sense (no wire) |  | LATER | UNVERIFIED | Config.h:196 |
+| 25 | CUR_VC | LEM B 5 V supply sense | S27 |  | SOURCED | Config.h:200 |
 | 30 |  | CAN3 RX vehicle bus -> SN65 #6 (stub) | C06 |  | SOURCED | FlexCanCompat.h:45 |
 | 31 |  | CAN3 TX vehicle bus | C06 |  | SOURCED | FlexCanCompat.h:45 |
-| 32 | PARK_IN_B | park brake contact 2 (10k pull-up, LOW = set) | S17 |  | SOURCED | Config.h:265 |
-| 40 | ST_4WD_B | OPTIONAL stock 4WD indicator (not read yet) |  | LATER | PROPOSED | Config.h:224 |
-| 41 | PEDAL_IN_B | throttle pedal wiper (own 10k/18k + 100 nF) | S15 |  | SOURCED | Config.h:225 |
+| 32 | PARK_IN_B | park brake contact 2 (10k pull-up, LOW = set) | S17 |  | SOURCED | Config.h:264 |
+| 40 | ST_4WD_B | OPTIONAL stock 4WD indicator (not read yet) |  | LATER | PROPOSED | Config.h:223 |
+| 41 | PEDAL_IN_B | throttle pedal wiper (own 10k/18k + 100 nF) | S15 |  | SOURCED | Config.h:224 |
 | 9 |  | E-STOP block 3 latch input, 10k pull-up, LOW = released/closed (pin free on B; no firmware const yet — EstopLatch.h not wired, chief #5) | E09 |  | PROPOSED | crew 2026-10-22; docs/ESTOP.md |
 | 26 |  | 12 V LOW ALARM sense (A12) via 47k/10k + 100 nF (pin free on B; no firmware const yet; A has no free analog pin) | S40 |  | PROPOSED | crew 2026-10-22 |
-| 34 | IN1 | KEY-ON mirror (own opto channel, 10k pull-up, LOW = key on) — reuses IN1 spare, pin 34 free on B. Firmware read = later commit | S43 | CRITICAL | PROPOSED | Config.h:171 |
+| 34 | IN1 | KEY-ON mirror (own opto channel, 10k pull-up, LOW = key on) — reuses IN1 spare, pin 34 free on B. Firmware read = later commit | S43 | CRITICAL | PROPOSED | Config.h:170 |
 
 ## ESP32 gateway pins
 

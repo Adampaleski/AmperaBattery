@@ -27,7 +27,7 @@ Watchdog: WDOG3 ~2 s, fed only from `loop()` (`src/Watchdog.cpp`); `setup()` dri
 ## Contactor state machine
 Open -> Precharge (main- + precharge) -> MainClose (main+ on, precharge overlaps 100 ms) -> Closed.
 Order follows Tom de Bree VoltBMSV2.ino 1192-1218 (NEG, PRE, POS, PRE off).
-Precharge: bus >= 95 % of the lowest string after >= 300 ms; timeout 3 s; 2 retries 30 s apart; then **Lockout** (until reboot).
+Precharge: bus >= 95 % of the lowest string after >= 300 ms; timeout 3 s; ONE fail -> PRECHARGE-FAIL fault, everything open, **Lockout** until a key cycle. No automatic retry (chief 2026-10-22).
 Weld check: after any open, if the bus is still > max(30 V, 50 % of lowest string) for 2 s -> WELDED, latched; no re-close for 2 s after any open.
 Drive faults latch until key-off with the cause gone. CHARGE-OV latches until reboot.
 

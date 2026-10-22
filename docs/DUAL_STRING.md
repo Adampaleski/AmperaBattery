@@ -57,8 +57,8 @@ Settings lines (type, then Enter; stored in EEPROM, printed at boot):
 
 ## Precharge (role A, print-only)
 Dead-man on, no faults -> Precharge. Main closes when bus >= 95% of the LOWEST string
-voltage (all 4 strings, local + B) AND >= 300 ms. Not within 3 s -> RetryWait 30 s; max 2
-retries, then Lockout (dead-man off clears). Bus voltage source: `U` simulation, else the
+voltage (all 4 strings, local + B) AND >= 300 ms. Not within 3 s -> PRECHARGE-FAIL fault, everything
+open, Lockout until a key cycle (dead-man off clears). No automatic retry (chief 2026-10-22). Bus voltage source: `U` simulation, else the
 HV divider if `HV_ANALOG_ENABLE=1`, else none (precharge times out = fails safe).
 
 ## HV facts (2026-10-20, see docs/TERYX_MAIN_POWER_PATH.md)

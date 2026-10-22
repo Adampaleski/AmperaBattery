@@ -145,18 +145,17 @@ static_assert(kChargeCurrentDeciA <= 80, "charge current > 8 A: only on a 240 V 
 #endif
 
 // Contactor / precharge timing (coil drive gated by BMS_CAP_CONTACTOR_DRV).
-constexpr uint32_t kPrechargeMinMs        = 200;
-constexpr uint32_t kPrechargeTimeMs       = 5000;
+constexpr uint32_t kPrechargeMinMs        = 300;    // agreed 300 ms (aligned with kPcDualMinMs, chief 2026-10-22)
+constexpr uint32_t kPrechargeTimeMs       = 3000;   // agreed 3 s (was 5000)
 constexpr uint32_t kPrechargeOverlapMs    = 100;
 constexpr float    kPrechargeRatio        = 0.95f;
 constexpr float    kPrechargeMinBusV      = 80.0f;
 // Dual-string precharge (Sparky, 2026-10-17): close main when HV bus >= 95% of
 // the LOWEST string voltage AND precharge has run >= 300 ms; not there within
-// 3 s -> fault; max 2 retries, 30 s apart, then lockout. Print-only state machine.
+// 3 s -> PRECHARGE-FAIL fault, everything open, lockout until key cycle. NO automatic retry
+// (chief 2026-10-22; the 2 retries / 30 s wait were removed). Print-only state machine.
 constexpr uint32_t kPcDualMinMs       = 300;
 constexpr uint32_t kPcDualTimeoutMs   = 3000;
-constexpr uint32_t kPcDualRetryWaitMs = 30000;
-constexpr uint8_t  kPcDualMaxRetries  = 2;
 constexpr float    kCellFaultMinV         = 2.50f;
 constexpr float    kCellFaultMaxV         = 4.25f;
 constexpr float    kHvAdcVref             = 3.3f;

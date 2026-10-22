@@ -54,88 +54,88 @@ pins:
   A:
     - {pin: 0,  const: null,        use: "CAN2 RX -> SN65 #2 (string 2)", wire: C03, status: SOURCED, src: "FlexCanCompat.h:44"}
     - {pin: 1,  const: null,        use: "CAN2 TX -> SN65 #2", wire: C03, status: SOURCED, src: "FlexCanCompat.h:44"}
-    - {pin: 2,  const: OUT5,        use: "OUT5 spare output (pinMode LOW at boot, BmsApp.cpp)", wire: null, status: SOURCED, src: "Config.h:181"}
-    - {pin: 3,  const: OUT6,        use: "OUT6 spare output", wire: null, status: SOURCED, src: "Config.h:182"}
-    - {pin: 4,  const: A_THR_ALIVE, use: "A throttle heartbeat 1 kHz -> U4 -> U1 B1", wire: S11, status: SOURCED, src: "Config.h:257"}
-    - {pin: 5,  const: SEAT_DRV,    use: "seat heater driver PWM (OUT7)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:211", shares: OUT7}
-    - {pin: 5,  const: OUT7,        use: "alias of SEAT_DRV", wire: null, status: SOURCED, src: "Config.h:188", shares: SEAT_DRV}
-    - {pin: 6,  const: SEAT_PAS,    use: "seat heater passenger PWM (OUT8)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:212", shares: OUT8}
-    - {pin: 6,  const: OUT8,        use: "alias of SEAT_PAS", wire: null, status: SOURCED, src: "Config.h:189", shares: SEAT_PAS}
-    - {pin: 7,  const: RAD_FAN,     use: "radiator fan relay coil (OUT9)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:213", shares: OUT9}
-    - {pin: 7,  const: OUT9,        use: "alias of RAD_FAN", wire: null, status: PROPOSED, src: "Config.h:213", shares: RAD_FAN}
-    - {pin: 8,  const: COOL_PUMP,   use: "coolant pump PWM (OUT10)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:214", shares: OUT10}
-    - {pin: 8,  const: OUT10,       use: "alias of COOL_PUMP", wire: null, status: PROPOSED, src: "Config.h:214", shares: COOL_PUMP}
-    - {pin: 9,  const: ACT4WD_IN1,  use: "4WD actuator H-bridge IN1", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:215"}
-    - {pin: 10, const: ACT4WD_IN2,  use: "4WD actuator H-bridge IN2", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:216"}
-    - {pin: 11, const: MAIN_POS,    use: "EV200 B+ coil FET gate (OUT1)", wire: S01, status: SOURCED, src: "Config.h:194", shares: OUT1}
-    - {pin: 11, const: OUT1,        use: "alias of MAIN_POS", wire: S01, status: SOURCED, src: "Config.h:175", shares: MAIN_POS}
-    - {pin: 12, const: PRECHARGE,   use: "precharge relay coil FET gate (OUT2)", wire: S02, status: SOURCED, src: "Config.h:195", shares: OUT2}
-    - {pin: 12, const: OUT2,        use: "alias of PRECHARGE", wire: S02, status: SOURCED, src: "Config.h:176", shares: PRECHARGE}
-    - {pin: 13, const: LED,         use: "on-board LED (no wire)", wire: null, status: SOURCED, src: "Config.h:167"}
-    - {pin: 14, const: CUR_LO,      use: "LEM A DHAB pin 4 (ch1 ±20 A) via 10k/18k + 100 nF", wire: S05, status: SOURCED, src: "Config.h:199"}
-    - {pin: 15, const: CUR_HI,      use: "LEM A DHAB pin 3 (ch2 -420..+230 A) via 10k/18k + 100 nF", wire: S06, status: SOURCED, src: "Config.h:200"}
+    - {pin: 2,  const: OUT5,        use: "OUT5 spare output (pinMode LOW at boot, BmsApp.cpp)", wire: null, status: SOURCED, src: "Config.h:180"}
+    - {pin: 3,  const: OUT6,        use: "OUT6 spare output", wire: null, status: SOURCED, src: "Config.h:181"}
+    - {pin: 4,  const: A_THR_ALIVE, use: "A throttle heartbeat 1 kHz -> U4 -> U1 B1", wire: S11, status: SOURCED, src: "Config.h:256"}
+    - {pin: 5,  const: SEAT_DRV,    use: "seat heater driver PWM (OUT7)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:210", shares: OUT7}
+    - {pin: 5,  const: OUT7,        use: "alias of SEAT_DRV", wire: null, status: SOURCED, src: "Config.h:187", shares: SEAT_DRV}
+    - {pin: 6,  const: SEAT_PAS,    use: "seat heater passenger PWM (OUT8)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:211", shares: OUT8}
+    - {pin: 6,  const: OUT8,        use: "alias of SEAT_PAS", wire: null, status: SOURCED, src: "Config.h:188", shares: SEAT_PAS}
+    - {pin: 7,  const: RAD_FAN,     use: "radiator fan relay coil (OUT9)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:212", shares: OUT9}
+    - {pin: 7,  const: OUT9,        use: "alias of RAD_FAN", wire: null, status: PROPOSED, src: "Config.h:212", shares: RAD_FAN}
+    - {pin: 8,  const: COOL_PUMP,   use: "coolant pump PWM (OUT10)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:213", shares: OUT10}
+    - {pin: 8,  const: OUT10,       use: "alias of COOL_PUMP", wire: null, status: PROPOSED, src: "Config.h:213", shares: COOL_PUMP}
+    - {pin: 9,  const: ACT4WD_IN1,  use: "4WD actuator H-bridge IN1", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:214"}
+    - {pin: 10, const: ACT4WD_IN2,  use: "4WD actuator H-bridge IN2", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:215"}
+    - {pin: 11, const: MAIN_POS,    use: "EV200 B+ coil FET gate (OUT1)", wire: S01, status: SOURCED, src: "Config.h:193", shares: OUT1}
+    - {pin: 11, const: OUT1,        use: "alias of MAIN_POS", wire: S01, status: SOURCED, src: "Config.h:174", shares: MAIN_POS}
+    - {pin: 12, const: PRECHARGE,   use: "precharge relay coil FET gate (OUT2)", wire: S02, status: SOURCED, src: "Config.h:194", shares: OUT2}
+    - {pin: 12, const: OUT2,        use: "alias of PRECHARGE", wire: S02, status: SOURCED, src: "Config.h:175", shares: PRECHARGE}
+    - {pin: 13, const: LED,         use: "on-board LED (no wire)", wire: null, status: SOURCED, src: "Config.h:166"}
+    - {pin: 14, const: CUR_LO,      use: "LEM A DHAB pin 4 (ch1 ±20 A) via 10k/18k + 100 nF", wire: S05, status: SOURCED, src: "Config.h:198"}
+    - {pin: 15, const: CUR_HI,      use: "LEM A DHAB pin 3 (ch2 -420..+230 A) via 10k/18k + 100 nF", wire: S06, status: SOURCED, src: "Config.h:199"}
     - {pin: 16, const: null,        use: "Serial4 RX4 — UNCONNECTED ON PURPOSE: the gateway is receive-only (Teensy TX17 -> ESP32 GPIO16; ESP32 GPIO17 unused). Never wire anything else here.", wire: null, status: SOURCED, src: "src/HubStatus.cpp:12; GATEWAY.md:5,18"}
     - {pin: 17, const: null,        use: "Serial4 TX4 -> ESP32 GPIO16 (hub UART 115200)", wire: S30, status: SOURCED, src: "src/HubStatus.cpp:12"}
-    - {pin: 18, const: I2C_SDA,     use: "MCP23017 SDA (body expander, LATER)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:246"}
-    - {pin: 19, const: I2C_SCL,     use: "MCP23017 SCL", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:247"}
-    - {pin: 20, const: OUT3,        use: "Kelly Low-cap relay FET gate: HIGH = release cap, LOW/dead = capped", wire: S20, status: SOURCED, src: "Config.h:177; docs/DRIVE_MODES.md"}
-    - {pin: 21, const: MAIN_NEG,    use: "EV200 B- coil FET gate (OUT4)", wire: S03, status: SOURCED, src: "Config.h:196", shares: OUT4}
-    - {pin: 21, const: OUT4,        use: "alias of MAIN_NEG", wire: S03, status: SOURCED, src: "Config.h:178", shares: MAIN_NEG}
-    - {pin: 22, const: CAN1_TX,     use: "CAN1 TX -> SN65 #1 (string 1)", wire: C01, status: SOURCED, src: "Config.h:186"}
-    - {pin: 23, const: CAN1_RX,     use: "CAN1 RX", wire: C01, status: SOURCED, src: "Config.h:187"}
-    - {pin: 24, const: HV_SENSE,    use: "optional HV bus divider (HV_ANALOG_ENABLE=0)", wire: S08, status: UNVERIFIED, tier: LATER, src: "Config.h:197"}
-    - {pin: 25, const: CUR_VC,      use: "LEM A 5 V supply sense (ratiometric) via divider", wire: S07, status: SOURCED, src: "Config.h:201"}
-    - {pin: 26, const: IS_4WD,      use: "BTS7960 #1 current sense", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:230"}
-    - {pin: 27, const: IS_DIFF,     use: "BTS7960 #2 current sense", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:231"}
-    - {pin: 28, const: ACTDIF_IN1,  use: "diff-lock H-bridge IN1", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:217"}
-    - {pin: 29, const: ACTDIF_IN2,  use: "diff-lock H-bridge IN2", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:218"}
+    - {pin: 18, const: I2C_SDA,     use: "MCP23017 SDA (body expander, LATER)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:245"}
+    - {pin: 19, const: I2C_SCL,     use: "MCP23017 SCL", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:246"}
+    - {pin: 20, const: OUT3,        use: "Kelly Low-cap relay FET gate: HIGH = release cap, LOW/dead = capped", wire: S20, status: SOURCED, src: "Config.h:176; docs/DRIVE_MODES.md"}
+    - {pin: 21, const: MAIN_NEG,    use: "EV200 B- coil FET gate (OUT4)", wire: S03, status: SOURCED, src: "Config.h:195", shares: OUT4}
+    - {pin: 21, const: OUT4,        use: "alias of MAIN_NEG", wire: S03, status: SOURCED, src: "Config.h:177", shares: MAIN_NEG}
+    - {pin: 22, const: CAN1_TX,     use: "CAN1 TX -> SN65 #1 (string 1)", wire: C01, status: SOURCED, src: "Config.h:185"}
+    - {pin: 23, const: CAN1_RX,     use: "CAN1 RX", wire: C01, status: SOURCED, src: "Config.h:186"}
+    - {pin: 24, const: HV_SENSE,    use: "optional HV bus divider (HV_ANALOG_ENABLE=0)", wire: S08, status: UNVERIFIED, tier: LATER, src: "Config.h:196"}
+    - {pin: 25, const: CUR_VC,      use: "LEM A 5 V supply sense (ratiometric) via divider", wire: S07, status: SOURCED, src: "Config.h:200"}
+    - {pin: 26, const: IS_4WD,      use: "BTS7960 #1 current sense", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:229"}
+    - {pin: 27, const: IS_DIFF,     use: "BTS7960 #2 current sense", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:230"}
+    - {pin: 28, const: ACTDIF_IN1,  use: "diff-lock H-bridge IN1", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:216"}
+    - {pin: 29, const: ACTDIF_IN2,  use: "diff-lock H-bridge IN2", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:217"}
     - {pin: 30, const: null,        use: "CAN3 RX vehicle bus -> SN65 #5", wire: C05, status: SOURCED, src: "FlexCanCompat.h:45"}
     - {pin: 31, const: null,        use: "CAN3 TX vehicle bus", wire: C05, status: SOURCED, src: "FlexCanCompat.h:45"}
-    - {pin: 32, const: PARK_IN_A,   use: "park brake contact 1 (direct GPIO, 10k pull-up, LOW = set)", wire: S16, status: SOURCED, src: "Config.h:261 (BODY_IO_EXPANDER=1)"}
+    - {pin: 32, const: PARK_IN_A,   use: "park brake contact 1 (direct GPIO, 10k pull-up, LOW = set)", wire: S16, status: SOURCED, src: "Config.h:260 (BODY_IO_EXPANDER=1)"}
     - {pin: 33, const: null,        use: "CHARGE PLUG-IN detect (opto, 10k pull-up, LOW = plugged; Sparky 2026-10-22). Feeds BmsCore plugIn (chief #4); firmware read = later commit", wire: S41, status: PROPOSED, tier: CRITICAL, src: "Config.h:254"}
-    - {pin: 34, const: LIGHT_OE,    use: "spare (retired 595 /OE; nothing drives it)", wire: null, status: SOURCED, src: "Config.h:245", shares: IN1}
-    - {pin: 34, const: IN1,         use: "KEY-ON input (12 V key via opto, 10k pull-up, LOW = key on; Sparky 2026-10-22) — reuses IN1 spare (no other free GPIO on A). Firmware read = later commit (chief #4 KSI)", wire: S42, status: PROPOSED, tier: CRITICAL, src: "Config.h:171", shares: LIGHT_OE}
-    - {pin: -1, const: IN2,         use: "IN2 retired (was 16 = Serial4 RX): no free GPIO on A; DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:172", shares: "IN3, IN4, LIGHT_LATCH (all -1 = unassigned)"}
-    - {pin: -1, const: IN3,         use: "IN3 retired (was 18 = I2C SDA); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:173", shares: "-1"}
-    - {pin: -1, const: IN4,         use: "IN4 retired (was 19 = I2C SCL); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:174", shares: "-1"}
-    - {pin: 35, const: LIGHT_DATA,  use: "bit-bang DATA -> U4 -> MCP4131 SDI (shared with lights)", wire: S10, status: PROPOSED, src: "Config.h:235"}
-    - {pin: 36, const: LIGHT_CLK,   use: "bit-bang CLK -> U4 -> MCP4131 SCK", wire: S10, status: PROPOSED, src: "Config.h:236"}
-    - {pin: 37, const: ACT_EN,      use: "both BTS7960 enables", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:229"}
-    - {pin: 38, const: THR_CS,      use: "MCP4131 /CS -> U4", wire: S10, status: PROPOSED, src: "Config.h:253"}
-    - {pin: 39, const: POS_DIFF,    use: "diff actuator pot wiper", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:220"}
-    - {pin: 40, const: PEDAL_IN_A,  use: "throttle pedal wiper (10k/18k + 100 nF)", wire: S14, status: SOURCED, src: "Config.h:223"}
-    - {pin: 41, const: POS_4WD,     use: "4WD actuator pot wiper", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:219"}
-    - {pin: -1, const: LIGHT_LATCH, use: "retired (lights on MCP23017)", wire: null, status: SOURCED, src: "Config.h:244"}
+    - {pin: 34, const: LIGHT_OE,    use: "spare (retired 595 /OE; nothing drives it)", wire: null, status: SOURCED, src: "Config.h:244", shares: IN1}
+    - {pin: 34, const: IN1,         use: "KEY-ON input (12 V key via opto, 10k pull-up, LOW = key on; Sparky 2026-10-22) — reuses IN1 spare (no other free GPIO on A). Firmware read = later commit (chief #4 KSI)", wire: S42, status: PROPOSED, tier: CRITICAL, src: "Config.h:170", shares: LIGHT_OE}
+    - {pin: -1, const: IN2,         use: "IN2 retired (was 16 = Serial4 RX): no free GPIO on A; DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:171", shares: "IN3, IN4, LIGHT_LATCH (all -1 = unassigned)"}
+    - {pin: -1, const: IN3,         use: "IN3 retired (was 18 = I2C SDA); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:172", shares: "-1"}
+    - {pin: -1, const: IN4,         use: "IN4 retired (was 19 = I2C SCL); DEFERRED until after first drive (chief 2026-10-22; not on the pre-drive CRITICAL list)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:173", shares: "-1"}
+    - {pin: 35, const: LIGHT_DATA,  use: "bit-bang DATA -> U4 -> MCP4131 SDI (shared with lights)", wire: S10, status: PROPOSED, src: "Config.h:234"}
+    - {pin: 36, const: LIGHT_CLK,   use: "bit-bang CLK -> U4 -> MCP4131 SCK", wire: S10, status: PROPOSED, src: "Config.h:235"}
+    - {pin: 37, const: ACT_EN,      use: "both BTS7960 enables", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:228"}
+    - {pin: 38, const: THR_CS,      use: "MCP4131 /CS -> U4", wire: S10, status: PROPOSED, src: "Config.h:252"}
+    - {pin: 39, const: POS_DIFF,    use: "diff actuator pot wiper", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:219"}
+    - {pin: 40, const: PEDAL_IN_A,  use: "throttle pedal wiper (10k/18k + 100 nF)", wire: S14, status: SOURCED, src: "Config.h:222"}
+    - {pin: 41, const: POS_4WD,     use: "4WD actuator pot wiper", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:218"}
+    - {pin: -1, const: LIGHT_LATCH, use: "retired (lights on MCP23017)", wire: null, status: SOURCED, src: "Config.h:243"}
   B:
     - {pin: 0,  const: null,        use: "CAN2 RX -> SN65 #4 (string 4)", wire: C04, status: SOURCED, src: "FlexCanCompat.h:44"}
     - {pin: 1,  const: null,        use: "CAN2 TX", wire: C04, status: SOURCED, src: "FlexCanCompat.h:44"}
-    - {pin: 2,  const: OUT5,        use: "OUT5 pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:181"}
-    - {pin: 3,  const: OUT6,        use: "OUT6 pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:182"}
-    - {pin: 4,  const: B_FAULT_OUT, use: "B fault out HIGH=healthy (B_FAULT_PIN_ENABLE=0, disabled)", wire: null, status: UNVERIFIED, tier: LATER, src: "Config.h:185"}
-    - {pin: 5,  const: OUT7,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:188"}
-    - {pin: 6,  const: OUT8,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:189"}
-    - {pin: 7,  const: B_THR_ALIVE, use: "B throttle heartbeat 1 kHz -> U1 B2", wire: S12, status: SOURCED, src: "Config.h:226"}
-    - {pin: 11, const: OUT1,        use: "pinMode LOW; B never drives a coil (watchdog can only open)", wire: null, status: SOURCED, src: "Config.h:175"}
-    - {pin: 12, const: OUT2,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:176"}
-    - {pin: 13, const: LED,         use: "on-board LED", wire: null, status: SOURCED, src: "Config.h:167"}
-    - {pin: 14, const: CUR_LO,      use: "LEM B DHAB pin 4", wire: S25, status: SOURCED, src: "Config.h:199"}
-    - {pin: 15, const: CUR_HI,      use: "LEM B DHAB pin 3", wire: S26, status: SOURCED, src: "Config.h:200"}
+    - {pin: 2,  const: OUT5,        use: "OUT5 pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:180"}
+    - {pin: 3,  const: OUT6,        use: "OUT6 pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:181"}
+    - {pin: 4,  const: B_FAULT_OUT, use: "B fault out HIGH=healthy (B_FAULT_PIN_ENABLE=0, disabled)", wire: null, status: UNVERIFIED, tier: LATER, src: "Config.h:184"}
+    - {pin: 5,  const: OUT7,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:187"}
+    - {pin: 6,  const: OUT8,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:188"}
+    - {pin: 7,  const: B_THR_ALIVE, use: "B throttle heartbeat 1 kHz -> U1 B2", wire: S12, status: SOURCED, src: "Config.h:225"}
+    - {pin: 11, const: OUT1,        use: "pinMode LOW; B never drives a coil (watchdog can only open)", wire: null, status: SOURCED, src: "Config.h:174"}
+    - {pin: 12, const: OUT2,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:175"}
+    - {pin: 13, const: LED,         use: "on-board LED", wire: null, status: SOURCED, src: "Config.h:166"}
+    - {pin: 14, const: CUR_LO,      use: "LEM B DHAB pin 4", wire: S25, status: SOURCED, src: "Config.h:198"}
+    - {pin: 15, const: CUR_HI,      use: "LEM B DHAB pin 3", wire: S26, status: SOURCED, src: "Config.h:199"}
     - {pin: 16, const: null,        use: "Serial4 RX (not wired on B)", wire: null, status: ASSUMED, src: "HubStatus.cpp:12"}
     - {pin: 17, const: null,        use: "Serial4 TX (not wired on B; gateway listens to A only)", wire: null, status: ASSUMED, src: "HubStatus.cpp:12"}
-    - {pin: 20, const: OUT3,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:177"}
-    - {pin: 21, const: OUT4,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:178"}
-    - {pin: 22, const: CAN1_TX,     use: "CAN1 TX -> SN65 #3 (string 3)", wire: C02, status: SOURCED, src: "Config.h:186"}
-    - {pin: 23, const: CAN1_RX,     use: "CAN1 RX", wire: C02, status: SOURCED, src: "Config.h:187"}
-    - {pin: 24, const: HV_SENSE,    use: "optional HV sense (no wire)", wire: null, status: UNVERIFIED, tier: LATER, src: "Config.h:197"}
-    - {pin: 25, const: CUR_VC,      use: "LEM B 5 V supply sense", wire: S27, status: SOURCED, src: "Config.h:201"}
+    - {pin: 20, const: OUT3,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:176"}
+    - {pin: 21, const: OUT4,        use: "pinMode LOW, no wire", wire: null, status: SOURCED, src: "Config.h:177"}
+    - {pin: 22, const: CAN1_TX,     use: "CAN1 TX -> SN65 #3 (string 3)", wire: C02, status: SOURCED, src: "Config.h:185"}
+    - {pin: 23, const: CAN1_RX,     use: "CAN1 RX", wire: C02, status: SOURCED, src: "Config.h:186"}
+    - {pin: 24, const: HV_SENSE,    use: "optional HV sense (no wire)", wire: null, status: UNVERIFIED, tier: LATER, src: "Config.h:196"}
+    - {pin: 25, const: CUR_VC,      use: "LEM B 5 V supply sense", wire: S27, status: SOURCED, src: "Config.h:200"}
     - {pin: 30, const: null,        use: "CAN3 RX vehicle bus -> SN65 #6 (stub)", wire: C06, status: SOURCED, src: "FlexCanCompat.h:45"}
     - {pin: 31, const: null,        use: "CAN3 TX vehicle bus", wire: C06, status: SOURCED, src: "FlexCanCompat.h:45"}
-    - {pin: 32, const: PARK_IN_B,   use: "park brake contact 2 (10k pull-up, LOW = set)", wire: S17, status: SOURCED, src: "Config.h:265"}
-    - {pin: 40, const: ST_4WD_B,    use: "OPTIONAL stock 4WD indicator (not read yet)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:224"}
-    - {pin: 41, const: PEDAL_IN_B,  use: "throttle pedal wiper (own 10k/18k + 100 nF)", wire: S15, status: SOURCED, src: "Config.h:225"}
+    - {pin: 32, const: PARK_IN_B,   use: "park brake contact 2 (10k pull-up, LOW = set)", wire: S17, status: SOURCED, src: "Config.h:264"}
+    - {pin: 40, const: ST_4WD_B,    use: "OPTIONAL stock 4WD indicator (not read yet)", wire: null, status: PROPOSED, tier: LATER, src: "Config.h:223"}
+    - {pin: 41, const: PEDAL_IN_B,  use: "throttle pedal wiper (own 10k/18k + 100 nF)", wire: S15, status: SOURCED, src: "Config.h:224"}
     - {pin: 9,  const: null,        use: "E-STOP block 3 latch input, 10k pull-up, LOW = released/closed (pin free on B; no firmware const yet — EstopLatch.h not wired, chief #5)", wire: E09, status: PROPOSED, src: "crew 2026-10-22; docs/ESTOP.md"}
     - {pin: 26, const: null,        use: "12 V LOW ALARM sense (A12) via 47k/10k + 100 nF (pin free on B; no firmware const yet; A has no free analog pin)", wire: S40, status: PROPOSED, src: "crew 2026-10-22"}
-    - {pin: 34, const: IN1,         use: "KEY-ON mirror (own opto channel, 10k pull-up, LOW = key on) — reuses IN1 spare, pin 34 free on B. Firmware read = later commit", wire: S43, status: PROPOSED, tier: CRITICAL, src: "Config.h:171"}
+    - {pin: 34, const: IN1,         use: "KEY-ON mirror (own opto channel, 10k pull-up, LOW = key on) — reuses IN1 spare, pin 34 free on B. Firmware read = later commit", wire: S43, status: PROPOSED, tier: CRITICAL, src: "Config.h:170"}
   E:
     - {pin: GPIO16, const: null, use: "UART2 RX <- Teensy A pin 17", wire: S30, status: SOURCED, src: "teryx-ev-hub firmware/esp32-gateway/docs/GATEWAY.md:17"}
     - {pin: GPIO17, const: null, use: "UART2 TX — UNUSED, leave unconnected (gateway is RX-only, TX pin = -1)", wire: null, status: SOURCED, src: "GATEWAY.md:5,18"}

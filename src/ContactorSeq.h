@@ -10,7 +10,7 @@ enum class State : uint8_t {
     MainClose,
     Closed,
     Fault,
-    RetryWait,  // dual-string: precharge timed out, waiting 30 s before retry
+    RetryWait,  // UNUSED since 2026-10-22 (no automatic precharge retry); kept so state numbers stay stable
     Lockout,    // dual-string: precharge failed after max retries; dead-man off to clear
 };
 

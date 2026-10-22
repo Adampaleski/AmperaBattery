@@ -24,7 +24,6 @@ bool g_sawStablePack    = false;
 uint32_t g_stateMs      = 0;
 uint32_t g_lastPrintMs  = 0;
 const char *g_faultWhy  = "";
-uint8_t g_retries       = 0;
 
 #if DUAL_STRING
 uint8_t systemFaults() {
@@ -180,8 +179,7 @@ void checkPackFaults() {
 
 // Chief review CRITICAL #1 (2026-10-22): Main+ closes ONLY on a measured bus within the agreed delta
 // of the pack (include/PrechargeGate.h). No HV sense / no pack reading / timeout -> precharge FAIL.
-const PrechargeGate::Cfg kPcCfg{kPrechargeMinMs, kPrechargeTimeMs, kPcDualRetryWaitMs, kPcDualMaxRetries,
-                                kPrechargeRatio, 50.0f};
+const PrechargeGate::Cfg kPcCfg{kPrechargeMinMs, kPrechargeTimeMs, kPrechargeRatio, 50.0f};
 
 PrechargeGate::Step prechargeStep(uint32_t elapsed) {
 #if HV_ANALOG_ENABLE
@@ -250,8 +248,6 @@ void configureCore() {
     c.linkStaleMs    = LINK_STALE_MS;
     c.pcMinMs        = kPcDualMinMs;
     c.pcTimeoutMs    = kPcDualTimeoutMs;
-    c.pcRetryWaitMs  = kPcDualRetryWaitMs;
-    c.pcMaxRetries   = kPcDualMaxRetries;
     c.pcRatio        = kPrechargeRatio;
     c.overlapMs      = kPrechargeOverlapMs;
     Settings::applyThresholds(c);   // T overrides (bounded, tighten-only for trips/temps)
@@ -348,7 +344,6 @@ void tick() {
     switch (g_state) {
         case State::Open:
             if (g_deadman) {
-                g_retries = 0;
                 enter(State::Precharge, "deadman");
             }
             break;
@@ -365,9 +360,9 @@ void tick() {
                     break;
                 }
                 if (st == PrechargeGate::Step::Fail) {
-                    g_faultWhy = "precharge fail";   // mains never closed; no timer path to Main+
-                    if (PrechargeGate::retryAllowed(g_retries, kPcCfg)) enter(State::RetryWait, "precharge fail: retry");
-                    else { enter(State::Lockout, "precharge failed 3x: lockout"); g_faultWhy = "precharge lockout"; }
+                    // ONE fail: everything open, lockout until key (dead-man) cycle. No auto retry (chief 2026-10-22).
+                    enter(State::Lockout, "FAULT PRECHARGE-FAIL: lockout until key cycle");
+                    g_faultWhy = "PRECHARGE-FAIL";
                     break;
                 }
             }
@@ -398,10 +393,7 @@ void tick() {
             }
             break;
 
-        case State::RetryWait:
-            applyPins(outputsFor(State::Fault));
-            if (elapsed >= kPcDualRetryWaitMs) enter(State::Precharge, "precharge retry");
-            break;
+        case State::RetryWait:   // unused since 2026-10-22 (no auto retry)
         case State::Fault:
         case State::Lockout:
             applyPins(outputsFor(State::Fault));
@@ -414,7 +406,6 @@ void tick() {
 void setDeadman(bool on) {
     g_deadman = on;
     if (!on) {
-        g_retries = 0;
         if (g_state == State::Fault || g_state == State::Lockout || g_state == State::RetryWait) {
             openAll("reset");
         } else if (g_state != State::Open) {
@@ -534,7 +525,7 @@ void printStatus() {
 #else
     SERIALCONSOLE.print(lowestStringV(), 1);
 #endif
-    SERIALCONSOLE.print(F("V) & >=300ms, 3s timeout, 2 retries @30s, weld check 2 s after open"));
+    SERIALCONSOLE.print(F("V) & >=300ms, 3s timeout, 1 fail = lockout until key cycle (no retry), weld check 2 s after open"));
 #if ROLE_IS_A
     SERIALCONSOLE.print(F("  faults=0x"));
     SERIALCONSOLE.print(coreFaults(), HEX);

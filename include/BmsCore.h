@@ -31,7 +31,7 @@ enum : uint32_t {
     F_UNDERTEMP_C = 1u << 5,   // charge only: pack temp < chargeMinTempC
     F_OVERCURRENT = 1u << 6,   // |I| > overcurrentA for overcurrentMs, or > instantTripA once
     F_LINK        = 1u << 7,   // B -> A link stale
-    F_PRECHARGE   = 1u << 8,   // precharge failed after retries (lockout)
+    F_PRECHARGE   = 1u << 8,   // precharge failed (ONE fail -> lockout until key cycle; no auto retry, chief 2026-10-22)
     F_WELDED      = 1u << 9,   // bus stays live with every contactor commanded open
     F_CHARGE_OV   = 1u << 10,  // charge only: cell >= ceiling + 0.05 (latched to reboot)
     F_OVERTEMP_C  = 1u << 11,  // charge only: pack temp > chargeMaxTempC
@@ -118,8 +118,6 @@ struct Config {
     uint32_t linkStaleMs    = 200;   // PROPOSED (Adam 2026-10-21): lost B heartbeat -> F_LINK, mains open
     uint32_t pcMinMs        = 300;
     uint32_t pcTimeoutMs    = 3000;
-    uint32_t pcRetryWaitMs  = 30000;
-    uint8_t  pcMaxRetries   = 2;
     float    pcRatio        = 0.95f;
     uint32_t overlapMs      = 100;     // precharge stays on after main+ closes
     // welded detection
@@ -254,7 +252,7 @@ public:
     Config cfg;
 
     void reset() {
-        st_ = CState::Open; stMs_ = 0; retries_ = 0; latched_ = 0; chargeOvLatched_ = false;
+        st_ = CState::Open; stMs_ = 0; latched_ = 0; chargeOvLatched_ = false;
         welded_ = false; keyBlock_ = false; ocSinceMs_ = 0; ocActive_ = false; lemOcSinceMs_ = 0; lemOcActive_ = false; full_ = false; openSinceMs_ = 0;
         imbSinceMs_ = 0; imbOver_ = false; imbOn_ = false;
         hardOn_ = false; hardSinceMs_ = 0; derOn_ = D_NONE; derRaw_ = D_NONE; derSinceMs_ = derFullMs_ = 0; derMin_ = 100; derLast_ = D_NONE; derEvents_ = 0;
@@ -340,21 +338,18 @@ public:
             case CState::Open:
                 // Wait weldCheckMs after any open so a stuck contactor is seen before re-closing.
                 if (wake && !driveFault && now - openSinceMs_ >= cfg.weldCheckMs) {
-                    retries_ = 0;
                     enter(CState::Precharge, now, in.plugIn ? "plug in: CHARGE (no key)" : "key on");
                 }
                 break;
             case CState::Precharge: {
                 const bool gate = in.busValid && o.lowestStringV > 0 && in.busV >= o.lowestStringV * cfg.pcRatio;
                 if (el >= cfg.pcMinMs && gate) { enter(CState::MainClose, now, "bus >= 95% lowest string"); break; }
-                if (el >= cfg.pcTimeoutMs) {
-                    if (retries_ < cfg.pcMaxRetries) { retries_++; enter(CState::RetryWait, now, "precharge timeout"); }
-                    else { latched_ |= F_PRECHARGE; enter(CState::Lockout, now, "precharge failed 3x: lockout"); }
+                if (el >= cfg.pcTimeoutMs) {   // chief 2026-10-22: no automatic retry
+                    latched_ |= F_PRECHARGE; enter(CState::Lockout, now, "FAULT PRECHARGE-FAIL: lockout until key cycle");
                 }
                 break;
             }
-            case CState::RetryWait:
-                if (el >= cfg.pcRetryWaitMs) enter(CState::Precharge, now, "precharge retry");
+            case CState::RetryWait:   // unused since 2026-10-22 (no auto retry); treat as open
                 break;
             case CState::MainClose:
                 if (el >= cfg.overlapMs) enter(CState::Closed, now, "closed, precharge off");
@@ -419,7 +414,6 @@ private:
     uint32_t stMs_ = 0, openSinceMs_ = 0, ocSinceMs_ = 0, imbSinceMs_ = 0, lowSinceMs_ = 0, floorSinceMs_ = 0;
     bool     lowBelow_ = false, floorBelow_ = false;
     bool     imbOver_ = false, imbOn_ = false;
-    uint8_t  retries_ = 0;
     bool     hardOn_ = false; uint32_t hardSinceMs_ = 0;
     uint8_t  derOn_ = D_NONE, derRaw_ = D_NONE, derLast_ = D_NONE;
     uint32_t derSinceMs_ = 0, derFullMs_ = 0, derEvents_ = 0;
