@@ -17,7 +17,7 @@ Tag `[CRITICAL sN]` = CRITICAL, checklist section N (0 gates, 2 shop, 3 buy, 4 f
 - [ ] [CRITICAL s3] Mechanic shop order 8: sealed Teensy enclosure + Hall pedal bracket (needs Adam OK).
 - [ ] [CRITICAL s2] Measure before ordering (Adam): 1/0 lead run lengths (string → A6T200 on the bus bar → EV200 → Kelly), bus bar span + stud size, EV200 / HV plate footprint, chain line + guard clearance, tie-down points, grommet hole diameters, ground-strap runs, Teensy enclosure size, Hall pedal mounting / travel. List per Mechanic's hardware; dimensions UNVERIFIED until measured.
 - [ ] [CRITICAL s4] Branch fuses (Sparky): DC-DC branch fuse 15–20 A; Elcon output fuse 1.25 × max charger current, ≥ 250 VDC rated.
-- [ ] [CRITICAL s4] LEM zero offset (Sparky): store the zero-current offset; fault if the reading is > 5 A off at zero current.
+- [ ] [CRITICAL s4] LEM zero offset (Sparky): store the zero-current offset; fault if the reading is > 5 A off at zero current. Zero stored by `Z` (Settings); > 5 A check = LemHealth ZERO self-test (logic done 2026-10-22, not wired).
 - [ ] [CRITICAL s4] HV leak / isolation detection (Sparky): add before Gate 3.
 - [ ] [CRITICAL s3] Insulated wrench for pulling the string fuses (crew 2026-10-22; needs Adam OK).
 - [ ] [CRITICAL s4] E-stop latch (crew 2026-10-22): when block 3 (NC to Teensy B) reports open, drop every coil driver and latch until a key-cycle reset; releasing never closes anything. Logic + test done (include/EstopLatch.h, scripts/test_estop_latch.cpp 7/7); wire into the coil gate when BMS_CAP_CONTACTOR_DRV is enabled, then bench: press, release, unplug block 3 wire. Adam meters Kelly KSI draw (expected < 0.2 A).
@@ -95,7 +95,7 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 - [ ] Before Brake_AN: read back the Kelly config (Brake Type, Boost OFF, BRK_AD/BRK_SW, Foot Switch, Three Gears/Speed) and save it in docs/.
 - [ ] E-stop block 2 (pending): Adam meters the Kelly KSI draw (expected < 0.2 A); block 2 breaks ≈0.35 A AEV14012 + KSI. Block 1 SOURCED/OK (chief 2026-10-22: 0.26 A measured break < 0.5 A @24 V; 7.6 A inrush carried < 10 A Ith).
 
-- [ ] REQUIRED BEFORE FIRST DRIVE: firmware dead-LEM detection. Read each LEM separately and flag one reading nothing or out of range (>450 A, PROPOSED) as a hard fault that engages the 10 mph cap. Today this check runs only in the sim. (chief, 2026-10-21)
+- [ ] REQUIRED BEFORE FIRST DRIVE: firmware dead-LEM detection. 2026-10-22 1 PM: logic + host test done (include/LemHealth.h, scripts/test_lem_health.cpp 18/18, docs/LEM_HEALTH.md): RAIL (within 0.2 V of 0/Vc or Vc bad, 100 ms), RANGE (>450 A), AGREE (<15 A, ch1 vs ch2 >5 A, 500 ms), ZERO key-on self-test (>5 A), latched until key cycle; all PROPOSED. Not wired (CURRENT_SENSE_ENABLE 0); next: run in CurrentSense::tick per Teensy, B's code over the link, set lemAValid/lemBValid, ZERO before precharge. Original: Read each LEM separately and flag one reading nothing or out of range (>450 A, PROPOSED) as a hard fault that engages the 10 mph cap. Today this check runs only in the sim. (chief, 2026-10-21)
 - [ ] Dead-LEM detail (Sparky): each output should sit near 2.5 V at 0 A; within about 0.2 V of 0 V or 5 V = dead or disconnected (hard fault). Key-on self-test: below about 15 A, the low-range and high-range channels must agree.
 
 ## VCU safety items (Sparky VCU compare, 2026-10-21)
