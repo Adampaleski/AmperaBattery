@@ -4,6 +4,7 @@
 #include "BmsCapabilities.h"
 #include "Config.h"
 #include "ContactorSeq.h"
+#include "FaultLogRun.h"
 #include "ChargeTx.h"
 #include "Watchdog.h"
 
@@ -347,6 +348,8 @@ void printFrame(Print &out) {
     printAux(out);
     out.print(',');
     printFaults(out);
+    out.print(',');
+    FaultLogRun::printJson(out);  // optional key: saved fault-log summary (read-only)
     out.print(F(",\"events\":[]"));
     out.println('}');
 }

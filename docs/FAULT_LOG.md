@@ -57,3 +57,17 @@ role A only (where BmsCore runs); every other env compiles to no-ops.
 - No pins, no outputs; it only writes EEPROM on edges, inside FaultLog's rate limits (1 s per edge, 24 per boot, 12 derates).
 - Note: with TEMPS_VERIFIED=0, TEMPS-NOT-VERIFIED is active from boot, so each boot logs one SET for it (one 20-byte record).
 - NOT bench-tested. Still to do: power-pull test on a bench Teensy, STATUS_SCHEMA field for the hub.
+
+## Hub summary (2026-10-22, STATUS_SCHEMA v1 optional key)
+
+Every hub frame (Serial4 JSON, USB `j`) now carries a read-only summary of the saved log, so the ESP32 dash can show "N saved faults, last: …" without reading EEPROM:
+
+```json
+"faultLog":{"available":true,"count":2,"slots":48,"boot":1,"limited":false,"deratesDropped":0,
+            "last":{"kind":"derate","name":"low cell","boot":1,"sec":20.0,"value":62,"unit":"%"}}
+```
+
+- `available` false on every env except dual-string role A (where BmsCore runs); then no other fields.
+- `last` = newest record or `null`. `kind` is `set`, `clear`, `derate`, `derate-end` or `note`. `value`/`unit` follow the `f` print rules: cell `mV` for CELL-HIGH/CELL-LOW/CHARGE-OV, `A` for OVERCURRENT, `%` for derates (power % at start, lowest % at end), otherwise `null`.
+- `sec` is uptime in that boot (no RTC). Additive only; clients must tolerate its absence. Not yet documented in teryx-ev-hub docs/STATUS_SCHEMA.md and not shown by the hub UI.
+- Host-checked: JSON valid for empty / fault / derate cases. Not bench-tested.

@@ -1,4 +1,5 @@
 #pragma once
+#include <Print.h>
 // Firmware side of the power-off fault log (backlog item 5, step 3).
 // Runs the same include/FaultLog.h the host checks and the simulator use, on
 // the Teensy emulated EEPROM (EEPROM.read / EEPROM.update, bytes 256..1215).
@@ -15,4 +16,8 @@ void begin();                       // scan EEPROM, start a new boot number
 void tick();                        // log BmsCore fault-bit and derate edges
 void print();                       // 'f'
 bool handleLine(const char *line);  // "FCLEAR"; false if not ours
+// Hub summary (STATUS_SCHEMA v1 optional key, read-only): prints
+// "faultLog":{available,count,slots,boot,limited,deratesDropped,last}
+// with last = newest record or null. Elsewhere: "faultLog":{"available":false}.
+void printJson(Print &out);
 }  // namespace FaultLogRun

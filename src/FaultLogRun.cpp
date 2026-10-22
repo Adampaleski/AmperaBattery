@@ -114,11 +114,42 @@ bool handleLine(const char *line) {
     SERIALCONSOLE.println(F("FAULT LOG: erased"));
     return true;
 }
+void printJson(Print &out) {
+    out.print(F("\"faultLog\":{\"available\":"));
+    out.print(g_started ? F("true") : F("false"));
+    if (!g_started) { out.print('}'); return; }
+    out.print(F(",\"count\":")); out.print(g_log.count());
+    out.print(F(",\"slots\":")); out.print(BmsCore::FaultLog::kSlots);
+    out.print(F(",\"boot\":")); out.print(g_log.boot());
+    out.print(F(",\"limited\":")); out.print(g_log.limited() ? F("true") : F("false"));
+    out.print(F(",\"deratesDropped\":")); out.print(g_log.deratesDropped());
+    out.print(F(",\"last\":"));
+    BmsCore::LogRec r;
+    if (!g_log.get(0, r)) { out.print(F("null}")); return; }
+    const bool flt = r.kind == BmsCore::LogKind::FaultSet || r.kind == BmsCore::LogKind::FaultClear;
+    const bool der = r.kind == BmsCore::LogKind::DerateSet || r.kind == BmsCore::LogKind::DerateClear;
+    const char *kind = r.kind == BmsCore::LogKind::FaultSet ? "set" : r.kind == BmsCore::LogKind::FaultClear ? "clear"
+                     : r.kind == BmsCore::LogKind::DerateSet ? "derate" : r.kind == BmsCore::LogKind::DerateClear ? "derate-end" : "note";
+    const char *name = flt ? BmsCore::faultName(1u << r.code) : der ? BmsCore::derateName(r.code)
+                     : (r.code == BmsCore::NOTE_LIMIT ? "log limit reached" : "note");
+    const char *unit = nullptr;
+    if (flt && r.value && (r.code == 2 || r.code == 3 || r.code == 10)) unit = "mV";
+    else if (flt && r.value && r.code == 6) unit = "A";
+    else if (der) unit = "%";
+    out.print(F("{\"kind\":\"")); out.print(kind);
+    out.print(F("\",\"name\":\"")); out.print(name);
+    out.print(F("\",\"boot\":")); out.print(r.boot);
+    out.print(F(",\"sec\":")); out.print(r.ms / 1000.0f, 1);
+    out.print(F(",\"value\":")); if (unit) out.print(r.value); else out.print(F("null"));
+    out.print(F(",\"unit\":")); if (unit) { out.print('"'); out.print(unit); out.print('"'); } else out.print(F("null"));
+    out.print(F("}}"));
+}
 #else
 void begin() {}
 void tick() {}
 void print() { SERIALCONSOLE.println(F("FAULT LOG: only on dual-string role A (where BmsCore runs)")); }
 bool handleLine(const char *line) { return line[0] == 'F' ? (print(), true) : false; }
+void printJson(Print &out) { out.print(F("\"faultLog\":{\"available\":false}")); }
 #endif
 
 }  // namespace FaultLogRun
