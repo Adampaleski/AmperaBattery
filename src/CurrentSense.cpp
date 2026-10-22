@@ -1,6 +1,7 @@
 #include "CurrentSense.h"
 #include <Arduino.h>
 #include "BmsCore.h"
+#include "Config.h"
 #include "SocEstimator.h"  // header-only; not used until CURRENT_SENSE_ENABLE
 #include "Config.h"
 #include "Settings.h"
@@ -76,7 +77,11 @@ bool calibrateZero() {
 #endif
 }
 
+#if BENCH_SIM_INPUTS
 void setSimAmps(float a, bool on) { g_simOn = on; g_simA = a; }
+#else
+void setSimAmps(float, bool) { g_simOn = false; }  // compiled out (chief review #2): never fakes currentValid
+#endif
 
 void printStatus() {
     SERIALCONSOLE.print(F("CURRENT (LEM DHAB S/44) "));

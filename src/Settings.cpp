@@ -102,7 +102,11 @@ void  setCurOffsets(float f1, float f2) {
 float chargeFaultV() { const float f = ceilingV() + 0.05f; return f > 4.20f ? 4.20f : f; }
 float lowCutoffV()   { return g.low_mV / 1000.0f; }
 float deadbandV()    { return g.db_mV / 1000.0f; }
+#if BENCH_SIM_INPUTS
 float simBusV()      { return g_simBus; }
+#else
+float simBusV()      { return 0.0f; }  // U command compiled out (chief review #2)
+#endif
 
 void print() {
     SERIALCONSOLE.print(F("charge_limit="));
@@ -162,6 +166,7 @@ bool handleLine(const char *line) {
                 : F("CURRENT zero refused: sensor not fitted/enabled or reading implausible"));
             CurrentSense::printStatus();
             return true;
+#if BENCH_SIM_INPUTS
         case 'I':
             // Bench dry-run only: pretend pack current is v amps (I0 = off).
             CurrentSense::setSimAmps(num ? v : 0.0f, num && v != 0.0f);
@@ -174,6 +179,12 @@ bool handleLine(const char *line) {
             if (g_simBus > 0.0f) { SERIALCONSOLE.print(g_simBus, 1); SERIALCONSOLE.println('V'); }
             else SERIALCONSOLE.println(F("OFF"));
             return true;
+#else
+        case 'I':
+        case 'U':
+            SERIALCONSOLE.println(F("U/I sim inputs are compiled out of this build (bench envs only, chief review #2)"));
+            return true;
+#endif
         default: break;
     }
     SERIALCONSOLE.print(F("Bad settings line '"));

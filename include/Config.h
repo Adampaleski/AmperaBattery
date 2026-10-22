@@ -4,6 +4,15 @@
 
 #define SERIALCONSOLE Serial
 
+// Serial U (fake HV bus volts) / I (fake pack amps) bench inputs — chief review #2: they fed the real precharge
+// gate and forced currentValid. Compiled OUT unless a bench env sets BENCH_SIM_INPUTS=1, and never with outputs live.
+#ifndef BENCH_SIM_INPUTS
+#define BENCH_SIM_INPUTS 0
+#endif
+#if BENCH_SIM_INPUTS && !(defined(TELEMETRY_ONLY) && TELEMETRY_ONLY)
+#error "BENCH_SIM_INPUTS=1 requires TELEMETRY_ONLY=1 (chief review #2)"
+#endif
+
 // CAN bus (BICM internal network on K16 X2) — CAN3 pins 30/31 (string 1).
 // Dual-string build: CAN1 pins 22/23 @125k = string 2 (same factory IDs, own bus).
 constexpr uint32_t kCanBitrate        = 125000;
