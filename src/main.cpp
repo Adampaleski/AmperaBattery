@@ -227,15 +227,22 @@ void dispatchSerial() {
 
 }  // namespace
 
+// Chief review fix #3 (2026-10-22): every coil / relay / PWM driver and the MCP4131 digipot lines are
+// latched to their safe level BEFORE anything else runs (no EEPROM, no Serial, no ThrottleTrim first).
+// Order per pin: write the level, then make it an output, so the pin never drives HIGH.
+// MCP4131 /CS is active LOW (SOURCED: Microchip MCP4131 datasheet), so its safe level is HIGH = deselected;
+// SDI/SCK idle LOW. The wiper itself still powers up at mid-scale until ThrottleTrim::begin() writes 0
+// (hardware gate, chief review CRITICAL #10). Pins float from reset until here: 10k gate pull-downs (Gate 0).
+static void safeOutputsFirst() {
+    static const int kLow[] = { Pins::OUT1, Pins::OUT2, Pins::OUT3, Pins::OUT4, Pins::OUT5, Pins::OUT6,
+                                Pins::OUT7, Pins::OUT8, Pins::LIGHT_DATA, Pins::LIGHT_CLK };
+    for (int pin : kLow) { if (pin >= 0) { digitalWriteFast(pin, LOW); pinMode(pin, OUTPUT); digitalWriteFast(pin, LOW); } }
+    if (Pins::THR_CS >= 0) { digitalWriteFast(Pins::THR_CS, HIGH); pinMode(Pins::THR_CS, OUTPUT); digitalWriteFast(Pins::THR_CS, HIGH); }
+}
+
 void setup() {
-    ThrottleTrim::begin();   // wiper 0 before anything else (reset/watchdog safe state)
-    // Coil FET gates LOW before anything else (latch LOW, then make output).
-    digitalWrite(Pins::PRECHARGE, LOW);
-    digitalWrite(Pins::MAIN_POS, LOW);
-    digitalWrite(Pins::MAIN_NEG, LOW);
-    pinMode(Pins::PRECHARGE, OUTPUT);
-    pinMode(Pins::MAIN_POS, OUTPUT);
-    pinMode(Pins::MAIN_NEG, OUTPUT);
+    safeOutputsFirst();      // FIRST statement: coil drivers LOW, digipot bus idle (chief review fix #3)
+    ThrottleTrim::begin();   // wiper 0 (reset/watchdog safe state)
     Watchdog::captureResetCause();
 
     pinMode(Pins::LED, OUTPUT);

@@ -106,19 +106,21 @@ const char *res(DriveProfile::Selector::Result r) {
 bool kidMode() { return g_sel.mode == DriveProfile::M_KID; }
 
 void begin() {
-    const bool ok = g_store.load(g_tab, g_sel);   // last mode (Kid stays Kid), profiles, PIN hash
-    SERIALCONSOLE.print(F("Drive modes (EEPROM ")); SERIALCONSOLE.print(DriveProfile::Store::kBase);
-    SERIALCONSOLE.print(F("): ")); SERIALCONSOLE.print(ok ? F("loaded, mode ") : F("blank/corrupt -> PROPOSED defaults, mode "));
-    SERIALCONSOLE.println(g_tab.p[g_sel.mode].name);
 #if THROTTLE_TRIM_ENABLE
     pinMode(Pins::THR_CS, OUTPUT); digitalWriteFast(Pins::THR_CS, HIGH);
     pinMode(Pins::LIGHT_DATA, OUTPUT); pinMode(Pins::LIGHT_CLK, OUTPUT);
 #if ROLE_IS_A
     pinMode(Pins::A_THR_ALIVE, OUTPUT); digitalWriteFast(Pins::A_THR_ALIVE, LOW);
-    mcpWrite(0);   // first thing after any reset (watchdog included): output 0
+    mcpWrite(0);   // wiper 0 BEFORE the EEPROM load / Serial (chief review fix #3)
 #else
     pinMode(Pins::B_THR_ALIVE, OUTPUT); digitalWriteFast(Pins::B_THR_ALIVE, LOW);
 #endif
+#endif
+    const bool ok = g_store.load(g_tab, g_sel);   // last mode (Kid stays Kid), profiles, PIN hash
+    SERIALCONSOLE.print(F("Drive modes (EEPROM ")); SERIALCONSOLE.print(DriveProfile::Store::kBase);
+    SERIALCONSOLE.print(F("): ")); SERIALCONSOLE.print(ok ? F("loaded, mode ") : F("blank/corrupt -> PROPOSED defaults, mode "));
+    SERIALCONSOLE.println(g_tab.p[g_sel.mode].name);
+#if THROTTLE_TRIM_ENABLE
     g_timer.begin(isr, DriveProfile::kPeriodUs);
 #endif
 }

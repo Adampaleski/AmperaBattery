@@ -38,5 +38,43 @@ for name, flags, want in [("vehicle (dual_a flags)", ["-DTELEMETRY_ONLY=1", "-DD
     ok(rc == 0 and ("g_simOn = on" in out) == want, f"#2 {name}: CurrentSense sim amps {'present' if want else 'compiled out'}")
 rc, out = pp("src/Settings.cpp", ["-DTELEMETRY_ONLY=0", "-DBENCH_SIM_INPUTS=1"])
 ok(rc != 0 and "requires TELEMETRY_ONLY=1" in out, "#2 BENCH_SIM_INPUTS with live outputs refuses to build")
+
+# ---- #3: coil drivers + digipot bus to safe level first thing in setup() ----
+main = (R / "src/main.cpp").read_text()
+body = main[main.index("void setup() {"):]
+first = [l.strip() for l in body.splitlines()[1:] if l.strip() and not l.strip().startswith("//")][0]
+ok(first.startswith("safeOutputsFirst();"), "#3 setup(): first statement is safeOutputsFirst()")
+fn = main[main.index("static void safeOutputsFirst()"):main.index("void setup() {")]
+ok(not re.search(r"SERIAL|EEPROM|delay|begin\(", fn), "#3 safeOutputsFirst touches no Serial/EEPROM/delay")
+tt = (R / "src/ThrottleTrim.cpp").read_text(); b = tt[tt.index("void begin() {"):]
+ok(b.index("mcpWrite(0)") < b.index("g_store.load"), "#3 ThrottleTrim::begin writes wiper 0 before the EEPROM load")
+# behavioural: run safeOutputsFirst on the host against a recording stub, both roles
+harness = r"""
+#include <cstdio>
+#include <map>
+#define LOW 0
+#define HIGH 1
+#define OUTPUT 1
+std::map<int,int> lvl, mode; int bad = 0, calls = 0;
+void digitalWriteFast(int p, int v){ lvl[p]=v; calls++; if (mode[p]==OUTPUT && v==HIGH && p!=Pins::THR_CS) bad++; }
+void pinMode(int p, int m){ mode[p]=m; calls++; if (m==OUTPUT && lvl[p]==HIGH && p!=Pins::THR_CS) bad++; }
+FN
+int main(){ for (int p=0;p<64;p++) lvl[p]=HIGH;  // worst case: output latch left HIGH
+  safeOutputsFirst();
+  const int must[] = {Pins::OUT1,Pins::OUT2,Pins::OUT3,Pins::OUT4,Pins::OUT5,Pins::OUT6,Pins::OUT7,Pins::OUT8,
+                      Pins::MAIN_POS,Pins::PRECHARGE,Pins::MAIN_NEG,Pins::LIGHT_DATA,Pins::LIGHT_CLK};
+  int miss = 0; for (int p: must) if (p>=0 && !(mode[p]==OUTPUT && lvl[p]==LOW)) miss++;
+  if (Pins::THR_CS>=0 && !(mode[Pins::THR_CS]==OUTPUT && lvl[Pins::THR_CS]==HIGH)) miss++;
+  printf("bad=%d miss=%d\n", bad, miss); return bad||miss; }
+"""
+for role in ("1", "0"):
+    src = pathlib.Path(stub) / f"t3_{role}.cpp"
+    # Config.h pulls Arduino-free consts only through the stub dir; the harness defines the pin calls
+    src.write_text('#include "Config.h"\n' + harness.replace("FN", fn))
+    exe = str(src)[:-4]
+    r = subprocess.run(CXX + ["-std=c++17", "-DTELEMETRY_ONLY=1", f"-DTEENSY_ROLE={role}", "-DDUAL_STRING=1",
+                              "-I" + stub, "-Iscripts/hoststub", "-Iinclude", "-Isrc", str(src), "-o", exe], cwd=R, capture_output=True, text=True)
+    out = r.stdout + r.stderr if r.returncode else subprocess.run([exe], capture_output=True, text=True).stdout
+    ok("bad=0 miss=0" in out, f"#3 role {'A' if role=='0' else 'B'}: every coil/PWM pin LOW-then-OUTPUT, never HIGH; THR_CS deselected ({out.strip()[:200]})")
 print(f"review fixes: {fails} failed")
 sys.exit(1 if fails else 0)
