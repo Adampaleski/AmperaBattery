@@ -152,7 +152,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 .set{width:100%;border-collapse:collapse}.set td{padding:10px 6px;border-bottom:1px solid #1c1c1e}.set input{width:120px;min-height:40px;background:var(--card2);border:0;border-radius:8px;color:var(--tx);font:inherit;padding:0 10px}
 </style></head><body>
 <header><div class="bar">
-  <div class="brand">Teryx BMS</div><a href="wiring.html" style="color:#8a9099;font-size:13px;margin-left:8px;text-decoration:none" title="Wiring aid">Wiring</a><a href="checklist.html" style="color:#8a9099;font-size:13px;margin-left:8px;text-decoration:none" title="Build checklist">Checklist</a><span class="buildlbl" style="color:#5f6368;font-size:11px;margin-left:10px;white-space:nowrap">Build 7 · 6e5c10d · Oct 22 11:04 AM CT</span>
+  <div class="brand">Teryx BMS</div><a href="wiring.html" style="color:#8a9099;font-size:13px;margin-left:8px;text-decoration:none" title="Wiring aid">Wiring</a><a href="checklist.html" style="color:#8a9099;font-size:13px;margin-left:8px;text-decoration:none" title="Build checklist">Checklist</a><span class="buildlbl" style="color:#5f6368;font-size:11px;margin-left:10px;white-space:nowrap">Build 8 · 53edf65 · Oct 22 12:08 PM CT</span>
   <nav class="tabs">
     <button class="tab on" data-t="cluster">Dash</button><button class="tab" data-t="pack">Pack</button><button class="tab" data-t="drive">Drive</button><button class="tab" data-t="diagram">Diagram</button>
     <button class="tab" data-t="faults">Faults <span id="fcount"></span></button><button class="tab" data-t="scen">Scenarios</button><button class="tab" data-t="settings">Settings</button>
@@ -686,7 +686,7 @@ const TeryxLock={keyOn:false,phone:true,unlocked:false,verify:null,hasPin:null,s
 if(typeof document!=='undefined'){const guard=e=>{const t=e.target&&e.target.closest&&e.target.closest('[data-drive-lock]');if(!t||!TeryxLock.locked()||TeryxPad.isOpen())return;e.preventDefault();e.stopImmediatePropagation();if(e.type==='click')TeryxLock.prompt();if(e.type==='focusin'&&e.target.blur)e.target.blur();};
   ['pointerdown','mousedown','touchstart','click','focusin','keydown','input','change'].forEach(t=>document.addEventListener(t,guard,{capture:true,passive:false}));}
 if(typeof window!=='undefined'){window.TeryxPad=TeryxPad;window.TeryxLock=TeryxLock;}
-const DASH_BUILD='Build 7 · 6e5c10d · Oct 22 11:04 AM CT';
+const DASH_BUILD='Build 8 · 53edf65 · Oct 22 12:08 PM CT';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');
