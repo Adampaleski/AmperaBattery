@@ -10,7 +10,7 @@ CRITICAL = truly blocks first drive (chief, crew review 2026-10-22: gates + Mech
 - **CRITICAL** · Gate 4 — first drive (chief): Kid / Low mode, 10 mph, flat ground, spotter. (Chief; BACKLOG.md:9)
 
 ## 1. Other first-drive prep
-- **LATER** · Install the e-stop: XB4/XB5 40 mm twist-release + 3× ZBE102 direct (no relay): block 1 both EV200 coils, block 2 precharge coil + Kelly KSI, block 3 Teensy B latch input; IP65 guarded box (Adam; shop log 2026-10-21 17:45 · docs/ESTOP.md)
+- **LATER** · Install the e-stop: XB4/XB5 40 mm twist-release (XB4BS8442 head has 1 NC) + 2 extra ZBE102, direct (no relay): block 1 both EV200 coils (OK, 0.26 A break), block 2 precharge coil + Kelly KSI, block 3 Teensy B latch input; IP65 guarded box (Adam; shop log 2026-10-21 17:45 · docs/ESTOP.md)
 - **LATER** · Nothing flashed until the BICM temperature formula and the BICM ID mapping are verified on the bench (Gilfoyle; chief standing rule)
 - **CRITICAL** · DC-DC TDC-JH isolation test (power off: pack ± to 12 V− open / ≥1 MΩ) before bonding 12 V− to the chassis (Adam; shop log 2026-10-15 20:46)
 - **LATER** · Chain guard + chain tensioner / chain line with the motor up front (#50, 16/32T) (Adam; shop log 2026-10-21 18:00 · BACKLOG Mechanical)
@@ -59,7 +59,7 @@ CRITICAL = truly blocks first drive (chief, crew review 2026-10-22: gates + Mech
 - **CRITICAL** · Mechanic shop order 1: 1/0 HV leads + crimper (needs Adam OK, never buy). (Mechanic; BACKLOG.md:10)
 - **CRITICAL** · Mechanic shop order 2: bus bar + insulated standoffs + tool-to-remove cover with captive screws; 4 A6T200 bolt direct (no fuse holders), all reachable from one side; any holder at pack voltage > 160 VDC (needs Adam OK). (Mechanic; BACKLOG.md:11)
 - **CRITICAL** · Mechanic shop order 3: EV200 mounts + HV component plate (needs Adam OK). (Mechanic; BACKLOG.md:12)
-- **CRITICAL** · Mechanic shop order 4: e-stop parts: Harmony XB4/XB5 40 mm twist-release head + 3× Schneider ZBE102 NC blocks + IP65 guarded box (needs Adam OK). Block DC-13 ≥ 2 A at 12–24 V UNVERIFIED (datasheet: 0.55 A @125 V, 10 A Ith; Sparky confirming). (Mechanic; BACKLOG.md:13)
+- **CRITICAL** · Mechanic shop order 4: e-stop parts: Harmony XB4/XB5 40 mm twist-release head (XB4BS8442 includes 1 NC) + 2 extra Schneider ZBE102 NC blocks + IP65 guarded box (needs Adam OK). Block 1 SOURCED/OK; block 2 pending KSI draw. (Mechanic; BACKLOG.md:13)
 - **CRITICAL** · Mechanic shop order 5: Kelly coolant loop + fan relay (needs Adam OK). (Mechanic; BACKLOG.md:14)
 - **CRITICAL** · Mechanic shop order 6: chain guard + tensioner (needs Adam OK). (Mechanic; BACKLOG.md:15)
 - **CRITICAL** · Mechanic shop order 7: pack tie-downs, grommets / loom, ground straps (needs Adam OK). (Mechanic; BACKLOG.md:16)
@@ -80,7 +80,7 @@ CRITICAL = truly blocks first drive (chief, crew review 2026-10-22: gates + Mech
 - **LATER** · HV path (2026-10-20, see docs/TERYX_MAIN_POWER_PATH.md): two main contactors, used TE EV200 on pack + and pack −. Volt AEV14012s only on charger/DC-DC/precharge branches. (Gilfoyle; BACKLOG.md:69)
 - **LATER** · Strings: 36S each, built from 24S + 18S BICM boards (no 30S). (Gilfoyle; BACKLOG.md:71)
 - **LATER** · Before Brake_AN: read back the Kelly config (Brake Type, Boost OFF, BRK_AD/BRK_SW, Foot Switch, Three Gears/Speed) and save it in docs/. (Gilfoyle; BACKLOG.md:95)
-- **LATER** · E-stop ZBE102 DC rating at 12 V (Sparky confirming): block 1 makes ≈7.6 A EV200 inrush for 130 ms, breaks ≈0.52 A hold; block 2 breaks ≈0.35 A + KSI. Direct, no relay. (Gilfoyle; BACKLOG.md:96)
+- **LATER** · E-stop block 2 (pending): Adam meters the Kelly KSI draw (expected < 0.2 A); block 2 breaks ≈0.35 A AEV14012 + KSI. Block 1 SOURCED/OK (chief 2026-10-22: 0.26 A measured break < 0.5 A @24 V; 7.6 A inrush carried < 10 A Ith). (Gilfoyle; BACKLOG.md:96)
 - **LATER** · Dead-LEM detail (Sparky): each output should sit near 2.5 V at 0 A; within about 0.2 V of 0 V or 5 V = dead or disconnected (hard fault). Key-on self-test: below about 15 A, the low-range and high-range channels must agree. (Sparky; BACKLOG.md:99)
 - **LATER** · Direction change only at 0 RPM with the brake on (PROPOSED). Sim refuses R above 1 mph; no firmware rule yet (Kelly F/N/R readback on CAN 0x0CF11F05 b5, docs/KELLY_CAN_ROLES.md). (Gilfoyle; BACKLOG.md:105)
 - **LATER** · Brake-to-wake (PROPOSED, sim Build 2): brake held at full travel ≈1 s = key on (replaces a separate On switch); e-stop NC1 and the precharge/park rule still gate it. Needs a brake-position input that works while asleep (pin/part not chosen). (Gilfoyle; BACKLOG.md:109)

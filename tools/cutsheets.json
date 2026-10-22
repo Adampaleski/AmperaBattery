@@ -223,7 +223,7 @@
   },
   {
    "id": "estop",
-   "name": "E-stop: Harmony XB4/XB5 40 mm twist-release + 3× Schneider ZBE102 NC (crew spec, not bought)",
+   "name": "E-stop: Harmony XB4/XB5 40 mm twist-release (XB4BS8442 head includes 1 NC) + 2× extra Schneider ZBE102 (crew spec, not bought)",
    "mfr": "Schneider Electric",
    "doc": "ZBE102 contact block datasheet",
    "url": "https://static.datasheets.com/doc/13749203-schneider-zbe102-ds.pdf",
@@ -233,7 +233,7 @@
    "specs": [
     "Ie DC-13: 0.55 A @125 V, 0.27 A @250 V (Q600); Ith 10 A; 1 M cycles DC-13 0.5 A @24 V (datasheet)",
     "Block 1: both EV200 coils · Block 2: AEV14012 + Kelly KSI · Block 3: Teensy B latch input",
-    "DC-13 rating at 12–24 V (crew target ≥ 2 A) not on the datasheet: UNVERIFIED, Sparky confirming"
+    "Block 1 OK (chief): breaks ≈0.26 A (Adam measured 0.13 A hold per EV200) < 0.5 A @24 V; carries the 7.6 A inrush < 10 A Ith. Block 2 pending KSI draw"
    ],
    "note": "Previous candidate XB4BS8442 head datasheet: https://cdn.yesss.co.uk/documents/2104421_03_XB4BS8442_Datasheet_377fc6d0bf7c2710a16578008252e2fa.pdf (head only; the exact XB4/XB5 head P/N is TBD)"
   },

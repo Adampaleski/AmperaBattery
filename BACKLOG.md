@@ -10,7 +10,7 @@ Tag `[CRITICAL sN]` = CRITICAL, checklist section N (0 gates, 2 shop, 3 buy, 4 f
 - [ ] [CRITICAL s3] Mechanic shop order 1: 1/0 HV leads + crimper (needs Adam OK, never buy).
 - [ ] [CRITICAL s3] Mechanic shop order 2: bus bar + insulated standoffs + tool-to-remove cover with captive screws; 4 A6T200 bolt direct (no fuse holders), all reachable from one side; any holder at pack voltage > 160 VDC (needs Adam OK).
 - [ ] [CRITICAL s3] Mechanic shop order 3: EV200 mounts + HV component plate (needs Adam OK).
-- [ ] [CRITICAL s3] Mechanic shop order 4: e-stop parts: Harmony XB4/XB5 40 mm twist-release head + 3× Schneider ZBE102 NC blocks + IP65 guarded box (needs Adam OK). Block DC-13 ≥ 2 A at 12–24 V UNVERIFIED (datasheet: 0.55 A @125 V, 10 A Ith; Sparky confirming).
+- [ ] [CRITICAL s3] Mechanic shop order 4: e-stop parts: Harmony XB4/XB5 40 mm twist-release head (XB4BS8442 includes 1 NC) + 2 extra Schneider ZBE102 NC blocks + IP65 guarded box (needs Adam OK). Block 1 SOURCED/OK; block 2 pending KSI draw.
 - [ ] [CRITICAL s3] Mechanic shop order 5: Kelly coolant loop + fan relay (needs Adam OK).
 - [ ] [CRITICAL s3] Mechanic shop order 6: chain guard + tensioner (needs Adam OK).
 - [ ] [CRITICAL s3] Mechanic shop order 7: pack tie-downs, grommets / loom, ground straps (needs Adam OK).
@@ -93,7 +93,7 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 
 - [x] 2026-10-21 crew review of b629bcf: park on direct pin 32 (A needs BODY_IO_EXPANDER), Brake_AN DEFERRED (switch regen default), Low cap only on hard faults with a 1 s ramp, docs/ESTOP.md + wiring aid e-stop page fixed, WIRING.md CAN_LAYOUT_V2 map.
 - [ ] Before Brake_AN: read back the Kelly config (Brake Type, Boost OFF, BRK_AD/BRK_SW, Foot Switch, Three Gears/Speed) and save it in docs/.
-- [ ] E-stop ZBE102 DC rating at 12 V (Sparky confirming): block 1 makes ≈7.6 A EV200 inrush for 130 ms, breaks ≈0.52 A hold; block 2 breaks ≈0.35 A + KSI. Direct, no relay.
+- [ ] E-stop block 2 (pending): Adam meters the Kelly KSI draw (expected < 0.2 A); block 2 breaks ≈0.35 A AEV14012 + KSI. Block 1 SOURCED/OK (chief 2026-10-22: 0.26 A measured break < 0.5 A @24 V; 7.6 A inrush carried < 10 A Ith).
 
 - [ ] REQUIRED BEFORE FIRST DRIVE: firmware dead-LEM detection. Read each LEM separately and flag one reading nothing or out of range (>450 A, PROPOSED) as a hard fault that engages the 10 mph cap. Today this check runs only in the sim. (chief, 2026-10-21)
 - [ ] Dead-LEM detail (Sparky): each output should sit near 2.5 V at 0 A; within about 0.2 V of 0 V or 5 V = dead or disconnected (hard fault). Key-on self-test: below about 15 A, the low-range and high-range channels must agree.

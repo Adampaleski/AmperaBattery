@@ -5,7 +5,7 @@
    "s": 1,
    "o": "Adam",
    "src": "shop log 2026-10-21 17:45 · docs/ESTOP.md",
-   "t": "Install the e-stop: XB4/XB5 40 mm twist-release + 3× ZBE102 direct (no relay): block 1 both EV200 coils, block 2 precharge coil + Kelly KSI, block 3 Teensy B latch input; IP65 guarded box"
+   "t": "Install the e-stop: XB4/XB5 40 mm twist-release (XB4BS8442 head has 1 NC) + 2 extra ZBE102, direct (no relay): block 1 both EV200 coils (OK, 0.26 A break), block 2 precharge coil + Kelly KSI, block 3 Teensy B latch input; IP65 guarded box"
   },
   {
    "s": 1,

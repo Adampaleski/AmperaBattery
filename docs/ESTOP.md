@@ -4,9 +4,11 @@ The e-stop is a **hardware cut** wired **directly, no relay**. It works with bot
 
 ## Parts (crew spec)
 - Schneider Harmony **XB4/XB5 40 mm twist-release mushroom head** (latching), in an IP65 guarded box, reachable from the seat.
-- **3× Schneider ZBE102** NC contact blocks. Datasheet (SOURCED, fetched 2026-10-22, 200, part number found): https://static.datasheets.com/doc/13749203-schneider-zbe102-ds.pdf
+- **3 NC blocks total.** BOM: the **XB4BS8442 head includes 1 NC block**, so buy **2 extra ZBE102** (not 3).
+- **Schneider ZBE102** NC contact blocks. Datasheet (SOURCED, fetched 2026-10-22, 200, part number found): https://static.datasheets.com/doc/13749203-schneider-zbe102-ds.pdf
   - Ie DC-13: **0.55 A at 125 V** (Q600); 0.27 A at 250 V. Ith thermal **10 A**. Durability: 1 M cycles DC-13 0.5 A at 24 V.
-  - The datasheet gives **no DC-13 figure at 12–24 V**; the crew target was a block rated **DC-13 ≥ 2 A at 12–24 V**. Whether ZBE102 meets that at 12 V is **UNVERIFIED — Sparky is confirming** (part may still change).
+  - **Block 1: SOURCED / OK** (chief 2026-10-22). Breaks ≈0.26 A (Adam bench-measured ≈0.13 A hold per EV200), under the 0.5 A @24 V DC-13 rating. No make rating needed: the contact is already closed before the coils energize; it only carries the ≈7.6 A inrush, within the 10 A Ith.
+  - **Block 2: PENDING** until Adam meters the Kelly KSI draw.
 
 ## Wiring
 ```
@@ -31,14 +33,14 @@ Status: logic + host test only. **Not wired into any output**: BMS_CAP flags sta
 ## Loads per block
 | Block | Load | Current | Label |
 |---|---|---|---|
-| 1 | EV200HAANA hold (economized) ×2 | ≈0.26 A each = **0.52 A break** | SOURCED crew (TE datasheet value, recheck) |
-| 1 | EV200 inrush ×2 (close together) | ≈3.8 A each = **≈7.6 A make for ≈130 ms** | SOURCED crew (recheck) |
+| 1 | EV200HAANA hold (economized) ×2 | ≈0.13 A each = **≈0.26 A break** | SOURCED (Adam bench-measured 2026-10-22; TE datasheet 0.13 A @12 V) |
+| 1 | EV200 inrush ×2 (close together) | ≈3.8 A each = **≈7.6 A carried for ≈130 ms** (contact already closed) | SOURCED (TE datasheet 3.8 A max / 130 ms) |
 | 2 | AEV14012 coil | ≈0.35 A (not economized) | SOURCED (Volt part, sim note) |
 | 2 | Kelly KSI / PWR | expected **< 0.2 A** — **Adam meters it** | UNVERIFIED |
-Block 1 breaks ≈0.52 A, under the 0.55 A @125 V DC-13 figure; the make of ≈7.6 A is within 10 A Ith but a DC make rating at 12 V is not on the datasheet (UNVERIFIED, Sparky). Block 2 breaks ≈0.35 A + KSI.
+**Block 1: OK** — breaks ≈0.26 A < 0.5 A @24 V DC-13; carries (never makes) the ≈7.6 A inrush < 10 A Ith. Block 2 breaks ≈0.35 A + KSI.
 
 ## Bench checks before first drive
 - Press with mains closed: both EV200s and the precharge relay open, the Kelly powers down, Teensy B logs the press and latches.
 - Twist to release: nothing re-closes until a key cycle and a new precharge.
 - Unplug block 3's wire: same as a press (latched).
-- Meter the Kelly KSI draw (expected < 0.2 A) and the coil currents per block; compare with the ZBE102 ratings.
+- Meter the Kelly KSI draw (expected < 0.2 A) to close out block 2.
