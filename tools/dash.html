@@ -4,7 +4,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000"><title>Teryx Dash</title>
 <style>html,body{margin:0;background:#000;height:100%;overflow:hidden}</style></head><body><a href="wiring.html" style="position:fixed;right:6px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Wiring</a><a href="checklist.html" style="position:fixed;right:52px;bottom:4px;z-index:99;color:#555;font:11px system-ui;text-decoration:none">Checklist</a>
-<div id="dash"></div><span style="position:fixed;left:6px;top:4px;z-index:99;color:#444;font:11px system-ui;pointer-events:none">Build 4 dev</span>
+<div id="dash"></div><span style="position:fixed;left:6px;top:4px;z-index:99;color:#444;font:11px system-ui;pointer-events:none">Build 4 · a1d88b3 · Oct 22 7:24 AM CT</span>
 <script>// Vehicle model for tools/bms_sim.html (Cluster tab), drive cycles and scripts/check_bms_sim_wasm.js.
 // SIM ONLY. Every default below is ASSUMED or PROPOSED (tagged in VEH_SETS), not measured on the Teryx.
 // Point-mass longitudinal model: motor torque (Kelly phase-amp limit x ASSUMED Kt) and Kelly battery-amp
@@ -487,7 +487,7 @@ const TeryxLock={keyOn:false,phone:true,unlocked:false,verify:null,hasPin:null,s
 if(typeof document!=='undefined'){const guard=e=>{const t=e.target&&e.target.closest&&e.target.closest('[data-drive-lock]');if(!t||!TeryxLock.locked()||TeryxPad.isOpen())return;e.preventDefault();e.stopImmediatePropagation();if(e.type==='click')TeryxLock.prompt();if(e.type==='focusin'&&e.target.blur)e.target.blur();};
   ['pointerdown','mousedown','touchstart','click','focusin','keydown','input','change'].forEach(t=>document.addEventListener(t,guard,{capture:true,passive:false}));}
 if(typeof window!=='undefined'){window.TeryxPad=TeryxPad;window.TeryxLock=TeryxLock;}
-const DASH_BUILD='Build 4 dev';
+const DASH_BUILD='Build 4 · a1d88b3 · Oct 22 7:24 AM CT';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');
