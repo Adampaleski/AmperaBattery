@@ -23,6 +23,20 @@ Tag `[CRITICAL sN]` = CRITICAL, checklist section N (0 gates, 2 shop, 3 buy, 4 f
 - [ ] [CRITICAL s4] E-stop latch (crew 2026-10-22): when block 3 (NC to Teensy B) reports open, drop every coil driver and latch until a key-cycle reset; releasing never closes anything. Logic + test done (include/EstopLatch.h, scripts/test_estop_latch.cpp 7/7); wire into the coil gate when BMS_CAP_CONTACTOR_DRV is enabled, then bench: press, release, unplug block 3 wire. Adam meters Kelly KSI draw (expected < 0.2 A).
 - [ ] [CRITICAL s3] Insulated boots / covers on every HV terminal (Sparky): the string side of each A6T200 stays LIVE with the fuses pulled.
 
+## CRITICAL: chief firmware review cd7027f (2026-10-22) — TODO, NOT implemented in this task
+Source: /workspace/teryx/review/firmware_review_chief.md (the review lists 10 CRITICAL items; the request said 9, all are carried here).
+- [ ] [CRITICAL s0] Chief review #1: ContactorSeq.cpp:367 single-string env with HV_ANALOG_ENABLE=0 closes Main+ on a blind 5 s precharge timer: must fault; fence/delete `teensy41_bms` env.
+- [ ] [CRITICAL s0] Chief review #2: ContactorSeq.cpp:226 + Settings.cpp:170/165: serial `U` / `I` sim inputs feed the real precharge gate / force currentValid; compile out when TELEMETRY_ONLY=0.
+- [ ] [CRITICAL s0] Chief review #3: ContactorSeq.cpp:288-312: lemA/lemB/valid never set; BmsCore.h:186-189 defaults valid=true, so dead-LEM, >60 A disagree and 400 A per-sensor trip can never fire. Default valid=false.
+- [ ] [CRITICAL s0] Chief review #4: ContactorSeq.cpp:302: key-on is serial `e` only; no KSI, e-stop NC2, park or plug-in input fed to BmsCore.
+- [ ] [CRITICAL s0] Chief review #5: EstopLatch.h not called anywhere in src/.
+- [ ] [CRITICAL s0] Chief review #6: Brake-overrides-throttle >0.5 s not in firmware (sim only).
+- [ ] [CRITICAL s0] Chief review #7: KellyLink.h / LemHealth.h not wired (BMS_CAP_KELLY_RX 0); non-Kid modes uncapped when speed lost.
+- [ ] [CRITICAL s0] Chief review #8: TEMPS_VERIFIED=0: drive has no overtemp, derate or TEMP-STALE. Verify temps, set 1 before first HV drive.
+- [ ] [CRITICAL s0] Chief review #9: ThrottleTrim.cpp:76 + Config.h:213: raw ADC/1023 pedal, no travel calibration, half-scale track 2 would trip DISAGREE, no open/short detect, 4.5 V reads ~88 %.
+- [ ] [CRITICAL s0] Chief review #10: ThrottleTrim.cpp:5-6: MCP4131 digipot powers up at mid-scale (50 %) until begin(), and coil gate pins float from reset until setup() (main.cpp:233-240): the 74HC4066 clamp + 100k Kelly pull-down (Gate 1) and the 10k gate pull-downs on pins 11/12/21 + pin 20 relay driver (Gate 0) MUST be bench-proven.
+- [ ] Chief review should-fix (before flags go to 1): ADC re-entrancy (ThrottleTrim ISR vs CurrentSense loop analogRead); ThrottleCross 5 %/50 ms vs agreed 10 %/100 ms; `MX` clears latched throttle fault without key cycle; corrupt DriveStore drops out of Kid / loses PIN (fail to Kid/Low); no 12 V low alarm; tickDual skips enter() (partial bench logs); pin 4 = B_FAULT_OUT on B and A_THR_ALIVE on A (stated in docs/PINMAP.md); commit the BMS-settings edits (done, Build 10) — THR2 resets saved thresholds on first boot.
+
 ## Priority list (standing dev routine)
 
 1. [x] Tesla-style restyle + live Diagram tab in tools/bms_sim.html (034a3ae).
@@ -119,6 +133,7 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 - [ ] Bench IRLB3813 coil drivers at the Teensy gate level: datasheet specifies RDS(on) at 4.5 V and 10 V only (VGS(th) 1.35–2.35 V, Ciss 8420 pF); confirm the EV200/AEV14012 coils pull in fully. IRLB8721 is discontinued.
 
 ## Later
+- [ ] Odometer that survives power-down (EEPROM, wear-leveled) plus hour counter (key-on hours and drive hours). Requested by Adam; do not implement until after first drive. (LATER / after first drive)
 - [ ] Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built.
 
 ## Done notes (appended so open-item line numbers above stay stable)
