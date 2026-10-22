@@ -152,7 +152,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 .set{width:100%;border-collapse:collapse}.set td{padding:10px 6px;border-bottom:1px solid #1c1c1e}.set input{width:120px;min-height:40px;background:var(--card2);border:0;border-radius:8px;color:var(--tx);font:inherit;padding:0 10px}
 </style></head><body>
 <header><div class="bar">
-  <div class="brand">Teryx BMS</div><a href="wiring.html" style="color:#8a9099;font-size:13px;margin-left:8px;text-decoration:none" title="Wiring aid">Wiring</a><a href="checklist.html" style="color:#8a9099;font-size:13px;margin-left:8px;text-decoration:none" title="Build checklist">Checklist</a><span class="buildlbl" style="color:#5f6368;font-size:11px;margin-left:10px;white-space:nowrap">dev build · d678dd1+</span>
+  <div class="brand">Teryx BMS</div><a href="wiring.html" style="color:#8a9099;font-size:13px;margin-left:8px;text-decoration:none" title="Wiring aid">Wiring</a><a href="checklist.html" style="color:#8a9099;font-size:13px;margin-left:8px;text-decoration:none" title="Build checklist">Checklist</a><span class="buildlbl" style="color:#5f6368;font-size:11px;margin-left:10px;white-space:nowrap">Build 1 · bfb307d · Oct 21 8:29 PM CT</span>
   <nav class="tabs">
     <button class="tab on" data-t="cluster">Dash</button><button class="tab" data-t="pack">Pack</button><button class="tab" data-t="drive">Drive</button><button class="tab" data-t="diagram">Diagram</button>
     <button class="tab" data-t="faults">Faults <span id="fcount"></span></button><button class="tab" data-t="scen">Scenarios</button><button class="tab" data-t="settings">Settings</button>
@@ -649,7 +649,7 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
  ['SoC / range','BmsCore::Soc coulomb count on LEM A + B, full-charge anchor; range = SoC × ASSUMED kWh ÷ Wh/mi','sim only · capAh UNVERIFIED'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → head unit','schema exists']];
-const DASH_BUILD='dev build · d678dd1+';
+const DASH_BUILD='Build 1 · bfb307d · Oct 21 8:29 PM CT';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
   const spd=dial('ds',0,60,10,'mph'),pw=dial('dp',-20,100,20,'kW',0,0),bt=dial('db',0,100,25,'% battery');
