@@ -82,9 +82,9 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 - [ ] **REQUIRED BEFORE FIRST DRIVE:** Kelly CAN timeout (> 200 ms, PROPOSED) → derate + fault (KELLY-CAN-LOST). Today stale Kelly CAN only makes Park false (include/ParkState.h); BMS_CAP_KELLY_RX=0.
 - [x] EV200 coil economizer — COVERED by hardware: EV200HAANA has a built-in economizer + suppression (shop log 2026-10-20 06:31; docs/ESTOP.md hold ≈0.26 A). No extra circuit.
 - [ ] **REQUIRED BEFORE FIRST DRIVE:** Kelly/motor cooling control from Kelly controller + motor temps (Kelly CAN): pump on with key (COOL_PUMP pin 8), radiator fan relay at ~40 °C (RAD_FAN pin 7), PROPOSED pins reserved in Config.h, not built; Kelly derates itself at 90 °C case (SOURCED manual).
+- [ ] Brake-to-wake (PROPOSED, sim Build 2): brake held at full travel ≈1 s = key on (replaces a separate On switch); e-stop NC1 and the precharge/park rule still gate it. Needs a brake-position input that works while asleep (pin/part not chosen).
+- [ ] Decide: PIN to drive (UNDECIDED; sim option, off by default; uses the Kid PIN hash).
 
 ## Later
 - [ ] Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built.
 - [ ] Hall pedal spec (Sparky): track 2 at half scale (e.g. 0.5-4.5 V and 0.25-2.25 V). Both tracks go through 10k/18k dividers (4.5 V reads 2.89 V at the pin). Compare the tracks as % of travel, not raw volts.
-- [ ] Brake-to-wake (PROPOSED, sim Build 2): brake held at full travel ≈1 s = key on (replaces a separate On switch); e-stop NC1 and the precharge/park rule still gate it. Needs a brake-position input that works while asleep (pin/part not chosen).
-- [ ] Decide: PIN to drive (UNDECIDED; sim option, off by default; uses the Kid PIN hash).
