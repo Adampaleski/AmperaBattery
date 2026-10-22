@@ -49,8 +49,8 @@ From `docs/COMPONENTS.md`, `../diagram/components.json`, `../perfboard/BOM.md`:
 - [ ] Startup weld check: both mains commanded open, Kelly side must read ≈ 0 V or refuse to start
 - [ ] Hard trips on LEM A + LEM B: 650 A for 100 ms, 750 A instant (replaces 300 A / 500 ms) — code + sim done 2026-10-20 (`BmsCore`); tick after a bench test with `CURRENT_SENSE_ENABLE` on
 - [ ] LEM imbalance derate: |A − B| > 60 A for 1 s (crew 2026-10-21, was 100 A; soft 50 % derate, never the Low cap) → derate + warn — code + sim done 2026-10-20; cut level 50 % is a placeholder (Adam to pick)
-- [ ] Cell sag derate: lowest cell 3.2 V → 3.0 V linear to zero — code + sim done 2026-10-20; can't act while the 3.30 V low cut trips instantly (Adam to decide)
-- [ ] Heat derate (50 °C start / 60 °C cut) coded but **off** until `TEMPS_VERIFIED`
+- [ ] Cell sag derate (Adam 2026-10-21, b2ba63c): relative — weakest cell 0.15 → 0.40 V below pack average = 100 → 0 %; under load (> 20 A) whole-pack sag tapers 3.10 → 3.00 V instead of the low cut; hard floor 3.00 V for 500 ms → CELL-LOW; 3.30 V low cut only at rest (1 s debounce). Code + sim done; all numbers PLACEHOLDER until checked against Volt cell data
+- [ ] Heat derate: starts at 50 °C (`derateTempC`, serial key `derateC`), contactors open above 55 °C (`overTempC`, key `tripC`, tighten-only, max 55) — matches `BmsCore.h`, `docs/KELLY_CUTBACK.md`, `docs/TEMPS.md` (reconciled 2026-10-21; this line used to say 60 °C cut). Only acts on valid temps, so it is **off** until `TEMPS_VERIFIED`. Both numbers PLACEHOLDER: final pick = the more conservative of Chevy's and the EV community's Volt limits (Adam 2026-10-21, Sparky to source)
 - [ ] LEM sign flip (discharge positive), zero calibration, enable `CURRENT_SENSE_ENABLE`
 - [ ] Kelly settings: phase 550 A / battery 550 A (100 % / 100 %)
 - [ ] Kelly input polarity check: LIMP / DERATE / REGEN active on switch-to-GND
