@@ -85,3 +85,4 @@ Pack protection today uses the **BICMs (cell V/temps) and LEMs (pack A) only**. 
 
 ## Later
 - [ ] Creep + hill hold for Kid mode (PROPOSED): low creep torque from 0 and hold at 0 RPM on a slope (Kelly Anti-Slip item 97 SOURCED as an option, UNVERIFIED on his unit) — not built.
+- [ ] Hall pedal spec (Sparky): track 2 at half scale (e.g. 0.5-4.5 V and 0.25-2.25 V). Both tracks go through 10k/18k dividers (4.5 V reads 2.89 V at the pin). Compare the tracks as % of travel, not raw volts.
