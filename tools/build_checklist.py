@@ -30,6 +30,10 @@ def backlog():
         out.append(dict(s=s, o=o, src=f"BACKLOG.md:{n}", t=(lambda z: z[:1].upper()+z[1:])(plain.replace("REQUIRED BEFORE FIRST DRIVE:", "").strip())))
     return out
 
+def label():
+    import os, subprocess
+    return os.environ.get("BUILD_LABEL") or "dev build · " + (subprocess.run(["git","rev-parse","--short","HEAD"],cwd=R,capture_output=True,text=True).stdout.strip() or "local") + "+"
+
 def norm(t): return re.sub(r"[^a-z0-9]+", " ", t.lower()).strip()
 
 def main():
@@ -52,7 +56,7 @@ def main():
         cls = " req" if i == 1 else (" buy" if i == 3 else "")
         body.append(f'<section class="sec{cls}"><h2>{i}. {html.escape(name)} <span class="cnt" data-sec="{i}">0/{len(sec)}</span></h2><ul data-sec="{i}">{"".join(rows)}</ul></section>')
     tpl = (R / "tools/checklist.template.html").read_text()
-    (R / "tools/checklist.html").write_text(tpl.replace("<!--BODY-->", "\n".join(body)).replace("<!--TOTAL-->", str(len(items))))
+    (R / "tools/checklist.html").write_text(tpl.replace("<!--BODY-->", "\n".join(body)).replace("<!--TOTAL-->", str(len(items))).replace("@@BUILD_LABEL@@", html.escape(label())))
     for n, c in counts: print(f"{c:3d}  {n}")
     print(f"{len(items):3d}  total")
 main()
