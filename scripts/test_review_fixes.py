@@ -86,5 +86,12 @@ core = (R / "include/BmsCore.h").read_text()
 ok("enter(CState::RetryWait" not in core and "pcMaxRetries" not in core and "retries_" not in core, "#1 BmsCore dual path: ONE precharge fail -> Lockout, no auto retry")
 cfg = (R / "include/Config.h").read_text()
 ok("kPrechargeMinMs        = 300" in cfg and "kPrechargeTimeMs       = 3000" in cfg and "kPcDualMaxRetries" not in cfg, "#1 single-string timing 300 ms / 3 s, retry constants gone")
+
+# ---- chief #3: LEM validity fails closed ----
+core = (R / "include/BmsCore.h").read_text()
+ok(re.search(r"bool\s+lemAValid\s*=\s*false;", core) and re.search(r"bool\s+lemBValid\s*=\s*false;", core), "chief#3 BmsCore Inputs: lemAValid/lemBValid default false")
+cs = (R / "src/ContactorSeq.cpp").read_text()
+ok("in.lemAValid = false;" in cs and "in.lemBValid = false;" in cs and "in.lemSplitValid = false;" in cs, "chief#3 ContactorSeq sets LEM validity explicitly (false until wired)")
+ok(not re.search(r"in\.lem[AB]Valid\s*=\s*true", cs), "chief#3 ContactorSeq never forces a LEM valid")
 print(f"review fixes: {fails} failed")
 sys.exit(1 if fails else 0)

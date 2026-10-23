@@ -181,8 +181,8 @@ struct Inputs {
     float    packA        = 0;     // + = discharge
     bool     currentExpected = false; // current sensing fitted+enabled (CURRENT_SENSE_ENABLE): !currentValid = LOST
     bool     tempsExpected   = false; // temps verified (TEMPS_VERIFIED): !tempsValid = STALE
-    bool     lemAValid    = true;  // LEM A half reading (not open/dead)
-    bool     lemBValid    = true;  // LEM B half reading (local on B, over the link on A)
+    bool     lemAValid    = false; // LEM A half reading (not open/dead); fail-closed default (chief #3)
+    bool     lemBValid    = false; // LEM B half reading (local on B, over the link on A); fail-closed default
     bool     lemSplitValid= false; // both halves read (LEM A on Teensy A, LEM B over the link)
     float    lemA = 0, lemB = 0;   // strings 1+2 and 3+4, + = discharge
     bool     busValid     = false; // HV bus sense present

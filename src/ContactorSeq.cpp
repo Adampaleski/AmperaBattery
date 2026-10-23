@@ -293,6 +293,13 @@ void tickDual() {
     in.currentExpected = CURRENT_SENSE_ENABLE != 0;   // 0 today: no Low cap for a sensor that isn't fitted yet
     in.tempsExpected   = TEMPS_VERIFIED != 0;
     in.packA = CurrentSense::amps();
+    // Chief review #3: split-LEM reads are not wired yet (LemHealth / LEM B over the link).
+    // Say so explicitly: both halves invalid. With CURRENT_SENSE_ENABLE=1 this holds the
+    // Low cap ("one LEM reading nothing") until real per-LEM health is fed here. Never true by default.
+    in.lemAValid = false;
+    in.lemBValid = false;
+    in.lemSplitValid = false;
+    in.lemA = 0; in.lemB = 0;
     const float hv = busV();
     in.busValid = hv > 0.0f || HV_ANALOG_ENABLE;
     in.busV = hv;
