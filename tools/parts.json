@@ -682,6 +682,7 @@
     "wiring:enables/bf",
     "wiring:park/a",
     "wiring:park/b",
+    "wiring:precharge/hvs",
     "wiring:estop/tb",
     "wiring:bms/ta",
     "wiring:bms/tb",
@@ -691,6 +692,7 @@
     "wiring:plug/b",
     "schem:ta",
     "schem:tb",
+    "schem:hvs",
     "cutsheet:teensy"
    ],
    "pinmap_refs": [
@@ -1551,10 +1553,7 @@
    ],
    "verified": "yes",
    "open_questions": [],
-   "diagram_ids": [
-    "wiring:precharge/hvs",
-    "schem:hvs"
-   ],
+   "diagram_ids": [],
    "pinmap_refs": [
     "S08"
    ],

@@ -42,6 +42,13 @@ if not m: errs.append("gen.py: no PART dict")
 else:
     for k, v in ast.literal_eval(m.group(1)).items():
         exists.add(f"schem:{k}"); tags[f"schem:{k}"] = ids(v)
+    # every drawn schematic block must be in PART, or be a known non-part block (headers, rails, legend)
+    SCHEM_NONPART = {"hvhdr", "lvhdr", "b12", "v5", "gnd", "pu", "load", "leg"}
+    nb = re.search(r"^N = \{(.*?)^\}", g, re.S | re.M)
+    pk = ast.literal_eval(m.group(1))
+    for b in (re.findall(r'"(\w+)":\s*\(', nb.group(1)) if nb else []):
+        if b not in pk and b not in SCHEM_NONPART:
+            errs.append(f"schem:{b}: block drawn in gen.py N but missing from PART (tag it, or add to SCHEM_NONPART with a reason)")
 for sec, kind in (("connectors", "connector"), ("fuses", "fuse")):
     for r in PM[sec]:
         ref = f"pinmap:{kind}/{r['id']}"; exists.add(ref)

@@ -55,7 +55,7 @@ N = {
 "es3": ("E-stop NC block 3 (11/12)\n→ Teensy B (pin UNDEFINED)", 1160, 760, 190, 40, 1),
 "rly": ("Aux relay 30/87/85/86", 1380, 880, 170, 35, 0), "auxb": ("NO aux button", 1570, 880, 100, 35, 0),
 "load": ("Horn / lights", 1380, 950, 170, 35, 0),
-"hvs": ("A:24 RESERVED spare (room 2026-10-23)\nPrecharge/weld = Kelly CAN B+ vs BICM sum\nAMC1311EVM only if bench gate fails", 470, 730, 230, 55, 2),
+"hvs": ("A:24 RESERVED spare · NOT FITTED (room 2026-10-23)\nPrecharge/weld = Kelly CAN B+ vs BICM sum\nAMC1311EVM only if bench gate fails", 470, 730, 230, 55, 2),
 "lfan": ("LATER — reserved: MOTOR_FAN\nMCP23017 bit 14 → IRLB8721 + 1N4007 → fan relay", 760, 195, 250, 40, 2),
 "lbuz": ("LATER — reserved: BUZZER\nMCP23017 bit 13 → 12 V buzzer", 760, 250, 250, 40, 2),
 "leg": ("Red = unconfirmed / UNDEFINED. Grey dashed = LATER, reserved (no logic). Labels = wire numbers from docs/PINMAP.yaml", 760, 960, 620, 30, 1),
@@ -72,7 +72,7 @@ PART = {
  "x1": "sn65", "x2": "sn65", "x3": "sn65", "x4": "sn65", "x5": "sn65", "x6": "sn65", "bo": "bicm_total",
  "drv": ["coil_driver", "cd_flyback"], "clamp": ["digipot", "analog_switch", "oneshot", "buffer"], "ped": "pedal",
  "pk": "park_switch", "low": "eco_relay", "es1": "estop_blocks", "es2": "estop_blocks", "es3": "estop_blocks",
- "rly": "aux_relay", "auxb": "aux_button", "hvs": "hv_sense", "lfan": "motor_fan", "lbuz": "io_expander",
+ "rly": "aux_relay", "auxb": "aux_button", "hvs": "teensy", "lfan": "motor_fan", "lbuz": "io_expander",  # hvs = Teensy A:24 reserved spare; hv_sense (AMC1311EVM) dropped/not fitted
 }
 assert not set(PART) - set(N), set(PART) - set(N)
 E = [("s1","f"),("s2","f"),("s3","f"),("s4","f"),("f","bus"),("bus","evp"),("evp","kel"),("pre","evp"),("pres","pre"),
