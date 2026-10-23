@@ -52,7 +52,7 @@ c.setLight('high',true);r=run({mph:0},100);ok(r.out.headLow&&r.out.headHigh&&r.o
  ok(dead.rpm<=p.lowCapRpm+1&&free.rpm>p.lowCapRpm*2,'both Teensys dead: Kelly Low cap holds ('+dead.rpm.toFixed(0)+' RPM ≈ '+dead.mph.toFixed(1)+' mph)');
  ok(kid.rpm<=p.lowCapRpm+1,'Kid mode engages the Kelly Low cap');}
 // ---- grade physics sign + no runaway (Build 1 bug: 0 throttle on 15 % reached 80 mph rolling back)
-{const vm=require('vm');const ctx={};vm.createContext(ctx);vm.runInContext(require('fs').readFileSync(__dirname+'/../sim/vehicle.js','utf8')+';this.V=vehStep;this.D=VEH_DEF;this.M=vehMphAtRpm;this.R=vehRpm;',ctx);
+{const vm=require('vm');const ctx={};vm.createContext(ctx);vm.runInContext(require('fs').readFileSync(__dirname+'/../sim/vehicle.js','utf8')+';this.V=vehStep;this.D=VEH_DEF;this.M=vehMphAtRpm;this.R=vehRpm;this.G=VEH_GEARS;',ctx);
  const run=(g,gear,m0,x,secs)=>{const p=Object.assign({},ctx.D,{gradePct:g});let st={mph:m0},o,mx=0,first=null;for(let i=0;i<(secs||60)*20;i++){o=ctx.V(p,st,Object.assign({thr:0,brake:0,gear,closed:true,allowPct:100,regenOk:true,packV:140},x||{}),0.05);if(i===0)first=o.mph;st.mph=o.mph;mx=Math.max(mx,Math.abs(o.mph));}return {end:o.mph,mx,first,o};};
  const cap=ctx.M(ctx.D,6000);
  {const r=run(15,'H',20);ok(r.first<20,'uphill 15 %, 0 throttle: decelerates ('+r.first.toFixed(2)+' mph after 50 ms)');ok(r.end<0,'uphill: then rolls back ('+r.end.toFixed(1)+' mph)');ok(r.mx<=20+1e-6,'uphill: never faster than entry speed');}
@@ -60,9 +60,23 @@ c.setLight('high',true);r=run({mph:0},100);ok(r.out.headLow&&r.out.headHigh&&r.o
  for(const [g,gear,x,lbl] of [[15,'H',null,'rollback live'],[-15,'H',null,'downhill live'],[-30,'H',null,'30 % downhill live'],[15,'H',{closed:false},'rollback contactors open'],[-30,'H',{regenOk:false},'downhill regen vetoed'],[-15,'R',null,'reverse gear downhill']]){
   const r=run(g,gear,0,x,120);ok(r.mx<=cap+1e-6,'0 throttle never above the 6000 RPM cap: '+lbl+' (max '+r.mx.toFixed(1)+' ≤ '+cap.toFixed(1)+' mph)');}
  {const r=run(-15,'H',0,null,120);ok(r.mx<=cap&&r.o.regenA>0,'downhill: Kelly overspeed regen holds near the cap (regen '+r.o.regenA.toFixed(0)+' A)');}
- {const r=run(15,'H',0,null,120);ok(Math.abs(r.end)<=ctx.M(ctx.D,1100)+1e-6,'rollback held at the reverse cap ('+r.end.toFixed(1)+' mph)');}
+ {const r=run(15,'H',0,null,120);ok(Math.abs(r.end)<=ctx.M(ctx.D,ctx.G.R.rpm)+1e-6,'rollback held at the reverse cap ('+r.end.toFixed(1)+' mph)');}
  {const r=run(-15,'H',0,{thr:100},120);ok(r.mx<=cap+1e-6,'full throttle downhill: never above the cap ('+r.mx.toFixed(1)+')');}
  {const r=run(15,'H',0,{brake:100},20);ok(Math.abs(r.end)<1e-9,'uphill + full brake: holds at 0');}
  {const r=run(15,'H',0,{parkBrake:true},20);ok(Math.abs(r.end)<1e-9,'uphill 15 % + park brake: holds at 0');}}
+// ---- reverse cap per mode (PROPOSED, Adam 2026-10-22): 15 mph High/Medium/Snow/Mud/Sand (never above the mode's forward top), 10 mph Low/Kid
+{const vm=require('vm');const ctx={};vm.createContext(ctx);vm.runInContext(require('fs').readFileSync(__dirname+'/../sim/vehicle.js','utf8')+';this.V=vehStep;this.D=VEH_DEF;this.G=VEH_GEARS;this.T=vehRevTop;this.F=VEH_MODE_DEF;this.M=vehMphAtRpm;',ctx);
+ const want={H:15,M:15,L:10,SNOW:15,MUD:15,SAND:15,KID:10};
+ ok(Object.entries(want).every(([m,v])=>ctx.T(m)===v),'reverse cap table: '+Object.keys(want).map(m=>m+' '+ctx.T(m)).join(', '));
+ ok(ctx.F.R.cur===25&&ctx.F.R.expo===0.3&&ctx.F.R.ramp===500,'reverse keeps the gentle feel (25 % pedal cap, expo 0.3, 500 A/s)');
+ ok(Math.abs(ctx.M(ctx.D,ctx.F.R.rpm)-15)<0.5&&Math.abs(ctx.M(ctx.D,ctx.D.lowRevRpm)-10)<0.5,'Kelly reverse caps: '+ctx.F.R.rpm+' RPM ≈ '+ctx.M(ctx.D,ctx.F.R.rpm).toFixed(1)+' mph, low '+ctx.D.lowRevRpm+' RPM ≈ '+ctx.M(ctx.D,ctx.D.lowRevRpm).toFixed(1)+' mph');
+ const rev=(m,x)=>{const p=Object.assign({},ctx.D);const st={mph:0,trim:{filt:0,out:0}};let o,mx=0;for(let i=0;i<120*20;i++){o=ctx.V(p,st,Object.assign({thr:100,brake:0,gear:'R',revMode:m,closed:true,allowPct:100,regenOk:true,packV:140,kellyLowCap:m==='KID'},x||{}),0.05);st.mph=o.mph;mx=Math.max(mx,Math.abs(o.mph));}return {end:o.mph,mx,o};};
+ for(const m of Object.keys(want)){const r=rev(m);ok(r.end<0&&r.mx<=want[m]+0.05&&r.mx>=want[m]-2.5,'full pedal in reverse from '+m+': backs up and holds '+(-r.end).toFixed(1)+' mph (cap '+want[m]+', max '+r.mx.toFixed(1)+')');}
+ {const r=rev('KID',{teensyDead:true});ok(r.mx<=ctx.M(ctx.D,ctx.D.lowRevRpm)+0.05,'Kid reverse, both Teensys dead: Kelly LowSpeed Rev holds ('+r.mx.toFixed(1)+' mph)');}
+ {const r=rev('H',{teensyDead:true,kellyLowCap:false});ok(r.mx<=ctx.M(ctx.D,ctx.F.R.rpm)+0.05,'High reverse, both Teensys dead (raw pedal): Kelly Rev Speed 31 % still holds ('+r.mx.toFixed(1)+' mph)');}
+ {const h0=ctx.G.H.top;ctx.G.H.top=12;const t=ctx.T('H');ctx.G.H.top=h0;ok(t===12,'reverse cap never above the mode forward top (High edited to 12 -> reverse 12)');}
+ {const r0=ctx.G.R.top;ctx.G.R.top=8;const t=[ctx.T('H'),ctx.T('KID')];ctx.G.R.top=r0;ok(t[0]===8&&t[1]===8,'lowering the Reverse top in Settings lowers every mode');}
+ {const one=(gear,m)=>{const st={mph:0,trim:{filt:0,out:0}};let o;for(let i=0;i<20;i++){o=ctx.V(Object.assign({},ctx.D),st,{thr:100,brake:0,gear,revMode:m,closed:true,allowPct:100,regenOk:true,packV:140},0.05);st.mph=o.mph;}return Math.abs(o.mph);};
+  const rv=one('R','H'),fw=one('H');ok(rv>0&&rv<fw*0.5,'reverse stays gentle: '+rv.toFixed(1)+' mph after 1 s full pedal vs High forward '+fw.toFixed(1)+' mph');}}
 console.log(`controls: ${n-f}/${n} passed`);process.exit(f?1:0);
 
