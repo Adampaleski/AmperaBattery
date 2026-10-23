@@ -106,11 +106,11 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: relay off: Kelly pin 22 = 12 V
 - [ ] **P20 5V CLAMP** (CRITICAL, PROPOSED) — TB-5V → pedal 5 V + U1..U4 VCC (shared rail) · +5V · 20 AWG OR · fuse F-BUCK  
   Meter: 5 V at each chip VCC pin
-- [ ] **S01 TA11 MAIN+** (CRITICAL, PROPOSED) — Teensy A:11 via 100 Ω (10k pull-down to GND) → FET Q-B+ gate; drain -> EV200 B+ coil - · coil drive · 18 (coil lead) AWG RD/BU (coil lead) · fuse F-COIL  
+- [ ] **S01 TA11 MAIN+** (CRITICAL, PROPOSED) — Teensy A:11 via 100 Ω (10k pull-down to GND) → FET Q-B+ gate; drain -> EV200 B+ coil - (no external diode: EV200 economizer clamps, DECIDED Sparky 2026-10-23 05:41) · coil drive · 18 (coil lead) AWG RD/BU (coil lead) · fuse F-COIL  
   Meter: Gate 0: 10k gate pull-down present (meter gate-GND ≈10 kΩ) — chief review #10
-- [ ] **S02 TA12 PRE** (CRITICAL, PROPOSED) — Teensy A:12 via 100 Ω (10k pull-down) → FET Q-PRE gate; drain -> precharge coil - · coil drive · 18 AWG RD/GN · fuse F-COIL  
+- [ ] **S02 TA12 PRE** (CRITICAL, PROPOSED) — Teensy A:12 via 100 Ω (10k pull-down) → FET Q-PRE gate; drain -> AEV14012 precharge coil - (D-PRE 1N4007 across the coil AT the relay, band/cathode to +12 V, no zener: DECIDED Sparky 2026-10-23 05:41) · coil drive · 18 AWG RD/GN · fuse F-COIL  
   Meter: as S01
-- [ ] **S03 TA21 MAIN-** (CRITICAL, PROPOSED) — Teensy A:21 via 100 Ω (10k pull-down) → FET Q-B- gate; drain -> EV200 B- coil - · coil drive · 18 AWG RD/BK · fuse F-COIL  
+- [ ] **S03 TA21 MAIN-** (CRITICAL, PROPOSED) — Teensy A:21 via 100 Ω (10k pull-down) → FET Q-B- gate; drain -> EV200 B- coil - (no external diode: EV200 economizer clamps, DECIDED Sparky 2026-10-23 05:41) · coil drive · 18 AWG RD/BK · fuse F-COIL  
   Meter: as S01
 - [ ] **S05 LEMA CH1** (CRITICAL, SOURCED) — LEM A DHAB pin 4 (ch1) → 10k/18k + 100 nF -> Teensy A:14 · LEM A low range · 22 AWG BU · fuse none  
   Meter: no current: ≈2.5 V at DHAB, ≈1.6 V at pin
