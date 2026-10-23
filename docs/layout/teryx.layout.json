@@ -1352,7 +1352,9 @@
   {
    "id": "COIL-RET",
    "name": "coil-driver return → TB-GND (star)",
-   "wires": [],
+   "wires": [
+    "G08"
+   ],
    "type": "LV",
    "gauge": "16 AWG",
    "n": 1,
@@ -1370,7 +1372,7 @@
    ],
    "label": "PROPOSED",
    "src": "PINMAP",
-   "no_wire_id": "OPEN: no PINMAP wire id for the coil return to TB-GND"
+   "note": "J-GND 5.08 mm screw terminal rated ≥10 A; doubled 20 AWG on the board (Sparky 06:57 #5); G08 id PROPOSED Build 24"
   },
   {
    "id": "LEM",
@@ -1381,7 +1383,9 @@
     "S07",
     "S25",
     "S26",
-    "S27"
+    "S27",
+    "G09",
+    "G10"
    ],
    "type": "LV",
    "gauge": "22 AWG shielded (ASSUMED)",
@@ -1557,7 +1561,8 @@
    "name": "throttle + ECO → Kelly",
    "wires": [
     "K01",
-    "K03"
+    "K03",
+    "G12"
    ],
    "type": "LV",
    "gauge": "22 AWG (K01 shielded)",
@@ -1616,7 +1621,8 @@
    "wires": [
     "S14",
     "S15",
-    "P20"
+    "P20",
+    "G11"
    ],
    "type": "LV",
    "gauge": "22 AWG",

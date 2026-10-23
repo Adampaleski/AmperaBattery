@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generator for docs/boards/bms_master.layout.json — BMS master board (PROPOSED, Gilfoyle Build 21).
+"""Generator for docs/boards/bms_master.layout.json — BMS master board (PROPOSED, Gilfoyle Build 21; Build 24 applies bms_master_answers.md, chief + Sparky 2026-10-23 06:57 DECIDED).
 
 Single source: every pin and net comes from docs/PINMAP.yaml (wire ids cited in each net desc) and
 docs/THROTTLE_CLAMP.md (the clamp schematic PINMAP points to). This script holds:
@@ -9,7 +9,7 @@ docs/THROTTLE_CLAMP.md (the clamp schematic PINMAP points to). This script holds
      soldered at every vertex, with a single signal-ground STAR BAR that each ground group joins ONCE.
 Rerun:  python3 tools/boards/gen_bms_master.py   then   python3 scripts/check_boards.py
 """
-import heapq, json, pathlib, sys
+import heapq, json, os, pathlib, sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 FP = json.loads((ROOT / "docs/boards/footprints.json").read_text())
 
@@ -34,7 +34,7 @@ def net(name, members, desc, kind="sig", group=None):
 TA = part("TA", "teensy", "TEENSY41", 4, 24, 0, "Teensy 4.1 — A (master)", zone="mcu")
 TB = part("TB", "teensy", "TEENSY41", 4, 46, 0, "Teensy 4.1 — B (checker)", zone="mcu")
 # power, top-left
-part("J-PWR", "bm_term", "TB2_508", 1, 3, 0, "12 V in", {"1": "+12 V from F-EBOX out (P07)", "2": "GND -> TB-GND (G03, buck OUT−)"}, zone="pwr")
+part("J-PWR", "bm_term", "TB2_508", 1, 3, 0, "12 V in", {"1": "+12 V from F-EBOX out (P07)", "2": "GND -> TB-GND (G03) — the board star's ONE link to the LV star (chief 06:57 #5)"}, zone="pwr")
 part("F-BUCK", "lv_fuses", "FUSE_HLD", 4, 3, 0, "3 A", zone="pwr")
 part("PS1", "buck_drok", "BUCK_MOD", 7, 3, 0, "DROK 12->5 V buck", zone="pwr")
 part("Z1", "zener_5v", "AXIAL600", 7, 14, 90, "1N5339B 5.6 V", zone="pwr")
@@ -60,7 +60,7 @@ part("U3", "digipot", "DIP8", 17, 36, 0, "MCP4131-103E/P", zone="clamp")
 part("U4", "buffer", "DIP14", 24, 34, 0, "SN74AHCT125N", zone="clamp")
 part("U2", "analog_switch", "DIP14", 32, 34, 0, "CD74HC4066E", zone="clamp")
 # I/O expander + Teensy A link terminals, bottom-left
-part("U6", "io_expander", "DIP28", 57, 4, 0, "MCP23017 (0x20)", zone="dig")
+part("U6", "io_expander", "DIP28", 57, 4, 0, "MCP23017 (0x20) — LATER: footprint only, NOT fitted (chief 06:57 #3)", zone="dig")
 part("J-BODYB", "bm_hdr", "HDR1X8", 60, 4, 0, "body GPB0-7", {str(i + 1): f"GPB{i}" + (" BUZZER" if i == 5 else " MOTOR_FAN" if i == 6 else "") for i in range(8)}, zone="dig")
 part("J-BODYA", "bm_hdr", "HDR1X8", 51, 11, 180, "body GPA0-7 (lights)", {str(i + 1): f"GPA{i}" for i in range(8)}, zone="dig")
 part("J-DRV", "bm_term", "TB4_508", 64, 27, 180, "to coil_driver J-SIG", {"1": "SGND -> coil_driver J-SIG.1", "2": "S03 A:21 -> J-SIG.2", "3": "S02 A:12 -> J-SIG.3", "4": "S01 A:11 -> J-SIG.4"}, zone="dig")
@@ -68,11 +68,10 @@ part("J-ESP", "bm_term", "TB3_508", 64, 19, 180, "ESP32 link (S30/G05)", {"1": "
 # analog, bottom-right
 part("U5", "lm339", "DIP14", 56, 44, 0, "LM339 (quad comparator)", zone="ana")
 part("J-PROX", "bm_term", "TB2_508", 64, 47, 180, "NACS PROX", {"1": "PROX -> NACS inlet proximity pin (S45)", "2": "NC — plug side returns to inlet PE (chassis), UNVERIFIED"}, zone="ana")
-part("J-REL", "bm_term", "TB2_508", 64, 53, 180, "release detect OUT (OPEN)", {"1": "REL_A — LM339 OUT3 open collector, Teensy pin OPEN (not in PINMAP)", "2": "REL_B — LM339 OUT4 open collector, Teensy pin OPEN (not in PINMAP)"}, zone="ana")
-part("J-KEL", "bm_term", "TB2_508", 64, 39, 180, "Kelly throttle (K01)", {"1": "clamped throttle -> Kelly throttle input (K01)", "2": "NC — Kelly throttle GND reference not in PINMAP (OPEN)"}, zone="ana")
-part("J-THR", "bm_term", "TB4_508", 64, 71, 180, "pedal (P20/S14/S15)", {"1": "+5 V pedal supply (P20)", "2": "GND pedal return (no PINMAP wire, PROPOSED)", "3": "TRK1 pedal wiper/track 1 (S14)", "4": "TRK2 pedal track 2 (S15)"}, zone="ana")
-part("J-LEMA", "bm_term", "TB4_508", 64, 63, 180, "LEM A (S05-S07)", {"1": "+5 V LEM A (S07)", "2": "GND LEM A (no PINMAP wire, PROPOSED)", "3": "CH2 -> A:15 (S06)", "4": "CH1 -> A:14 (S05)"}, zone="ana")
-part("J-LEMB", "bm_term", "TB4_508", 45, 71, 90, "LEM B (S25-S27)", {"1": "+5 V LEM B (S27)", "2": "GND LEM B (no PINMAP wire, PROPOSED)", "3": "CH2 -> B:15 (S26)", "4": "CH1 -> B:14 (S25)"}, zone="ana")
+part("J-KEL", "bm_term", "TB2_508", 64, 39, 180, "Kelly throttle (K01)", {"1": "clamped throttle -> Kelly throttle input (K01)", "2": "Kelly throttle RTN -> own star hole (G12; Kelly pin number UNVERIFIED)"}, zone="ana")
+part("J-THR", "bm_term", "TB4_508", 64, 71, 180, "pedal (P20/S14/S15)", {"1": "+5 V pedal supply (P20)", "2": "GND pedal return -> own star hole (G11)", "3": "TRK1 pedal wiper/track 1 (S14)", "4": "TRK2 pedal track 2 (S15)"}, zone="ana")
+part("J-LEMA", "bm_term", "TB4_508", 64, 63, 180, "LEM A (S05-S07)", {"1": "+5 V LEM A (S07)", "2": "GND LEM A (Sparky 'pin C') -> own star hole (G09)", "3": "CH2 -> A:15 (S06)", "4": "CH1 -> A:14 (S05)"}, zone="ana")
+part("J-LEMB", "bm_term", "TB4_508", 45, 71, 90, "LEM B (S25-S27)", {"1": "+5 V LEM B (S27)", "2": "GND LEM B (Sparky 'pin C') -> own star hole (G10)", "3": "CH2 -> B:15 (S26)", "4": "CH1 -> B:14 (S25)"}, zone="ana")
 
 # spread: everything right of the clamp moves 6 columns right so the clamp channel between the Teensys is wider
 SPREAD = 6
@@ -111,8 +110,12 @@ pas("RL1", "perfboard_kit", "AXIAL400", "10k", RAN); pas("RL2", "bm_res", "AXIAL
 pas("RUA", "perfboard_kit", "AXIAL400", "10k", RAN); pas("RUB", "perfboard_kit", "AXIAL400", "10k", RAN)
 pas("CUA", "perfboard_kit", "CAP200", "100 nF", RAN); pas("CUB", "perfboard_kit", "CAP200", "100 nF", RAN)
 pas("CD5", "perfboard_kit", "CAP200", "100 nF", RAN)
+# release detect (S51/S52, Sparky 06:57 #1): 1k series + own 10k pull-up + 100 nF per board
+pas("RSA", "bm_res", "AXIAL400", "1k", RAN); pas("RSB", "bm_res", "AXIAL400", "1k", RAN)
+pas("RRA", "perfboard_kit", "AXIAL400", "10k", RAN); pas("RRB", "perfboard_kit", "AXIAL400", "10k", RAN)
+pas("CRA", "perfboard_kit", "CAP200", "100 nF", RAN); pas("CRB", "perfboard_kit", "CAP200", "100 nF", RAN)
 # expander
-pas("RSDA", "bm_res", "AXIAL400", "4.7k", RDG); pas("RSCL", "bm_res", "AXIAL400", "4.7k", RDG); pas("CD6", "perfboard_kit", "CAP200", "100 nF", RDG)
+pas("RSDA", "bm_res", "AXIAL400", "4.7k", RDG); pas("RSCL", "bm_res", "AXIAL400", "4.7k", RDG); pas("RRST", "perfboard_kit", "AXIAL400", "10k", RDG); pas("CD6", "perfboard_kit", "CAP200", "100 nF", RDG)
 
 ANA_PAS = {x[0] for x in PASS if x[4] is RAN}
 CAN_PAS = {x[0] for x in PASS if x[4] is RLC or x[4] is RRC}
@@ -125,9 +128,10 @@ net("5V", ["PS1.OUT+", "Z1.1", "F-BICM.1", "TA.VIN", "TB.VIN", "J-ESP.3", "J-LEM
            "RA25T.1", "RB25T.1", "CD1.1", "CD2.1", "CD3.1", "CD4.1", "CD5.1"],
     "On-board 5 V bus = PINMAP TB-5V realised on the board: buck OUT+ (P08), zener 1N5339B cathode (P09), Teensy A/B VIN (P11/P12, VIN/VUSB pad CUT), F-BICM (P10), ESP32 5 V (P08), LEM A/B 5 V (S07/S27), pedal 5 V + U1..U4 VCC (P20), LM339 VCC + 330 Ω prox pull-up (S47), A:25/B:25 sense dividers (S07/S27)", "pwr")
 net("5V_BICM", ["F-BICM.2", "J-S1.1", "J-S2.1", "J-S3.1", "J-S4.1"], "F-BICM 1 A -> BICM X2 pin 9 ×4 strings (P10)", "pwr")
-net("A_3V3", ["TA.3V3", "SN1.3V3", "SN2.3V3", "SN5.3V3", "U6.9", "U6.18", "RSDA.2", "RSCL.2", "RUA.2", "CD6.1"],
-    "Teensy A 3.3 V out: SN65 #1/#2/#5 VCC (C01/C03/C05), MCP23017 VDD + RESET (expander, PROPOSED), I2C pull-ups (PROPOSED), A:33 pull-up (S41)", "pwr")
-net("B_3V3", ["TB.3V3", "SN3.3V3", "SN4.3V3", "SN6.3V3", "RUB.2"], "Teensy B 3.3 V out: SN65 #3/#4/#6 VCC (C02/C04/C06), B:33 pull-up (S44)", "pwr")
+net("A_3V3", ["TA.3V3", "SN1.3V3", "SN2.3V3", "SN5.3V3", "U6.9", "RRST.2", "RSDA.2", "RSCL.2", "RUA.2", "RRA.2", "CD6.1"],
+    "Teensy A 3.3 V out: SN65 #1/#2/#5 VCC (C01/C03/C05), MCP23017 VDD + RESET via 10k RRST and 4.7k SDA/SCL pull-ups (expander LATER, footprint only; chief 06:57 #3), A:33 pull-up (S41), A:2 release pull-up (S51)", "pwr")
+net("U6_RST", ["U6.18", "RRST.1"], "MCP23017 RESET tied high through 10k to A 3.3 V (chief 06:57 #3; LATER, footprint only)")
+net("B_3V3", ["TB.3V3", "SN3.3V3", "SN4.3V3", "SN6.3V3", "RUB.2", "RRB.2"], "Teensy B 3.3 V out: SN65 #3/#4/#6 VCC (C02/C04/C06), B:33 pull-up (S44), B:35 release pull-up (S52)", "pwr")
 # CAN logic side
 for t, n, tx, rx, wid in (("TA", 1, "22", "23", "C01"), ("TA", 2, "1", "0", "C03"), ("TA", 5, "31", "30", "C05"),
                          ("TB", 3, "22", "23", "C02"), ("TB", 4, "1", "0", "C04"), ("TB", 6, "31", "30", "C06")):
@@ -160,19 +164,21 @@ for d, t, pin, wid in DIVS:
     if pin != "25":
         src = {"A14": "J-LEMA.4", "A15": "J-LEMA.3", "B14": "J-LEMB.4", "B15": "J-LEMB.3"}.get(d)
         if src: net(f"LEM_{d}", [src, f"R{d}T.1"], f"LEM {t[1]} DHAB {'ch1' if pin == '14' else 'ch2'} -> 10k ({wid})", "ana")
-    net(f"{d}_SENSE", [f"R{d}T.2", f"R{d}B.1", f"C{d}.1", f"{t}.{pin}"], f"10k/18k + 100 nF -> Teensy {t[1]}:{pin} ({wid})" + (" — divider values not stated in PINMAP for :25, 10k/18k PROPOSED" if pin == "25" else ""), "ana")
-# proximity + LM339 (S41/S44-S49; LM393 pin numbers in PINMAP mapped to LM339)
+    net(f"{d}_SENSE", [f"R{d}T.2", f"R{d}B.1", f"C{d}.1", f"{t}.{pin}"], f"10k/18k + 100 nF -> Teensy {t[1]}:{pin} ({wid})" + (" — 10k/18k 1 % DECIDED Sparky 06:57 #6 (same ratio as the LEM outputs)" if pin == "25" else ""), "ana")
+# proximity + LM339 (S41/S44-S49/S51-S53; PINMAP re-pinned to the LM339, chief 06:57 #1)
 net("PROX", ["J-PROX.1", "RP1.1", "RP2.1", "RD1.1"], "NACS PROX: 330 Ω to 5 V + 2.7k to GND, -> 10k/20k divider (S45/S46)", "ana")
-net("PROX_DIV", ["RD1.2", "RD2.1", "U5.5", "U5.7", "U5.9", "U5.11"], "10k/20k divided PROX -> LM339 IN1+ (5), IN2+ (7) (S46) and IN3+/IN4+ (9/11) for release detect (lm339 spec)", "ana")
-net("VREF", ["RR1.2", "RR2.1", "U5.4", "U5.6"], "2.5 V reference 10k/10k -> LM339 IN1− (4), IN2− (6) (S48)", "ana")
-net("REL_REF", ["RL1.2", "RL2.1", "U5.8", "U5.10"], "release-detect threshold ~1.4 V (lm339 spec): 10k/3.9k from 5 V = 1.40 V -> LM339 IN3− (8), IN4− (10) — PROPOSED, not in PINMAP", "ana")
+net("PROX_DIV", ["RD1.2", "RD2.1", "U5.5", "U5.7", "U5.9", "U5.11"], "10k/20k divided PROX -> LM339 IN+ of all four channels: IN1+ 5, IN2+ 7 (plug), IN3+ 9, IN4+ 11 (release) (S46)", "ana")
+net("VREF", ["RR1.2", "RR2.1", "U5.4", "U5.6"], "2.5 V reference 10k/10k -> LM339 IN1− (4), IN2− (6) (S48); no hysteresis resistors (Sparky 06:57 #3)", "ana")
+net("REL_REF", ["RL1.2", "RL2.1", "U5.8", "U5.10"], "release reference 10k from 5 V over 3.9k to GND = 1.40 V -> LM339 IN3− (8), IN4− (10) (S53; Sparky 06:57 #1)", "ana")
 net("PLUG_A", ["U5.2", "RUA.1", "CUA.1", "TA.33"], "LM339 OUT1 (2) + 10k pull-up to A 3.3 V + 100 nF -> A:33, LOW = plugged (S41)", "ana")
 net("PLUG_B", ["U5.1", "RUB.1", "CUB.1", "TB.33"], "LM339 OUT2 (1) + 10k pull-up to B 3.3 V + 100 nF -> B:33 (S44)", "ana")
-net("REL_A", ["U5.14", "J-REL.1"], "LM339 OUT3 (14) open collector -> J-REL.1; Teensy pin + pull-up OPEN (not in PINMAP)", "ana")
-net("REL_B", ["U5.13", "J-REL.2"], "LM339 OUT4 (13) open collector -> J-REL.2; Teensy pin + pull-up OPEN (not in PINMAP)", "ana")
+net("REL_A_OC", ["U5.14", "RSA.1"], "LM339 OUT3 (14) open collector -> 1k series RSA (S51)", "ana")
+net("REL_A", ["RSA.2", "RRA.1", "CRA.1", "TA.2"], "1k -> A:2 + own 10k pull-up to A 3.3 V + 100 nF; LOW = latched, HIGH = pressed/unplugged (S51). Firmware must set A:2 INPUT (boots as output)", "ana")
+net("REL_B_OC", ["U5.13", "RSB.1"], "LM339 OUT4 (13) open collector -> 1k series RSB (S52)", "ana")
+net("REL_B", ["RSB.2", "RRB.1", "CRB.1", "TB.35"], "1k -> B:35 + own 10k pull-up to B 3.3 V + 100 nF (S52)", "ana")
 # expander (PINMAP expander block; I2C on A:18/19)
-net("SDA", ["TA.18", "U6.13", "RSDA.1"], "A:18 SDA -> MCP23017 SDA (13) + 4.7k pull-up (PROPOSED)")
-net("SCL", ["TA.19", "U6.12", "RSCL.1"], "A:19 SCL -> MCP23017 SCL (12) + 4.7k pull-up (PROPOSED)")
+net("SDA", ["TA.18", "U6.13", "RSDA.1"], "A:18 SDA -> MCP23017 SDA (13) + 4.7k pull-up to 3.3 V (chief 06:57 #3; LATER)")
+net("SCL", ["TA.19", "U6.12", "RSCL.1"], "A:19 SCL -> MCP23017 SCL (12) + 4.7k pull-up to 3.3 V (chief 06:57 #3; LATER)")
 for i in range(8):
     net(f"GPA{i}", [f"U6.{21 + i}", f"J-BODYA.{i + 1}"], f"MCP23017 GPA{i} (expander bit {i}) -> body header")
     net(f"GPB{i}", [f"U6.{1 + i}", f"J-BODYB.{i + 1}"], f"MCP23017 GPB{i} (expander bit {8 + i}) -> body header")
@@ -187,15 +193,17 @@ GGROUPS = {
     "PWR": ["J-PWR.2", "PS1.IN-", "PS1.OUT-", "Z1.2"],
     "CANA": ["SN1.GND", "SN2.GND", "SN5.GND"],
     "CANB": ["SN3.GND", "SN4.GND", "SN6.GND"],
-    "TA": ["TA.GND1", "J-ESP.2", "J-DRV.1", "U6.10", "U6.15", "U6.16", "U6.17", "CD6.2"],
+    "TA": ["TA.GND1", "J-ESP.2", "J-DRV.1", "U6.10", "U6.15", "U6.16", "U6.17", "CD6.2"],   # U6 A0-A2 (15-17) to GND = 0x20
     "TB": ["TB.GND1"],
     "CLAMP": ["U1.1", "U1.9", "U1.8", "U2.6", "U2.12", "U2.7", "U3.4", "U3.7", "U4.1", "U4.4", "U4.7", "U4.10", "U4.13",
               "R1.2", "C5.2", "R4.2", "R6.2", "CD1.2", "CD2.2", "CD3.2", "CD4.2"],
     "ANALOG": [f"R{d}B.2" for d, *_ in DIVS] + [f"C{d}.2" for d, *_ in DIVS] +
-              ["J-LEMA.2", "J-LEMB.2", "J-THR.2", "RP2.2", "RD2.2", "RR2.2", "RL2.2", "U5.12", "CUA.2", "CUB.2", "CD5.2"],
+              ["RP2.2", "RD2.2", "RR2.2", "RL2.2", "U5.12", "CUA.2", "CUB.2", "CRA.2", "CRB.2", "CD5.2"],
+    # separate wires to the star, no daisy-chain (Sparky 06:57 #4): each off-board sensor ground gets its own star hole
+    "LEMA": ["J-LEMA.2"], "LEMB": ["J-LEMB.2"], "PEDAL": ["J-THR.2"], "KELRTN": ["J-KEL.2"],
 }
 NETS["GND"] = {"members": [m for g in GGROUPS.values() for m in g], "kind": "gnd",
-               "desc": "ONE signal ground, single STAR BAR (18 AWG, bottom side). Each ground group (power/buck, CAN A, CAN B, Teensy A + ESP + coil_driver SGND + expander, Teensy B, clamp, analog) joins the bar by ONE wire and nowhere else (S49 'single-point ground'; same rule as coil_driver's V22 star). J-PWR.2 is the board's only ground lead to TB-GND (G03). Teensy A signal ground leaves on J-DRV.1 -> coil_driver J-SIG.1 (DECIDED room 2026-10-23 06:11, G04: no Teensy GND wire at TB-GND)."}
+               "desc": "ONE signal ground, single STAR BAR (18 AWG, bottom side). Each ground group (power/buck, CAN A, CAN B, Teensy A + ESP + coil_driver SGND + expander, Teensy B, clamp, analog, and separately LEM A G09, LEM B G10, pedal G11, Kelly RTN G12 — Sparky 06:57 #4, no daisy-chain) joins the bar by ONE wire and nowhere else (S49 'single-point ground'; same rule as coil_driver's V22 star). J-PWR.2 is the board's only ground lead to TB-GND (G03; exactly one link, chief 06:57 #5). Teensy A signal ground leaves on J-DRV.1 -> coil_driver J-SIG.1 (DECIDED room 2026-10-23 06:11, G04: no Teensy GND wire at TB-GND)."}
 
 # ------------------------------------------------------------------ geometry helpers
 MOUNTS = [(0, 1), (0, COLS), (ROWS - 1, 1), (ROWS - 1, COLS)]
@@ -218,6 +226,7 @@ def margin_cells(p, m=1):
             for dc in range(-m, m + 1): s.add((r + dr, c + dc))
     return s
 
+STAR_ROW, STAR_C0 = 52, int(os.environ.get('BM_STARC0', '18'))   # Build 24: 11 ground groups; col 18 is the start that routes clean (22 left 2 clashes)
 # ------------------------------------------------------------------ greedy placer for passives
 member_of = {}
 for nn, nd in NETS.items():
@@ -226,6 +235,7 @@ GROUP_OF = {m: g for g, ms in GGROUPS.items() for m in ms}
 def place_passives():
     occ = set()
     for p in PARTS: occ |= margin_cells(p, 1)   # keep a routing channel round every fixed part
+    if os.environ.get('BM_HALO', '1') == '1': occ |= {(STAR_ROW + a, c) for c in range(STAR_C0 - 1, STAR_C0 + 2 * len(GGROUPS)) for a in (-1, 0, 1)}   # star bar + its halo (Build 24: bar grew)
     keep = set()
     for p in PARTS: keep |= set(pin_cells(p).values())
     def pinpos():
@@ -290,7 +300,7 @@ for nn, nd in NETS.items():
 PIN_NET = {PINPOS[m]: rn for rn, ms in RNETS.items() for m in ms}
 NCPINS = {rc for m, rc in PINPOS.items() if not any(m in ms for ms in RNETS.values())}
 
-STAR_ROW, STAR_C0 = 52, 22          # star bar: bottom side, row STAR_ROW, cols STAR_C0 .. STAR_C0+2*(groups)-2
+STAR_ROW, STAR_C0 = STAR_ROW, STAR_C0  # star bar: bottom side, row STAR_ROW, cols STAR_C0 .. STAR_C0+2*(groups)-2
 STAR = [(STAR_ROW, STAR_C0 + 2 * i) for i in range(len(GGROUPS))]
 
 import itertools
@@ -431,7 +441,7 @@ def length(ms):
     rs = [PINPOS[m][0] for m in ms]; cs = [PINPOS[m][1] for m in ms]
     return (max(rs) - min(rs)) + (max(cs) - min(cs))
 
-def route_all(order, iters=100):
+def route_all(order, iters=int(os.environ.get('BM_ITERS', '100'))):
     B = Board()
     B.paths["GND#STAR"] = [[(rc, BOT) for rc in BAR]]
     for rc in BAR: B.occ[BOT].setdefault(rc, set()).add("GND#STAR")
@@ -514,22 +524,24 @@ def write_layout(W):
     star_cells = ", ".join(sh(x) for x in STAR)
     lay = {
         "schema": "teryx-perfboard/1", "board": "bms_master",
-        "title": "BMS master board — Teensy A + B, 6× SN65HVD230, 5 V buck, LEM dividers, throttle clamp, LM339, MCP23017",
+        "title": "BMS master board — Teensy A + B, 6× SN65HVD230, 5 V buck, LEM dividers, throttle clamp, LM339 plug + release detect, MCP23017 footprint (LATER)",
         "status": "PROPOSED", "assembly": "bms_master", "board_part": "bm_board",
         "grid": {"pitch_mm": 2.54, "rows": rows, "cols": cols},
         "mounts": [hname(0, 1), hname(0, cols), hname(rows - 1, 1), hname(rows - 1, cols)],
         "star": sh(mid),
         "notes": [
-            "PROPOSED (Gilfoyle 2026-10-23, Build 21). Generated by tools/boards/gen_bms_master.py from docs/PINMAP.yaml + docs/THROTTLE_CLAMP.md; every net desc cites its PINMAP wire id. Edit in tools/perfboard.html, Export JSON, commit here.",
+            "PROPOSED (Gilfoyle 2026-10-23, Build 21; Build 24 applies chief + Sparky 06:57 DECIDED answers). Generated by tools/boards/gen_bms_master.py from docs/PINMAP.yaml + docs/THROTTLE_CLAMP.md; every net desc cites its PINMAP wire id. Edit in tools/perfboard.html, Export JSON, commit here.",
             f"Board {rows}×{cols} holes = {rows * 2.54:.1f} × {cols * 2.54:.1f} mm ({rows / 10:.1f} × {cols / 10:.1f} in) incl. a 2-hole margin; M3 mounts at the four corners.",
-            f"GROUND: ONE signal-ground star BAR (18 AWG bare, bottom side) {sh(STAR[0])}–{sh(STAR[-1])}; star holes {star_cells}. Each ground group (power/buck, CAN A, CAN B, Teensy A, Teensy B, clamp, analog) lands on ONE star hole and touches no other group — same single-point rule as coil_driver's V22 star (PINMAP S49). J-PWR.2 is the only lead to TB-GND (G03, buck OUT−). Teensy A signal ground leaves only on J-DRV.1 -> coil_driver J-SIG.1 (DECIDED room 06:11; G04 dropped).",
+            f"GROUND: ONE signal-ground star BAR (18 AWG bare, bottom side) {sh(STAR[0])}–{sh(STAR[-1])}; star holes {star_cells}. Each ground group (power/buck, CAN A, CAN B, Teensy A, Teensy B, clamp, analog) lands on ONE star hole and touches no other group — same single-point rule as coil_driver's V22 star (PINMAP S49). LEM A (J-LEMA.2, G09), LEM B (J-LEMB.2, G10), pedal (J-THR.2, G11) and Kelly RTN (J-KEL.2, G12) each have their OWN star hole — separate wires, no daisy-chain (DECIDED Sparky 06:57 #4). J-PWR.2 is the board star's ONE link to TB-GND (G03; TB-GND = LV star with G07 and coil_driver G08, chief 06:57 #5). Teensy A signal ground leaves only on J-DRV.1 -> coil_driver J-SIG.1 (DECIDED room 06:11; G04 dropped).",
             f"Zones: CAN + buck on the left/right/top edges; analog (LEM/pedal dividers, LM339, PROX) bottom-right, kept ≥{dmin} holes ({dmin * 2.54:.0f} mm) from any SN65 module, CAN terminator, fuse or the buck (see test_perfboard).",
-            "Teensy A/B: VIN/VUSB pad CUT on both (P11/P12) — they run from the board 5 V bus. SN65 module pin order (3V3/GND/TX/RX | CANH/CANL) UNVERIFIED — check your module silkscreen and remove any on-module 120 Ω except RT-equivalents (OPEN).",
+            "Teensy A/B: VIN/VUSB pad CUT on both (P11/P12) — they run from the board 5 V bus. SN65HVD230 modules: wire by SILKSCREEN (pin order varies by vendor; the footprint order here is a placeholder). Keep the onboard 120 Ω (usually R2 marked 121) only on a module at a physical bus end; remove it elsewhere. Check powered off: CANH-CANL ≈60 Ω (DECIDED Sparky 06:57 #2).",
             "Top = insulated solid-core jumpers (may pass under the Teensy/SN65 headers); bottom = wire on the solder side. Soldered at every vertex. Wire gauges: 20 AWG power/ground, 22 AWG signal, 18 AWG star bar.",
-            "Release detect (LM339 comparators 3/4, ~1.40 V threshold from the lm339 PARTS spec) outputs go to J-REL only: the Teensy pins are OPEN (not in PINMAP).",
+            "LM339 (DECIDED chief 06:57 #1): ch1 OUT1 pin 2 -> A:33, ch2 OUT2 pin 1 -> B:33 (plug, 2.5 V ref); ch3 OUT3 pin 14 -> 1k -> A:2, ch4 OUT4 pin 13 -> 1k -> B:35 (release, 1.40 V ref = 10k/3.9k); each output has its own 10k pull-up to its board 3.3 V + 100 nF; VCC pin 3, GND pin 12. No hysteresis resistors: 100 nF + 20 ms firmware debounce (Sparky 06:57 #1/#3). Firmware must set A:2 INPUT (boots as output) — later commit, no flashing. J-REL removed (Build 24).",
+            "MCP23017 U6 is LATER: footprint only, not fitted (chief 06:57 #3). When fitted: 0x20 (A0-A2 to GND), 4.7k SDA/SCL pull-ups to 3.3 V, RESET high through 10k RRST.",
             "BMS_CAP 0 / TELEMETRY_ONLY 1 — this board does not change any limit; firmware is not flashed (no flashing).",
         ],
-        "source": ["docs/PINMAP.yaml (C01–C14, P07–P12, P20, S05–S07, S10–S15, S25–S27, S30, S41–S49, K01, G03–G07, expander block)",
+        "source": ["docs/PINMAP.yaml (C01–C14, P07–P12, P20, S05–S07, S10–S15, S25–S27, S30, S41–S49, S51–S53, K01, G03–G12, expander block)",
+                   "bms_master_answers.md: chief + Sparky 2026-10-23 06:57 CT (DECIDED: LM339 re-pin, release detect A:2/B:35, MCP23017 footprint only, separate star wires, SN65 by silkscreen)",
                    "docs/THROTTLE_CLAMP.md (U1–U4, R1/R4–R6, C5, D5, RX/CX)",
                    "Room decisions 2026-10-23 06:11 CT (Sparky + chief): low side only, G04 dropped, single star",
                    "PJRC Teensy 4.1 pinout card (card11a_rev4)", "docs/PARTS.yaml specs (lm339 release threshold, mcp23017, sn65)"],
@@ -549,10 +561,11 @@ if __name__ == "__main__":
     gnd = [n for n in RNETS if n.startswith("GND#")]
     order = sorted(sig, key=lambda n: length(RNETS[n])) + sorted(pwr, key=lambda n: length(RNETS[n])) + sorted(gnd, key=lambda n: length(RNETS[n]))
     import pickle
-    cache = pathlib.Path("/tmp/bm_route_B.pkl")
+    cache = pathlib.Path(os.environ.get("BM_CACHE", "/tmp/bm_route_B.pkl"))
     res = pickle.loads(cache.read_bytes()) if "--cached" in sys.argv and cache.exists() else route_all(order)
     if not isinstance(res, tuple): cache.write_bytes(pickle.dumps(res))
     if isinstance(res, tuple): B, failed = res; print("UNROUTED:", failed); sys.exit(1)
+    if os.environ.get('BM_DRY'): print('ROUTED OK (dry)'); sys.exit(0)
     B = res
     W = to_wires(B)
     print(len(W), "wires", file=sys.stderr)

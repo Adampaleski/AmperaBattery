@@ -9,8 +9,8 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: 12V- to frame <0.5 Ω
 - [ ] **G02 KELLY CASE** (CRITICAL, PROPOSED) — Kelly case → frame · GND · strap AWG BK · fuse none  
   Meter: <0.5 Ω
-- [ ] **G03 BUCK GND** (CRITICAL, PROPOSED) — 5 V buck OUT- → TB-GND · GND · 20 AWG BK · fuse none  
-  Meter: <0.5 Ω to 12V-
+- [ ] **G03 BUCK GND** (CRITICAL, PROPOSED) — 5 V buck OUT- (on the bms_master board star) via J-PWR.2 → TB-GND · GND · 20 AWG BK · fuse none  
+  Meter: <0.5 Ω to 12V-; with G03 lifted, board star to TB-GND reads open (no second path)
 - [ ] **P01 12V MAIN** (CRITICAL, UNVERIFIED) — DC-DC TDC-JH-144-12:+12V out → F-MAIN:in · +12V main · TBD: Sparky sizes it; TDC-JH-144-12 = 110 A out (SOURCED) (10 AWG ≤30 A, 8 AWG ≤40 A, 6 AWG ≤60 A) AWG RD · fuse F-MAIN  
   Meter: continuity end-to-end <1 Ω; NOT to chassis (>1 MΩ)
 - [ ] **P02 12V BUS** (CRITICAL, PROPOSED) — F-MAIN:out → 12V bus bar:+ · +12V main · TBD: same as P01 AWG RD · fuse F-MAIN  
@@ -70,6 +70,8 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: as C11
 - [ ] **G07 BICM GND** (CRITICAL, SOURCED) — X2 pin 10 GND (470 BK/VT) x4 → TB-GND · GND · factory AWG BK/VT (factory) · fuse none  
   Meter: <0.5 Ω
+- [ ] **G08 COIL RET** (CRITICAL, PROPOSED) — coil_driver J-GND.2 (5.08 mm screw terminal rated ≥10 A; on-board doubled 20 AWG solid bus to it) → TB-GND · GND (coil return: <1 A continuous, 7.6 A for 130 ms) · 16 AWG BK · fuse none  
+  Meter: <0.1 Ω J-GND.2 to TB-GND; terminal torque; no other ground on this wire
 - [ ] **P10 BICM 5V** (CRITICAL, UNVERIFIED) — TB-5V → F-BICM 1 A -> BICM X2 pin 9 (705 GY/RD) x4 strings · +5V BICM · factory AWG GY/RD (factory) · fuse F-BICM  
   Meter: NEVER to Teensy I/O; 5 V at X2 pin 9
 - [ ] **S50 5139 PULLUP** (LATER, SOURCED) — BICM 5139 fault loop → pull-up few kΩ -> 5 V · fault loop · factory AWG factory · fuse none  
@@ -98,6 +100,14 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: as E02; meter KSI current < 0.2 A
 - [ ] **E09 BLK3 TB-ESTOP** (CRITICAL, PROPOSED) — E-stop block 3:11 -> TB-GND; block 3:12 → Teensy B:9 (10k pull-up) — free on B per this map · e-stop sense (latch, never the cut) · 22 AWG BU/BK · fuse none  
   Meter: released: pin reads LOW (closed to GND); pushed: HIGH
+- [ ] **G09 LEMA GND** (CRITICAL, PROPOSED) — LEM A GND (Sparky 'pin C'; DHAB pin number UNVERIFIED vs S05/S06 numbering) → bms_master J-LEMA.2 -> own board-star hole (no daisy-chain) · GND · 22 AWG BK · fuse none  
+  Meter: <0.5 Ω LEM A GND to board star; not shared with any other sensor wire
+- [ ] **G10 LEMB GND** (CRITICAL, PROPOSED) — LEM B GND (Sparky 'pin C'; pin number UNVERIFIED) → bms_master J-LEMB.2 -> own board-star hole · GND · 22 AWG BK · fuse none  
+  Meter: as G09
+- [ ] **G11 PEDAL GND** (CRITICAL, PROPOSED) — Pedal GND (pedal not chosen, S14 UNVERIFIED) → bms_master J-THR.2 -> own board-star hole · GND · 22 AWG BK · fuse none  
+  Meter: as G09
+- [ ] **G12 KELLY RTN** (CRITICAL, PROPOSED) — Kelly KLS-8080N throttle RTN (KELLY-J pin number UNVERIFIED) → bms_master J-KEL.2 -> own board-star hole · GND (throttle return) · 22 AWG BK · fuse none  
+  Meter: as G09; Kelly RTN to board star <0.5 Ω
 - [ ] **K01 KELLY THR** (CRITICAL, UNVERIFIED) — U2b out (R1 100k to GND — the ONLY pull-down) → Kelly throttle input (pin 3) · throttle · 22 shielded AWG BU/WH · fuse none  
   Meter: Gate 1: pin 3 < 0.2 V with both 4066s open; full pedal voltage at pin 3 at full pedal. 10k pull-down = PROPOSED bench option only if pin 3 floats, after confirming pedal + digipot still reach full voltage through the 4066 under that load
 - [ ] **K02 FOOTSW PARK** (CRITICAL, UNVERIFIED) — Kelly pin 11 (12 V out) → Park pole 3 (NC) -> contact closed only while BOTH Teensys are alive (series heartbeat contacts) -> Kelly pin 15 Foot_SW · foot switch enable · 20 AWG RD/WH -> RD/YE · fuse none  
@@ -108,7 +118,7 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: 5 V at each chip VCC pin
 - [ ] **S01 TA11 MAIN+** (CRITICAL, PROPOSED) — Teensy A:11 via 100 Ω (10k pull-down to GND) → FET Q-B+ gate; drain -> EV200 B+ coil - (no external diode: EV200 economizer clamps, DECIDED Sparky 2026-10-23 05:41) · coil drive · 18 (coil lead) AWG RD/BU (coil lead) · fuse F-COIL  
   Meter: Gate 0: 10k gate pull-down present (meter gate-GND ≈10 kΩ) — chief review #10
-- [ ] **S02 TA12 PRE** (CRITICAL, PROPOSED) — Teensy A:12 via 100 Ω (10k pull-down) → FET Q-PRE gate; drain -> AEV14012 precharge coil - (D-PRE 1N4007 across the coil AT the relay, band/cathode to +12 V, no zener: DECIDED Sparky 2026-10-23 05:41) · coil drive · 18 AWG RD/GN · fuse F-COIL  
+- [ ] **S02 TA12 PRE** (CRITICAL, PROPOSED) — Teensy A:12 via 100 Ω (10k pull-down) → FET Q-PRE gate; drain -> AEV14012 precharge coil - (D-PRE 1N4007 across the coil AT the relay, cathode to coil + (DECIDED chief 06:57 #6), no zener: DECIDED Sparky 2026-10-23 05:41) · coil drive · 18 AWG RD/GN · fuse F-COIL  
   Meter: as S01
 - [ ] **S03 TA21 MAIN-** (CRITICAL, PROPOSED) — Teensy A:21 via 100 Ω (10k pull-down) → FET Q-B- gate; drain -> EV200 B- coil - (no external diode: EV200 economizer clamps, DECIDED Sparky 2026-10-23 05:41) · coil drive · 18 AWG RD/BK · fuse F-COIL  
   Meter: as S01
@@ -116,7 +126,7 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: no current: ≈2.5 V at DHAB, ≈1.6 V at pin
 - [ ] **S06 LEMA CH2** (CRITICAL, SOURCED) — LEM A DHAB pin 3 (ch2) → 10k/18k + 100 nF -> Teensy A:15 · LEM A high range · 22 AWG BU/WH · fuse none  
   Meter: as S05
-- [ ] **S07 LEMA VC** (CRITICAL, SOURCED) — TB-5V -> LEM A 5 V; sense via divider → Teensy A:25 · LEM supply ref · 22 AWG OR · fuse F-BUCK  
+- [ ] **S07 LEMA VC** (CRITICAL, SOURCED) — TB-5V -> LEM A 5 V; sense via 10k/18k 1 % divider → Teensy A:25 · LEM supply ref · 22 AWG OR · fuse F-BUCK  
   Meter: ≈3.2 V at pin 25
 - [ ] **S10 TA SPI** (CRITICAL, PROPOSED) — Teensy A:35 DATA / 36 CLK / 38 CS → U4 74AHCT125 -> U3 MCP4131 SDI/SCK/CS · bit-bang SPI · board AWG — · fuse none  
   Meter: continuity per pin
@@ -138,28 +148,34 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: as S05
 - [ ] **S26 LEMB CH2** (CRITICAL, SOURCED) — LEM B DHAB pin 3 → divider -> Teensy B:15 · LEM B high · 22 AWG BU/WH · fuse none  
   Meter: as S05
-- [ ] **S27 LEMB VC** (CRITICAL, SOURCED) — LEM B 5 V sense → Teensy B:25 · LEM supply ref · 22 AWG OR · fuse F-BUCK  
+- [ ] **S27 LEMB VC** (CRITICAL, SOURCED) — LEM B 5 V sense via 10k/18k 1 % divider → Teensy B:25 · LEM supply ref · 22 AWG OR · fuse F-BUCK  
   Meter: ≈3.2 V
 - [ ] **S40 12V SENSE** (CRITICAL, PROPOSED) — 12V bus via divider (PROPOSED 47k/10k + 100 nF) → Teensy B:26 (A12) — free on B per this map · 12 V sense · 22 AWG BU · fuse PROPOSED 1 A  
   Meter: 13.8 V in -> ≈2.4 V at pin
-- [ ] **S41 PLUG A33** (CRITICAL, PROPOSED) — LM393 output 1 (pin 1, open collector) — the ONE shared LM393 (PROPOSED, NOT OWNED: pending purchase approval) → Teensy A:33 with its own 10k pull-up to Teensy A 3.3 V + 100 nF, LOW = plugged · plug-in detect A (drive blocked on A when plugged, like park) · 22 AWG BU/GN · fuse none (signal; 5 V feed already fused)  
+- [ ] **S41 PLUG A33** (CRITICAL, PROPOSED) — LM339 ch1 OUT1 (pin 2, open collector) — the ONE shared LM339 (DECIDED re-pin; NOT OWNED: pending purchase approval) → Teensy A:33 with its own 10k pull-up to Teensy A 3.3 V + 100 nF, LOW = plugged · plug-in detect A (drive blocked on A when plugged, like park) · 22 AWG BU/GN · fuse none (signal; 5 V feed already fused)  
   Meter: unplugged (prox open): 3.3 V at A:33; plugged latched (~150 Ω) and button pressed (~480 Ω): <0.4 V; bench: plug/unplug confirms drive block on A, open-wire test
 - [ ] **S42 KEY A34** (CRITICAL, PROPOSED) — Stock Teryx key switch SWITCHED output (SOURCED Adam 2026-10-22; wire colour UNVERIFIED — Adam backprobes: 0 V key off, 12 V key on), fed from the TDC-JH 12 V bus, through its OWN 1 A fuse (Sparky 2026-10-22) -> opto ch1 LED (PROPOSED PC827 + 1k5) → opto ch1 transistor -> Teensy A:34 (10k pull-up 3V3 + 100 nF), LOW = key on · KEY-ON A · 22 AWG BU/YE · fuse own 1 A fuse (Sparky 2026-10-22, PROPOSED)  
   Meter: BEFORE wiring: backprobe key switch output 0 V key off / 12 V key on (record colour). Then key off: 3.3 V at A:34; key on: <0.4 V
 - [ ] **S43 KEY B34** (CRITICAL, PROPOSED) — Same stock key switch switched output (after the S42 fuse) -> opto ch2 LED (PROPOSED PC827 + 1k5) → opto ch2 transistor -> Teensy B:34 (10k pull-up 3V3 + 100 nF), LOW = key on · KEY-ON B · 22 AWG BU/YE · fuse shares S42 fuse  
   Meter: as S42 at B:34
-- [ ] **S44 PLUG B33** (CRITICAL, PROPOSED) — LM393 output 2 (pin 7, open collector) — same chip as S41 → Teensy B:33 with its own 10k pull-up to Teensy B 3.3 V + 100 nF, LOW = plugged · plug-in detect B mirror (drive blocked on B when plugged, like park) · 22 AWG BU/GN · fuse none (signal; 5 V feed already fused)  
+- [ ] **S44 PLUG B33** (CRITICAL, PROPOSED) — LM339 ch2 OUT2 (pin 1, open collector) — same chip as S41 → Teensy B:33 with its own 10k pull-up to Teensy B 3.3 V + 100 nF, LOW = plugged · plug-in detect B mirror (drive blocked on B when plugged, like park) · 22 AWG BU/GN · fuse none (signal; 5 V feed already fused)  
   Meter: as S41 at B:33; with B powered off, A:33 must still read correctly (separate pull-ups)
 - [ ] **S45 PROX NET** (CRITICAL, PROPOSED) — NACS inlet PROXIMITY pin (SOURCED Adam 2026-10-22: ~150 Ω latched / ~480 Ω button pressed = plugged, open = not plugged; plug side returns to inlet PE) → proximity node: 330 Ω pull-up to the shared 5 V + 2.7k to GND (Sparky; same values as the J1772 vehicle side) · plug proximity (one network for both boards) · 22 AWG BU/GN · fuse none (330 Ω limits it to 15 mA)  
   Meter: unplugged ≈4.4 V at the node; plugged latched ≈1.5 V, button pressed ≈2.8 V (calculated, UNVERIFIED until metered). Inlet PE to the single-point ground is UNVERIFIED
-- [ ] **S46 PROX DIV** (CRITICAL, PROPOSED) — proximity node -> 10k (top) / 20k (to GND) divider → LM393 IN+ of BOTH halves (pins 3 and 5 tied) — one divider feeds both · divided proximity (×2/3, keeps it inside the LM393 input range at 5 V) · 22 AWG BU/GN · fuse none  
-  Meter: unplugged ≈2.9 V on pins 3/5, plugged ≤1.9 V (2.5 V switch point ≈3.75 V at the node)
-- [ ] **S47 LM393 5V** (CRITICAL, PROPOSED) — shared 5 V rail (5 V terminal block, same rail as the throttle clamp chips) → LM393 VCC pin 8 (+ 100 nF to pin 4) and the 330 Ω proximity pull-up · LM393 + proximity supply · 22 AWG OR · fuse 5 V rail (3 A mini blade upstream)  
-  Meter: 5.0 V between pin 8 and pin 4
-- [ ] **S48 LM393 REF** (CRITICAL, PROPOSED) — 2.5 V reference (PROPOSED 10k/10k from the shared 5 V; ~50 mV hysteresis part values TBD by Sparky — both halves share IN+) → LM393 IN− of BOTH halves (pins 2 and 6 tied) · 2.5 V threshold · 22 AWG BU · fuse none  
-  Meter: 2.50 V on pins 2/6
-- [ ] **S49 LM393 GND** (CRITICAL, PROPOSED) — LM393 GND pin 4 (also the 2.7k, 20k and reference bottoms) → single-point ground (same star point as the Teensy A/B grounds) · LM393 ground · 22 AWG BK · fuse none  
-  Meter: <0.1 Ω pin 4 to the single-point ground
+- [ ] **S46 PROX DIV** (CRITICAL, PROPOSED) — proximity node -> 10k (top) / 20k (to GND) divider → LM339 IN+ of ALL FOUR channels (pins 5, 7, 9, 11 tied: ch1/ch2 plug A/B, ch3/ch4 release A/B) — one divider feeds all · divided proximity (×2/3, keeps it inside the LM339 input range at 5 V) · 22 AWG BU/GN · fuse none  
+  Meter: unplugged ≈2.9 V on pins 5/7/9/11, plugged ≤1.9 V (2.5 V switch point ≈3.75 V at the node)
+- [ ] **S47 LM339 5V** (CRITICAL, PROPOSED) — shared 5 V rail (5 V terminal block, same rail as the throttle clamp chips) → LM339 VCC pin 3 (+ 100 nF to GND pin 12), the 330 Ω proximity pull-up and both reference dividers · LM339 + proximity supply · 22 AWG OR · fuse 5 V rail (3 A mini blade upstream)  
+  Meter: 5.0 V between pin 3 and pin 12
+- [ ] **S48 LM339 REF** (CRITICAL, PROPOSED) — 2.5 V plug reference (10k/10k from the shared 5 V). NO hysteresis resistors: 100 nF at each Teensy pin + 20 ms firmware debounce (DECIDED Sparky 06:57 #3) → LM339 IN1− / IN2− (pins 4 and 6 tied; ch1/ch2 plug A/B) · 2.5 V threshold · 22 AWG BU · fuse none  
+  Meter: 2.50 V on pins 4/6
+- [ ] **S49 LM339 GND** (CRITICAL, PROPOSED) — LM339 GND pin 12 (also the 2.7k, 20k and both reference bottoms) → single-point ground (bms_master board star, same as the Teensy A/B grounds) · LM339 ground · 22 AWG BK · fuse none  
+  Meter: <0.1 Ω pin 12 to the single-point ground
+- [ ] **S51 REL A2** (CRITICAL, PROPOSED) — LM339 ch3 OUT3 (pin 14, open collector) -> 1k series → Teensy A:2 with its own 10k pull-up to A 3.3 V + 100 nF (firmware must set A:2 INPUT; boots as output) · release-button detect A: LOW = plugged + latched, HIGH = pressed or unplugged · 22 AWG BU/YE · fuse none (1k series)  
+  Meter: plugged latched (~150 Ω): <0.4 V at A:2; button pressed (~480 Ω): 3.3 V; unplugged: 3.3 V. Plugged but not latched (prox plugged, release HIGH) = stop charger over CAN + open AC contactor
+- [ ] **S52 REL B35** (CRITICAL, PROPOSED) — LM339 ch4 OUT4 (pin 13, open collector) -> 1k series → Teensy B:35 with its own 10k pull-up to B 3.3 V + 100 nF · release-button detect B (mirror) · 22 AWG BU/YE · fuse none (1k series)  
+  Meter: as S51 at B:35; with B powered off, A:2 must still read correctly (separate pull-ups)
+- [ ] **S53 REL REF** (CRITICAL, PROPOSED) — 1.40 V release reference: 10k from the shared 5 V over 3.9k to GND (no hysteresis resistors) → LM339 IN3− / IN4− (pins 8 and 10 tied; ch3/ch4 release A/B) · 1.40 V threshold (latched ≈1.0 V below, pressed ≈1.8 V above) · 22 AWG BU · fuse none  
+  Meter: 1.40 V ±0.03 on pins 8/10 (calculated 5 × 3.9/13.9 = 1.403 V)
 
 ## Step 7: HIGH VOLTAGE — LATER, Sparky present, string fuses OUT
 

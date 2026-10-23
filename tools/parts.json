@@ -641,7 +641,9 @@
     "S25",
     "S26",
     "S27",
-    "H11"
+    "H11",
+    "G09",
+    "G10"
    ],
    "superseded_by": null,
    "owned": "yes",
@@ -690,6 +692,8 @@
     "wiring:gateway/ta",
     "wiring:plug/a",
     "wiring:plug/b",
+    "wiring:plug/a2",
+    "wiring:plug/b35",
     "schem:ta",
     "schem:tb",
     "schem:hvs",
@@ -854,10 +858,11 @@
    "qty": 1,
    "status": "owned",
    "specs": [
-    "bench"
+    "bench power — see docs/BENCH.md §2 (BENCH_POWER, DECIDED chief 06:57 #7)"
    ],
    "source": [
-    "cash-spend/teryx-spend.md"
+    "cash-spend/teryx-spend.md",
+    "AmperaBattery/docs/BENCH.md"
    ],
    "verified": "yes",
    "open_questions": [],
@@ -876,15 +881,16 @@
    "qty": 5,
    "status": "owned (5-pack, considering)",
    "specs": [
-    "3 used: Teensy A, Teensy B, switched BICM 5 V"
+    "1 used on the first-drive board (bms_master PS1: Teensy A + B, LEM, pedal, clamp); the rest are spares (chief 06:57 #4)"
    ],
    "source": [
     "teryx/teryx-shop-log.md 2026-10-19 19:25/20:04",
-    "teryx/perfboard/BOM.md"
+    "teryx/perfboard/BOM.md",
+    "bms_master_answers.md (chief + Sparky 2026-10-23 06:57 CT, DECIDED)"
    ],
    "verified": "no",
    "open_questions": [
-    "Confirm 5-pack is owned"
+    "Confirm 5-pack is owned — pending Adam (chief 06:57 #4)"
    ],
    "diagram_ids": [
     "wiring:gateway/buck",
@@ -1777,22 +1783,28 @@
    "status": "to-buy",
    "specs": [
     "Quad comparator for NACS AC inlet (Adam chose NACS 9/25)",
-    "2 ch plug-present -> Teensy A:33 / B:33",
-    "2 ch release-button detect, threshold ~1.4 V"
+    "Pinout (TI LM339 datasheet, SOURCED): 1 OUT2, 2 OUT1, 3 VCC, 4/5 IN1−/IN1+, 6/7 IN2−/IN2+, 8/9 IN3−/IN3+, 10/11 IN4−/IN4+, 12 GND, 13 OUT4, 14 OUT3",
+    "ch1 OUT1 (2) -> A:33 plug A (S41), ch2 OUT2 (1) -> B:33 plug B (S44): 2.5 V ref (S48)",
+    "ch3 OUT3 (14) -> 1k -> A:2 release A (S51), ch4 OUT4 (13) -> 1k -> B:35 release B (S52): 1.40 V ref = 10k/3.9k from 5 V (S53); own 10k pull-up + 100 nF per output",
+    "No hysteresis resistors: 100 nF at each pin + 20 ms firmware debounce (DECIDED Sparky 06:57 #3); VCC 5 V pin 3, GND pin 12 (S47/S49)"
    ],
    "source": [
     "teryx/teryx-shop-log.md:77,201 (NACS 9/25)",
     "teryx/parts_input_sparky.md",
-    "crew decision 2026-10-23"
+    "crew decision 2026-10-23",
+    "bms_master_answers.md (chief + Sparky 2026-10-23 06:57 CT, DECIDED)"
    ],
    "verified": "no",
    "open_questions": [
-    "Repo (BACKLOG/TIERS/wiring_data plug page/PINMAP) still says LM393: stale"
+    "Not owned: purchase pending (no purchases by Gilfoyle)",
+    "Firmware must set A:2 INPUT and read plug/release with 20 ms debounce (not implemented; no flashing)"
    ],
-   "resolution": "DECIDED 2026-10-23 (crew): LM339 replaces LM393",
+   "resolution": "DECIDED 2026-10-23 (crew): LM339 replaces LM393; re-pinned + release detect on A:2/B:35 DECIDED chief + Sparky 06:57 (Build 24)",
    "diagram_ids": [
     "wiring:plug/lm1",
     "wiring:plug/lm2",
+    "wiring:plug/lm3",
+    "wiring:plug/lm4",
     "board:bms_master/U5"
    ],
    "pinmap_refs": [
@@ -1801,7 +1813,10 @@
     "S46",
     "S47",
     "S48",
-    "S49"
+    "S49",
+    "S51",
+    "S52",
+    "S53"
    ],
    "superseded_by": null,
    "owned": "no",
@@ -1974,7 +1989,8 @@
    "pinmap_refs": [
     "S14",
     "S15",
-    "P20"
+    "P20",
+    "G11"
    ],
    "superseded_by": null,
    "owned": "no",
@@ -2128,10 +2144,11 @@
    "status": "to-buy (PROPOSED)",
    "tier": "LATER",
    "specs": [
-    ""
+    "LATER — footprint only on bms_master (U6, not fitted); 0x20 (A0-A2 to GND), 4.7k SDA/SCL pull-ups to 3.3 V, RESET high via 10k (DECIDED chief 06:57 #3)"
    ],
    "source": [
-    "AmperaBattery/docs/cutsheets/INDEX.md"
+    "AmperaBattery/docs/cutsheets/INDEX.md",
+    "bms_master_answers.md (chief + Sparky 2026-10-23 06:57 CT, DECIDED)"
    ],
    "verified": "no",
    "open_questions": [],
@@ -2865,6 +2882,11 @@
     "board:bms_master/CUA",
     "board:bms_master/CUB",
     "board:bms_master/CD5",
+    "board:bms_master/RRA",
+    "board:bms_master/RRB",
+    "board:bms_master/CRA",
+    "board:bms_master/CRB",
+    "board:bms_master/RRST",
     "board:bms_master/CD6"
    ],
    "pinmap_refs": [],
@@ -3416,7 +3438,7 @@
     "ASSEMBLY. Children: cd_fet ×3, cd_rgate ×3, cd_rpull ×3, cd_flyback ×1, cd_board ×1, cd_term ×1",
     "Q-B+ <- Teensy A:11 (S01) -> EV200 B+ coil −; Q-PRE <- A:12 (S02) -> AEV14012 coil −; Q-B− <- A:21 (S03) -> EV200 B− coil − (SOURCED PINMAP)",
     "LOW SIDE ONLY (DECIDED room 2026-10-23 06:11, Sparky + chief): the board switches coil − to ground only; coil + is fed off-board from F-COIL (10 A PROPOSED) through the e-stop NC blocks (E01-E03); no 12 V on the board (J-12V deleted)",
-    "Grounding (DECIDED room 06:11): FET sources + pull-downs + Teensy signal ground (J-SIG.1, in the gate cable) meet at ONE star hole V22; the only other ground lead is the coil return J-GND.2 -> TB-GND, 16 AWG+; no Teensy GND wire at TB-GND (G04 dropped)",
+    "Grounding (DECIDED room 06:11): FET sources + pull-downs + Teensy signal ground (J-SIG.1, in the gate cable) meet at ONE star hole V22; the only other ground lead is the coil return: doubled 20 AWG solid bus on board -> J-GND.2 5.08 mm screw terminal rated ≥10 A -> TB-GND 16 AWG (G08; DECIDED Sparky 06:57 #5); no Teensy GND wire at TB-GND (G04 dropped)",
     "Loads: AEV14012 0.35 A @12 V / ~0.41 A @14 V, not economized (SOURCED Panasonic via Sparky); EV200HAANA 3.8 A inrush max 130 ms, 0.13 A hold @12 V (SOURCED TE datasheet)",
     "Replaces Q1-Q3 (MAIN+/MAIN−/PRECHG) of the perfboard/BOM.md outputs daughterboard; Q4-Q6 stay on coil_fet",
     "Install: guided_install/coil_driver.md (draft, after Build 18)"
@@ -3475,7 +3497,8 @@
     "F-COIL",
     "E01",
     "E02",
-    "E03"
+    "E03",
+    "G08"
    ],
    "superseded_by": null,
    "owned": "no",
@@ -3632,7 +3655,7 @@
    "tier": "CRITICAL",
    "specs": [
     "Coil-current paths (coil −, FET, ground return) in solid-core 18-20 AWG or solder-filled trace, not thin jumper wire",
-    "Low side only (DECIDED room 06:11): all FET sources to one star hole; coil return J-GND.2 -> TB-GND 16 AWG+ is the only ground lead besides the Teensy signal ground J-SIG.1 (G04 dropped)",
+    "Low side only (DECIDED room 06:11): all FET sources to one star hole; coil return (doubled 20 AWG on board, J-GND.2 5.08 mm ≥10 A screw terminal, 16 AWG G08 to TB-GND; Sparky 06:57 #5) is the only ground lead besides the Teensy signal ground J-SIG.1 (G04 dropped)",
     "Standoffs in a sealed box; conformal coat or hot glue on heavy parts after the bench test",
     "Alternative: PCBWay/JLCPCB 2-layer ≤100×100 mm, ~$5 for 5 + ~$15-30 DHL, ~$20-40 all-in, 1-2 weeks (Sparky typical figures, no live quote); ≥1 mm traces, 1 oz Cu, back ground pour, through-hole only"
    ],
@@ -3661,7 +3684,7 @@
    "status": "to-buy (PROPOSED)",
    "tier": "CRITICAL",
    "specs": [
-    "Low side only (DECIDED room 06:11): J-SIG 4 pos (signal GND + 3 gates from Teensy A, S01-S03); 3 coil − outputs; J-GND coil return to TB-GND 16 AWG+; no 12 V terminal (J-12V deleted)",
+    "Low side only (DECIDED room 06:11): J-SIG 4 pos (signal GND + 3 gates from Teensy A, S01-S03); 3 coil − outputs; J-GND coil return = 5.08 mm screw terminal rated ≥10 A taking 16 AWG to TB-GND (G08, DECIDED Sparky 06:57 #5; model UNVERIFIED); no 12 V terminal (J-12V deleted)",
     "Leads tied down; never a bare solder joint holding a wire (Sparky 05:35)"
    ],
    "source": [
@@ -3683,7 +3706,8 @@
    "pinmap_refs": [
     "S01",
     "S02",
-    "S03"
+    "S03",
+    "G08"
    ],
    "superseded_by": null,
    "owned": "no",
@@ -3700,6 +3724,7 @@
    "specs": [
     "TB-5V: Teensy A VIN, Teensy B VIN, LEM 5 V, pedal 5 V, clamp chips (SOURCED docs/PINMAP.yaml TB-5V; fed from buck_drok via F-BUCK)",
     "TB-GND: single-point ground for all LV grounds (SOURCED docs/PINMAP.yaml TB-GND; tools/schematic/gen.py 'gnd')",
+    "TB-GND = LV STAR: G03 (bms_master J-PWR.2, the ONE board link), G07, G08 (coil_driver return) — DECIDED chief 06:57 #5",
     "Position count = rows in PINMAP TB-5V/TB-GND plus spares (PROPOSED)"
    ],
    "source": [
@@ -3717,7 +3742,10 @@
    ],
    "pinmap_refs": [
     "TB-5V",
-    "TB-GND"
+    "TB-GND",
+    "G03",
+    "G07",
+    "G08"
    ],
    "superseded_by": null,
    "owned": "no",
@@ -3725,28 +3753,30 @@
   },
   "bms_master": {
    "category": "controls",
-   "name": "BMS master board (Teensy A + B, 6× SN65HVD230, 5 V buck, LEM/pedal dividers, throttle clamp, LM339 plug/release detect, MCP23017)",
+   "name": "BMS master board (Teensy A + B, 6× SN65HVD230, 5 V buck, LEM/pedal dividers, throttle clamp, LM339 plug/release detect, MCP23017 footprint LATER)",
    "maker": "self-built",
    "model": "Perfboard build (PROPOSED)",
    "qty": 1,
    "status": "to-build (PROPOSED)",
    "tier": "CRITICAL",
    "specs": [
-    "ASSEMBLY. Children (new parts): bm_board ×1, bm_term ×14, bm_hdr ×2, bm_res ×9, bm_cap ×3; uses existing parts: teensy, sn65, buck_drok, lv_fuses, zener_5v, can_term, oneshot, analog_switch, digipot, buffer, lm339, io_expander, clr_diode, perfboard_kit",
+    "ASSEMBLY. Children (new parts): bm_board ×1, bm_term ×13, bm_hdr ×2, bm_res ×11, bm_cap ×3; uses existing parts: teensy, sn65, buck_drok, lv_fuses, zener_5v, can_term, oneshot, analog_switch, digipot, buffer, lm339, io_expander, clr_diode, perfboard_kit",
     "Every pin and net from docs/PINMAP.yaml (wire ids in each net desc) + docs/THROTTLE_CLAMP.md (SOURCED); layout PROPOSED",
     "One signal-ground star bar; each ground group joins it once (S49 single-point ground, same rule as coil_driver V22)",
-    "ESP32 is off-board (J-ESP terminal); coil_driver is a separate board (J-DRV -> J-SIG, S01-S03)"
+    "ESP32 is off-board (J-ESP terminal); coil_driver is a separate board (J-DRV -> J-SIG, S01-S03)",
+    "Build 24 (bms_master_answers.md (chief + Sparky 2026-10-23 06:57 CT, DECIDED)): LM339 ch1-4 -> A:33/B:33/A:2/B:35; release outputs via 1k + own 10k pull-up + 100 nF (S51/S52, ref S53); J-REL removed; MCP23017 U6 footprint only; LEM A/B, pedal, Kelly RTN each own star hole (G09-G12); J-PWR.2 the ONE link to TB-GND (G03)"
    ],
    "source": [
     "Adam 2026-10-23 06:11 (BMS master board task)",
     "AmperaBattery/docs/boards/bms_master.layout.json (PROPOSED, Gilfoyle Build 21; tools/boards/gen_bms_master.py)",
     "AmperaBattery/docs/PINMAP.yaml",
-    "AmperaBattery/docs/THROTTLE_CLAMP.md"
+    "AmperaBattery/docs/THROTTLE_CLAMP.md",
+    "bms_master_answers.md (chief + Sparky 2026-10-23 06:57 CT, DECIDED)"
    ],
    "verified": "no",
    "open_questions": [
-    "SN65 module pin order + on-module 120 Ω (UNVERIFIED)",
-    "Release-detect Teensy pins (not in PINMAP)"
+    "SN65 modules: wire by SILKSCREEN (pin order varies by vendor); keep R2 '121' only at a physical bus end; CANH-CANL ≈60 Ω powered off (DECIDED Sparky 06:57 #2)",
+    "Firmware must set A:2 INPUT (boots as output); plug/release not read yet — later commit, no flashing"
    ],
    "children": [
     {
@@ -3756,8 +3786,8 @@
     },
     {
      "id": "bm_term",
-     "qty": 14,
-     "refdes": "J-PWR, J-S1..J-S4, J-CANV, J-DRV, J-ESP, J-PROX, J-REL, J-KEL, J-THR, J-LEMA, J-LEMB"
+     "qty": 13,
+     "refdes": "J-PWR, J-S1..J-S4, J-CANV, J-DRV, J-ESP, J-PROX, J-KEL, J-THR, J-LEMA, J-LEMB"
     },
     {
      "id": "bm_hdr",
@@ -3766,8 +3796,8 @@
     },
     {
      "id": "bm_res",
-     "qty": 9,
-     "refdes": "R1, RX1, RX2, RP1, RP2, RD2, RL2, RSDA, RSCL"
+     "qty": 11,
+     "refdes": "R1, RX1, RX2, RP1, RP2, RD2, RL2, RSA, RSB, RSDA, RSCL"
     },
     {
      "id": "bm_cap",
@@ -3829,6 +3859,14 @@
     "S47",
     "S48",
     "S49",
+    "S51",
+    "S52",
+    "S53",
+    "G03",
+    "G09",
+    "G10",
+    "G11",
+    "G12",
     "K01"
    ],
    "superseded_by": null,
@@ -3868,11 +3906,11 @@
    "name": "BMS master screw terminals, 5.08 mm pitch (2/3/4 pos)",
    "maker": "UNKNOWN",
    "model": "UNKNOWN (5.08 mm PCB screw terminal blocks)",
-   "qty": 14,
+   "qty": 13,
    "status": "UNVERIFIED (to-buy, PROPOSED)",
    "tier": "CRITICAL",
    "specs": [
-    "2-pos ×7 (J-PWR, J-CANV, J-PROX, J-REL, J-KEL + spares), 3-pos ×5 (J-S1..J-S4, J-ESP), 4-pos ×4 (J-DRV, J-THR, J-LEMA, J-LEMB) — count from the layout"
+    "2-pos ×4 (J-PWR, J-CANV, J-PROX, J-KEL; J-REL removed Build 24), 3-pos ×5 (J-S1..J-S4, J-ESP), 4-pos ×4 (J-DRV, J-THR, J-LEMA, J-LEMB) — count from the layout"
    ],
    "source": [
     "AmperaBattery/docs/boards/bms_master.layout.json (PROPOSED, Gilfoyle Build 21; tools/boards/gen_bms_master.py)"
@@ -3892,7 +3930,6 @@
     "board:bms_master/J-DRV",
     "board:bms_master/J-ESP",
     "board:bms_master/J-PROX",
-    "board:bms_master/J-REL",
     "board:bms_master/J-KEL",
     "board:bms_master/J-THR",
     "board:bms_master/J-LEMA",
@@ -3908,7 +3945,11 @@
     "S02",
     "S03",
     "S30",
-    "K01"
+    "K01",
+    "G09",
+    "G10",
+    "G11",
+    "G12"
    ],
    "superseded_by": null,
    "owned": "no",
@@ -3942,14 +3983,15 @@
   },
   "bm_res": {
    "category": "controls",
-   "name": "BMS master resistors not in perfboard_kit (100k ×3, 330 Ω, 2.7k, 20k, 3.9k, 4.7k ×2)",
+   "name": "BMS master resistors not in perfboard_kit (100k ×3, 330 Ω, 2.7k, 20k, 3.9k, 1k ×2, 4.7k ×2)",
    "maker": "UNKNOWN",
    "model": "UNKNOWN (1/4 W through-hole; 1 % metal film PROPOSED)",
-   "qty": 9,
+   "qty": 11,
    "status": "UNVERIFIED (to-buy, PROPOSED)",
    "tier": "CRITICAL",
    "specs": [
-    "R1 100k (KELLY_THR to GND), RX1/RX2 100k 1% (one-shot timing), RP1 330 Ω / RP2 2.7k (PROX, S45), RD2 20k (PROX divider, S46), RL2 3.9k (release ref 1.40 V, PROPOSED), RSDA/RSCL 4.7k (I2C, PROPOSED)"
+    "R1 100k (KELLY_THR to GND), RX1/RX2 100k 1% (one-shot timing), RP1 330 Ω / RP2 2.7k (PROX, S45), RD2 20k (PROX divider, S46), RL2 3.9k (release ref 1.40 V, S53 DECIDED Sparky 06:57 #1), RSA/RSB 1k (release series to A:2/B:35, S51/S52), RSDA/RSCL 4.7k (I2C, DECIDED chief 06:57 #3; LATER)",
+    "10k pull-ups RRA/RRB/RRST and 100 nF CRA/CRB come from perfboard_kit"
    ],
    "source": [
     "AmperaBattery/docs/boards/bms_master.layout.json (PROPOSED, Gilfoyle Build 21; tools/boards/gen_bms_master.py)",
@@ -3967,12 +4009,17 @@
     "board:bms_master/RP2",
     "board:bms_master/RD2",
     "board:bms_master/RL2",
+    "board:bms_master/RSA",
+    "board:bms_master/RSB",
     "board:bms_master/RSDA",
     "board:bms_master/RSCL"
    ],
    "pinmap_refs": [
     "S45",
-    "S46"
+    "S46",
+    "S51",
+    "S52",
+    "S53"
    ],
    "superseded_by": null,
    "owned": "no",
