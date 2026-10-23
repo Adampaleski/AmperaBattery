@@ -233,8 +233,8 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | P07 | 1 | wire | F-EBOX:out | F-BUCK 3 A -> 5 V buck IN+ | +12V | 12 V | RD/WH | 18 | F-BUCK | P07 BUCK IN | CRITICAL | SOURCED | gen.py fbx |
 | P08 | 1 | wire | 5 V buck OUT+ | TB-5V | +5V | 5.00 V | OR | 20 | F-BUCK | P08 5V | CRITICAL | PROPOSED | gen.py conv/v5 |
 | P09 | 1 | board | Zener 1N5339B cathode | TB-5V (anode to TB-GND) | 5 V clamp | 5 V | — | lead | none | P09 ZENER | CRITICAL | SOURCED | gen.py z |
-| G04 | 2 | wire | Teensy A:GND | TB-GND | GND | 0 V | BK | 20 | none | G04 TA GND | CRITICAL | PROPOSED | gen.py |
-| G06 | 2 | wire | Teensy B:GND | TB-GND | GND | 0 V | BK | 20 | none | G06 TB GND | CRITICAL | PROPOSED | gen.py |
+| G04 | 2 | board | Teensy A:GND | bms_master board star (signal ground) — NO wire to TB-GND (G04 to TB-GND dropped: DECIDED room Sparky + chief 2026-10-23 06:11). Teensy signal GND reaches coil_driver on J-SIG.1 in the gate cable; coil_driver J-GND -> TB-GND carries only the coil return (16 AWG+) | GND | 0 V | — | board | none | G04 TA GND STAR | CRITICAL | PROPOSED | room decision 2026-10-23 06:11 CT; docs/boards/bms_master.layout.json (Build 21) |
+| G06 | 2 | board | Teensy B:GND | bms_master board star (signal ground) — same as G04 (PROPOSED Gilfoyle Build 21 for consistency with the 06:11 room decision; no separate wire to TB-GND) | GND | 0 V | — | board | none | G06 TB GND STAR | CRITICAL | PROPOSED | docs/boards/bms_master.layout.json (Build 21); consistency with G04 |
 | P11 | 2 | wire | TB-5V | Teensy A:VIN (VIN/VUSB pad CUT) | +5V | 5 V | OR | 20 | F-BUCK | P11 TA VIN | CRITICAL | SOURCED | gen.py teensy; wiring_data power12 |
 | P12 | 2 | wire | TB-5V | Teensy B:VIN (VIN/VUSB pad CUT) | +5V | 5 V | OR | 20 | F-BUCK | P12 TB VIN | CRITICAL | SOURCED | as P11 |
 | C01 | 3 | board | Teensy A:22 TX / 23 RX + 3V3 + GND | SN65HVD230 #1 TXD/RXD/VCC/GND | CAN logic | 3.3 V | — | board | none | C01 A-CAN1 | CRITICAL | SOURCED | Config.h:174-175 |

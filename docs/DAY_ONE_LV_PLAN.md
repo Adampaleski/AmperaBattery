@@ -35,7 +35,7 @@ Follows `AmperaBattery/docs/CONNECTIONS.md` steps W1–W8. Wire IDs match PINMAP
 | Wire | Connect | Check | Expect |
 |---|---|---|---|
 | — | VIN/VUSB pad cut on both boards | Ω, VIN to VUSB | Open |
-| G04/G06 | TA/TB GND to TB-GND | Ω | < 0.5 Ω |
+| G06 (G04 dropped, DECIDED room 06:11) | TA/TB GND to the BMS master star bar, then J-PWR.2 to TB-GND (G03). No direct Teensy GND wire at TB-GND | Ω, TA GND to TB-GND | < 0.5 Ω |
 | P11/P12 | TB-5V to TA/TB VIN | Power on: VIN to GND | 4.95–5.05 V |
 
 Don't plug in USB and VIN together until the pad cut is confirmed.

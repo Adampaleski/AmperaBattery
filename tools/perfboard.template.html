@@ -67,10 +67,10 @@ function checkBoard(L){const E=[],W=[],rows=L.grid.rows,cols=L.grid.cols,inb=rc=
  const mounts=new Set((L.mounts||[]).map(m=>key(hole(m))));
  if(!LABELS.includes(L.status))W.push(`status ${JSON.stringify(L.status)} is not one of ${LABELS.join(", ")}`);
  for(const k of ["assembly","board_part"])if(L[k]&&!PARTS[L[k]])E.push(`${k} '${L[k]}' is not a PARTS id`);
- const kids=new Set([L.assembly,L.board_part,...((PARTS[L.assembly]||{}).children||[]).map(c=>c.id)]);
+ const kids=new Set([L.assembly,L.board_part,...((PARTS[L.assembly]||{}).children||[]).map(c=>c.id),...((PARTS[L.assembly]||{}).uses||[])]);
  const pinAt={},atPin={},refs={};
  for(const p of L.parts){const ref=p.ref;if(refs[ref]){E.push(`duplicate refdes ${ref}`);continue}refs[ref]=p;
-  if(!PARTS[p.part])E.push(`${ref}: part id '${p.part}' is not in docs/PARTS.yaml`);else if(L.assembly&&!kids.has(p.part))W.push(`${ref}: ${p.part} is not ${L.assembly} or one of its children`);
+  if(!PARTS[p.part])E.push(`${ref}: part id '${p.part}' is not in docs/PARTS.yaml`);else if(L.assembly&&!kids.has(p.part))W.push(`${ref}: ${p.part} is not ${L.assembly} or one of its children/uses`);
   if(!FP[p.fp]||/^_/.test(p.fp)){E.push(`${ref}: unknown footprint '${p.fp}'`);continue}if(!ROT[p.rot||0]){E.push(`${ref}: rot ${p.rot} not 0/90/180/270`);continue}
   if(!hole(p.at)){E.push(`${ref}: bad anchor hole '${p.at}'`);continue}
   for(const [n,rc] of Object.entries(pinsOf(p))){if(!inb(rc)){E.push(`${ref}.${n} at ${hname(rc)} is off the ${rows}x${cols} grid`);continue}
@@ -156,7 +156,7 @@ function draw(){R=checkBoard(L);const gW=$("gW"),gP=$("gP"),gO=$("gO");gW.innerH
  (L.offboard||[]).forEach((o,i)=>{const near=L.parts.find(p=>p.ref===o.near),w=PI*15,h=PI*2.2,x=(near?XY(hole(near.at))[0]:0)+PI*3,y=-PI*(4.6+2.6*i);
   const g=el("g",{class:"ob"},gO);if(near){const [nx,ny]=XY(hole(near.at));el("line",{x1:x,y1:y+h,x2:nx+PI,y2:ny-PI*1.6},g)}
   el("rect",{x,y,width:w,height:h,rx:.6},g);const t1=el("text",{x:x+.8,y:y+1.9},g);t1.textContent=`${o.ref} ${o.value||""} — OFF-BOARD`;
-  const t2=el("text",{x:x+.8,y:y+3.9},g);t2.textContent="at the AEV14012 coil, band to +12 V"});
+  const t2=el("text",{x:x+.8,y:y+3.9},g);t2.textContent=o.short||String(o.text||"").slice(0,60)});
  drawDraft();ckChip()}
 function drawDraft(){const g=$("gD");g.innerHTML="";if(hov){const [x,y]=XY(hov);el("circle",{cx:x,cy:y,r:1.1,class:"hov"},g)}
  if(sel&&sel.t==="w"&&mode==="sel"){const w=L.wires.find(w=>w.id===sel.id);if(w)w.pts.forEach((h,i)=>{const [x,y]=XY(hole(h));el("circle",{cx:x,cy:y,r:1.15,class:"vh","data-vh":i},g)})}
@@ -247,7 +247,7 @@ $("rst").onclick=()=>{if(!confirm("Drop the local edits for "+B+" and reload the
 $("bsel").innerHTML=Object.keys(BOARDS).map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join("");$("bsel").value=B;
 $("bsel").onchange=e=>{history.replaceState(null,"","?board="+encodeURIComponent(e.target.value));load(e.target.value)};
 // add part
-const kidsOf=a=>[a,...((PARTS[a]||{}).children||[]).map(c=>c.id)];
+const kidsOf=a=>[a,...((PARTS[a]||{}).children||[]).map(c=>c.id),...((PARTS[a]||{}).uses||[])];
 $("addb").onclick=()=>{const a=$("addf");a.classList.toggle("on");if(!a.classList.contains("on"))return;const k=kidsOf(L.assembly).filter(x=>PARTS[x]);
  $("apid").innerHTML=k.map(x=>`<option value="${esc(x)}">${esc(x)} — ${esc(PARTS[x].name)}</option>`).join("")+`<option disabled>──────</option>`+Object.keys(PARTS).filter(x=>!k.includes(x)).sort().map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
  $("afp").innerHTML=Object.keys(FP).filter(x=>!x.startsWith("_")).map(x=>`<option value="${x}">${x} — ${esc(FP[x].desc)}</option>`).join("")};

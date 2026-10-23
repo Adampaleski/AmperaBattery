@@ -32,10 +32,10 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
 
 ## Step 2: Teensys
 
-- [ ] **G04 TA GND** (CRITICAL, PROPOSED) — Teensy A:GND → TB-GND · GND · 20 AWG BK · fuse none  
-  Meter: <0.5 Ω
-- [ ] **G06 TB GND** (CRITICAL, PROPOSED) — Teensy B:GND → TB-GND · GND · 20 AWG BK · fuse none  
-  Meter: <0.5 Ω
+- [ ] **G04 TA GND STAR** (CRITICAL, PROPOSED) — Teensy A:GND → bms_master board star (signal ground) — NO wire to TB-GND (G04 to TB-GND dropped: DECIDED room Sparky + chief 2026-10-23 06:11). Teensy signal GND reaches coil_driver on J-SIG.1 in the gate cable; coil_driver J-GND -> TB-GND carries only the coil return (16 AWG+) · GND · board AWG — · fuse none  
+  Meter: <0.5 Ω Teensy A GND pin to the bms_master star; no Teensy GND wire lands at TB-GND
+- [ ] **G06 TB GND STAR** (CRITICAL, PROPOSED) — Teensy B:GND → bms_master board star (signal ground) — same as G04 (PROPOSED Gilfoyle Build 21 for consistency with the 06:11 room decision; no separate wire to TB-GND) · GND · board AWG — · fuse none  
+  Meter: <0.5 Ω Teensy B GND pin to the bms_master star
 - [ ] **P11 TA VIN** (CRITICAL, SOURCED) — TB-5V → Teensy A:VIN (VIN/VUSB pad CUT) · +5V · 20 AWG OR · fuse F-BUCK  
   Meter: before plugging USB: VIN/VUSB pad cut (meter open between VIN and VUSB)
 - [ ] **P12 TB VIN** (CRITICAL, SOURCED) — TB-5V → Teensy B:VIN (VIN/VUSB pad CUT) · +5V · 20 AWG OR · fuse F-BUCK  

@@ -13,7 +13,7 @@ ERRORS (exit 1): part id not in docs/PARTS.yaml (parts, board_part, assembly, of
   unknown refdes/pin, a pin in two nets, a net whose members are not all connected, a short (two nets in one
   copper island), a wire tagged with an undeclared net or touching no member of its net, an NC pin with copper.
 WARNINGS: pin in no net and not NC, dangling wire end (no pin, no other wire), same-side crossing of two
-  different nets, a wire running over a pin hole it is not soldered at, part not the assembly or one of its PARTS children, status not one of the labels.
+  different nets, a wire running over a pin hole it is not soldered at, part not the assembly or one of its PARTS children/uses, status not one of the labels.
 """
 import json, pathlib, re, sys
 import yaml
@@ -47,7 +47,7 @@ def check(L, name):
     if L.get("status") not in LABELS: W.append(f"status {L.get('status')!r} is not one of {sorted(LABELS)}")
     for k in ("assembly", "board_part"):
         if L.get(k) and L[k] not in PARTS: E.append(f"{k} {L[k]!r} is not a PARTS id")
-    kids = {L.get("assembly"), L.get("board_part")} | {c["id"] for c in (PARTS.get(L.get("assembly"), {}).get("children") or [])}
+    kids = {L.get("assembly"), L.get("board_part")} | {c["id"] for c in (PARTS.get(L.get("assembly"), {}).get("children") or [])} | set(PARTS.get(L.get("assembly"), {}).get("uses") or [])
     pin_at, at_pin, refs = {}, {}, {}
     for p in L["parts"]:
         ref = p.get("ref")

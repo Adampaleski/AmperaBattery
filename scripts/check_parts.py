@@ -10,7 +10,7 @@ Fails (exit 1) on a dangling id in EITHER direction:
                            every tool tag must be listed in the part's diagram_ids (else PARTS.yaml is stale:
                            rerun /workspace/teryx/tools_parts/build_parts.py);
                            pinmap_refs must be PINMAP wire/fuse/connector/bus ids;
-                           parent/children and id-shaped superseded_by must be PARTS ids;
+                           parent/children/uses and id-shaped superseded_by must be PARTS ids;
                            tools/parts.json must equal docs/PARTS.yaml.
 Warnings (no fail): a tag pointing at a superseded part, PINMAP part: null (uncatalogued gap).
 Reports the conflict count (parts carrying a `conflict:` field).
@@ -93,6 +93,8 @@ for pid, p in sorted(P.items()):
         cid = ch["id"] if isinstance(ch, dict) else ch
         if cid not in P: errs.append(f"DANGLING: {pid}.children '{cid}'")
         elif P[cid].get("parent") != pid: errs.append(f"{pid}.children '{cid}' but {cid}.parent = {P[cid].get('parent')}")
+    for u in p.get("uses") or []:
+        if u not in P: errs.append(f"DANGLING: {pid}.uses '{u}'")
     sb = p.get("superseded_by")
     if sb and re.fullmatch(r"[a-z0-9_]+", str(sb)) and sb not in P: errs.append(f"DANGLING: {pid}.superseded_by '{sb}'")
 

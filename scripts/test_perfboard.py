@@ -1,11 +1,13 @@
 # python3 scripts/test_perfboard.py — perf-board designer checks (Playwright + Chrome).
 # 1) check_boards.py: the repo layouts PASS; a temp copy with a bogus PARTS id FAILS (and so do an open net and a short).
-# 2) tools/perfboard.html?board=coil_driver loads: 15 parts, 23 wires, check chip PASS, PROPOSED chip, notes + off-board 1N4007.
+# 2) tools/perfboard.html?board=coil_driver loads: 14 parts, 20 wires (low side only, J-12V deleted), check chip PASS, PROPOSED chip, notes + off-board 1N4007.
 # 3) the in-page check catches a bogus PARTS id (via localStorage edits) and Reset drops it.
 # 4) drag a part (snaps to holes), Rotate, edits persist across reload, Export JSON of an unedited board == the repo file.
 # 5) wiring.html precharge: clicking the drv node opens perfboard.html?board=coil_driver.
 # 6) iPhone portrait (touch): tap selects a part, pinch-free fit, no sideways scroll.
-# Optional: SHOT=/path.png saves a screenshot of the coil_driver layout.
+# 7) bms_master (Build 21): PROPOSED, every part a PARTS id, Teensy A + B on TEENSY41, ONE star (one 18 AWG bar), LEM dividers
+#    on A/B 14/15/25, analog parts >= 6 holes from CAN/buck parts, check PASS in python and in the page, ESP32 off-board.
+# Optional: SHOT=/path.png saves a screenshot of the coil_driver layout; BMSHOT=/path.png one of bms_master.
 import os, sys, json, pathlib, subprocess, tempfile, copy
 from playwright.sync_api import sync_playwright
 repo = pathlib.Path(__file__).resolve().parent.parent
@@ -29,6 +31,35 @@ rc, out = variant('open', opn); ok(rc != 0 and 'GATE_B+' in out, 'check_boards.p
 def short(L):
     w = next(w for w in L['wires'] if w['net'] == 'GATE_B+'); L['wires'].append({'id': 'wx', 'net': 'GATE_B+', 'side': 'top', 'pts': [w['pts'][0], next(x for x in L['wires'] if x['net'] == 'GND')['pts'][0]]})
 rc, out = variant('short', short); ok(rc != 0 and 'SHORT' in out.upper(), 'check_boards.py: a wire from a gate to ground is reported as a short')
+# ---- 7) bms_master (python side)
+BM = json.loads((boards / 'bms_master.layout.json').read_text()); FPS = json.loads((boards / 'footprints.json').read_text())
+PIDS = set(json.loads((tools / 'parts.json').read_text())['parts'])
+rc, out = cb(boards / 'bms_master.layout.json'); ok(rc == 0 and '0 errors, 0 warnings' in out, 'bms_master: check_boards PASS, 0 errors, 0 warnings')
+ok(BM['status'] == 'PROPOSED' and BM['assembly'] == 'bms_master' and BM['board_part'] == 'bm_board', 'bms_master is PROPOSED, assembly bms_master on bm_board')
+bad = [q['ref'] for q in BM['parts'] if q['part'] not in PIDS] + [o['ref'] for o in BM.get('offboard', []) if o['part'] not in PIDS]
+ok(not bad, f'bms_master: every part ({len(BM["parts"])}) is a PARTS id ' + repr(bad[:5]))
+ok(sorted((q['ref'], q['part'], q['fp']) for q in BM['parts'] if q['fp'] == 'TEENSY41') == [('TA', 'teensy', 'TEENSY41'), ('TB', 'teensy', 'TEENSY41')], 'bms_master: Teensy A and B on TEENSY41 footprints')
+bars = [w for w in BM['wires'] if '18 AWG' in w.get('awg', '')]
+ok(len(bars) == 1 and bars[0]['net'] == 'GND' and BM['star'] in bars[0]['pts'], 'bms_master: ONE signal-ground star bar, star hole on it')
+need = {'A14_SENSE': 'TA.14', 'A15_SENSE': 'TA.15', 'A25_SENSE': 'TA.25', 'B14_SENSE': 'TB.14', 'B15_SENSE': 'TB.15', 'B25_SENSE': 'TB.25'}
+vals = {q['ref']: q.get('value', '') for q in BM['parts']}
+def divok(nn, pin):
+    m = BM['nets'].get(nn, {}).get('members', []); rs = {x.split('.')[0] for x in m}
+    return pin in m and any(vals.get(r, '').startswith('10k') for r in rs) and any(vals.get(r, '').startswith('18k') for r in rs) and any(vals.get(r, '').startswith('100 nF') for r in rs)
+ok(all(divok(k, v) for k, v in need.items()), 'bms_master: 10k/18k + 100 nF dividers on A:14/15/25 and B:14/15/25')
+ok({'SN1', 'SN2', 'SN3', 'SN4', 'SN5', 'SN6', 'U1', 'U3', 'U5', 'U6', 'PS1', 'F-BUCK', 'J-DRV', 'J-ESP'} <= set(vals), 'bms_master: SN65 x6, CD74HCT123E, MCP4131, LM339, MCP23017, buck + fuse, J-DRV (S01-S03), J-ESP all placed')
+ok(any(o['part'] == 'esp32' for o in BM.get('offboard', [])) and not any(q['part'] == 'esp32' for q in BM['parts']), 'bms_master: ESP32 is off-board (link terminal only)')
+cv = BM['nets'].get('CANV_H', {}).get('members', [])
+ok({'SN5.CANH', 'SN6.CANH', 'RT5.1'} <= set(cv) and 'CAN3' in BM['nets']['CANV_H']['desc'], 'bms_master: CAN3 A<->B link = SN5 (A) <-> SN6 (B) with 120 Ω RT5 at the A end')
+def pinxy(q):
+    a = q['at']; import re; mm = re.match(r'([A-Z]+)(\d+)', a); r = 0
+    for ch in mm.group(1): r = r * 26 + ord(ch) - 64
+    r -= 1; c = int(mm.group(2)); R = {0: lambda x, y: (x, y), 90: lambda x, y: (y, -x), 180: lambda x, y: (-x, -y), 270: lambda x, y: (-y, x)}[q.get('rot', 0)]
+    return [(r + R(dr, dc)[0], c + R(dr, dc)[1]) for _, dr, dc in FPS[q['fp']]['pins']]
+ana = [h for q in BM['parts'] if q['ref'] in ('U5', 'J-PROX', 'J-REL', 'J-KEL', 'J-THR', 'J-LEMA', 'J-LEMB') or (q['ref'][0] in 'RC' and any(t in q['ref'] for t in ('A14', 'A15', 'A25', 'A40', 'B14', 'B15', 'B25', 'B41'))) for h in pinxy(q)]
+noisy = [h for q in BM['parts'] if q['ref'].startswith(('SN', 'PS', 'F-', 'RT', 'J-S', 'J-CANV')) for h in pinxy(q)]
+dmin = min(abs(a[0] - b[0]) + abs(a[1] - b[1]) for a in ana for b in noisy)
+ok(dmin >= 6, f'bms_master: analog parts are {dmin} holes (>= 6) from every CAN/buck/fuse part')
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=os.environ.get('CHROME', '/usr/bin/google-chrome'), args=['--no-sandbox'])
     ctx = b.new_context(viewport={'width': 1400, 'height': 900}, accept_downloads=True)
@@ -36,8 +67,8 @@ with sync_playwright() as p:
     url = (tools / 'perfboard.html').as_uri() + '?board=coil_driver'
     pg.goto(url); pg.wait_for_timeout(400); J = pg.evaluate
     J("localStorage.clear()"); pg.reload(); pg.wait_for_timeout(400)
-    ok(J("PB.L.parts.length") == 15 and J("PB.L.wires.length") == 23, 'coil_driver loads: %s parts, %s wires' % (J("PB.L.parts.length"), J("PB.L.wires.length")))
-    ok(pg.locator('#gP [data-ref]').count() == 15 and pg.locator('#gW [data-wire]').count() == 23, 'all parts and wires are drawn on the grid')
+    ok(J("PB.L.parts.length") == 14 and J("PB.L.wires.length") == 20, 'coil_driver loads: %s parts, %s wires' % (J("PB.L.parts.length"), J("PB.L.wires.length")))
+    ok(pg.locator('#gP [data-ref]').count() == 14 and pg.locator('#gW [data-wire]').count() == 20, 'all parts and wires are drawn on the grid')
     ok(J("document.getElementById('ck').dataset.err") == '0' and 'PASS' in pg.inner_text('#ck'), 'check chip: ' + pg.inner_text('#ck'))
     ok(pg.inner_text('#st').strip() == 'PROPOSED', 'layout is marked PROPOSED')
     ok('1N4007' in pg.inner_text('#offb') or 'flyback' in pg.inner_text('#offb').lower(), 'off-board flyback diode listed')
@@ -76,6 +107,13 @@ with sync_playwright() as p:
     ok(w.url.endswith('perfboard.html?board=coil_driver') and w.evaluate("PB.L.board") == 'coil_driver', 'clicking the drv node opens ' + w.url.rsplit('/', 1)[-1])
     shot = os.environ.get('SHOT')
     if shot: pg.reload(); pg.wait_for_timeout(500); pg.screenshot(path=shot, full_page=True); print('screenshot ' + shot)
+    # ---- 7) bms_master in the page
+    pg.goto((tools / 'perfboard.html').as_uri() + '?board=bms_master'); pg.wait_for_timeout(700)
+    ok(J("PB.L.board") == 'bms_master' and J("PB.check().E.length") == 0 and J("PB.check().W.length") == 0 and 'PASS' in pg.inner_text('#ck'), 'bms_master in the page: ' + pg.inner_text('#ck'))
+    ok(pg.locator('#gP [data-ref]').count() == len(BM['parts']) and pg.locator('#gW [data-wire]').count() == len(BM['wires']), 'bms_master: all parts and wires drawn')
+    ok(pg.inner_text('#st').strip() == 'PROPOSED' and 'ESP32' in pg.inner_text('#offb'), 'bms_master: PROPOSED chip, ESP32 off-board card')
+    bshot = os.environ.get('BMSHOT')
+    if bshot: pg.screenshot(path=bshot, full_page=True); print('screenshot ' + bshot)
     ok(not errs, 'no page errors ' + repr(errs[:3]))
     # ---- 6) iPhone
     UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
