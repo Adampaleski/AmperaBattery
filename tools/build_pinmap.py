@@ -13,6 +13,24 @@ def table(rows, cols):
         o.append("| " + " | ".join(esc(r.get(c[1])) for c in cols) + " |")
     return "\n".join(o)
 
+_PARTS = None
+def part_name(pid):
+    """Part column: name + model pulled from docs/PARTS.yaml by the explicit part: id (never by text)."""
+    global _PARTS
+    if _PARTS is None:
+        import yaml
+        _PARTS = yaml.safe_load((ROOT / "docs" / "PARTS.yaml").read_text())["parts"]
+    if pid is None:
+        return "— (no catalogued part)"
+    out = []
+    for i in (pid if isinstance(pid, list) else [pid]):
+        p = _PARTS.get(i)
+        out.append(f"{p['name']} — {p.get('model') or 'UNKNOWN'} [`{i}`]" if p else f"MISSING PART `{i}`")
+    return "; ".join(out)
+
+def with_part(rows):
+    return [dict(r, part_name=part_name(r.get("part"))) for r in rows]
+
 def pinmap_md(d):
     o = ["# Master pin map (GENERATED — edit docs/PINMAP.yaml, then `python3 tools/build_pinmap.py`)", "",
          "Status: SOURCED (file:line or doc) · ASSUMED · PROPOSED · UNVERIFIED · UNDEFINED (nothing chosen yet).",
@@ -25,8 +43,8 @@ def pinmap_md(d):
         o += ["", f"## {title} pins", "", table(d["pins"][b], [("Pin", "pin"), ("Firmware name", "const"), ("Use", "use"), ("Wire", "wire"), ("Tier", "tier"), ("Status", "status"), ("Source", "src")])]
     o += ["", "## MCP23017 body expander bits (Config.h ExpBits::)", "", table(d.get("expander", []), [("Bit", "bits"), ("Firmware name", "const"), ("Use", "use"), ("Tier", "tier"), ("Status", "status"), ("Source", "src")])]
     o += ["", "## CAN buses", "", table(d["buses"], [("Bus", "id"), ("Board", "board"), ("Ctrl", "ctrl"), ("TX", "tx"), ("RX", "rx"), ("Bitrate", "bitrate"), ("Nodes", "nodes"), ("IDs", "ids"), ("Termination", "term"), ("Transceiver", "transceiver"), ("Status", "status"), ("Source", "src")])]
-    o += ["", "## Connectors", "", table(d["connectors"], [("ID", "id"), ("What", "what"), ("Pins", "pins"), ("Status", "status"), ("Source", "src")])]
-    o += ["", "## Fuses", "", table(d["fuses"], [("ID", "id"), ("Where", "where"), ("Rating", "rating"), ("Status", "status"), ("Source", "src")])]
+    o += ["", "## Connectors", "", table(with_part(d["connectors"]), [("ID", "id"), ("Part (docs/PARTS.yaml)", "part_name"), ("What", "what"), ("Pins", "pins"), ("Status", "status"), ("Source", "src")])]
+    o += ["", "## Fuses", "", table(with_part(d["fuses"]), [("ID", "id"), ("Part (docs/PARTS.yaml)", "part_name"), ("Where", "where"), ("Rating", "rating"), ("Status", "status"), ("Source", "src")])]
     o += ["", "## Wire colour code — PROPOSED", ""] + [f"- {k}: {v}" for k, v in d["colors"].items() if k != "status"]
     o += ["", "## Wire gauge scheme — PROPOSED", ""] + [f"- {k}: {v}" for k, v in d["gauges"].items() if k != "status"]
     o += ["", "## Every wire", "", table(sorted(d["wires"], key=lambda w: (w["step"], w["id"])), [("Wire", "id"), ("Step", "step"), ("Kind", "kind"), ("From", "from"), ("To", "to"), ("Signal", "signal"), ("Voltage", "voltage"), ("Colour", "color"), ("AWG", "awg"), ("Fuse", "fuse"), ("Label", "label"), ("Tier", "tier"), ("Status", "status"), ("Source", "src")])]

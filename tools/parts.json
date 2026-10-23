@@ -3,7 +3,7 @@
   "title": "Teryx EV canonical parts list (single source of truth)",
   "generated": "2026-10-23 America/Chicago",
   "generator": "/workspace/teryx/tools_parts/build_parts.py (writes AmperaBattery/docs/PARTS.yaml + PARTS.md)",
-  "keying": "parts is a mapping keyed by stable snake_case id; diagram_ids = teryx/diagram/components.json ids; pinmap_refs = AmperaBattery/docs/PINMAP.yaml ids",
+  "keying": "parts is a mapping keyed by stable snake_case id; diagram_ids = DERIVED from the explicit part: tags in the repo tooling (wiring:<page>/<node> = tools/wiring_data.js node {part:}, schem:<block> = tools/schematic/gen.py PART, pinmap:connector/<id> and pinmap:fuse/<id> = docs/PINMAP.yaml part:, cutsheet:<sheet> = tools/cutsheets.json id/also_parts); pinmap_refs = docs/PINMAP.yaml wire/fuse/connector/bus ids; checked both ways by scripts/check_parts.py",
   "source": "docs/PARTS.yaml",
   "count": 123,
   "conflicts": [
@@ -65,7 +65,10 @@
     "Pole count and thermistor type still UNVERIFIED (Kelly #59 assumes 8 poles; KTY84 assumed): confirm on the bench/autotune, not a photo ask"
    ],
    "resolution": "SOURCED (Adam 2026-10-23): used Zero 75-7R, old-style sprocket adapter (plain cylinder with one flat side), sin/cos position sensor (why the Kelly KLS8080 NPS was chosen); bench spin test DONE",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/mot",
+    "schem:mot"
+   ],
    "pinmap_refs": [
     "H09"
    ],
@@ -104,7 +107,19 @@
    ],
    "resolution": "SOURCED (Adam 2026-10-23, Kelly purchase email screenshot): KLS8080 NPS, 168 V, 550 A, all add-ons incl. high-speed and anti-slip; no nameplate photo needed. Replaces KLS14551/KLS14601/KLS16xxx candidates; KELLY_SETTINGS (KLS14601 assumption) needs re-check for #7 overvoltage and #11 battery-current %",
    "diagram_ids": [
-    "kelly_kls"
+    "wiring:overview/kel",
+    "wiring:clamp/kt",
+    "wiring:enables/k",
+    "wiring:park/k12",
+    "wiring:park/fs",
+    "wiring:precharge/kel",
+    "wiring:estop/c2",
+    "wiring:bms/kel",
+    "wiring:kelly/k12",
+    "wiring:kelly/eco",
+    "schem:kel",
+    "pinmap:connector/KELLY-J",
+    "cutsheet:kelly"
    ],
    "pinmap_refs": [
     "KELLY-J",
@@ -394,7 +409,17 @@
    "verified": "yes",
    "open_questions": [],
    "resolution": "cash_parts_full PACK-CELLS agrees",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/s1",
+    "wiring:overview/s2",
+    "wiring:overview/s3",
+    "wiring:overview/s4",
+    "schem:s1",
+    "schem:s2",
+    "schem:s3",
+    "schem:s4",
+    "cutsheet:bicm"
+   ],
    "pinmap_refs": [],
    "superseded_by": null,
    "owned": "yes",
@@ -448,7 +473,7 @@
    "open_questions": [],
    "resolution": "All 4 used: one 24S BICM (M2 or M3) per string",
    "diagram_ids": [
-    "volt_bicm"
+    "cutsheet:bicm"
    ],
    "pinmap_refs": [
     "X2-S1..S4"
@@ -484,7 +509,7 @@
    ],
    "resolution": "GM P/N 22880272 read from label 2026-10-15 19:49 (shop log:275); 22885657/20955253 are unverified search alternates",
    "diagram_ids": [
-    "volt_bicm"
+    "cutsheet:bicm"
    ],
    "pinmap_refs": [
     "X2-S1..S4"
@@ -511,7 +536,21 @@
    "open_questions": [],
    "resolution": "8 = 2× M2 + 2× M3 + 4× M4 (6 owned, 2 M4 to buy); ledger 'two TNCs + two BICMs total' superseded by cash correction 2026-10-21",
    "diagram_ids": [
-    "volt_bicm"
+    "wiring:overview/s1",
+    "wiring:overview/s2",
+    "wiring:overview/s3",
+    "wiring:overview/s4",
+    "wiring:bms/s1",
+    "wiring:bms/s2",
+    "wiring:bms/b1",
+    "wiring:bms/b2",
+    "schem:s1",
+    "schem:s2",
+    "schem:s3",
+    "schem:s4",
+    "schem:bo",
+    "pinmap:connector/X2-S1..S4",
+    "cutsheet:bicm"
    ],
    "pinmap_refs": [
     "X2-S1..S4"
@@ -590,8 +629,10 @@
    "resolution": "VERIFIED 2026-10-23 (Sparky) from LEM DHAB S/44 datasheet + SimpBMS/Vero harness tables + GM SI circuits. Ownership: Adam 2026-10-23 via chief: 2 stock Volt pack current sensors at his bench (was CONFLICT: ['owned (Sparky, COMPONENTS.md)', \"ownership UNCONFIRMED (cash, shop log 'if owned')\"])",
    "note": "stock Volt, at Adam's bench",
    "diagram_ids": [
-    "lem_a",
-    "lem_b"
+    "wiring:overview/lem",
+    "wiring:bms/lem",
+    "schem:lem",
+    "cutsheet:dhab"
    ],
    "pinmap_refs": [
     "S05",
@@ -630,7 +671,27 @@
    ],
    "resolution": "2 owned: 1 receipt in ledger ($45.77) + 2nd bought 2026-10-17 (shop log:279); cash_parts_full TEENSY qty 2 owned (was CONFLICT: ['2 owned (COMPONENTS, shop log 10/17 2nd bought)', \"shop-log:294 '1st Teensy' only (older)\"])",
    "diagram_ids": [
-    "teensy41"
+    "wiring:overview/ta",
+    "wiring:overview/tb",
+    "wiring:overview/can",
+    "wiring:overview/en",
+    "wiring:clamp/ta",
+    "wiring:clamp/tb",
+    "wiring:enables/ta",
+    "wiring:enables/tb",
+    "wiring:enables/bf",
+    "wiring:park/a",
+    "wiring:park/b",
+    "wiring:estop/tb",
+    "wiring:bms/ta",
+    "wiring:bms/tb",
+    "wiring:kelly/a",
+    "wiring:gateway/ta",
+    "wiring:plug/a",
+    "wiring:plug/b",
+    "schem:ta",
+    "schem:tb",
+    "cutsheet:teensy"
    ],
    "pinmap_refs": [
     "P11",
@@ -690,7 +751,17 @@
    "verified": "yes",
    "open_questions": [],
    "diagram_ids": [
-    "sn65hvd230"
+    "wiring:overview/xc",
+    "wiring:bms/a1",
+    "wiring:bms/a2",
+    "wiring:bms/veh",
+    "schem:x1",
+    "schem:x2",
+    "schem:x3",
+    "schem:x4",
+    "schem:x5",
+    "schem:x6",
+    "cutsheet:sn65"
    ],
    "pinmap_refs": [
     "C01",
@@ -751,7 +822,9 @@
    "verified": "partial",
    "open_questions": [],
    "diagram_ids": [
-    "esp32"
+    "wiring:overview/esp",
+    "wiring:gateway/esp",
+    "schem:esp"
    ],
    "pinmap_refs": [
     "S30",
@@ -802,7 +875,11 @@
    "open_questions": [
     "Confirm 5-pack is owned"
    ],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:gateway/buck",
+    "wiring:power12/buck",
+    "schem:conv"
+   ],
    "pinmap_refs": [
     "P07",
     "P08",
@@ -839,8 +916,17 @@
    ],
    "resolution": "Qty 2: ledger shows 2 bought 10/20 (cash_parts_full EV200); no file records a 3rd — Sparky's spare is unbought/optional (was CONFLICT: [2, '3 incl spare (Sparky)'])",
    "diagram_ids": [
-    "ev200_pos",
-    "ev200_neg"
+    "wiring:overview/evp",
+    "wiring:overview/evn",
+    "wiring:precharge/evp",
+    "wiring:precharge/evn",
+    "wiring:precharge/cevn",
+    "wiring:precharge/cevp",
+    "wiring:estop/c3",
+    "wiring:estop/c4",
+    "schem:evp",
+    "schem:evn",
+    "cutsheet:ev200"
    ],
    "pinmap_refs": [
     "H06",
@@ -879,8 +965,12 @@
    ],
    "resolution": "Coil 0.35 A @12 V (34 Ω, 4.2 W, NOT economized), ~0.41 A @14.0 V DC-DC; no 3 A peak (EV200 carry-over). Source: Panasonic EV relay catalog (Sparky decision 2026-10-23) (was CONFLICT: ['~0.35 A not economized (ESTOP.md:38, cutsheet)', '~3 A peak (PINMAP, Config.h:192)'])",
    "diagram_ids": [
-    "precharge",
-    "aev14012"
+    "wiring:overview/pre",
+    "wiring:precharge/pre",
+    "wiring:precharge/cpre",
+    "wiring:estop/c1",
+    "schem:pre",
+    "cutsheet:aev"
    ],
    "pinmap_refs": [
     "H08",
@@ -910,7 +1000,7 @@
    "verified": "partial",
    "open_questions": [],
    "diagram_ids": [
-    "aev14012"
+    "cutsheet:aev"
    ],
    "pinmap_refs": [],
    "superseded_by": null,
@@ -938,7 +1028,9 @@
     "Read resistor label to confirm 50 Ω 100 W"
    ],
    "diagram_ids": [
-    "precharge"
+    "wiring:overview/pre",
+    "wiring:precharge/pre",
+    "schem:pres"
    ],
    "pinmap_refs": [
     "H08"
@@ -967,7 +1059,12 @@
    "open_questions": [
     "No spare bought"
    ],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/f",
+    "schem:f",
+    "pinmap:fuse/F-S1..S4",
+    "cutsheet:a6t"
+   ],
    "pinmap_refs": [
     "F-S1..S4",
     "H01",
@@ -1023,7 +1120,10 @@
     "Fuse holder not chosen"
    ],
    "resolution": "Mersen A6T60 60 A (1.25 × 46 A Elcon max) on 6 AWG (Sparky decision 2026-10-23; cash buylist); PINMAP F-ELC '~40-60 A' is stale (was CONFLICT: ['60 A A6T60 (cash)', '60-70 A >=250 VDC (TIERS:68)', '~40-60 A (PINMAP F-ELC)', '1.25x46 = 57.5 A (BACKLOG:19)'])",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "schem:fel",
+    "pinmap:fuse/F-ELC"
+   ],
    "pinmap_refs": [
     "F-ELC",
     "H13"
@@ -1050,7 +1150,10 @@
    "open_questions": [
     "Holder part"
    ],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "schem:fdi",
+    "pinmap:fuse/F-DCDC"
+   ],
    "pinmap_refs": [
     "F-DCDC",
     "H12"
@@ -1203,7 +1306,12 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/bus",
+    "wiring:overview/pnl",
+    "wiring:precharge/bus",
+    "schem:bus"
+   ],
    "pinmap_refs": [],
    "superseded_by": null,
    "owned": "no",
@@ -1283,7 +1391,10 @@
    "open_questions": [
     "Are IRLB8721s in hand?"
    ],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:kelly/fet",
+    "cutsheet:irlb"
+   ],
    "pinmap_refs": [
     "S20"
    ],
@@ -1315,7 +1426,12 @@
     "chief confirm XB4BS8442 vs XB5AS8442"
    ],
    "resolution": "PROPOSED (not chief-confirmed): XB4BS8442 metal = Mechanic's pick, matches shop log; XB5AS8442 plastic = alternate (Mechanic 2026-10-23) (was CONFLICT: ['XB4BS8442', 'XB5AS8442'])",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/es",
+    "wiring:estop/es",
+    "pinmap:connector/ESTOP",
+    "cutsheet:estop"
+   ],
    "pinmap_refs": [
     "ESTOP",
     "E01",
@@ -1346,7 +1462,18 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/es",
+    "wiring:estop/es",
+    "wiring:estop/nc1",
+    "wiring:estop/nc2",
+    "wiring:estop/nc3",
+    "schem:es1",
+    "schem:es2",
+    "schem:es3",
+    "pinmap:connector/ESTOP",
+    "cutsheet:estop"
+   ],
    "pinmap_refs": [
     "ESTOP",
     "E01",
@@ -1424,7 +1551,10 @@
    ],
    "verified": "yes",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:precharge/hvs",
+    "schem:hvs"
+   ],
    "pinmap_refs": [
     "S08"
    ],
@@ -1452,7 +1582,10 @@
    "verified": "yes",
    "open_questions": [],
    "diagram_ids": [
-    "elcon_charger"
+    "wiring:overview/elc",
+    "wiring:bms/elc",
+    "schem:elc",
+    "cutsheet:elcon"
    ],
    "pinmap_refs": [
     "CAN-V",
@@ -1495,7 +1628,10 @@
    ],
    "resolution": "RESOLVED: TDC-JH-144-12 per label read 2026-10-15 20:44 (shop log:236 'NOT the TDC-IY in prior notes'; also shop log:64,294; cash_parts_full DCDC); TDC-IY = stale (was CONFLICT: ['TDC-JH-144-12', 'TDC-IY'])",
    "diagram_ids": [
-    "elcon_tdc"
+    "wiring:overview/dcdc",
+    "wiring:power12/dcdc",
+    "schem:dcdc",
+    "cutsheet:dcdc"
    ],
    "pinmap_refs": [
     "P01",
@@ -1555,7 +1691,11 @@
    ],
    "tier": "LATER",
    "resolution": "NACS AC inlet only, no J1772 (Adam 9/25 via Sparky; shop log:77,201); older 'NACS or J1772' (shop log:296) stale. Specific inlet model not chosen.",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/nacs",
+    "wiring:plug/prox",
+    "schem:inlet"
+   ],
    "pinmap_refs": [
     "S45",
     "H14"
@@ -1641,7 +1781,10 @@
     "Repo (BACKLOG/TIERS/wiring_data plug page/PINMAP) still says LM393: stale"
    ],
    "resolution": "DECIDED 2026-10-23 (crew): LM339 replaces LM393",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:plug/lm1",
+    "wiring:plug/lm2"
+   ],
    "pinmap_refs": [
     "S41",
     "S44",
@@ -1692,7 +1835,29 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:estop/f",
+    "wiring:aux/f12",
+    "wiring:power12/fk",
+    "wiring:power12/fd",
+    "wiring:power12/fe",
+    "wiring:power12/ft",
+    "wiring:power12/f3",
+    "wiring:power12/f1",
+    "schem:fkel",
+    "schem:fdrv",
+    "schem:fesp",
+    "schem:ftab",
+    "schem:faux",
+    "schem:fbx",
+    "pinmap:fuse/F-COIL",
+    "pinmap:fuse/F-KEL",
+    "pinmap:fuse/F-EBOX",
+    "pinmap:fuse/F-BUCK",
+    "pinmap:fuse/F-BICM",
+    "pinmap:fuse/F-TAB",
+    "pinmap:fuse/F-AUX"
+   ],
    "pinmap_refs": [],
    "superseded_by": null,
    "owned": "no",
@@ -1714,7 +1879,9 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "pinmap:connector/EBOX-DT"
+   ],
    "pinmap_refs": [],
    "superseded_by": null,
    "owned": "no",
@@ -1786,7 +1953,12 @@
    "open_questions": [
     "Adam pick; must fit floor/travel with return spring + hard stop"
    ],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/ped",
+    "wiring:clamp/ped",
+    "schem:ped",
+    "cutsheet:pedal"
+   ],
    "pinmap_refs": [
     "S14",
     "S15",
@@ -1817,7 +1989,12 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/clamp",
+    "wiring:clamp/u3",
+    "schem:clamp",
+    "cutsheet:mcp4131"
+   ],
    "pinmap_refs": [
     "S10",
     "B02"
@@ -1843,7 +2020,14 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/clamp",
+    "wiring:clamp/u2a",
+    "wiring:clamp/u2b",
+    "wiring:enables/sw",
+    "schem:clamp",
+    "cutsheet:hc4066"
+   ],
    "pinmap_refs": [
     "B02",
     "K01"
@@ -1872,7 +2056,14 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/clamp",
+    "wiring:clamp/u1",
+    "wiring:enables/q1",
+    "wiring:enables/q2",
+    "schem:clamp",
+    "cutsheet:hct123"
+   ],
    "pinmap_refs": [
     "S11",
     "S12"
@@ -1898,7 +2089,12 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/clamp",
+    "wiring:clamp/u4",
+    "schem:clamp",
+    "cutsheet:ahct125"
+   ],
    "pinmap_refs": [
     "S10",
     "S11"
@@ -1923,7 +2119,11 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:power12/buzz",
+    "schem:lbuz",
+    "cutsheet:mcp23017"
+   ],
    "pinmap_refs": [],
    "superseded_by": null,
    "owned": "no",
@@ -1973,7 +2173,12 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/pk",
+    "wiring:park/sw",
+    "wiring:park/sw3",
+    "schem:pk"
+   ],
    "pinmap_refs": [
     "S16",
     "S17",
@@ -2155,7 +2360,9 @@
     ]
    },
    "diagram_ids": [
-    "surface3"
+    "wiring:overview/head",
+    "wiring:gateway/ipad",
+    "schem:tab"
    ],
    "pinmap_refs": [
     "P06",
@@ -2251,9 +2458,7 @@
    ],
    "verified": "yes",
    "open_questions": [],
-   "diagram_ids": [
-    "fuse_a6t150"
-   ],
+   "diagram_ids": [],
    "pinmap_refs": [],
    "superseded_by": "fuse_a6t200",
    "owned": "no",
@@ -2479,9 +2684,7 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [
-    "ivt_s_1000"
-   ],
+   "diagram_ids": [],
    "pinmap_refs": [],
    "superseded_by": null,
    "owned": "no",
@@ -2503,7 +2706,9 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:clamp/clr"
+   ],
    "pinmap_refs": [],
    "superseded_by": null,
    "owned": "no",
@@ -2548,7 +2753,12 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:overview/low",
+    "wiring:kelly/nc",
+    "wiring:kelly/coil",
+    "schem:low"
+   ],
    "pinmap_refs": [
     "S20",
     "K03"
@@ -2717,7 +2927,10 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:power12/z",
+    "schem:z"
+   ],
    "pinmap_refs": [
     "P09",
     "TB-5V"
@@ -2945,7 +3158,10 @@
    ],
    "verified": "no",
    "open_questions": [],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:power12/mfan",
+    "schem:lfan"
+   ],
    "pinmap_refs": [],
    "superseded_by": null,
    "owned": "no",
@@ -3040,7 +3256,10 @@
    "open_questions": [
     "Button head/operator model and how many buttons (horn, lights)"
    ],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:aux/btn",
+    "schem:auxb"
+   ],
    "pinmap_refs": [
     "A02"
    ],
@@ -3069,7 +3288,10 @@
    "open_questions": [
     "Relay model/rating once loads are chosen"
    ],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:aux/rly",
+    "schem:rly"
+   ],
    "pinmap_refs": [
     "A01",
     "A02",
@@ -3102,7 +3324,11 @@
    "open_questions": [
     "Fuse P/N and holder"
    ],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:power12/fm",
+    "schem:fmain",
+    "pinmap:fuse/F-MAIN"
+   ],
    "pinmap_refs": [
     "F-MAIN",
     "P01"
@@ -3170,7 +3396,10 @@
      "refdes": "I/O terminals"
     }
    ],
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:precharge/drv",
+    "schem:drv"
+   ],
    "pinmap_refs": [
     "S01",
     "S02",
@@ -3209,7 +3438,9 @@
     "How many IRLB8721 does Adam actually have? (coil_fet CONFLICT: cash lists IRLB3813PBF to-buy, 8721 discontinued)"
    ],
    "parent": "coil_driver",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "cutsheet:irlb"
+   ],
    "pinmap_refs": [
     "S01",
     "S02",
@@ -3299,7 +3530,10 @@
    "verified": "no",
    "open_questions": [],
    "parent": "coil_driver",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "wiring:precharge/cpre",
+    "schem:drv"
+   ],
    "pinmap_refs": [
     "S02",
     "E03"

@@ -166,30 +166,30 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 
 ## Connectors
 
-| ID | What | Pins | Status | Source |
-|---|---|---|---|---|
-| X2-S1..S4 | Volt BICM harness K16 X2 (one per string) | 9 = 5 V (705 GY/RD) · 10 = GND (470 BK/VT) · 11 = CAN_L (6434 L-BU/YE) · 12 = CAN_H (6435 WH/YE) | SOURCED | tools/wiring_data.js bms page; tools/schematic/gen.py 'bo' (CAN H/L UNVERIFIED: swap if no cells) |
-| KELLY-J | Kelly KLS-8080N signal connector | 3 throttle · 7 KSI/PWR · 11 12 V out · 15 Foot_SW · 22 ECO · 2 Brake_AN | UNVERIFIED | KLS-8080N V2.11 / HC V2.14 manuals via docs/ESTOP.md:18, wiring_data.js CONFLICTS; Adam's harness unread |
-| ESTOP | XB5AS8442 (or XB4BS8442) head + 2x ZBE102 = 3 NC blocks | each block: terminals 11 (in) / 12 (out), NC | SOURCED | docs/ESTOP.md; se.com XB5AS8442 page (1 NC in head) |
-| EBOX-DT | Electronics box Deutsch DT harness connector | UNDEFINED — pin-out not assigned yet | UNDEFINED | tools/schematic/gen.py 'dt' |
-| TB-5V | 5 V terminal block | Teensy A VIN, Teensy B VIN, transceivers? (SN65 run on 3.3 V from each Teensy), LEM 5 V, pedal 5 V, clamp chips | PROPOSED | tools/wiring_data.js power12/clamp |
-| TB-GND | GND terminal block (single point) | all LV grounds | SOURCED | tools/schematic/gen.py 'gnd' |
+| ID | Part (docs/PARTS.yaml) | What | Pins | Status | Source |
+|---|---|---|---|---|---|
+| X2-S1..S4 | BICM count (summary) — 2× M2 24S + 2× M3 24S + 4× M4 18S (22880272) [`bicm_total`] | Volt BICM harness K16 X2 (one per string) | 9 = 5 V (705 GY/RD) · 10 = GND (470 BK/VT) · 11 = CAN_L (6434 L-BU/YE) · 12 = CAN_H (6435 WH/YE) | SOURCED | tools/wiring_data.js bms page; tools/schematic/gen.py 'bo' (CAN H/L UNVERIFIED: swap if no cells) |
+| KELLY-J | Motor controller — KLS8080 NPS, 168 V, 550 A (+ high-speed option, anti-slip, all add-ons) [`controller`] | Kelly KLS-8080N signal connector | 3 throttle · 7 KSI/PWR · 11 12 V out · 15 Foot_SW · 22 ECO · 2 Brake_AN | UNVERIFIED | KLS-8080N V2.11 / HC V2.14 manuals via docs/ESTOP.md:18, wiring_data.js CONFLICTS; Adam's harness unread |
+| ESTOP | E-stop mushroom head (1 NC incl.) — XB4BS8442 (PROPOSED; alternate XB5AS8442) [`estop_head`]; E-stop extra NC blocks — ZBE102 [`estop_blocks`] | XB5AS8442 (or XB4BS8442) head + 2x ZBE102 = 3 NC blocks | each block: terminals 11 (in) / 12 (out), NC | SOURCED | docs/ESTOP.md; se.com XB5AS8442 page (1 NC in head) |
+| EBOX-DT | Deutsch DT kit + crimper — Amazon B0DZ331GDL (217 pc) [`deutsch`] | Electronics box Deutsch DT harness connector | UNDEFINED — pin-out not assigned yet | UNDEFINED | tools/schematic/gen.py 'dt' |
+| TB-5V | — (no catalogued part) | 5 V terminal block | Teensy A VIN, Teensy B VIN, transceivers? (SN65 run on 3.3 V from each Teensy), LEM 5 V, pedal 5 V, clamp chips | PROPOSED | tools/wiring_data.js power12/clamp |
+| TB-GND | — (no catalogued part) | GND terminal block (single point) | all LV grounds | SOURCED | tools/schematic/gen.py 'gnd' |
 
 ## Fuses
 
-| ID | Where | Rating | Status | Source |
-|---|---|---|---|---|
-| F-MAIN | DC-DC 12 V out | TBD — Sparky sizes it (TDC-JH-144-12 = 110 A out, SOURCED crew 2026-10-23) | PROPOSED | Sparky 2026-10-22 |
-| F-COIL | 12 V coil feed -> e-stop blocks 1+2 | 10 A | PROPOSED | Sparky 2026-10-22 |
-| F-KEL | Kelly PWR logic | 2 A | PROPOSED | Sparky 2026-10-22 |
-| F-EBOX | electronics box 12 V | 5 A (F-BUCK 3 A after it) | PROPOSED | Sparky 2026-10-22 |
-| F-BUCK | 12 V -> 5 V buck | 3 A mini blade | SOURCED | gen.py fbx |
-| F-BICM | 5 V -> BICM 705 feed | 1 A (resize after measuring BICM draw) | UNVERIFIED | gen.py f705 |
-| F-TAB | tablet USB-C PD feed | UNDEFINED | UNVERIFIED | gen.py ftab |
-| F-AUX | each aux load (horn, lights) via relay 30 | size to load, PROPOSED 10-15 A | PROPOSED | Adam 10/22 NO aux buttons through relay/fuse |
-| F-S1..S4 | string fuses on bus bar (service disconnect) | Mersen A6T200 200 A Class T | SOURCED | docs/WIRING.md:66-69 |
-| F-DCDC | HV in to DC-DC | 15-20 A >=250 V DC (confirm label) | UNVERIFIED | gen.py fdi |
-| F-ELC | Elcon HK-LF-144-46 out (46 A max) -> pack | Mersen A6T60, 60 A Class T, on 6 AWG; fuse holder TBD | SOURCED | crew 2026-10-23 |
+| ID | Part (docs/PARTS.yaml) | Where | Rating | Status | Source |
+|---|---|---|---|---|---|
+| F-MAIN | Main 12 V fuse F-MAIN (DC-DC out, P01) — 150 A MIDI/MEGA bolt-down fuse (exact P/N + holder not chosen) [`fuse_main`] | DC-DC 12 V out | TBD — Sparky sizes it (TDC-JH-144-12 = 110 A out, SOURCED crew 2026-10-23) | PROPOSED | Sparky 2026-10-22 |
+| F-COIL | Mini-blade fuses + holders — Amazon B0B24YYYCF / B0C15H3F9M [`lv_fuses`] | 12 V coil feed -> e-stop blocks 1+2 | 10 A | PROPOSED | Sparky 2026-10-22 |
+| F-KEL | Mini-blade fuses + holders — Amazon B0B24YYYCF / B0C15H3F9M [`lv_fuses`] | Kelly PWR logic | 2 A | PROPOSED | Sparky 2026-10-22 |
+| F-EBOX | Mini-blade fuses + holders — Amazon B0B24YYYCF / B0C15H3F9M [`lv_fuses`] | electronics box 12 V | 5 A (F-BUCK 3 A after it) | PROPOSED | Sparky 2026-10-22 |
+| F-BUCK | Mini-blade fuses + holders — Amazon B0B24YYYCF / B0C15H3F9M [`lv_fuses`] | 12 V -> 5 V buck | 3 A mini blade | SOURCED | gen.py fbx |
+| F-BICM | Mini-blade fuses + holders — Amazon B0B24YYYCF / B0C15H3F9M [`lv_fuses`] | 5 V -> BICM 705 feed | 1 A (resize after measuring BICM draw) | UNVERIFIED | gen.py f705 |
+| F-TAB | Mini-blade fuses + holders — Amazon B0B24YYYCF / B0C15H3F9M [`lv_fuses`] | tablet USB-C PD feed | UNDEFINED | UNVERIFIED | gen.py ftab |
+| F-AUX | Mini-blade fuses + holders — Amazon B0B24YYYCF / B0C15H3F9M [`lv_fuses`] | each aux load (horn, lights) via relay 30 | size to load, PROPOSED 10-15 A | PROPOSED | Adam 10/22 NO aux buttons through relay/fuse |
+| F-S1..S4 | String fuses (Class T 200 A) — A6T200 [`fuse_a6t200`] | string fuses on bus bar (service disconnect) | Mersen A6T200 200 A Class T | SOURCED | docs/WIRING.md:66-69 |
+| F-DCDC | DC-DC branch fuse — KLKD-020 [`dcdc_fuse`] | HV in to DC-DC | 15-20 A >=250 V DC (confirm label) | UNVERIFIED | gen.py fdi |
+| F-ELC | Charger branch fuse — A6T60 [`charger_fuse`] | Elcon HK-LF-144-46 out (46 A max) -> pack | Mersen A6T60, 60 A Class T, on 6 AWG; fuse holder TBD | SOURCED | crew 2026-10-23 |
 
 ## Wire colour code — PROPOSED
 

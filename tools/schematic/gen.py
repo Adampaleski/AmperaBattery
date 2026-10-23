@@ -19,7 +19,7 @@ N = {
 "fdi": ("HV fuse DC-DC in 15–20 A\n≥250 V DC (confirm)", 20, 215, 190, 45, 1),
 "bus": ("Common B+ bus", 250, 220, 200, 35, 0),
 "evp": ("EV200 B+", 250, 300, 200, 40, 0),
-"pre": ("Precharge relay AEV14012\n(vs TE EV11 — CONFLICT)", 490, 290, 190, 40, 1),
+"pre": ("Precharge relay AEV14012\n(salvaged Volt · confirm label P/N)", 490, 290, 190, 40, 1),
 "pres": ("50 Ω 100 W resistor", 490, 350, 190, 35, 0),
 "kel": ("Kelly KLS8080 NPS\n168 V 550 A sin/cos", 250, 420, 200, 50, 0), "mot": ("Zero 75-7R (used)\nsin/cos · spin DONE", 490, 425, 190, 40, 0),
 "evn": ("EV200 B−", 250, 540, 200, 40, 0),
@@ -45,7 +45,7 @@ N = {
 "x6": ("SN65 #6 (stub)", 1330, 590, 110, 35, 1),
 "bo": ("BICM X2 harness ×4: 9=5V 10=GND 11=CAN_L 12=CAN_H\n(CAN H/L unconfirmed)", 760, 640, 420, 45, 1),
 "pu": ("5139 pull-up", 1210, 700, 130, 32, 0),
-"drv": ("Coil FETs + 10k gate pull-downs", 1470, 600, 190, 40, 0),
+"drv": ("Coil-driver board: 3× IRLB8721\n10k pull-downs · D-PRE at AEV coil", 1470, 600, 190, 40, 0),
 "clamp": ("Throttle clamp (MCP4131 + 4066 + 74HC123)", 1380, 680, 280, 40, 0),
 "ped": ("Pedal (Hall)", 1560, 750, 100, 35, 1),
 "pk": ("Park switch 3-pole", 1380, 750, 160, 35, 0),
@@ -60,6 +60,21 @@ N = {
 "lbuz": ("LATER — reserved: BUZZER\nMCP23017 bit 13 → 12 V buzzer", 760, 250, 250, 40, 2),
 "leg": ("Red = unconfirmed / UNDEFINED. Grey dashed = LATER, reserved (no logic). Labels = wire numbers from docs/PINMAP.yaml", 760, 960, 620, 30, 1),
 }
+# Explicit part ids (docs/PARTS.yaml) per block: str or list. Blocks not listed carry no catalogued part
+# (headers, legend, rails, terminal blocks, pull-ups). scripts/check_parts.py checks both directions.
+PART = {
+ "s1": ["bicm_total", "pack"], "s2": ["bicm_total", "pack"], "s3": ["bicm_total", "pack"], "s4": ["bicm_total", "pack"],
+ "f": "fuse_a6t200", "fdi": "dcdc_fuse", "bus": "busbar", "evp": "contactor_main", "evn": "contactor_main",
+ "pre": "precharge_relay", "pres": "precharge_res", "kel": "controller", "mot": "motor", "lem": "lem", "dcdc": "dcdc",
+ "elc": "charger", "fel": "charger_fuse", "inlet": "ac_inlet", "fmain": "fuse_main",
+ "fkel": "lv_fuses", "fdrv": "lv_fuses", "fesp": "lv_fuses", "ftab": "lv_fuses", "faux": "lv_fuses", "fbx": "lv_fuses",
+ "conv": "buck_drok", "z": "zener_5v", "ta": "teensy", "tb": "teensy", "esp": "esp32", "tab": "tablet",
+ "x1": "sn65", "x2": "sn65", "x3": "sn65", "x4": "sn65", "x5": "sn65", "x6": "sn65", "bo": "bicm_total",
+ "drv": ["coil_driver", "cd_flyback"], "clamp": ["digipot", "analog_switch", "oneshot", "buffer"], "ped": "pedal",
+ "pk": "park_switch", "low": "eco_relay", "es1": "estop_blocks", "es2": "estop_blocks", "es3": "estop_blocks",
+ "rly": "aux_relay", "auxb": "aux_button", "hvs": "hv_sense", "lfan": "motor_fan", "lbuz": "io_expander",
+}
+assert not set(PART) - set(N), set(PART) - set(N)
 E = [("s1","f"),("s2","f"),("s3","f"),("s4","f"),("f","bus"),("bus","evp"),("evp","kel"),("pre","evp"),("pres","pre"),
 ("kel","mot"),("kel","evn"),("evn","lem"),("lem","s1"),("bus","fdi"),("fdi","dcdc"),("inlet","elc"),("elc","fel"),("fel","bus"),
 ("dcdc","fmain"),("fmain","b12"),("b12","fkel"),("fkel","kel"),("b12","fdrv"),("fdrv","es1"),("fdrv","es2"),
@@ -128,7 +143,11 @@ plt.savefig(HERE/"teryx-system.png", dpi=130, bbox_inches="tight"); plt.savefig(
 cells = []
 for k, (l, x, y, w, h, r) in N.items():
     st = ("text;fontStyle=1;fontSize=14;" if k.endswith("hdr") else "rounded=1;whiteSpace=wrap;html=1;")+("dashed=1;strokeColor=#888888;fontColor=#666666;" if r == 2 else "strokeColor=#CC0000;fontColor=#CC0000;strokeWidth=2;" if r else "")
-    cells.append(f'<mxCell id="{k}" value="{html.escape(l).replace(chr(10),"&lt;br&gt;")}" style="{st}" vertex="1" parent="1"><mxGeometry x="{x}" y="{y}" width="{w}" height="{h}" as="geometry"/></mxCell>')
+    pa = PART.get(k); pa = " ".join(pa) if isinstance(pa, list) else pa
+    if pa:  # UserObject carries the part id(s) as a custom property (draw.io: Edit Data)
+        cells.append(f'<UserObject label="{html.escape(l).replace(chr(10),"&lt;br&gt;")}" part="{pa}" id="{k}"><mxCell style="{st}" vertex="1" parent="1"><mxGeometry x="{x}" y="{y}" width="{w}" height="{h}" as="geometry"/></mxCell></UserObject>')
+    else:
+        cells.append(f'<mxCell id="{k}" value="{html.escape(l).replace(chr(10),"&lt;br&gt;")}" style="{st}" vertex="1" parent="1"><mxGeometry x="{x}" y="{y}" width="{w}" height="{h}" as="geometry"/></mxCell>')
 for i, (a, b) in enumerate(E):
     st = "edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;jumpStyle=arc;jumpSize=10;"+("strokeColor=#CC0000;fontColor=#CC0000;dashed=1;" if red(a, b) else "")
     cells.append(f'<mxCell id="e{i}" value="{html.escape(WIRE[a+"|"+b]["id"])}" style="{st}" edge="1" parent="1" source="{a}" target="{b}"><mxGeometry relative="1" as="geometry"/></mxCell>')

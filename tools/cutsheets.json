@@ -1,15 +1,15 @@
 {
- "_note": "Cut sheets for the wiring aid Parts panel. url = manufacturer document (official); mirror = distributor copy used when the maker's server blocks automated fetches. Specs here are copied only from the linked document (SOURCED) or the shop log/ledger; anything else says UNVERIFIED. Copies are NOT stored in the repo or gist: these PDFs are copyrighted by their makers with no redistribution licence stated, so we link only (sha256 recorded for the version checked). Verified 2026-10-22 (curl 200 + part number found in the first pages).",
+ "_note": "Cut sheets for the wiring aid Parts panel. url = manufacturer document (official); mirror = distributor copy used when the maker's server blocks automated fetches. Specs here are copied only from the linked document (SOURCED) or the shop log/ledger; anything else says UNVERIFIED. Copies are NOT stored in the repo or gist: these PDFs are copyrighted by their makers with no redistribution licence stated, so we link only (sha256 recorded for the version checked). Verified 2026-10-22 (curl 200 + part number found in the first pages). Keyed by part id (docs/PARTS.yaml); also_parts = other part ids this sheet covers; cutsheet = old sheet id; kw = text pattern used only by scripts/check_cutsheets.py (diagram clicks use explicit node part ids, not text matching).",
  "parts": [
   {
-   "id": "kelly",
+   "id": "controller",
+   "cutsheet": "kelly",
    "name": "Kelly KLS-8080N/NPS motor controller (owned: KLS8080 NPS, 72–168 V)",
    "mfr": "Kelly Controls",
    "doc": "KLS-8080N/NPS/NA User Manual Rev 2.1.1 (Dec 2024)",
    "url": "https://media.kellycontroller.com/new/Kelly-KLS-8080NUserManuaV2.11.pdf",
    "page": "https://kellycontroller.com/shop/kls-8080n-nps/",
    "sha": "22f67830ccbc3eef",
-   "match": "(Kelly|KLS)",
    "specs": [
     "PWR (pin 7) 8–20 V supply, must be isolated from pack B+/B− (manual 1.1)",
     "Throttle 0–5 V 3-wire pot or 1–4 V hall (2.3)",
@@ -21,7 +21,8 @@
    "kw": "KLS"
   },
   {
-   "id": "ev200",
+   "id": "contactor_main",
+   "cutsheet": "ev200",
    "name": "TE KILOVAC EV200HAANA main contactor ×2 (owned)",
    "mfr": "TE Connectivity",
    "doc": "KILOVAC EV200 Series datasheet",
@@ -29,48 +30,54 @@
    "mirror": "https://eveurope.eu/wp-content/uploads/2024/03/EV200HAANA_TE.pdf",
    "sha": "47458e2f15008e96",
    "note": "te.com returns 403 to automated fetches (opens in a browser); mirror checked 200 = same TE datasheet",
-   "match": "EV200",
    "specs": [
     "500 A carry @85 °C, 12–900 V DC, 2000 A break @320 V",
     "Coil 9–36 V (A), built-in economizer: inrush 3.8 A max / 130 ms, hold 0.13 A @12 V",
     "Power terminals M8 × 1.25: torque 80–100 in-lb (8.8–11 N·m)",
     "Mounting M5: torque 15–30 in-lb (1.7–3.3 N·m)",
     "H = NO aux contact (2 A @30 V DC)"
-   ]
+   ],
+   "kw": "EV200"
   },
   {
-   "id": "aev",
+   "id": "precharge_relay",
+   "also_parts": [
+    "aev_spare"
+   ],
+   "cutsheet": "aev",
    "name": "Panasonic AEV14012 precharge / branch relay (Volt pack)",
    "mfr": "Panasonic Industry",
    "doc": "EV Relays (DC Contactors) catalog 2026.4",
    "url": "https://industry.panasonic.com/ac/cdn/e/control/relay/vehicle/catalog/mech_eng_ev.pdf",
    "page": "https://industry.panasonic.com/global/en/products/control/relay/vehicle/number/aev14012",
    "sha": "ff46d63a9bf59a17",
-   "match": "AEV14012",
    "specs": [
     "120 A carry, 450 V DC rated (38 mm² wire); 225 A 3 min, 400 A 30 s",
     "Coil 12 V, 34 Ω, 0.353 A, 4.2 W, operate ≤9 V",
     "Coil connector Yazaki 7283-1020 (pin 1 white, pin 2 green on the W lead option)",
     "Main terminal M6 nut 6–8 N·m (120 A type); mounting M5 3–4 N·m",
     "Not recommended for new designs (maker page)"
-   ]
+   ],
+   "kw": "AEV14012"
   },
   {
-   "id": "a6t",
+   "id": "fuse_a6t200",
+   "cutsheet": "a6t",
    "name": "Mersen A6T200 Class T fuse ×4 (bought 10/20)",
    "mfr": "Mersen",
    "doc": "A3T/A6T Class T fast-acting datasheet",
    "url": "https://www.mersen.com/sites/default/files/medias/PIM/files/DS-A3T-A6T-Class-T-Fast-Acting-Mersen.pdf",
    "page": "https://us.mersen.com/en/products/a6t-class-t-fast-acting/a6t200",
    "sha": "abd1c065df9695b0",
-   "match": "A6T200|Mersen",
    "specs": [
     "200 A, 600 V AC / 300 V DC, Class T fast-acting (datasheet)",
     "Bolt torque: UNVERIFIED (not in this datasheet; use the fuse holder's value)"
-   ]
+   ],
+   "kw": "A6T200|Mersen"
   },
   {
-   "id": "dhab",
+   "id": "lem",
+   "cutsheet": "dhab",
    "name": "LEM DHAB S/44 current sensor ×2 (Volt pack)",
    "mfr": "LEM",
    "doc": "DHAB S/44 datasheet",
@@ -78,7 +85,6 @@
    "mirror": "https://www.thunderstruck-ev.com/images/companies/1/Display-Sensor/DHAB-S-44.pdf",
    "sha": "7ca61184daa3a559",
    "note": "LEM's DHAB page lists current S/1xx models; the S/44 PDF is from a distributor (Thunderstruck) — same LEM document",
-   "match": "DHAB|LEM",
    "specs": [
     "+5 V supply (8.5 V abs max), ratiometric output",
     "Channel 1 ±20 A, channel 2 −420 A to +230 A",
@@ -89,11 +95,11 @@
   },
   {
    "id": "teensy",
+   "cutsheet": "teensy",
    "name": "PJRC Teensy 4.1 ×2",
    "mfr": "PJRC",
    "doc": "Teensy 4.1 product + pinout page",
    "url": "https://www.pjrc.com/store/teensy41.html",
-   "match": "Teensy",
    "specs": [
     "Pins accept 0–3.3 V only, not 5 V tolerant (PJRC)",
     "VIN and VUSB are connected: don't power VIN with USB plugged in unless the VIN/VUSB pad is cut (PJRC)"
@@ -102,85 +108,94 @@
   },
   {
    "id": "sn65",
+   "cutsheet": "sn65",
    "name": "TI SN65HVD230 CAN transceiver (3.3 V) ×6",
    "mfr": "Texas Instruments",
    "doc": "SN65HVD23x datasheet",
    "url": "https://www.ti.com/lit/ds/symlink/sn65hvd230.pdf",
    "sha": "e98fc0c59168c035",
-   "match": "SN65",
    "specs": [
     "3.3 V supply CAN transceiver",
     "120 Ω termination only at the two bus ends (repo CAN_LAYOUT_V2)"
-   ]
+   ],
+   "kw": "SN65"
   },
   {
-   "id": "mcp23017",
+   "id": "io_expander",
+   "cutsheet": "mcp23017",
    "name": "Microchip MCP23017 I/O expander (BODY_IO_EXPANDER)",
    "mfr": "Microchip",
    "doc": "MCP23017/MCP23S17 datasheet DS20001952C",
    "url": "https://ww1.microchip.com/downloads/en/devicedoc/20001952c.pdf",
    "sha": "14159c6f5655e943",
-   "match": "MCP23017|expander",
    "specs": [
     "16-bit I²C I/O expander"
-   ]
+   ],
+   "kw": "MCP23017|expander"
   },
   {
-   "id": "mcp4131",
+   "id": "digipot",
+   "cutsheet": "mcp4131",
    "name": "Microchip MCP4131-103E/P digipot (throttle clamp U3)",
    "mfr": "Microchip",
    "doc": "MCP413X/415X/423X/425X datasheet",
    "url": "https://ww1.microchip.com/downloads/en/DeviceDoc/22060b.pdf",
    "sha": "6c60b083b2ef0a92",
-   "match": "MCP4131",
    "specs": [
     "7-bit SPI digital pot, 10 kΩ (-103)"
-   ]
+   ],
+   "kw": "MCP4131"
   },
   {
-   "id": "hc4066",
+   "id": "analog_switch",
+   "cutsheet": "hc4066",
    "name": "TI CD74HC4066E analog switch (clamp U2a/U2b)",
    "mfr": "Texas Instruments",
    "doc": "CD74HC4066 datasheet SCHS208E",
    "url": "https://www.ti.com/lit/ds/symlink/cd74hc4066.pdf",
    "sha": "337c5381f31a9b36",
-   "match": "4066",
    "specs": [
     "Quad bilateral switch; 4066 VCC = 5 V (repo THROTTLE_CLAMP)"
-   ]
+   ],
+   "kw": "4066"
   },
   {
-   "id": "hct123",
+   "id": "oneshot",
+   "cutsheet": "hct123",
    "name": "TI CD74HCT123E dual one-shot (clamp U1)",
    "mfr": "Texas Instruments",
    "doc": "CD74HC123/HCT123 datasheet",
    "url": "https://www.ti.com/lit/ds/symlink/cd74hct123.pdf",
    "sha": "062aa4848f2f6eae",
-   "match": "HCT123|123E",
    "specs": [
     "Retriggerable monostable; tw from Rx/Cx (repo: 100k/100 nF ≈4.5 ms, scope it)"
-   ]
+   ],
+   "kw": "HCT123|123E"
   },
   {
-   "id": "ahct125",
+   "id": "buffer",
+   "cutsheet": "ahct125",
    "name": "TI SN74AHCT125N buffer (clamp U4)",
    "mfr": "Texas Instruments",
    "doc": "SNx4AHCT125 datasheet SCLS264R",
    "url": "https://www.ti.com/lit/ds/symlink/sn74ahct125.pdf",
    "sha": "66da72e586dbca7a",
-   "match": "AHCT125",
    "specs": [
     "Quad buffer, TTL inputs (3.3 V → 5 V)"
-   ]
+   ],
+   "kw": "AHCT125"
   },
   {
-   "id": "irlb",
+   "id": "cd_fet",
+   "also_parts": [
+    "coil_fet"
+   ],
+   "cutsheet": "irlb",
    "name": "Infineon IRLB3813 logic FET (coil drivers; IRLB8721 discontinued)",
    "mfr": "Infineon",
    "doc": "IRLB3813PbF datasheet",
    "url": "https://www.infineon.com/assets/row/public/documents/24/49/infineon-irlb3813-datasheet-en.pdf?fileId=5546d462533600a4015356603cfe258b",
    "sha": "8406328ff856ce1a",
-   "match": "FET",
    "specs": [
     "30 V, RDS(on) 1.95 mΩ @10 V / 2.6 mΩ @4.5 V, VGS(th) 1.35–2.35 V, Ciss 8420 pF (datasheet)",
     "Gate drive at 3.3 V not specified in the datasheet: UNVERIFIED (bench the coil current at the Teensy gate level)"
@@ -189,7 +204,8 @@
    "kw": "IRLB3813"
   },
   {
-   "id": "elcon",
+   "id": "charger",
+   "cutsheet": "elcon",
    "name": "Elcon HK-LF-144-46 charger (owned, CAN3865)",
    "mfr": "Elcon / TC Charger",
    "doc": "HK-LF 6.6 kW on-board charger user manual V1.3",
@@ -197,7 +213,6 @@
    "mirror": "https://evshop.fr/en/index.php?controller=attachment&id_attachment=221",
    "sha": "0a20a3355f5df0f6",
    "note": "Elcon's page has no direct HK-LF PDF link; the manual PDF is distributor-hosted (EV Parts Group/evshop)",
-   "match": "Elcon HK|HK-LF|Elcon E5|Elcon$",
    "specs": [
     "Output 100–200 V DC, 46 A, 6.6 kW @220 V AC (label: 100–202 V, shop log 10/15 20:44)",
     "Input 90–264 V AC 45–65 Hz 32 A (label)",
@@ -208,13 +223,13 @@
   },
   {
    "id": "dcdc",
+   "cutsheet": "dcdc",
    "name": "Elcon TDC-JH-144-12 DC-DC (owned, CAN5100)",
    "mfr": "TC Charger (Hangzhou Tiecheng)",
    "doc": "1.5 kW DC/DC Converter User Manual Ve.161220",
    "url": "https://evshop.eu/en/index.php?controller=attachment&id_attachment=10",
    "sha": "2ed1c1c424dedf2d",
    "note": "Maker's manual, distributor-hosted; no tccharger.com direct link found. Isolation (input↔12 V−) UNVERIFIED: do the isolation test before bonding 12 V− to chassis (shop log 10/15 20:46)",
-   "match": "DC-DC|TDC",
    "specs": [
     "Input 88–195 V DC (label, shop log 10/15 20:44)",
     "1.5 kW, 13.8 V nominal output (manual)"
@@ -222,14 +237,17 @@
    "kw": "DC/DC"
   },
   {
-   "id": "estop",
+   "id": "estop_head",
+   "also_parts": [
+    "estop_blocks"
+   ],
+   "cutsheet": "estop",
    "name": "E-stop: Harmony XB4/XB5 40 mm twist-release (XB4BS8442 head includes 1 NC) + 2× extra Schneider ZBE102 (crew spec, not bought)",
    "mfr": "Schneider Electric",
    "doc": "ZBE102 contact block datasheet",
    "url": "https://static.datasheets.com/doc/13749203-schneider-zbe102-ds.pdf",
    "sha": "e52a10d9b77be132",
    "kw": "ZBE102",
-   "match": "E-stop|ZBE102|NC block|block [123]",
    "specs": [
     "Ie DC-13: 0.55 A @125 V, 0.27 A @250 V (Q600); Ith 10 A; 1 M cycles DC-13 0.5 A @24 V (datasheet)",
     "Block 1: both EV200 coils · Block 2: AEV14012 + Kelly KSI · Block 3: Teensy B latch input",
@@ -239,24 +257,31 @@
   },
   {
    "id": "pedal",
+   "cutsheet": "pedal",
    "name": "Dual-output Hall throttle pedal",
    "mfr": "—",
    "missing": "No part chosen yet (shop log 2026-10-21 20:03/20:04: part TBD; track 2 half-scale, 5 V). No datasheet.",
-   "match": "pedal",
    "specs": [
     "Spec (Sparky): dual-track, track 2 half-scale (e.g. 0.5–4.5 / 0.25–2.25 V), 5 V supply, dividers to Teensy 3.3 V"
-   ]
+   ],
+   "kw": "pedal"
   },
   {
-   "id": "bicm",
+   "id": "bicm_total",
+   "also_parts": [
+    "pack",
+    "bicm_m2m3",
+    "bicm_m4"
+   ],
+   "cutsheet": "bicm",
    "name": "Volt BICMs (M2/M3 24S, M4 18S) + Volt pack",
    "mfr": "GM / LG Chem",
    "missing": "No public manufacturer datasheet (GM service info only). Pinout from the factory harness in repo docs (X2: 9 5 V, 10 GND, 11 CAN_L, 12 CAN_H).",
-   "match": "BICM|String [1-4]|M[234] ",
    "specs": [
     "X2 pin 9 5 V (705 GY/RD) — never to Teensy I/O; 1 A fuse",
     "CAN 125k; H/L unconfirmed: swap if no cells"
-   ]
+   ],
+   "kw": "BICM|String [1-4]|M[234] "
   }
  ]
 }
