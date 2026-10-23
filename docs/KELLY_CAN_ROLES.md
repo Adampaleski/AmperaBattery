@@ -31,7 +31,7 @@ No. The protocol defines only these two controller → instrument frames, and th
 | Foot_SW, FWD, REV, Boost, 12 V brake switch | yes, b5 bits | SOURCED |
 | Brake_AN analog (pin 2) | **no** | SOURCED (absent from [C]) |
 | ECO / low-speed switch (pin 22) | **no** | SOURCED (absent) |
-| Hall A/B/C | yes | SOURCED |
+| Hall A/B/C | yes | SOURCED (field exists in [C]). Our motor uses sin/cos, not Halls (SOURCED: Adam 2026-10-23), so what these bits show on this NPS unit is UNVERIFIED; don't rely on them. |
 
 ## Regen and brake (answers for Adam)
 - **Analog brake input exists:** Brake_AN, pin 2, 0-5 V. "Boost and brake analog regen use the same port on Brake_AN(Pin2). When boost is disabled in user program, Pin2 is used for brake analog regen" [M p.~12] — SOURCED.

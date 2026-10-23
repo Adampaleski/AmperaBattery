@@ -85,6 +85,12 @@ ESP32 gateway (teryx-ev-hub `firmware/esp32-gateway`): UART2 GPIO16 RX ← Teens
 - Do **not** expect serial to enable live bleed, Elcon TX, or coil drive.
 - Elcon on CAN2 and contactor coils: leave for later.
 
+## Motor / controller status (SOURCED: Adam 2026-10-23)
+
+- Zero 75-7R (used, old-style sprocket adapter: plain cylinder with one flat side, sin/cos sensor): **bench spin test DONE**.
+- Kelly KLS8080 NPS, 168 V / 550 A, all add-ons incl. high-speed and anti-slip (purchase email; no Kelly nameplate photo needed).
+- Still OPEN: motor nameplate pole count + thermistor (Adam); Kelly #60 sensor type and #7/#10/#11 read back in Adam's programming check (UNVERIFIED). See docs/KELLY_SETTINGS.md.
+
 ## Later (not this weekend)
 
 - Full safety notes: [`docs/SAFETY.md`](SAFETY.md)

@@ -33,13 +33,13 @@ From `docs/COMPONENTS.md`, `../diagram/components.json`, `../perfboard/BOM.md`:
 | Main contactor ×2 | TE EV200HAANA 1-1618002-8 (bought) | $63.30 | - [x] |
 | Optional upgrade ×2 | Gigavac GX14BA (525 A / 10 s rating) | $205 each | - [ ] optional |
 | Precharge resistor | TBD — needs Kelly input capacitance | TBD | - [ ] |
-| Kelly-side HV voltage sense | Kelly CAN bus voltage (to confirm) **or** isolated HV module (TBD) | TBD / $0 if CAN works | - [ ] |
+| Kelly-side HV voltage sense | Kelly CAN B+ vs BICM sum (room DECIDED 2026-10-23; bench gate UNVERIFIED); AMC1311EVM only if it fails | $0 (≈$50 fallback, Adam OK) | - [ ] |
 | String fuses | Mersen A6T200 ×4 (bought) | $144.80 | - [x] |
 
 - [x] Buy EV200 ×2 (open-box EV200HAANA, $63.30)
 - [ ] Decide on GX14BA upgrade
 - [ ] Get Kelly input capacitance → size precharge resistor
-- [ ] Confirm Kelly bus voltage on CAN, else pick HV sense module
+- [ ] Kelly B+ bench gate (BACKLOG CRITICAL): reported within ~1 s of KSI, frames ≤100 ms, within ~2% of a meter 0-150 V, ~0 with mains open; else AMC1311EVM
 - [x] Size string fuses with Sparky (200 A; about 140 A/string at launch, about 185 A uneven)
 
 **Projected total (known numbers only):** Bought: 2× EV200HAANA $63.30 + 4× A6T200 $144.80 = **$208.10**. Plus TBD: precharge resistor, HV sense, 1/0 string leads.

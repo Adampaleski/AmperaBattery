@@ -11,7 +11,7 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: <0.5 Ω
 - [ ] **G03 BUCK GND** (CRITICAL, PROPOSED) — 5 V buck OUT- → TB-GND · GND · 20 AWG BK · fuse none  
   Meter: <0.5 Ω to 12V-
-- [ ] **P01 12V MAIN** (CRITICAL, UNVERIFIED) — DC-DC TDC-JH-144-12:+12V out → F-MAIN:in · +12V main · TBD: Adam reads TDC-JH-144-12 rated output (10 AWG ≤30 A, 8 AWG ≤40 A, 6 AWG ≤60 A) AWG RD · fuse F-MAIN  
+- [ ] **P01 12V MAIN** (CRITICAL, UNVERIFIED) — DC-DC TDC-JH-144-12:+12V out → F-MAIN:in · +12V main · TBD: Sparky sizes it; TDC-JH-144-12 = 110 A out (SOURCED) (10 AWG ≤30 A, 8 AWG ≤40 A, 6 AWG ≤60 A) AWG RD · fuse F-MAIN  
   Meter: continuity end-to-end <1 Ω; NOT to chassis (>1 MΩ)
 - [ ] **P02 12V BUS** (CRITICAL, PROPOSED) — F-MAIN:out → 12V bus bar:+ · +12V main · TBD: same as P01 AWG RD · fuse F-MAIN  
   Meter: continuity <1 Ω
@@ -181,12 +181,12 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: LEM arrow direction = discharge
 - [ ] **H12 DCDC IN** (LATER, UNVERIFIED) — HV bus → F-DCDC -> DC-DC HV in · HV · 14 HV AWG OR HV · fuse F-DCDC  
   Meter: fuse rating vs label
-- [ ] **H13 ELCON OUT** (LATER, UNVERIFIED) — Elcon out → F-ELC -> pack bus · HV · 8 HV PROPOSED AWG OR HV · fuse F-ELC  
-  Meter: fuse
+- [ ] **H13 ELCON OUT** (LATER, SOURCED) — Elcon out → F-ELC -> pack bus · HV · 6 HV (SOURCED crew 2026-10-23) AWG OR HV · fuse F-ELC  
+  Meter: fuse A6T60 fitted; holder TBD
 - [ ] **H14 AC IN** (LATER, UNVERIFIED) — NACS inlet (AC) → Elcon AC in · AC 240 V · per charger AWG per AC code · fuse none  
   Meter: —
-- [ ] **S08 HV SENSE** (LATER, UNVERIFIED) — Kelly-side HV divider (60.6:1) → Teensy A:24 (HV_ANALOG_ENABLE=0) · HV sense · 22 AWG BU · fuse PROPOSED 0.5 A HV-rated  
-  Meter: divider ratio
+- [ ] **S08 RESERVED** (LATER, PROPOSED) — NOT FITTED (room DECIDED 2026-10-23): isolated HV sensor dropped for now; precharge uses Kelly CAN B+. Only if the Kelly B+ bench gate fails: AMC1311EVM isolated output (never a plain 60.6:1 divider) → Teensy A:24 (reserved spare, HV_ANALOG_ENABLE=0) · HV sense (isolated, not fitted) · 22 AWG BU · fuse PROPOSED 0.5 A HV-rated  
+  Meter: Not fitted: A:24 unconnected. If ever fitted: HV side to Teensy GND open (≥ 1 MΩ, power off) before connecting
 
 ## Step 8: Body / aux buttons — LATER
 

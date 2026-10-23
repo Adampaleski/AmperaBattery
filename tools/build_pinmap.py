@@ -23,6 +23,7 @@ def pinmap_md(d):
     o += [f"{i}. {c}" for i, c in enumerate(d["conflicts"], 1)]
     for b, title in [("A", "Teensy A"), ("B", "Teensy B"), ("E", "ESP32 gateway")]:
         o += ["", f"## {title} pins", "", table(d["pins"][b], [("Pin", "pin"), ("Firmware name", "const"), ("Use", "use"), ("Wire", "wire"), ("Tier", "tier"), ("Status", "status"), ("Source", "src")])]
+    o += ["", "## MCP23017 body expander bits (Config.h ExpBits::)", "", table(d.get("expander", []), [("Bit", "bits"), ("Firmware name", "const"), ("Use", "use"), ("Tier", "tier"), ("Status", "status"), ("Source", "src")])]
     o += ["", "## CAN buses", "", table(d["buses"], [("Bus", "id"), ("Board", "board"), ("Ctrl", "ctrl"), ("TX", "tx"), ("RX", "rx"), ("Bitrate", "bitrate"), ("Nodes", "nodes"), ("IDs", "ids"), ("Termination", "term"), ("Transceiver", "transceiver"), ("Status", "status"), ("Source", "src")])]
     o += ["", "## Connectors", "", table(d["connectors"], [("ID", "id"), ("What", "what"), ("Pins", "pins"), ("Status", "status"), ("Source", "src")])]
     o += ["", "## Fuses", "", table(d["fuses"], [("ID", "id"), ("Where", "where"), ("Rating", "rating"), ("Status", "status"), ("Source", "src")])]

@@ -9,22 +9,24 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 
 ## Pin conflicts and undefined pins (fix or accept before wiring)
 
-1. PROPOSED (Sparky 2026-10-22): KEY-ON on pin 34 (IN1 spare) on A and B — no free GPIO on A; IN2-IN4 deferred. LIGHT_OE (retired) also names 34; nothing drives it. Firmware does not read key-on or plug-in yet (later commit, chief #4).
-2. AUDIT 2026-10-22 (chief): NO free analog pin on A. 14/15 LEM, 16/17 Serial4 (HubStatus owns both), 18/19 I2C (MCP23017), 20/21 OUT3/OUT4, 22/23 CAN1, 24 HV_SENSE, 25 CUR_VC, 26/27 IS_4WD/IS_DIFF, 38 THR_CS (digipot), 39 POS_DIFF, 40 PEDAL_IN_A, 41 POS_4WD. The rough-regex candidates A:23/26/27/38/39 are all in use. B has unassigned analog pins in the map (18, 19, 27, 38, 39; firmware role-gating UNVERIFIED), but the same threshold is needed on both boards, so proximity uses ONE 2.5 V LM393 comparator (both halves, one network) into A:33 and B:33 (PROPOSED, Adam t284 replaces the per-board pair).
-3. RESOLVED (Adam 2026-10-22): plug-in detect B mirror = S44 on B:33 (free per this map and Config.h B spare list).
-4. RESOLVED: IN1/IN2 were Serial4 17/16 — IN1 moved to pin 34 (free on A and B), IN2 retired (-1). A pin 16 (RX4) stays unconnected on purpose: the gateway is receive-only (TX17 -> ESP32 GPIO16).
-5. RESOLVED: IN3/IN4 were I2C 18/19 — retired (-1); 18/19 are only I2C_SDA/I2C_SCL now. No other free GPIO exists on A (33 reserved charge detect).
-6. INTENDED (not a conflict): A uses pins 4/40 (A_THR_ALIVE, PEDAL_IN_A), B uses 7/41 (B_THR_ALIVE, PEDAL_IN_B). Pin 7 = RAD_FAN on A, 41 = POS_4WD on A, 4 = B_FAULT_OUT on B, 40 = ST_4WD_B on B — different boards; label harness wires TA/TB.
-7. RESOLVED (PROPOSED pins, free on B per this map): e-stop block 3 -> B pin 9; 12 V low alarm -> B pin 26 (A12). No firmware const yet.
-8. ESP32 GPIO17: teryx-ev-hub firmware/esp32-gateway/docs/PINMAP.md says GPIO17 TX <- Teensy RX 16 (crossed pair); GATEWAY.md:18 says leave unconnected (RX-only). This map follows GATEWAY.md. Hub PINMAP.md is stale (other repo, not edited).
-9. FIXED: src/HubStatus.cpp:14 and include/Config.h:37 stale CAN comments corrected to CAN_LAYOUT_V2.
-10. FIXED: old wiring overview drew park on 'pin 18'; park is pin 32 on A and B.
-11. RESOLVED: precharge contactor = salvaged AEV14012 (~3 A peak coil, OK); TE EV11 dropped.
-12. RESOLVED: HV gauge — string leads from each A6T200 = 1/0 (~138 A at a 550 A launch); pack-to-Kelly mains = owned 3/0.
-13. RESOLVED: SN65HVD230 — 4 owned enough for the one-string bench; 2 extra on the buy list for Gate 3 (no purchase now).
-14. RESOLVED: PEDAL_IN_B = B pin 41, pedal track 2 via 10k/18k; A reads track 1 on pin 40.
-15. Kelly pin 3: ONE pull-down, the existing 100k (R1). Sparky's 10k NOT added — PROPOSED bench option only if pin 3 floats, after a full-voltage check through the 4066s.
-16. DC-DC on the shelf = Elcon TDC-JH-144-12 (not TDC-IY). F-MAIN and P01/P02 gauge TBD until its rated output is read.
+1. NO FREE TEENSY A OUTPUT (Build 18 audit): edge pins 0-41 all used, 42-47 = SD card, 48-54 = bottom pads (no PSRAM fitted, UNVERIFIED, needs fine soldering). MOTOR_FAN / BUZZER reserved on MCP23017 bits 14 / 13 instead (PROPOSED). Other options for Adam: a second MCP23017 on the same Wire bus (addr 0x21), Teensy B spare outputs over the A-B link, or the bottom pads.
+2. DECIDED (room: chief + Sparky + crew, 2026-10-23): A:24 HV_SENSE is a reserved spare. Precharge + weld check use Kelly CAN B+ vs the BICM sum (BACKLOG CRITICAL, bench gate UNVERIFIED). If the bench gate fails, AMC1311EVM returns on A:24 (isolated, never a plain divider).
+3. PROPOSED (Sparky 2026-10-22): KEY-ON on pin 34 (IN1 spare) on A and B — no free GPIO on A; IN2-IN4 deferred. LIGHT_OE (retired) also names 34; nothing drives it. Firmware does not read key-on or plug-in yet (later commit, chief #4).
+4. AUDIT 2026-10-22 (chief): NO free analog pin on A. 14/15 LEM, 16/17 Serial4 (HubStatus owns both), 18/19 I2C (MCP23017), 20/21 OUT3/OUT4, 22/23 CAN1, 24 HV_SENSE, 25 CUR_VC, 26/27 IS_4WD/IS_DIFF, 38 THR_CS (digipot), 39 POS_DIFF, 40 PEDAL_IN_A, 41 POS_4WD. The rough-regex candidates A:23/26/27/38/39 are all in use. B has unassigned analog pins in the map (18, 19, 27, 38, 39; firmware role-gating UNVERIFIED), but the same threshold is needed on both boards, so proximity uses ONE 2.5 V LM393 comparator (both halves, one network) into A:33 and B:33 (PROPOSED, Adam t284 replaces the per-board pair).
+5. RESOLVED (Adam 2026-10-22): plug-in detect B mirror = S44 on B:33 (free per this map and Config.h B spare list).
+6. RESOLVED: IN1/IN2 were Serial4 17/16 — IN1 moved to pin 34 (free on A and B), IN2 retired (-1). A pin 16 (RX4) stays unconnected on purpose: the gateway is receive-only (TX17 -> ESP32 GPIO16).
+7. RESOLVED: IN3/IN4 were I2C 18/19 — retired (-1); 18/19 are only I2C_SDA/I2C_SCL now. No other free GPIO exists on A (33 reserved charge detect).
+8. INTENDED (not a conflict): A uses pins 4/40 (A_THR_ALIVE, PEDAL_IN_A), B uses 7/41 (B_THR_ALIVE, PEDAL_IN_B). Pin 7 = RAD_FAN on A, 41 = POS_4WD on A, 4 = B_FAULT_OUT on B, 40 = ST_4WD_B on B — different boards; label harness wires TA/TB.
+9. RESOLVED (PROPOSED pins, free on B per this map): e-stop block 3 -> B pin 9; 12 V low alarm -> B pin 26 (A12). No firmware const yet.
+10. ESP32 GPIO17: teryx-ev-hub firmware/esp32-gateway/docs/PINMAP.md says GPIO17 TX <- Teensy RX 16 (crossed pair); GATEWAY.md:18 says leave unconnected (RX-only). This map follows GATEWAY.md. Hub PINMAP.md is stale (other repo, not edited).
+11. FIXED: src/HubStatus.cpp:14 and include/Config.h:37 stale CAN comments corrected to CAN_LAYOUT_V2.
+12. FIXED: old wiring overview drew park on 'pin 18'; park is pin 32 on A and B.
+13. RESOLVED: precharge contactor = salvaged AEV14012, 0.35 A at 12 V coil (34 Ω, 4.2 W, no economizer; ≈0.41 A at 14.0 V; coil allowed 10-16 V; SOURCED Panasonic EV relay catalog, crew 2026-10-23); the earlier coil figure was the EV200 inrush. TE EV11 dropped.
+14. RESOLVED: HV gauge — string leads from each A6T200 = 1/0 (~138 A at a 550 A launch); pack-to-Kelly mains = owned 3/0.
+15. RESOLVED: SN65HVD230 — 4 owned enough for the one-string bench; 2 extra on the buy list for Gate 3 (no purchase now).
+16. RESOLVED: PEDAL_IN_B = B pin 41, pedal track 2 via 10k/18k; A reads track 1 on pin 40.
+17. Kelly pin 3: ONE pull-down, the existing 100k (R1). Sparky's 10k NOT added — PROPOSED bench option only if pin 3 floats, after a full-voltage check through the 4066s.
+18. RESOLVED: DC-DC = Elcon TDC-JH-144-12, 110 A out (SOURCED crew 2026-10-23). F-MAIN and P01/P02 gauge: Sparky sizes them (TBD).
 
 ## Teensy A pins
 
@@ -61,7 +63,7 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | 21 | OUT4 | alias of MAIN_NEG | S03 |  | SOURCED | Config.h:177 |
 | 22 | CAN1_TX | CAN1 TX -> SN65 #1 (string 1) | C01 |  | SOURCED | Config.h:185 |
 | 23 | CAN1_RX | CAN1 RX | C01 |  | SOURCED | Config.h:186 |
-| 24 | HV_SENSE | optional HV bus divider (HV_ANALOG_ENABLE=0) | S08 | LATER | UNVERIFIED | Config.h:196 |
+| 24 | HV_SENSE | RESERVED spare (room DECIDED 2026-10-23: chief + Sparky + crew). Isolated HV_SENSE / AMC1311 DROPPED for now: precharge + weld check use Kelly CAN B+ (bus side) vs the BICM sum (pack side), see BACKLOG CRITICAL. Comes back as AMC1311EVM (~$50, Adam OK) only if the Kelly B+ bench gate fails. Never a plain 60.6:1 divider (bonds pack negative to Teensy ground/chassis). HV_ANALOG_ENABLE=0 |  | LATER | PROPOSED | Config.h:196; room 2026-10-23 |
 | 25 | CUR_VC | LEM A 5 V supply sense (ratiometric) via divider | S07 |  | SOURCED | Config.h:200 |
 | 26 | IS_4WD | BTS7960 #1 current sense |  | LATER | PROPOSED | Config.h:229 |
 | 27 | IS_DIFF | BTS7960 #2 current sense |  | LATER | PROPOSED | Config.h:230 |
@@ -125,9 +127,32 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | Pin | Firmware name | Use | Wire | Tier | Status | Source |
 |---|---|---|---|---|---|---|
 | GPIO16 |  | UART2 RX <- Teensy A pin 17 | S30 |  | SOURCED | teryx-ev-hub firmware/esp32-gateway/docs/GATEWAY.md:17 |
+| GPIO4 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO13 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO14 |  | spare, read-only role (gateway never drives it today) — outputs PWM briefly at boot |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO18 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO19 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO21 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO22 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO23 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO25 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO26 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO27 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO32 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
+| GPIO33 |  | spare, read-only role (gateway never drives it today) |  | LATER | ASSUMED | teryx-ev-hub cursor/schema-sync firmware/esp32-gateway/src/main.cpp:36 (only GPIO16 used); output-safe per ESP32-WROOM strapping/flash rules |
 | GPIO17 |  | UART2 TX — UNUSED, leave unconnected (gateway is RX-only, TX pin = -1) |  |  | SOURCED | GATEWAY.md:5,18 |
 | GND |  | common LV ground with Teensy A | G05 |  | SOURCED | GATEWAY.md:19 |
 | 5V/VIN |  | 5 V from fused buck (never Teensy 3.3 V) | P08 |  | SOURCED | GATEWAY.md:20 |
+
+## MCP23017 body expander bits (Config.h ExpBits::)
+
+| Bit | Firmware name | Use | Tier | Status | Source |
+|---|---|---|---|---|---|
+| 0-8 |  | 9 light outputs (HEAD_LO, HEAD_HI, TAIL, BRAKE, TURN_L, TURN_R, REVERSE, BAR, WORK) via FETs | LATER | PROPOSED | docs/BODY_IO.md:31,60 |
+| 9-12 |  | free (stock 4WD switch input moves here; bit not assigned yet) | LATER | UNDEFINED | docs/BODY_IO.md:60 |
+| 13 | BUZZER | LATER — reserved: 12 V buzzer for the dash master alert (no logic; only if Adam counts expander bits as A outputs) | LATER | PROPOSED | BACKLOG.md BUZZER (Build 18) |
+| 14 | MOTOR_FAN | LATER — reserved: 12 V motor fan relay via low-side IRLB8721 + 10k pull-down + 1N4007; future trigger Kelly CAN 0x0CF11F05 byte 2 (motor temp, UNVERIFIED) (no logic) | LATER | PROPOSED | BACKLOG.md MOTOR_FAN (Build 18) |
+| 15 |  | free — PACK_HEAT NOT reserved (chief full review 2026-10-23: new HV circuit, dropped from Build 18) | LATER | SOURCED | review/full_program_review_chief.md |
 
 ## CAN buses
 
@@ -143,18 +168,18 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 
 | ID | What | Pins | Status | Source |
 |---|---|---|---|---|
-| X2-S1..S4 | Volt BICM harness K16 X2 (one per string) | 9 = 5 V (705 GY/RD) · 10 = GND (470 BK/VT) · 11 = CAN_L (6434 L-BU/YE) · 12 = CAN_H (6435 WH/YE) | SOURCED | tools/wiring_data.js bms page; schematic/gen.py 'bo' (CAN H/L UNVERIFIED: swap if no cells) |
+| X2-S1..S4 | Volt BICM harness K16 X2 (one per string) | 9 = 5 V (705 GY/RD) · 10 = GND (470 BK/VT) · 11 = CAN_L (6434 L-BU/YE) · 12 = CAN_H (6435 WH/YE) | SOURCED | tools/wiring_data.js bms page; tools/schematic/gen.py 'bo' (CAN H/L UNVERIFIED: swap if no cells) |
 | KELLY-J | Kelly KLS-8080N signal connector | 3 throttle · 7 KSI/PWR · 11 12 V out · 15 Foot_SW · 22 ECO · 2 Brake_AN | UNVERIFIED | KLS-8080N V2.11 / HC V2.14 manuals via docs/ESTOP.md:18, wiring_data.js CONFLICTS; Adam's harness unread |
 | ESTOP | XB5AS8442 (or XB4BS8442) head + 2x ZBE102 = 3 NC blocks | each block: terminals 11 (in) / 12 (out), NC | SOURCED | docs/ESTOP.md; se.com XB5AS8442 page (1 NC in head) |
-| EBOX-DT | Electronics box Deutsch DT harness connector | UNDEFINED — pin-out not assigned yet | UNDEFINED | schematic/gen.py 'dt' |
+| EBOX-DT | Electronics box Deutsch DT harness connector | UNDEFINED — pin-out not assigned yet | UNDEFINED | tools/schematic/gen.py 'dt' |
 | TB-5V | 5 V terminal block | Teensy A VIN, Teensy B VIN, transceivers? (SN65 run on 3.3 V from each Teensy), LEM 5 V, pedal 5 V, clamp chips | PROPOSED | tools/wiring_data.js power12/clamp |
-| TB-GND | GND terminal block (single point) | all LV grounds | SOURCED | schematic/gen.py 'gnd' |
+| TB-GND | GND terminal block (single point) | all LV grounds | SOURCED | tools/schematic/gen.py 'gnd' |
 
 ## Fuses
 
 | ID | Where | Rating | Status | Source |
 |---|---|---|---|---|
-| F-MAIN | DC-DC 12 V out | TBD ≈1.25 × TDC-JH-144-12 rated output (Adam reads label) | PROPOSED | Sparky 2026-10-22 |
+| F-MAIN | DC-DC 12 V out | TBD — Sparky sizes it (TDC-JH-144-12 = 110 A out, SOURCED crew 2026-10-23) | PROPOSED | Sparky 2026-10-22 |
 | F-COIL | 12 V coil feed -> e-stop blocks 1+2 | 10 A | PROPOSED | Sparky 2026-10-22 |
 | F-KEL | Kelly PWR logic | 2 A | PROPOSED | Sparky 2026-10-22 |
 | F-EBOX | electronics box 12 V | 5 A (F-BUCK 3 A after it) | PROPOSED | Sparky 2026-10-22 |
@@ -164,7 +189,7 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | F-AUX | each aux load (horn, lights) via relay 30 | size to load, PROPOSED 10-15 A | PROPOSED | Adam 10/22 NO aux buttons through relay/fuse |
 | F-S1..S4 | string fuses on bus bar (service disconnect) | Mersen A6T200 200 A Class T | SOURCED | docs/WIRING.md:66-69 |
 | F-DCDC | HV in to DC-DC | 15-20 A >=250 V DC (confirm label) | UNVERIFIED | gen.py fdi |
-| F-ELC | Elcon out -> pack | ~40-60 A >=250 V DC | UNVERIFIED | gen.py fel |
+| F-ELC | Elcon HK-LF-144-46 out (46 A max) -> pack | Mersen A6T60, 60 A Class T, on 6 AWG; fuse holder TBD | SOURCED | crew 2026-10-23 |
 
 ## Wire colour code — PROPOSED
 
@@ -189,7 +214,7 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 - 5 V / 3.3 V logic power: 20 AWG
 - 12 V coil feeds, relay coils, KSI: 18 AWG
 - 12 V branch to Kelly PWR / electronics box: 16 AWG
-- 12 V main (DC-DC out): TBD — Adam reads TDC-JH-144-12 rated output; 10 AWG ≤30 A, 8 AWG ≤40 A, 6 AWG ≤60 A (Sparky)
+- 12 V main (DC-DC out): TBD (Sparky sizes it) — DC-DC TDC-JH-144-12 = 110 A out (SOURCED crew 2026-10-23); 10 AWG ≤30 A, 8 AWG ≤40 A, 6 AWG ≤60 A (Sparky)
 - HV: 1/0 AWG string leads from each A6T200 (~138 A at a 550 A launch); 3/0 owned TEMCo for pack-to-Kelly mains (crew 2026-10-22)
 
 ## Every wire
@@ -199,7 +224,7 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | G01 | 1 | wire | 12V bus bar:- | frame ground strap | GND | 0 V | BK | strap | none | G01 12V- CHASSIS | CRITICAL | PROPOSED | wiring_data power12 net (Mechanic) |
 | G02 | 1 | wire | Kelly case | frame | GND | 0 V | BK | strap | none | G02 KELLY CASE | CRITICAL | PROPOSED | wiring_data power12 |
 | G03 | 1 | wire | 5 V buck OUT- | TB-GND | GND | 0 V | BK | 20 | none | G03 BUCK GND | CRITICAL | PROPOSED | gen.py gnd |
-| P01 | 1 | wire | DC-DC TDC-JH-144-12:+12V out | F-MAIN:in | +12V main | 12-14 V | RD | TBD: Adam reads TDC-JH-144-12 rated output (10 AWG ≤30 A, 8 AWG ≤40 A, 6 AWG ≤60 A) | F-MAIN | P01 12V MAIN | CRITICAL | UNVERIFIED | gen.py; wiring_data power12 |
+| P01 | 1 | wire | DC-DC TDC-JH-144-12:+12V out | F-MAIN:in | +12V main | 12-14 V | RD | TBD: Sparky sizes it; TDC-JH-144-12 = 110 A out (SOURCED) (10 AWG ≤30 A, 8 AWG ≤40 A, 6 AWG ≤60 A) | F-MAIN | P01 12V MAIN | CRITICAL | UNVERIFIED | gen.py; wiring_data power12 |
 | P02 | 1 | wire | F-MAIN:out | 12V bus bar:+ | +12V main | 12-14 V | RD | TBD: same as P01 | F-MAIN | P02 12V BUS | CRITICAL | PROPOSED | gen.py |
 | P03 | 1 | wire | 12V bus bar:+ | F-KEL:in -> Kelly PWR | +12V | 12 V | RD/WH | 16 | F-KEL | P03 KELLY PWR | CRITICAL | UNVERIFIED | gen.py fkel |
 | P04 | 1 | wire | 12V bus bar:+ | F-COIL:in | +12V coil feed | 12 V | RD/WH | 18 | F-COIL | P04 COIL FEED | CRITICAL | PROPOSED | docs/ESTOP.md |
@@ -236,9 +261,9 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | E02 | 6 | wire | E-stop block 1:12 | EV200 B+ coil + AND EV200 B- coil + (high sides) | 12V coil (cut) | 12 V | RD/YE | 18 | F-COIL | E02 BLK1 MAIN COILS | CRITICAL | SOURCED | docs/ESTOP.md:112 (0.26 A break measured, OK) |
 | E03 | 6 | wire | E-stop block 2:12 | precharge relay coil + AND Kelly KSI/PWR pin 7 | 12V coil + KSI (cut) | 12 V | RD/YE | 18 | F-COIL | E03 BLK2 PRE+KSI | CRITICAL | UNVERIFIED | docs/ESTOP.md:113 (KSI draw: Adam meters; Kelly pin 7 from manual) |
 | E09 | 6 | wire | E-stop block 3:11 -> TB-GND; block 3:12 | Teensy B:9 (10k pull-up) — free on B per this map | e-stop sense (latch, never the cut) | 3.3 V | BU/BK | 22 | none | E09 BLK3 TB-ESTOP | CRITICAL | PROPOSED | crew 2026-10-22; docs/ESTOP.md; EstopLatch.h not wired (chief review #5) |
-| K01 | 6 | wire | U2b out (R1 100k to GND — the ONLY pull-down) | Kelly throttle input (pin 3) | throttle | 0-5 V | BU/WH | 22 shielded | none | K01 KELLY THR | CRITICAL | UNVERIFIED | docs/THROTTLE_CLAMP.md; kelly-settings.md (100k, crew 2026-10-22); Kelly pin from manual |
-| K02 | 6 | wire | Kelly pin 11 (12 V out) | Park pole 3 (NC) -> contact closed only while BOTH Teensys are alive (series heartbeat contacts) -> Kelly pin 15 Foot_SW | foot switch enable | 12 V | RD/WH -> RD/YE | 20 | none | K02 FOOTSW PARK | CRITICAL | UNVERIFIED | docs/PARK_BRAKE.md; kelly-settings.md:64 (Sparky) |
-| K03 | 6 | wire | Kelly pin 11 12 V -> relay 30; relay 87a (NC) | Kelly pin 22 ECO | Low cap (fail-safe: relay NC, dead Teensy = Low) | 12 V | RD/WH -> RD/VT | 20 | none | K03 ECO LOWCAP | CRITICAL | UNVERIFIED | docs/DRIVE_MODES.md; kelly-settings.md:67; Kelly pin 22 from manual |
+| K01 | 6 | wire | U2b out (R1 100k to GND — the ONLY pull-down) | Kelly throttle input (pin 3) | throttle | 0-5 V | BU/WH | 22 shielded | none | K01 KELLY THR | CRITICAL | UNVERIFIED | docs/THROTTLE_CLAMP.md; docs/KELLY_SETTINGS.md (100k, crew 2026-10-22); Kelly pin from manual |
+| K02 | 6 | wire | Kelly pin 11 (12 V out) | Park pole 3 (NC) -> contact closed only while BOTH Teensys are alive (series heartbeat contacts) -> Kelly pin 15 Foot_SW | foot switch enable | 12 V | RD/WH -> RD/YE | 20 | none | K02 FOOTSW PARK | CRITICAL | UNVERIFIED | docs/PARK_BRAKE.md; docs/KELLY_SETTINGS.md:64 (Sparky) |
+| K03 | 6 | wire | Kelly pin 11 12 V -> relay 30; relay 87a (NC) | Kelly pin 22 ECO | Low cap (fail-safe: relay NC, dead Teensy = Low) | 12 V | RD/WH -> RD/VT | 20 | none | K03 ECO LOWCAP | CRITICAL | UNVERIFIED | docs/DRIVE_MODES.md; docs/KELLY_SETTINGS.md:67; Kelly pin 22 from manual |
 | P20 | 6 | wire | TB-5V | pedal 5 V + U1..U4 VCC (shared rail) | +5V | 5 V | OR | 20 | F-BUCK | P20 5V CLAMP | CRITICAL | PROPOSED | docs/THROTTLE_CLAMP.md |
 | S01 | 6 | board | Teensy A:11 via 100 Ω (10k pull-down to GND) | FET Q-B+ gate; drain -> EV200 B+ coil - | coil drive | 3.3 V gate / 12 V coil | RD/BU (coil lead) | 18 (coil lead) | F-COIL | S01 TA11 MAIN+ | CRITICAL | PROPOSED | Config.h:182; wiring_data precharge net |
 | S02 | 6 | board | Teensy A:12 via 100 Ω (10k pull-down) | FET Q-PRE gate; drain -> precharge coil - | coil drive | 3.3 / 12 V | RD/GN | 18 | F-COIL | S02 TA12 PRE | CRITICAL | PROPOSED | Config.h:183 |
@@ -253,7 +278,7 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | S15 | 6 | wire | Pedal track 2 | own 10k/18k + 100 nF -> Teensy B:41 (A17); A reads track 1 on pin 40 | throttle B | 0-3.2 V | BU/WH | 22 | none | S15 PEDAL B | CRITICAL | PROPOSED | crew 2026-10-22 (track 2 on B:41); Config.h PEDAL_IN_B |
 | S16 | 6 | wire | Park switch pole 1 (NO) -> GND | Teensy A:32 (10k pull-up 3V3 + 100 nF) | park A, LOW = set | 3.3 V | BU/BK | 22 | none | S16 PARK A | CRITICAL | PROPOSED | Config.h:249; docs/PARK_BRAKE.md (switch fit UNVERIFIED) |
 | S17 | 6 | wire | Park switch pole 2 (NO) -> GND | Teensy B:32 | park B | 3.3 V | BU/RD | 22 | none | S17 PARK B | CRITICAL | PROPOSED | Config.h:253 |
-| S20 | 6 | board | Teensy A:20 (100 Ω, 10k pull-down) | low-side FET -> Low-cap relay coil 85 (86 = vehicle 12 V bus via F-COIL, 1N4007) — coil NEVER on Kelly pin 11 (40 mA max) | Low-cap release | 3.3 V / 12 V | — | board | F-COIL | S20 TA20 LOWCAP | CRITICAL | PROPOSED | Config.h:167; docs/DRIVE_MODES.md; kelly-settings.md:71 |
+| S20 | 6 | board | Teensy A:20 (100 Ω, 10k pull-down) | low-side FET -> Low-cap relay coil 85 (86 = vehicle 12 V bus via F-COIL, 1N4007) — coil NEVER on Kelly pin 11 (40 mA max) | Low-cap release | 3.3 V / 12 V | — | board | F-COIL | S20 TA20 LOWCAP | CRITICAL | PROPOSED | Config.h:167; docs/DRIVE_MODES.md; docs/KELLY_SETTINGS.md:71 |
 | S25 | 6 | wire | LEM B DHAB pin 4 | divider -> Teensy B:14 | LEM B low | 0-3.2 V | BU | 22 | none | S25 LEMB CH1 | CRITICAL | SOURCED | Config.h:187 |
 | S26 | 6 | wire | LEM B DHAB pin 3 | divider -> Teensy B:15 | LEM B high | 0-3.2 V | BU/WH | 22 | none | S26 LEMB CH2 | CRITICAL | SOURCED | Config.h:188 |
 | S27 | 6 | wire | LEM B 5 V sense | Teensy B:25 | LEM supply ref | 3.2 V | OR | 22 | F-BUCK | S27 LEMB VC | CRITICAL | SOURCED | Config.h:189 |
@@ -272,21 +297,21 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | H05 | 7 | wire | 4 fuses | common B+ bus | HV+ | HV | OR HV, RED tape | 1/0 (string side of each fuse) | F-S1..S4 | H05 FUSE-BUS | LATER | PROPOSED | wiring_data overview net |
 | H06 | 7 | wire | common B+ bus (NO MSD — service = pull 4 fuses) | EV200 B+ line | HV+ | HV | OR HV, RED tape | 3/0 owned TEMCo (pack-to-Kelly main) | F-S1..S4 | H06 BUS-EV200 | LATER | SOURCED | wiring_data overview net (MSD removed 2026-10-22) |
 | H07 | 7 | wire | EV200 B+ load | Kelly B+ | HV+ | HV | OR HV, RED tape | 3/0 owned TEMCo (pack-to-Kelly main) | none | H07 EV200-KELLY+ | LATER | SOURCED | wiring_data |
-| H08 | 7 | wire | precharge relay + 50 Ω 100 W | across EV200 B+ | HV precharge | HV | OR HV | 14 HV | none | H08 PRECHARGE | LATER | UNVERIFIED | wiring_data precharge net; precharge contactor = salvaged AEV14012 (~3 A peak coil, OK) — crew 2026-10-22 |
+| H08 | 7 | wire | precharge relay + 50 Ω 100 W | across EV200 B+ | HV precharge | HV | OR HV | 14 HV | none | H08 PRECHARGE | LATER | UNVERIFIED | wiring_data precharge net; precharge contactor = salvaged AEV14012, 0.35 A at 12 V coil (34 Ω, 4.2 W, no economizer; ≈0.41 A at 14.0 V; coil allowed 10-16 V; SOURCED Panasonic EV relay catalog, crew 2026-10-23) — crew 2026-10-22/23; https://industry.panasonic.com/ac/cdn/e/control/relay/vehicle/catalog/mech_eng_ev.pdf |
 | H09 | 7 | wire | Kelly U/V/W + Sin/Cos | Zero 75-7R | motor | HV | OR HV | match bus | none | H09 MOTOR | LATER | SOURCED | wiring_data |
 | H10 | 7 | wire | Kelly B- | EV200 B- -> LEM A/B -> string B- | HV- | HV | OR HV, BLACK tape | 3/0 owned TEMCo (pack-to-Kelly main) | none | H10 KELLY-EV200- | LATER | SOURCED | wiring_data |
 | H11 | 7 | wire | String B- leads | through LEM A (S1+S2) / LEM B (S3+S4) | HV- | HV | OR HV, BLACK tape | 1/0 | none | H11 B- LEM | LATER | SOURCED | wiring_data overview |
 | H12 | 7 | wire | HV bus | F-DCDC -> DC-DC HV in | HV | HV | OR HV | 14 HV | F-DCDC | H12 DCDC IN | LATER | UNVERIFIED | gen.py fdi |
-| H13 | 7 | wire | Elcon out | F-ELC -> pack bus | HV | HV | OR HV | 8 HV PROPOSED | F-ELC | H13 ELCON OUT | LATER | UNVERIFIED | gen.py fel |
+| H13 | 7 | wire | Elcon out | F-ELC -> pack bus | HV | HV | OR HV | 6 HV (SOURCED crew 2026-10-23) | F-ELC | H13 ELCON OUT | LATER | SOURCED | crew 2026-10-23: Elcon HK-LF-144-46 46 A max out, F-ELC Mersen A6T60 60 A on 6 AWG (holder TBD) |
 | H14 | 7 | wire | NACS inlet (AC) | Elcon AC in | AC 240 V | AC | per AC code | per charger | none | H14 AC IN | LATER | UNVERIFIED | wiring_data |
-| S08 | 7 | wire | Kelly-side HV divider (60.6:1) | Teensy A:24 (HV_ANALOG_ENABLE=0) | HV sense | ≤3.3 V | BU | 22 | PROPOSED 0.5 A HV-rated | S08 HV SENSE | LATER | UNVERIFIED | Config.h:185, 156 |
+| S08 | 7 | wire | NOT FITTED (room DECIDED 2026-10-23): isolated HV sensor dropped for now; precharge uses Kelly CAN B+. Only if the Kelly B+ bench gate fails: AMC1311EVM isolated output (never a plain 60.6:1 divider) | Teensy A:24 (reserved spare, HV_ANALOG_ENABLE=0) | HV sense (isolated, not fitted) | ≤3.3 V | BU | 22 | PROPOSED 0.5 A HV-rated | S08 RESERVED | LATER | PROPOSED | room 2026-10-23 (DROP isolated sense); Sparky 2026-10-23 (never a plain divider); Config.h:196 |
 | A01 | 8 | wire | 12V bus (switched) -> F-AUX | aux relay 30 | +12V load | 12 V | RD/WH | 14 (size to load) | F-AUX | A01 AUX FEED | LATER | PROPOSED | Adam 2026-10-22 (NO contacts, relay/fuse >1 A) |
 | A02 | 8 | wire | 12V switched (small fuse) | NO push button (ZBE101) -> relay 86 | button | 12 V | RD/WH | 20 | PROPOSED 2 A | A02 AUX BTN | LATER | PROPOSED | Adam 2026-10-22 |
 | A03 | 8 | wire | relay 85 | GND | GND | 0 V | BK | 20 | none | A03 RELAY GND | LATER | PROPOSED | standard automotive relay |
 | A04 | 8 | wire | relay 87 | horn / lights + | +12V load | 12 V | RD/GN | 14 (size to load) | F-AUX | A04 AUX LOAD | LATER | PROPOSED | Adam 2026-10-22 |
 | A05 | 8 | wire | load - | GND | GND | 0 V | BK | 14 | none | A05 LOAD GND | LATER | PROPOSED | standard |
 
-## Open UNVERIFIED / UNDEFINED wires (19)
+## Open UNVERIFIED / UNDEFINED wires (17)
 
 - **P01** UNVERIFIED: DC-DC TDC-JH-144-12:+12V out → F-MAIN:in (gen.py; wiring_data power12)
 - **P03** UNVERIFIED: 12V bus bar:+ → F-KEL:in -> Kelly PWR (gen.py fkel)
@@ -299,11 +324,9 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 - **C14** UNVERIFIED: SN65 #4 CANH/CANL → String 4 X2 pins 12/11 (as C11)
 - **E03** UNVERIFIED: E-stop block 2:12 → precharge relay coil + AND Kelly KSI/PWR pin 7 (docs/ESTOP.md:113 (KSI draw: Adam meters; Kelly pin 7 from manual))
 - **S14** UNVERIFIED: Pedal wiper (Hall, 0-5 V ASSUMED) → 10k/18k + 100 nF -> Teensy A:40 and MCP4131 P0A (Config.h:215; docs/THROTTLE_CLAMP.md (pedal not chosen; chief review #9 calibration))
-- **K01** UNVERIFIED: U2b out (R1 100k to GND — the ONLY pull-down) → Kelly throttle input (pin 3) (docs/THROTTLE_CLAMP.md; kelly-settings.md (100k, crew 2026-10-22); Kelly pin from manual)
-- **K02** UNVERIFIED: Kelly pin 11 (12 V out) → Park pole 3 (NC) -> contact closed only while BOTH Teensys are alive (series heartbeat contacts) -> Kelly pin 15 Foot_SW (docs/PARK_BRAKE.md; kelly-settings.md:64 (Sparky))
-- **K03** UNVERIFIED: Kelly pin 11 12 V -> relay 30; relay 87a (NC) → Kelly pin 22 ECO (docs/DRIVE_MODES.md; kelly-settings.md:67; Kelly pin 22 from manual)
-- **H08** UNVERIFIED: precharge relay + 50 Ω 100 W → across EV200 B+ (wiring_data precharge net; precharge contactor = salvaged AEV14012 (~3 A peak coil, OK) — crew 2026-10-22)
+- **K01** UNVERIFIED: U2b out (R1 100k to GND — the ONLY pull-down) → Kelly throttle input (pin 3) (docs/THROTTLE_CLAMP.md; docs/KELLY_SETTINGS.md (100k, crew 2026-10-22); Kelly pin from manual)
+- **K02** UNVERIFIED: Kelly pin 11 (12 V out) → Park pole 3 (NC) -> contact closed only while BOTH Teensys are alive (series heartbeat contacts) -> Kelly pin 15 Foot_SW (docs/PARK_BRAKE.md; docs/KELLY_SETTINGS.md:64 (Sparky))
+- **K03** UNVERIFIED: Kelly pin 11 12 V -> relay 30; relay 87a (NC) → Kelly pin 22 ECO (docs/DRIVE_MODES.md; docs/KELLY_SETTINGS.md:67; Kelly pin 22 from manual)
+- **H08** UNVERIFIED: precharge relay + 50 Ω 100 W → across EV200 B+ (wiring_data precharge net; precharge contactor = salvaged AEV14012, 0.35 A at 12 V coil (34 Ω, 4.2 W, no economizer; ≈0.41 A at 14.0 V; coil allowed 10-16 V; SOURCED Panasonic EV relay catalog, crew 2026-10-23) — crew 2026-10-22/23; https://industry.panasonic.com/ac/cdn/e/control/relay/vehicle/catalog/mech_eng_ev.pdf)
 - **H12** UNVERIFIED: HV bus → F-DCDC -> DC-DC HV in (gen.py fdi)
-- **H13** UNVERIFIED: Elcon out → F-ELC -> pack bus (gen.py fel)
 - **H14** UNVERIFIED: NACS inlet (AC) → Elcon AC in (wiring_data)
-- **S08** UNVERIFIED: Kelly-side HV divider (60.6:1) → Teensy A:24 (HV_ANALOG_ENABLE=0) (Config.h:185, 156)

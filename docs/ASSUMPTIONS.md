@@ -21,7 +21,8 @@ still 0 and `TELEMETRY_ONLY=1`.
 | 13 | No current sensor and no SOC. `packA` and `socPct` stay null. | — | Hardware still to come. |
 
 ## Current sensing (2026-10-19)
-- Kelly peak discharge assumed 550 A in the simulator.
+- Kelly peak discharge 550 A in the simulator — now SOURCED (Adam 2026-10-23, purchase email): KLS8080 NPS, 168 V / 550 A, all add-ons incl. high-speed and anti-slip.
+- Motor (SOURCED, Adam 2026-10-23): Zero 75-7R, used, old-style sprocket adapter (plain cylinder with one flat side), **sin/cos** position sensor (not Hall/encoder; the reason for the NPS variant), bench spin test DONE. Kelly #60 sensor-type setting UNVERIFIED for Adam's programming check. Motor nameplate (pole count, thermistor) still OPEN.
 - ISA IVT-S 1000 A (IVT-S-1K-U3-I-CAN1-12/24) is **optional only** (no longer the main sensor); ships at 500 kbps vs CAN2 250k, may need its own bus. Not owned.
 - LEM DHAB S/44 (pins 1 +5V, 2 GND, 3 high out, 4 low out; Vero BMS manual): primary sensing as the LEM A + B pair (below). Saturates ~450–490 A (unverified).
 - 2026-10-19 update: Adam chose the split-LEM layout. Default = two owned DHAB S/44: LEM A on combined B− of strings 1+2 (Teensy A), LEM B on strings 3+4 (Teensy B); I = A + B; 275 A each at the 550 A peak. Each uses its factory Volt harness plug. IVT-S 1000 A is now an optional alternative only. Sim flags: PAIR_IMBALANCE (|A−B| > 30% of |A+B|, total > 40 A) and SENSOR_FAULT (one saturated/invalid, or one ~0 A while the other > 100 A).

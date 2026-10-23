@@ -13,11 +13,12 @@ No JK BMS. The two Teensy 4.1s are the BMS; Volt BICMs do the sensing. Pack: 36S
 | SN65HVD230 transceiver x4 | 3.3 V CAN, one per BICM bus | yes |
 | Throttle clamp: CD74HCT123E, CD74HC4066E, SN74AHCT125N + MCP4131-103E/P, R/C per docs/THROTTLE_CLAMP.md | Kelly throttle held at 0 V unless A AND B alive (crew 2026-10-21) | NO (PROPOSED, UNVERIFIED) |
 | SN65HVD230 transceiver x2 | 4 BICM buses + vehicle bus CAN3 on A + B = 6 total (4 listed) (Elcon/Kelly/link) | UNVERIFIED: not listed as owned |
-| Kelly KLS-8080N (8080NPS series, Sin/Cos), 144 V / 550 A config | SOURCED: Adam's order #81746 (2025-05-03, $1,214.90): model line 72–168 V, field weakening, bidirectional anti-slip, W3-GT2 liquid-cooling heatsink, 35-pin plug-and-play cable, USB cable, KLS test box. CAN2 broadcast only. 36S full charge ≈148–149 V is inside the 72–168 V model range (SOURCED: order listing #81746). Overvoltage cutout ≈173 V (earlier research), adjustable in Kelly software, factory default UNVERIFIED | yes |
+| Kelly KLS8080 NPS (sin/cos), 168 V / 550 A, all add-ons incl. high-speed and anti-slip | SOURCED (Adam 2026-10-23, purchase email; no Kelly nameplate photo needed). Settings sensor type #60 UNVERIFIED for Adam's programming check. Order #81746 (2025-05-03, $1,214.90): model line 72–168 V, field weakening, bidirectional anti-slip, W3-GT2 liquid-cooling heatsink, 35-pin plug-and-play cable, USB cable, KLS test box. CAN2 broadcast only. 36S full charge ≈148–149 V is inside the 72–168 V model range (SOURCED: order listing #81746). Over Volt #7 = 158 V (Sparky 2026-10-23, was 162 V on the old 173 V assumption), under the 168 V rating; factory default UNVERIFIED | yes |
+| Zero 75-7R motor (used) | SOURCED (Adam 2026-10-23): old-style sprocket adapter (plain cylinder with one flat side); sin/cos position sensor (the reason for the KLS8080 NPS); bench spin test DONE. Motor nameplate OPEN for Adam: pole count and thermistor type (KELLY_SETTINGS #59/#63). Ratings (kW, torque, max RPM) UNVERIFIED | yes |
 | Kelly coolant pump (Bosch 12 V) | PROPOSED: W3-GT2 loop on the stock Teryx radiator; on with key; unassigned Teensy B FET; fan relay at ~40 °C; no flow/temp sensor yet | NO |
 | Seat heaters ×2 | likely aftermarket kit, stages UNVERIFIED; PROPOSED MOSFET PWM 33/66/100 %; ~4–5 A each, 10 A fuse (ESTIMATE) | ? |
 | Elcon charger HK-LF-144-46 | CAN3 250k (vehicle bus) | yes |
-| Elcon DC-DC 12 V | after main+ | yes |
+| Elcon DC-DC TDC-JH-144-12 | after main+; 110 A out (SOURCED crew 2026-10-23); F-MAIN/P01 sizing by Sparky (TBD) | yes |
 | ESP32 hub | Wi-Fi/Ethernet/BT; STATUS_SCHEMA v1 JSON from Teensy A Serial4 TX17/RX16 @115200 | yes |
 | Surface 3 tablet (Linux) head unit | Wi-Fi to ESP32 | yes |
 | TE EV200HAANA main + | B+, 12–24 V economized coil | yes (bought 2026-10-20) |

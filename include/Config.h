@@ -189,11 +189,11 @@ constexpr int OUT8 = 6;
 
 // VoltBMSV2 names: OUT1=main+, OUT2=precharge, OUT4=main-.
 // 12 V coil FETs downstream — Teensy pin is the FET gate, not the coil.
-// Shop precharge contactor is the salvaged AEV14012 (~3 A peak coil) on OUT2 (crew 2026-10-22; TE EV11 dropped).
+// Precharge = salvaged AEV14012 on OUT2 (TE EV11 dropped); coil 0.35 A @12 V, 34 ohm, 4.2 W, no economizer, ~0.41 A @14 V, 10-16 V (SOURCED Panasonic catalog, crew 2026-10-23).
 constexpr int MAIN_POS  = OUT1;  // pin 11
 constexpr int PRECHARGE = OUT2;  // pin 12 — AEV14012
 constexpr int MAIN_NEG  = OUT4;  // pin 21
-constexpr int HV_SENSE  = 24;    // A10, optional HV-bus divider
+constexpr int HV_SENSE  = 24;    // A10, RESERVED spare: precharge uses Kelly CAN B+ vs BICM sum (room DECIDED 2026-10-23, firmware TODO); never a plain divider
 // LEM DHAB S/44 (CURRENT_SENSE_ENABLE=1). Every input through 10k/18k divider + 100 nF.
 constexpr int CUR_LO    = 14;    // A0  DHAB pin 4 (ch1, +-20 A, 100 mV/A)
 constexpr int CUR_HI    = 15;    // A1  DHAB pin 3 (ch2, -420..+230 A, 6.15 mV/A)
@@ -296,3 +296,12 @@ static_assert(PARK_IN_B != B_THR_ALIVE && PARK_IN_B != PEDAL_IN_B && PARK_IN_B !
               PARK_IN_B != OUT6 && PARK_IN_B != OUT7 && PARK_IN_B != OUT8, "B park pin clash");
 static_assert(B_THR_ALIVE != B_FAULT_OUT && PEDAL_IN_B != HV_SENSE && PEDAL_IN_B != CUR_LO && PEDAL_IN_B != CUR_HI && PEDAL_IN_B != CUR_VC, "B pin clash");
 }  // namespace Pins
+
+// MCP23017 body-expander bit reservations (Build 18, LATER, PROPOSED). NAMES ONLY: nothing reads or drives these yet.
+// Teensy A has no free edge output (docs/PINMAP.yaml conflicts). PACK_HEAT is NOT reserved (chief review 2026-10-23).
+namespace ExpBits {
+constexpr int BUZZER    = 13;   // GPB5: 12 V buzzer for the dash master alert
+constexpr int MOTOR_FAN = 14;   // GPB6: motor fan relay (low-side IRLB8721 + 1N4007); future trigger Kelly CAN 0x0CF11F05 byte 2
+static_assert(BUZZER != MOTOR_FAN && BUZZER >= 9 && BUZZER <= 15 && MOTOR_FAN >= 9 && MOTOR_FAN <= 15,
+              "ExpBits: bits 0-8 are the lights; reservations must be unique in 9-15");
+}  // namespace ExpBits

@@ -59,6 +59,36 @@ for b in ("A", "B"):
     for pin, ps in by.items():
         if len(ps) > 1:
             ok(all(q.get("shares") for q in ps), f"{b} pin {pin} used by {[q.get('const') or q['use'] for q in ps]} without 'shares' (pin conflict)")
+# MCP23017 expander bits vs Config.h ExpBits:: (Build 18 LATER reservations; names only)
+cfgt = (R / "include/Config.h").read_text()
+mexp = re.search(r"namespace ExpBits \{(.*?)\}\s*//\s*namespace ExpBits", cfgt, re.S)
+ok(mexp is not None, "Config.h namespace ExpBits missing")
+expfw = {c: int(v) for c, v in re.findall(r"constexpr\s+int\s+(\w+)\s*=\s*(\d+)", mexp.group(1))} if mexp else {}
+used = {}
+for e in d.get("expander", []):
+    bs = e["bits"]; rng = range(int(bs.split("-")[0]), int(bs.split("-")[1]) + 1) if isinstance(bs, str) else [bs]
+    for b in rng:
+        ok(0 <= b <= 15, f"expander bit {b} out of range"); ok(b not in used, f"expander bit {b} listed twice ({used.get(b)} / {e['use'][:30]})"); used[b] = e["use"][:30]
+    if e.get("const"):
+        ok(expfw.get(e["const"]) == bs, f"expander {e['const']} = bit {bs} in PINMAP.yaml but {expfw.get(e['const'])} in Config.h ExpBits")
+        ok(e["const"] not in fw, f"{e['const']} must not also be a Teensy Pins:: constant (no free A pin)")
+for c in expfw: ok(any(e.get("const") == c for e in d.get("expander", [])), f"Config.h ExpBits::{c} missing from PINMAP.yaml expander")
+ok(sorted(used) == list(range(16)), "expander table must cover bits 0-15 exactly once")
+ok(not any(e.get("const") == "PACK_HEAT" for e in d.get("expander", [])) and "PACK_HEAT" not in expfw, "PACK_HEAT must not be reserved in Build 18 (chief review)")
+for c in ("MOTOR_FAN", "BUZZER", "PACK_HEAT"):
+    for b in ("A", "B"): ok(all(p.get("const") != c for p in d["pins"][b]), f"{c} must not take a Teensy {b} pin")
+# ESP32 spare GPIO: read-only role, never on flash (6-11), input-only (34-39), strapping (0/2/5/12/15) or the UART pins (1/3/16/17)
+for p in d["pins"]["E"]:
+    if "spare" in p["use"]:
+        g = int(str(p["pin"]).replace("GPIO", ""))
+        ok(p["wire"] is None and "read-only" in p["use"], f"ESP32 GPIO{g} spare must be unwired, read-only role")
+        ok(g not in (0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17) and g < 34, f"ESP32 GPIO{g} is not an output-safe spare")
+# A:24 = reserved spare, precharge via Kelly CAN B+ (room DECIDED 2026-10-23); never a plain divider (Sparky)
+a24 = [p for p in d["pins"]["A"] if p["pin"] == 24][0]; s08 = [w for w in d["wires"] if w["id"] == "S08"][0]
+ok("RESERVED" in a24["use"] and "Kelly CAN B+" in a24["use"] and "never a plain" in a24["use"].lower() and a24["wire"] is None and a24["tier"] == "LATER", "A:24 must be a reserved spare (Kelly CAN B+ precharge), never a plain divider")
+ok("NOT FITTED" in s08["from"] and s08["tier"] == "LATER" and not s08["dia"], "S08 must be NOT FITTED / LATER with no diagram wire")
+bl = (R / "BACKLOG.md").read_text()
+ok("[CRITICAL s4] Precharge + weld check via Kelly CAN B+" in bl and "[CRITICAL s4] Kelly B+ bench gate" in bl and "Isolated HV bus sense" not in bl, "BACKLOG: Kelly B+ precharge + bench gate CRITICAL, isolated HV sense entry gone")
 # CAN map
 fc = (R / "include/FlexCanCompat.h").read_text()
 v2 = fc[fc.index("#if CAN_LAYOUT_V2"):]
@@ -96,15 +126,16 @@ idx = dia_index(d); pages = wiring_pages()
 keys = [line_key(p["id"], w) for p in pages for w in p["wires"]]
 for k in keys: ok(k in idx, f"tools/wiring_data.js line {k} has no wire number in PINMAP.yaml")
 for k in idx: ok(k in keys, f"PINMAP.yaml dia {k} matches no drawn line (stale)")
-# schematic/gen.py edges numbered
-gp = R.parent / "schematic/gen.py"
+# tools/schematic/gen.py edges numbered
+gp = R / "tools/schematic/gen.py"   # moved into the repo (Build 18)
+ok(gp.exists(), "tools/schematic/gen.py missing (moved into the repo in Build 18)")
 if gp.exists():
     src = gp.read_text(); body = src.split("\nE = [", 1)[1].split("]\n", 1)[0]
     edges = re.findall(r'\("(\w+)",\s*"(\w+)"\)', body)
-    ok(len(edges) > 50, f"parsed {len(edges)} schematic/gen.py edges")
+    ok(len(edges) > 50, f"parsed {len(edges)} tools/schematic/gen.py edges")
     sk = {s: w["id"] for w in d["wires"] for s in (w.get("schem") or [])}
-    for a, b in edges: ok(f"{a}|{b}" in sk, f"schematic/gen.py edge {a}->{b} has no wire number in PINMAP.yaml")
-    ok('"msd"' not in src and "MSD ~" not in src, "schematic/gen.py still draws the Volt MSD")
+    for a, b in edges: ok(f"{a}|{b}" in sk, f"tools/schematic/gen.py edge {a}->{b} has no wire number in PINMAP.yaml")
+    ok('"msd"' not in src and "MSD ~" not in src, "tools/schematic/gen.py still draws the Volt MSD")
 # generated docs fresh
 sys.path.insert(0, str(R / "tools")); import build_pinmap
 ok((R / "docs/PINMAP.md").read_text() == build_pinmap.pinmap_md(d), "docs/PINMAP.md stale: run tools/build_pinmap.py")
