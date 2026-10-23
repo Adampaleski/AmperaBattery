@@ -11,6 +11,7 @@ run sim_bms "$CXX -std=c++17 -O1 -Iinclude scripts/sim_bms.cpp -o /tmp/rt_sim_bm
 run soc_run "$CXX -std=c++17 -DDUAL_STRING=1 -DTEENSY_ROLE=0 -Iscripts/hoststub -Iinclude -Isrc scripts/test_soc_run.cpp -o /tmp/rt_soc && /tmp/rt_soc"
 run controls "node scripts/test_controls.js"
 run wasm "scripts/build_bms_sim_html.sh >/dev/null && node scripts/check_bms_sim_wasm.js /tmp/bms_sim.wasm > /tmp/rt_wasm_out.log 2>&1; ! grep -q '^FAIL' /tmp/rt_wasm_out.log && grep -c '^PASS' /tmp/rt_wasm_out.log"
+run parts "python3 scripts/check_parts.py"
 [ -f scripts/test_pinmap.py ] && run pinmap "python3 scripts/test_pinmap.py"
 run review_fixes "python3 scripts/test_review_fixes.py"
 if [ -z "$FAST" ]; then
