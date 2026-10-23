@@ -365,7 +365,7 @@ void setup() {
     KellyDecode::begin();
     BmsApp::begin();
     FaultLogRun::begin();  // after Settings (EEPROM) + BmsApp; logs only, no pins
-    SocRun::begin();       // SoC count state; read-only, no pins, no EEPROM
+    SocRun::begin();       // SoC count: restores the saved count (EEPROM 1469..1514), no pins
     HubStatus::begin();  // Serial4 after BmsApp so UART owns pins 16/17
     Watchdog::begin(2000);
     SERIALCONSOLE.println(F("Watchdog: WDOG3 ~2 s, fed from loop()"));

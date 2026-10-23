@@ -1,5 +1,6 @@
 #include "SocRun.h"
 #include <Arduino.h>
+#include <EEPROM.h>
 #include <string.h>
 #include "Config.h"
 #include "StringConfig.h"
@@ -7,6 +8,7 @@
 #include "CurrentSense.h"
 #include "Settings.h"
 #include "SocEstimator.h"
+#include "SocStore.h"
 
 namespace SocRun {
 
@@ -17,13 +19,22 @@ namespace {
 constexpr bool kHaveLemB = false;
 
 BmsCore::Soc g_soc;
+BmsCore::SocStore g_store;
 bool g_started = false;
 bool g_anchorNow = false;
+bool g_restored = false;     // a saved count was loaded at boot
+bool g_anchoredThisBoot = false;
+bool g_wasKnown = false;     // count known at some point this boot (so a loss gets saved as known=0)
+BmsCore::Mode g_prevMode = BmsCore::Mode::Idle;
+
+uint8_t eeRead(int a) { return EEPROM.read(a); }
+void    eeWrite(int a, uint8_t v) { EEPROM.update(a, v); }   // skips unchanged bytes
 
 const char *state() {
     if (!g_started) return "off";
     if (!g_soc.out().known) return "unknown";
-    return g_anchorNow ? "anchored" : "counting";
+    if (g_anchorNow) return "anchored";
+    return (g_restored && !g_anchoredThisBoot) ? "restored" : "counting";
 }
 bool pctOk() { return g_started && kHaveLemB && g_soc.out().pct >= 0; }
 void printQ(Print &out, const char *s) {
@@ -35,7 +46,15 @@ void printQ(Print &out, const char *s) {
 
 void begin() {
     BmsCore::SocConfig c;          // capAh 0 = UNKNOWN (UNVERIFIED)
+    g_store.begin({eeRead, eeWrite});
+    BmsCore::SocSaved sv;
+    g_restored = g_store.load(sv);   // false = blank / bad CRC / known=0: stay UNKNOWN (fail closed)
+    if (g_restored && sv.capAh > 0) c.capAh = sv.capAh;   // learned capacity only, never a guess
     g_soc.reset(c);
+    if (g_restored) g_soc.restore(sv.usedAh, sv.anchorPct);
+    g_wasKnown = g_restored;
+    g_anchoredThisBoot = false;
+    g_prevMode = BmsCore::Mode::Idle;
     g_anchorNow = false;
     g_started = true;
 }
@@ -52,7 +71,21 @@ void tick() {
     si.minCellV = o.minCellV;
     si.lowCutV = Settings::lowCutoffV();
     g_anchorNow = si.atChargeLimit;
-    g_soc.step(si);
+    if (g_anchorNow) g_anchoredThisBoot = true;
+    const BmsCore::SocOut &so = g_soc.step(si);
+    // Persist (SocStore wear rules). Force on the DRIVE/CHARGE -> IDLE edge
+    // (key off / unplugged: BmsCore opens the mains). No KEY-ON pin is read yet,
+    // so this edge is BmsCore's wake, not a power-loss detector (UNVERIFIED gap).
+    const bool sleepEdge = g_prevMode != BmsCore::Mode::Idle && o.mode == BmsCore::Mode::Idle;
+    g_prevMode = o.mode;
+    if (so.known) g_wasKnown = true;
+    if (!g_wasKnown) return;          // never known this boot: nothing to save, no wear
+    BmsCore::SocSaved cur;
+    cur.known = so.known; cur.drift = so.drift;
+    cur.usedAh = so.known ? so.usedAh : 0;
+    cur.anchorPct = so.known ? g_soc.anchorPct() : 100;
+    cur.capAh = g_soc.cfg.capAh;
+    g_store.update(si.nowMs, cur, sleepEdge);
 }
 
 void printStatus() {
@@ -64,6 +97,11 @@ void printStatus() {
     if (s.drift) SERIALCONSOLE.print(F("  DRIFT"));
     SERIALCONSOLE.print(F("  (")); SERIALCONSOLE.print(s.why); SERIALCONSOLE.print(')');
     if (!kHaveLemB) SERIALCONSOLE.print(F("  LEM A only: half bank, socPct held null"));
+    SERIALCONSOLE.print(F("  EEPROM ")); SERIALCONSOLE.print(BmsCore::SocStore::kBase); SERIALCONSOLE.print('-');
+    SERIALCONSOLE.print(BmsCore::SocStore::kEnd - 1);
+    SERIALCONSOLE.print(g_restored ? F(" restored at boot") : F(" nothing restored"));
+    SERIALCONSOLE.print(F(", saves ")); SERIALCONSOLE.print(g_store.writes());
+    if (g_store.limited()) SERIALCONSOLE.print(F(" (limit reached)"));
     SERIALCONSOLE.println();
 }
 
@@ -82,6 +120,8 @@ void printJson(Print &out) {
     out.print(F(",\"why\":")); printQ(out, s.why);
     out.print(F(",\"halfBank\":")); out.print(kHaveLemB ? F("false") : F("true"));
     out.print(F(",\"capAh\":")); if (g_soc.cfg.capAh > 0) out.print(g_soc.cfg.capAh, 1); else out.print(F("null"));
+    out.print(F(",\"restored\":")); out.print(g_restored ? F("true") : F("false"));
+    out.print(F(",\"saves\":")); out.print(g_store.writes());
     out.print('}');
 }
 #else

@@ -17,7 +17,7 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 | Anchor | When | Notes |
 |---|---|---|
 | Full | Core reports `at charge limit` | P100 = 100 %. At P80 the point is tagged "not true 100 %" and shown as 80 % (linear-map assumption, UNVERIFIED). |
-| Restore | Saved count read back after power-off | `include/SocStore.h` (2026-10-23, host-tested, not wired yet). |
+| Restore | Saved count read back after power-off | `include/SocStore.h`, wired into `src/SocRun.cpp` 2026-10-23 1 PM (host-tested, NOT bench-tested). State shows `restored` until the next anchor. |
 
 ## Losing / doubting the count
 
@@ -31,7 +31,18 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 ## Not done yet
 
 - Go live: CURRENT_SENSE_ENABLE=1 plus LEM B's amps over the A-B link (then `kHaveLemB` in src/SocRun.cpp), and a measured capAh. Until then `socPct` stays null.
-- Wire `include/SocStore.h` into SocRun (restore at boot, save on key-off / power-loss edge). The store itself is done, see below.
+- ~~Wire `include/SocStore.h` into SocRun.~~ Done 2026-10-23 1 PM, see "Firmware persistence" below.
+- Real key-off / power-loss save: read KEY-ON (A:34) and add a 12 V power-loss detect, so the last save isn't up to 0.5 Ah / 60 s old after a hard power pull.
+
+## Firmware persistence (2026-10-23 1 PM, role A dual only)
+
+- Boot: `SocRun::begin()` loads the newest valid slot. Blank, bad CRC, out of range or a saved `known=0` = nothing restored, count stays UNKNOWN (fail closed). A learned capAh in the record is restored too; otherwise capAh stays 0 (UNVERIFIED).
+- Running: `SocRun::tick()` passes the live count to SocStore every loop. Wear rules (PLACEHOLDER): write when it moved >= 0.5 Ah and >= 60 s since the last write, or when known/drift/capAh changed, max 120 writes per boot. Forced write on BmsCore's DRIVE/CHARGE -> IDLE edge (mains opening at key-off or unplug).
+- A boot that never had a known count writes nothing (no wear).
+- Losing current for more than 2 s makes the count UNKNOWN and that is saved as `known=0`, so a stale count can't come back after the next reboot. Today CURRENT_SENSE_ENABLE=0, so a restored count goes UNKNOWN 2 s after boot.
+- Gap (UNVERIFIED): no KEY-ON pin and no power-loss detect are read yet, so a hard power pull keeps only the last periodic save. Ah used while the BMS is off are assumed zero (not measured).
+- Serial `p` shows the EEPROM range, restored yes/no and saves this boot. Hub frame `soc` object gains `restored` and `saves`.
+- Host checks: `scripts/test_soc_run.cpp` 14/14 (key-off save, reboot restore, loss saved as unknown, corrupt EEPROM, no wear on a never-known boot).
 - ~~Simulator page SoC readout.~~ Done 2026-10-20 (see below).
 
 ## Simulator page (sim only)
