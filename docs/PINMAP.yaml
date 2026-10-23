@@ -169,8 +169,8 @@ connectors:  # part: id in docs/PARTS.yaml (null = no catalogued part; reported 
   - {id: KELLY-J, part: controller, what: "Kelly KLS-8080N signal connector", pins: "3 throttle · 7 KSI/PWR · 11 12 V out · 15 Foot_SW · 22 ECO · 2 Brake_AN", status: UNVERIFIED, src: "KLS-8080N V2.11 / HC V2.14 manuals via docs/ESTOP.md:18, wiring_data.js CONFLICTS; Adam's harness unread"}
   - {id: ESTOP, part: [estop_head, estop_blocks], what: "XB5AS8442 (or XB4BS8442) head + 2x ZBE102 = 3 NC blocks", pins: "each block: terminals 11 (in) / 12 (out), NC", status: SOURCED, src: "docs/ESTOP.md; se.com XB5AS8442 page (1 NC in head)"}
   - {id: EBOX-DT, part: deutsch, what: "Electronics box Deutsch DT harness connector", pins: "UNDEFINED — pin-out not assigned yet", status: UNDEFINED, src: "tools/schematic/gen.py 'dt'"}
-  - {id: TB-5V, part: null, what: "5 V terminal block", pins: "Teensy A VIN, Teensy B VIN, transceivers? (SN65 run on 3.3 V from each Teensy), LEM 5 V, pedal 5 V, clamp chips", status: PROPOSED, src: "tools/wiring_data.js power12/clamp"}
-  - {id: TB-GND, part: null, what: "GND terminal block (single point)", pins: "all LV grounds", status: SOURCED, src: "tools/schematic/gen.py 'gnd'"}
+  - {id: TB-5V, part: lv_tb, what: "5 V terminal block", pins: "Teensy A VIN, Teensy B VIN, transceivers? (SN65 run on 3.3 V from each Teensy), LEM 5 V, pedal 5 V, clamp chips", status: PROPOSED, src: "tools/wiring_data.js power12/clamp"}
+  - {id: TB-GND, part: lv_tb, what: "GND terminal block (single point)", pins: "all LV grounds", status: SOURCED, src: "tools/schematic/gen.py 'gnd'"}
 
 fuses:
   - {id: F-MAIN, part: fuse_main, where: "DC-DC 12 V out", rating: "TBD — Sparky sizes it (TDC-JH-144-12 = 110 A out, SOURCED crew 2026-10-23)", status: PROPOSED, src: "Sparky 2026-10-22"}

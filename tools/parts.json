@@ -5,7 +5,7 @@
   "generator": "/workspace/teryx/tools_parts/build_parts.py (writes AmperaBattery/docs/PARTS.yaml + PARTS.md)",
   "keying": "parts is a mapping keyed by stable snake_case id; diagram_ids = DERIVED from the explicit part: tags in the repo tooling (wiring:<page>/<node> = tools/wiring_data.js node {part:}, schem:<block> = tools/schematic/gen.py PART, pinmap:connector/<id> and pinmap:fuse/<id> = docs/PINMAP.yaml part:, cutsheet:<sheet> = tools/cutsheets.json id/also_parts); pinmap_refs = docs/PINMAP.yaml wire/fuse/connector/bus ids; checked both ways by scripts/check_parts.py",
   "source": "docs/PARTS.yaml",
-  "count": 123,
+  "count": 124,
   "conflicts": [
    "coil_fet",
    "tablet"
@@ -3595,6 +3595,40 @@
     "S01",
     "S02",
     "S03"
+   ],
+   "superseded_by": null,
+   "owned": "no",
+   "cost": null
+  },
+  "lv_tb": {
+   "category": "lv",
+   "name": "LV distribution terminal blocks — 5 V rail (TB-5V) + single-point GND (TB-GND)",
+   "maker": "UNKNOWN",
+   "model": "UNKNOWN (type/position count not chosen; barrier or DIN terminal block PROPOSED)",
+   "qty": 2,
+   "status": "UNVERIFIED (not on any cash ledger; may be in perfboard_kit stock)",
+   "tier": "CRITICAL",
+   "specs": [
+    "TB-5V: Teensy A VIN, Teensy B VIN, LEM 5 V, pedal 5 V, clamp chips (SOURCED docs/PINMAP.yaml TB-5V; fed from buck_drok via F-BUCK)",
+    "TB-GND: single-point ground for all LV grounds (SOURCED docs/PINMAP.yaml TB-GND; tools/schematic/gen.py 'gnd')",
+    "Position count = rows in PINMAP TB-5V/TB-GND plus spares (PROPOSED)"
+   ],
+   "source": [
+    "AmperaBattery/docs/PINMAP.yaml connectors TB-5V / TB-GND",
+    "tools/schematic/gen.py N['gnd']"
+   ],
+   "verified": "no",
+   "open_questions": [
+    "Which terminal block, how many positions, already on hand?"
+   ],
+   "diagram_ids": [
+    "schem:gnd",
+    "pinmap:connector/TB-5V",
+    "pinmap:connector/TB-GND"
+   ],
+   "pinmap_refs": [
+    "TB-5V",
+    "TB-GND"
    ],
    "superseded_by": null,
    "owned": "no",

@@ -72,7 +72,7 @@ PART = {
  "x1": "sn65", "x2": "sn65", "x3": "sn65", "x4": "sn65", "x5": "sn65", "x6": "sn65", "bo": "bicm_total",
  "drv": ["coil_driver", "cd_flyback"], "clamp": ["digipot", "analog_switch", "oneshot", "buffer"], "ped": "pedal",
  "pk": "park_switch", "low": "eco_relay", "es1": "estop_blocks", "es2": "estop_blocks", "es3": "estop_blocks",
- "rly": "aux_relay", "auxb": "aux_button", "hvs": "teensy", "lfan": "motor_fan", "lbuz": "io_expander",  # hvs = Teensy A:24 reserved spare; hv_sense (AMC1311EVM) dropped/not fitted
+ "rly": "aux_relay", "auxb": "aux_button", "hvs": "teensy", "gnd": "lv_tb", "lfan": "motor_fan", "lbuz": "io_expander",  # hvs = Teensy A:24 reserved spare; hv_sense (AMC1311EVM) dropped/not fitted
 }
 assert not set(PART) - set(N), set(PART) - set(N)
 E = [("s1","f"),("s2","f"),("s3","f"),("s4","f"),("f","bus"),("bus","evp"),("evp","kel"),("pre","evp"),("pres","pre"),

@@ -43,7 +43,7 @@ else:
     for k, v in ast.literal_eval(m.group(1)).items():
         exists.add(f"schem:{k}"); tags[f"schem:{k}"] = ids(v)
     # every drawn schematic block must be in PART, or be a known non-part block (headers, rails, legend)
-    SCHEM_NONPART = {"hvhdr", "lvhdr", "b12", "v5", "gnd", "pu", "load", "leg"}
+    SCHEM_NONPART = {"hvhdr", "lvhdr", "b12", "v5", "pu", "load", "leg"}
     nb = re.search(r"^N = \{(.*?)^\}", g, re.S | re.M)
     pk = ast.literal_eval(m.group(1))
     for b in (re.findall(r'"(\w+)":\s*\(', nb.group(1)) if nb else []):

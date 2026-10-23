@@ -172,8 +172,8 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | KELLY-J | Motor controller — KLS8080 NPS, 168 V, 550 A (+ high-speed option, anti-slip, all add-ons) [`controller`] | Kelly KLS-8080N signal connector | 3 throttle · 7 KSI/PWR · 11 12 V out · 15 Foot_SW · 22 ECO · 2 Brake_AN | UNVERIFIED | KLS-8080N V2.11 / HC V2.14 manuals via docs/ESTOP.md:18, wiring_data.js CONFLICTS; Adam's harness unread |
 | ESTOP | E-stop mushroom head (1 NC incl.) — XB4BS8442 (PROPOSED; alternate XB5AS8442) [`estop_head`]; E-stop extra NC blocks — ZBE102 [`estop_blocks`] | XB5AS8442 (or XB4BS8442) head + 2x ZBE102 = 3 NC blocks | each block: terminals 11 (in) / 12 (out), NC | SOURCED | docs/ESTOP.md; se.com XB5AS8442 page (1 NC in head) |
 | EBOX-DT | Deutsch DT kit + crimper — Amazon B0DZ331GDL (217 pc) [`deutsch`] | Electronics box Deutsch DT harness connector | UNDEFINED — pin-out not assigned yet | UNDEFINED | tools/schematic/gen.py 'dt' |
-| TB-5V | — (no catalogued part) | 5 V terminal block | Teensy A VIN, Teensy B VIN, transceivers? (SN65 run on 3.3 V from each Teensy), LEM 5 V, pedal 5 V, clamp chips | PROPOSED | tools/wiring_data.js power12/clamp |
-| TB-GND | — (no catalogued part) | GND terminal block (single point) | all LV grounds | SOURCED | tools/schematic/gen.py 'gnd' |
+| TB-5V | LV distribution terminal blocks — 5 V rail (TB-5V) + single-point GND (TB-GND) — UNKNOWN (type/position count not chosen; barrier or DIN terminal block PROPOSED) [`lv_tb`] | 5 V terminal block | Teensy A VIN, Teensy B VIN, transceivers? (SN65 run on 3.3 V from each Teensy), LEM 5 V, pedal 5 V, clamp chips | PROPOSED | tools/wiring_data.js power12/clamp |
+| TB-GND | LV distribution terminal blocks — 5 V rail (TB-5V) + single-point GND (TB-GND) — UNKNOWN (type/position count not chosen; barrier or DIN terminal block PROPOSED) [`lv_tb`] | GND terminal block (single point) | all LV grounds | SOURCED | tools/schematic/gen.py 'gnd' |
 
 ## Fuses
 
