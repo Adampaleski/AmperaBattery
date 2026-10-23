@@ -1395,7 +1395,7 @@
    ],
    "diagram_ids": [
     "wiring:kelly/fet",
-    "cutsheet:irlb"
+    "cutsheet:irlb3813"
    ],
    "pinmap_refs": [
     "S20"
@@ -3438,7 +3438,7 @@
    ],
    "parent": "coil_driver",
    "diagram_ids": [
-    "cutsheet:irlb"
+    "cutsheet:irlb8721"
    ],
    "pinmap_refs": [
     "S01",

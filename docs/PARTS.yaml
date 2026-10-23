@@ -1226,7 +1226,7 @@ parts:
     - Are IRLB8721s in hand?
     diagram_ids:
     - wiring:kelly/fet
-    - cutsheet:irlb
+    - cutsheet:irlb3813
     pinmap_refs:
     - S20
     superseded_by: null
@@ -2965,7 +2965,7 @@ parts:
     - 'How many IRLB8721 does Adam actually have? (coil_fet CONFLICT: cash lists IRLB3813PBF to-buy, 8721 discontinued)'
     parent: coil_driver
     diagram_ids:
-    - cutsheet:irlb
+    - cutsheet:irlb8721
     pinmap_refs:
     - S01
     - S02

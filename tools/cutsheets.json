@@ -187,11 +187,25 @@
   },
   {
    "id": "cd_fet",
-   "also_parts": [
-    "coil_fet"
+   "cutsheet": "irlb8721",
+   "name": "Infineon IRLB8721PbF logic FET (coil-driver Q-B+ / Q-PRE / Q-B−; discontinued / end of life)",
+   "mfr": "Infineon (ex International Rectifier)",
+   "doc": "IRLB8721PbF datasheet (IR 04/2009, doc 97390)",
+   "url": "https://www.infineon.com/assets/row/public/documents/24/49/infineon-irlb8721-datasheet-en.pdf",
+   "sha": "8a313aecdd1e7725",
+   "specs": [
+    "30 V VDSS, ±20 V VGS max, 62 A ID @TC 25 °C (VGS 10 V), 65 W, TO-220AB pinout G-D-S (datasheet p.1)",
+    "RDS(on) max 8.7 mΩ @VGS 10 V / 16 mΩ @VGS 4.5 V; VGS(th) 1.35–2.35 V (typ 1.80 V); Ciss 1077 pF typ (datasheet p.2)",
+    "Product status: discontinued / END OF LIFE (infineon.com/part/IRLB8721, fetched 2026-10-23)",
+    "RDS(on) is not specified below VGS 4.5 V: 3.3 V Teensy gate drive is UNVERIFIED — bench the coil pull-in (Sparky 05:31)"
    ],
-   "cutsheet": "irlb",
-   "name": "Infineon IRLB3813 logic FET (coil drivers; IRLB8721 discontinued)",
+   "page": "https://www.infineon.com/part/IRLB8721",
+   "kw": "IRLB8721"
+  },
+  {
+   "id": "coil_fet",
+   "cutsheet": "irlb3813",
+   "name": "Infineon IRLB3813 logic FET (coil_fet Q4-Q6 cash-ledger to-buy; NOT the coil-driver FET — that is IRLB8721, cutsheet:irlb8721)",
    "mfr": "Infineon",
    "doc": "IRLB3813PbF datasheet",
    "url": "https://www.infineon.com/assets/row/public/documents/24/49/infineon-irlb3813-datasheet-en.pdf?fileId=5546d462533600a4015356603cfe258b",
