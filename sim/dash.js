@@ -115,9 +115,9 @@ const CSS=`
 .tdash .simp{border:2px dashed var(--amb);border-radius:14px;padding:8px 12px;display:flex;flex-direction:column;gap:8px;font-size:18px}
 .tdash .simp .sh{display:flex;align-items:center;gap:12px;color:var(--amb);font-weight:600;letter-spacing:.06em}.tdash .simp .sh span{flex:1}
 .tdash .simp.col .sb{display:none}.tdash .simp .sr{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.tdash .simp button{min-height:44px;border:0;border-radius:10px;background:#2c2c2e;color:var(--tx);font:inherit;font-size:18px;padding:0 12px;cursor:pointer;touch-action:manipulation}
+.tdash .simp button{min-height:calc(44px*var(--tnk,1));min-width:calc(44px*var(--tnk,1));border:0;border-radius:10px;background:#2c2c2e;color:var(--tx);font:inherit;font-size:18px;padding:0 12px;cursor:pointer;touch-action:manipulation}
 .tdash .simp button.on{background:var(--tx);color:#000}.tdash .simp button.go{background:var(--grn);color:#000}.tdash .simp button.red{background:#5a1a1d}
-.tdash .simp label{display:flex;align-items:center;gap:6px;color:var(--mut)}.tdash .simp input[type=range]{width:170px}.tdash .simp b{min-width:56px;color:var(--tx);font-variant-numeric:tabular-nums;font-weight:500}
+.tdash .simp label{display:flex;align-items:center;gap:6px;color:var(--mut)}.tdash .simp input[type=range]{width:170px;min-height:calc(44px*var(--tnk,1))}.tdash .simp b{min-width:56px;color:var(--tx);font-variant-numeric:tabular-nums;font-weight:500}
 .tdash .simp .ro{font-variant-numeric:tabular-nums;color:var(--tx);display:flex;flex-wrap:wrap;gap:4px 18px}.tdash .simp .ro span{color:var(--mut)}
 .tdash.charging:not(.splitOn) .home{display:none}
 .tdash,.tdash *{box-sizing:border-box}.tdash .dock,.tdash .toast{flex:none}.tdash.full .stage{overflow:auto}
@@ -243,7 +243,7 @@ function create(root,opt){
   const SEC=TeryxDash_SEC;
   const sim=opt.simPanel||null;
   const simHtml=!sim?'':`<div class="simp${localStorage.getItem('teryxSimPanelCol')==='1'?' col':''}" data-f="simp"><div class="sh"><span>SIMULATOR · fake inputs, not the Teryx</span><button data-f="simcol">${localStorage.getItem('teryxSimPanelCol')==='1'?'Show ▾':'Hide ▴'}</button></div>
-    <div class="sb"><div class="sr">${sim.hostKey?'':'<button data-sc="key" data-f="skey">Key: OFF</button><button data-sc="plug" data-f="splug">Plug in</button>'}
+    <div class="sb">${sim.hostKey?'':'<div class="sr seng"><span data-f="seng">Sim engine: waiting for the Sim tab…</span><button data-f="sengb" title="Run the simulator inside this page (use this on a phone: iOS pauses background tabs)">Run sim in this page</button><button data-f="sengf" title="Show the full simulator controls over the dash">Full sim controls</button></div>'}<div class="sr">${sim.hostKey?'':'<button data-sc="key" data-f="skey">Key: OFF</button><button data-sc="plug" data-f="splug">Plug in</button>'}
       <button data-sc="park" data-f="spark" class="pkb" title="Parking brake (2 contacts + Kelly Foot_SW interlock): Kelly disabled while set">Ⓟ Park brake</button><button data-sc="neut" data-f="sneut" title="F/N/R selector">F/N/R</button><button data-sc="phone" data-f="sphone" title="PROPOSED/UNVERIFIED: future ESP32 Bluetooth phone key, read-only, outside every safety path. Simulated input only.">📱 Phone nearby</button><button data-sc="estop" data-f="sestop" class="red" title="Simulated e-stop button: latches; release it, then key off and on">E-stop</button><span data-drive-lock><button data-sc="dpin" data-f="sdpin" title="PROPOSED, off by default: throttle blocked after wake until phone nearby or PIN entered. Changing it needs the PIN or the phone.">PIN to Drive: off</button></span>
       <label>Throttle <input type="range" min="0" max="100" value="0" data-sv="thr"><b data-f="sv_thr">0 %</b></label>
       <label>Brake <input type="range" min="0" max="100" value="0" data-sv="brk"><b data-f="sv_brk">0 %</b></label>
@@ -486,6 +486,8 @@ function create(root,opt){
     h.querySelectorAll('[data-vk]').forEach(e=>e.onchange=()=>{const k=e.dataset.vk,row=VS.find(r=>r[0]===k),v=+e.value,P2=veh.get();
       if(!confirm(`Change ${row[1]} from ${P2[k]} to ${v} ${row[2]}?`)){e.value=typeof P2[k]==='boolean'?+P2[k]:P2[k];return;}veh.set(k,typeof VD[k]==='boolean'?!!v:v);});}
   vehBuild();
+  // Build 15: phones have no hover, so tapping a warning light shows what it means (same text as the mouse tooltip)
+  D.querySelectorAll('.tt i[title]').forEach(i=>i.addEventListener('click',()=>toast((i.classList.contains('on')?'On · ':'Off · ')+i.title)));
   // sim quick panel: only when the host passes opt.simPanel (inside the sim, or dash.html?src=sim)
   if(sim){const send=(c,v)=>sim.send(c,v);let drag={};
     F('simcol').onclick=()=>{const c=F('simp').classList.toggle('col');localStorage.setItem('teryxSimPanelCol',c?'1':'0');F('simcol').textContent=c?'Show ▾':'Hide ▴';};

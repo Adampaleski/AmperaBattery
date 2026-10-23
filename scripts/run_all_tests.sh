@@ -15,5 +15,6 @@ run review_fixes "python3 scripts/test_review_fixes.py"
 if [ -z "$FAST" ]; then
   run wiring_crossings "python3 scripts/test_wiring_crossings.py"
   run dash_ui "python3 scripts/test_dash_ui.py"
+  run iphone "python3 scripts/test_iphone.py"
 fi
 exit $fail

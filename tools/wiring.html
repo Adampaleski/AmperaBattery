@@ -17,7 +17,9 @@ table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}th,td{b
 .pp{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);background:#121417;border-left:1px solid var(--line);z-index:20;overflow:auto;padding:14px;transform:translateX(105%);transition:transform .2s}.pp.on{transform:none}.pp a{color:#8ab4ff;word-break:break-all}.pp ul{padding-left:18px}.tb{display:inline-block;border-radius:9px;padding:0 7px;font-size:11px;font-weight:700;margin-left:6px}.tb.CRITICAL{background:#4a1416;color:#ff8a8d}.tb.LATER{background:#2a2d33;color:#8a9099}.miss{color:var(--amb,#d6a33a);font-weight:700}
 ol.steps{padding-left:22px}ol.steps li{margin:6px 0;cursor:pointer}ol.steps h4{margin:10px 0 2px}.n.hl rect{stroke:#ffd60a!important;stroke-width:4}.st{font-size:11px;font-weight:700}.st.S{color:#30d158}.st.P,.st.U{color:var(--red)}
 .box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:12px;font-size:13px}
-@media (max-width:700px){nav{order:3;flex-basis:100%}.view{height:auto;aspect-ratio:var(--ar);min-height:300px}}
+@media (max-width:700px){nav{order:3;flex-basis:100%}.view{height:auto;width:100%;aspect-ratio:var(--ar);min-height:240px}}
+.pp:not(.on){visibility:hidden}html,body{overflow-x:clip}
+@media (pointer:coarse){nav a,header>a{display:inline-flex;align-items:center;min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.zb button{min-width:44px;min-height:44px}}
 @media print{header nav,.zb,button,.pp{display:none}body{background:#fff;color:#000}.view{height:auto;border:none;background:#fff}.view svg{height:auto}
 .n rect{fill:#fff;stroke:#000}.n text,.wl{fill:#000;stroke:none}.n.r text.t0,.wl.r,.bad{fill:#c00;color:#c00}.w{stroke:#000}.w.r,.n.r rect{stroke:#c00}.jd{fill:#000}th,td{border-color:#999;color:#000}.grid{display:none}.box{background:#fff;color:#000}}
 </style></head><body><style id="tnav-css">
@@ -31,7 +33,19 @@ ol.steps{padding-left:22px}ol.steps li{margin:6px 0;cursor:pointer}ol.steps h4{m
 #tnav .lbl{margin-left:auto;padding-left:calc(10px*var(--k));color:#5f6368;font-size:calc(11px*var(--k));font-weight:400}
 body>header{top:calc(48px*var(--tnk,1) + env(safe-area-inset-top))!important}
 @media print{#tnav{display:none}}
-</style><div id="tnav" role="navigation" aria-label="Pages"><a href="index.html" target="teryx_sim">Sim</a><a href="dash.html?src=sim" target="teryx_dash">Dash</a><a href="wiring.html" class="on" aria-current="page">Wiring</a><a href="checklist.html">Checklist</a><span class="lbl">Build 14 · f5403b9 · Oct 22 6:48 PM CT</span></div><script>/* keep the bar thumb-sized when the browser shows the page zoomed out (dash fit-to-screen); measured at load/rotate only, not on pinch */
+/* Build 15 phone rules (all 4 pages): no double-tap zoom on controls, thumb-sized controls on touch screens,
+   room for the iPhone notch / home bar (safe-area insets; needs viewport-fit=cover). */
+a,button,input,select,textarea,label,summary,[role=button],[data-sc],[data-sv]{touch-action:manipulation}
+@media (pointer:coarse){
+ body button,body select,body summary,body [role=button]{min-height:calc(44px*var(--tnk,1))!important;min-width:calc(44px*var(--tnk,1))!important}
+ body input[type=range]{min-height:calc(44px*var(--tnk,1))!important}
+ body input[type=number],body input[type=text],body input[type=password],body input[type=search],body textarea{min-height:calc(44px*var(--tnk,1))!important;font-size:max(16px,1em)} /* 16px stops iOS zooming in when a box is tapped */
+ body input[type=checkbox],body input[type=radio]{min-width:22px;min-height:22px}
+}
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom)}
+@media (max-width:560px){#tnav{flex-wrap:wrap;height:auto;min-height:calc(48px*var(--k));white-space:normal;overflow-x:visible}
+ #tnav .lbl{flex-basis:100%;margin-left:0;padding:0 0 calc(4px*var(--k)) calc(4px*var(--k))}}
+</style><div id="tnav" role="navigation" aria-label="Pages"><a href="index.html" target="teryx_sim">Sim</a><a href="dash.html?src=sim" target="teryx_dash">Dash</a><a href="wiring.html" class="on" aria-current="page">Wiring</a><a href="checklist.html">Checklist</a><span class="lbl">dev</span></div><script>/* keep the bar thumb-sized when the browser shows the page zoomed out (dash fit-to-screen); measured at load/rotate only, not on pinch */
 (function(){function k(){const v=window.visualViewport,sc=v&&v.scale>0?v.scale:1;document.documentElement.style.setProperty('--tnk',String(Math.max(1,Math.min(4,1/sc))));}
  k();addEventListener('load',()=>{k();setTimeout(k,600);});addEventListener('orientationchange',()=>setTimeout(k,100));})();</script><header><h1>Teryx EV · Wiring aid</h1><nav id="nav"></nav><button id="crit">Critical only ✓</button><button id="partsb">Parts</button><button onclick="print()">Print</button><a href="dash.html" style="color:var(--mut);font-size:13px">Dash</a><a href="checklist.html" style="color:var(--mut);font-size:13px;margin-left:10px">Checklist</a></header>
 <main id="m"></main><aside class="pp" id="pp"></aside><script>// Teryx EV wiring aid data. Status: S=SOURCED (docs/Config.h), P=PROPOSED, U=UNVERIFIED. Red = P or U.

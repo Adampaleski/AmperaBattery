@@ -20,6 +20,11 @@ header{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.86);backdrop-filte
 .tab.on{color:var(--tx);background:var(--card2)}
 .clock{font-variant-numeric:tabular-nums;color:var(--dim);font-size:18px;white-space:nowrap}
 main{max-width:1500px;margin:0 auto;padding:20px 20px 120px}
+/* Build 15 phones: header wraps (tabs become a swipeable strip, Plug/Park/Key on their own row) so the page fits the screen */
+@media(max-width:1000px){.bar{flex-wrap:wrap;gap:8px;padding:6px 10px}.tabs{order:3;flex:1 1 100%;justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+ .tabs .tab{flex:0 0 auto;min-height:44px;padding:8px 14px}.hkey{flex:1 1 auto;padding:0 12px}.clock{display:none}
+ .seg{flex-wrap:wrap;max-width:100%}.controls{flex-wrap:wrap}table.io,table.set{display:block;max-width:100%;overflow-x:auto}#pctc{min-width:0!important}
+ #dashHost .tdash .gear{gap:8px;font-size:22px;flex-wrap:wrap}#dashHost .tdash{max-width:100%;overflow-x:hidden}}
 section{display:none;animation:fade .35s var(--ease)} section.on{display:block}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .card{background:var(--card);border-radius:var(--r);padding:20px;margin-bottom:16px}
@@ -162,6 +167,18 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
 #tnav .lbl{margin-left:auto;padding-left:calc(10px*var(--k));color:#5f6368;font-size:calc(11px*var(--k));font-weight:400}
 body>header{top:calc(48px*var(--tnk,1) + env(safe-area-inset-top))!important}
 @media print{#tnav{display:none}}
+/* Build 15 phone rules (all 4 pages): no double-tap zoom on controls, thumb-sized controls on touch screens,
+   room for the iPhone notch / home bar (safe-area insets; needs viewport-fit=cover). */
+a,button,input,select,textarea,label,summary,[role=button],[data-sc],[data-sv]{touch-action:manipulation}
+@media (pointer:coarse){
+ body button,body select,body summary,body [role=button]{min-height:calc(44px*var(--tnk,1))!important;min-width:calc(44px*var(--tnk,1))!important}
+ body input[type=range]{min-height:calc(44px*var(--tnk,1))!important}
+ body input[type=number],body input[type=text],body input[type=password],body input[type=search],body textarea{min-height:calc(44px*var(--tnk,1))!important;font-size:max(16px,1em)} /* 16px stops iOS zooming in when a box is tapped */
+ body input[type=checkbox],body input[type=radio]{min-width:22px;min-height:22px}
+}
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom)}
+@media (max-width:560px){#tnav{flex-wrap:wrap;height:auto;min-height:calc(48px*var(--k));white-space:normal;overflow-x:visible}
+ #tnav .lbl{flex-basis:100%;margin-left:0;padding:0 0 calc(4px*var(--k)) calc(4px*var(--k))}}
 </style><div id="tnav" role="navigation" aria-label="Pages"><a href="index.html" class="on" aria-current="page">Sim</a><a href="dash.html?src=sim" target="teryx_dash">Dash</a><a href="wiring.html">Wiring</a><a href="checklist.html">Checklist</a><span class="lbl">dev</span></div><script>/* keep the bar thumb-sized when the browser shows the page zoomed out (dash fit-to-screen); measured at load/rotate only, not on pinch */
 (function(){function k(){const v=window.visualViewport,sc=v&&v.scale>0?v.scale:1;document.documentElement.style.setProperty('--tnk',String(Math.max(1,Math.min(4,1/sc))));}
  k();addEventListener('load',()=>{k();setTimeout(k,600);});addEventListener('orientationchange',()=>setTimeout(k,100));})();</script>
@@ -583,9 +600,9 @@ const CSS=`
 .tdash .simp{border:2px dashed var(--amb);border-radius:14px;padding:8px 12px;display:flex;flex-direction:column;gap:8px;font-size:18px}
 .tdash .simp .sh{display:flex;align-items:center;gap:12px;color:var(--amb);font-weight:600;letter-spacing:.06em}.tdash .simp .sh span{flex:1}
 .tdash .simp.col .sb{display:none}.tdash .simp .sr{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.tdash .simp button{min-height:44px;border:0;border-radius:10px;background:#2c2c2e;color:var(--tx);font:inherit;font-size:18px;padding:0 12px;cursor:pointer;touch-action:manipulation}
+.tdash .simp button{min-height:calc(44px*var(--tnk,1));min-width:calc(44px*var(--tnk,1));border:0;border-radius:10px;background:#2c2c2e;color:var(--tx);font:inherit;font-size:18px;padding:0 12px;cursor:pointer;touch-action:manipulation}
 .tdash .simp button.on{background:var(--tx);color:#000}.tdash .simp button.go{background:var(--grn);color:#000}.tdash .simp button.red{background:#5a1a1d}
-.tdash .simp label{display:flex;align-items:center;gap:6px;color:var(--mut)}.tdash .simp input[type=range]{width:170px}.tdash .simp b{min-width:56px;color:var(--tx);font-variant-numeric:tabular-nums;font-weight:500}
+.tdash .simp label{display:flex;align-items:center;gap:6px;color:var(--mut)}.tdash .simp input[type=range]{width:170px;min-height:calc(44px*var(--tnk,1))}.tdash .simp b{min-width:56px;color:var(--tx);font-variant-numeric:tabular-nums;font-weight:500}
 .tdash .simp .ro{font-variant-numeric:tabular-nums;color:var(--tx);display:flex;flex-wrap:wrap;gap:4px 18px}.tdash .simp .ro span{color:var(--mut)}
 .tdash.charging:not(.splitOn) .home{display:none}
 .tdash,.tdash *{box-sizing:border-box}.tdash .dock,.tdash .toast{flex:none}.tdash.full .stage{overflow:auto}
@@ -711,7 +728,7 @@ function create(root,opt){
   const SEC=TeryxDash_SEC;
   const sim=opt.simPanel||null;
   const simHtml=!sim?'':`<div class="simp${localStorage.getItem('teryxSimPanelCol')==='1'?' col':''}" data-f="simp"><div class="sh"><span>SIMULATOR · fake inputs, not the Teryx</span><button data-f="simcol">${localStorage.getItem('teryxSimPanelCol')==='1'?'Show ▾':'Hide ▴'}</button></div>
-    <div class="sb"><div class="sr">${sim.hostKey?'':'<button data-sc="key" data-f="skey">Key: OFF</button><button data-sc="plug" data-f="splug">Plug in</button>'}
+    <div class="sb">${sim.hostKey?'':'<div class="sr seng"><span data-f="seng">Sim engine: waiting for the Sim tab…</span><button data-f="sengb" title="Run the simulator inside this page (use this on a phone: iOS pauses background tabs)">Run sim in this page</button><button data-f="sengf" title="Show the full simulator controls over the dash">Full sim controls</button></div>'}<div class="sr">${sim.hostKey?'':'<button data-sc="key" data-f="skey">Key: OFF</button><button data-sc="plug" data-f="splug">Plug in</button>'}
       <button data-sc="park" data-f="spark" class="pkb" title="Parking brake (2 contacts + Kelly Foot_SW interlock): Kelly disabled while set">Ⓟ Park brake</button><button data-sc="neut" data-f="sneut" title="F/N/R selector">F/N/R</button><button data-sc="phone" data-f="sphone" title="PROPOSED/UNVERIFIED: future ESP32 Bluetooth phone key, read-only, outside every safety path. Simulated input only.">📱 Phone nearby</button><button data-sc="estop" data-f="sestop" class="red" title="Simulated e-stop button: latches; release it, then key off and on">E-stop</button><span data-drive-lock><button data-sc="dpin" data-f="sdpin" title="PROPOSED, off by default: throttle blocked after wake until phone nearby or PIN entered. Changing it needs the PIN or the phone.">PIN to Drive: off</button></span>
       <label>Throttle <input type="range" min="0" max="100" value="0" data-sv="thr"><b data-f="sv_thr">0 %</b></label>
       <label>Brake <input type="range" min="0" max="100" value="0" data-sv="brk"><b data-f="sv_brk">0 %</b></label>
@@ -954,6 +971,8 @@ function create(root,opt){
     h.querySelectorAll('[data-vk]').forEach(e=>e.onchange=()=>{const k=e.dataset.vk,row=VS.find(r=>r[0]===k),v=+e.value,P2=veh.get();
       if(!confirm(`Change ${row[1]} from ${P2[k]} to ${v} ${row[2]}?`)){e.value=typeof P2[k]==='boolean'?+P2[k]:P2[k];return;}veh.set(k,typeof VD[k]==='boolean'?!!v:v);});}
   vehBuild();
+  // Build 15: phones have no hover, so tapping a warning light shows what it means (same text as the mouse tooltip)
+  D.querySelectorAll('.tt i[title]').forEach(i=>i.addEventListener('click',()=>toast((i.classList.contains('on')?'On · ':'Off · ')+i.title)));
   // sim quick panel: only when the host passes opt.simPanel (inside the sim, or dash.html?src=sim)
   if(sim){const send=(c,v)=>sim.send(c,v);let drag={};
     F('simcol').onclick=()=>{const c=F('simp').classList.toggle('col');localStorage.setItem('teryxSimPanelCol',c?'1':'0');F('simcol').textContent=c?'Show ▾':'Hide ▴';};
@@ -1687,6 +1706,21 @@ function simCurves(){const c=S.cfg,k=S.kcfg,d=S.dcfg,w=S.kellyWhy,pts=(a,b,f)=>{
     {name:'LEM imbalance',unit:'|A−B| A',x0:0,x1:200,now:S.lemDiffA,act:w==='LEM imbalance',pts:pts(0,200,x=>x>d.imbalanceA?d.imbalancePct:100)},
     {name:'Discharge amps',unit:'A',x0:0,x1:800,now:Math.abs(S.packA),act:w==='discharge amps',pts:pts(0,800,a=>(k.maxDischargeA<=0||a<=k.maxDischargeA)?100:100*k.maxDischargeA/a)}];}
 const setSl=(id,v)=>{$(id).value=v;$(id).dispatchEvent(new Event('input'));};
+// Build 15: in-page engine for phones. dash.html?src=sim loads this page hidden as index.html?embed=1 when no Sim tab
+// answers (iOS Safari freezes background tabs). Embedded: status goes to the parent page only (no BroadcastChannel),
+// commands come from the parent, and PIN pads / pop-ups are shown by the parent dash (touch-friendly), not in this hidden frame.
+const EMBED=new URLSearchParams(location.search).get('embed')==='1'&&window.parent!==window;
+function embedInit(){remoteDrive=true;const up=m=>{try{parent.postMessage(m,'*');}catch(e){}};let padId=0;const pads={};
+  TeryxPad.open=o=>{const id=++padId;pads[id]=o;up({teryxPad:{id,title:o.title,note:o.note||''}});return null;};
+  TeryxPad.isOpen=()=>Object.keys(pads).length>0;
+  TeryxPad.close=()=>{Object.keys(pads).forEach(id=>{delete pads[id];up({teryxPadClose:+id});});};
+  TeryxPad.toast=m=>up({teryxToast:String(m)});
+  addEventListener('message',async e=>{if(e.source!==parent)return;const m=e.data||{};
+    if(m.teryxCmd&&m.teryxCmd.cmd){remoteDrive=true;simCmd(m.teryxCmd.cmd,m.teryxCmd.v);}
+    else if(m.teryxPadEnter){const {id,pin}=m.teryxPadEnter,o=pads[id];if(!o){up({teryxPadResult:{id,err:''}});return;}
+      let r=o.onEnter(pin);if(r&&r.then)r=await r;if(!r)delete pads[id];up({teryxPadResult:{id,err:r||''}});}
+    else if(m.teryxPadCancel!=null){const o=pads[m.teryxPadCancel];delete pads[m.teryxPadCancel];if(o&&o.onCancel)o.onCancel();}});
+  up({teryxEngine:'hello'});}
 // Sim quick panel commands (dash panel inside the sim, or dash.html?src=sim over BroadcastChannel 'teryx-dash-cmd')
 function simCmd(c,v){
   const gear=g0=>{const [g,pin]=String(g0).split(':');if(TeryxLock.locked()&&pin==null&&!(keyOn&&(g==='KID'||cGear==='KID'))){dashToast(TeryxLock.msg());return;}requestMode(g,pin===undefined?undefined:pin);};
@@ -1738,7 +1772,7 @@ function simStatus(lo,hi,Q,est,closed){
     simInfo:{phoneKey:$('phonek').checked,driveLocked:TeryxLock.locked(),estop:!!S.estop,estopPressed:!!S.estopPressed,pinToDrive:$('dpin').checked,driveOk:!pinLocked,pinOk:pinOkNow(),
       block:{drive:blockReasons('drive'),wake:blockReasons('wake'),shift:blockReasons('shift'),setting:blockReasons('setting')},notice:{n:noticeN,text:noticeText},padReq:{n:padReqN},modeMsg,parkBrake:$('cpark').checked,neutral:$('cneut').checked,parked:!!PK.S.parked,key:keyOn,plug:plugOn,gear:cGear,gradePct:VP.gradePct,speed,weld:$('welded').checked,cycleSel:dcSel,cycleOn:!!dc,cycleTxt:dc?`${dc.name}: ${dc.label||''} ${(100*dc.t/dc.len).toFixed(0)} %`:(dcLast?dcLast.name+' ended: '+dcLast.why:''),cycles:Object.entries(DRIVE_CYCLES).map(([k,p])=>[k,p.name])}};
 }
-function pushDash(st){if(!dashC)dashC=TeryxDash.create($('dashHost'),{hostLock:true,simControls:true,simPanel:{send:simCmd,hostKey:true},
+function pushDash(st){if(EMBED){try{parent.postMessage(st,'*');}catch(e){}doorPulse=false;return;}if(!dashC)dashC=TeryxDash.create($('dashHost'),{hostLock:true,simControls:true,simPanel:{send:simCmd,hostKey:true},
     veh:{get:()=>VP,set:(k,v)=>{VP[k]=v;try{localStorage.setItem('teryxVehSettings',JSON.stringify(VP));}catch(e){}ulog('Vehicle setting '+k+' = '+v);if($('vn_'+k))$('vn_'+k).value=+v;}},
     onFan:on=>{$('ld_fan').checked=on;$('ld_fan').dispatchEvent(new Event('change'));},
     onGear:g=>{if(Math.abs(cSpd)>1&&(g==='R')!==(cGear==='R'))return 'Stop first to change into or out of reverse';if(TeryxLock.locked()&&!(keyOn&&(g==='KID'||cGear==='KID'))){TeryxLock.prompt();return '';}requestMode(g);return '';},onControl:(t)=>ulog('Controls: '+t),onSeat:(k,lv)=>{seatLv[k]=lv;ulog(`Seat heater ${k} ${['off','Low','Med','High'][lv]}`);},
@@ -1929,7 +1963,7 @@ function wire(){
   X=instance.exports;X._initialize();flLoad();X.sim_reset();
   buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireCycle();wireSettings();wireVeh();wireThr();$('dwake').onclick=()=>{if(dashC)dashC.wake('sim Wake button');};$('ddoor').onclick=()=>{doorPulse=true;ulog('Door / button input (PROPOSED pin)');};
   {const L=+localStorage.getItem('teryxChargeLimit');if(L>=50&&L<=100){$('pct').value=L;$('pct').dispatchEvent(new Event('input'));}}$('dashWin').onclick=()=>{dashW=window.open(location.href.replace(/bms_sim\.html.*$|index\.html.*$/,'dash.html')+'?src=sim','teryxdash');};loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
-  try{new BroadcastChannel('teryx-dash-cmd').onmessage=e=>{const m=e.data||{};if(m.cmd){remoteDrive=true;simCmd(m.cmd,m.v);}};}catch(e){}
+  if(EMBED)embedInit();else try{new BroadcastChannel('teryx-dash-cmd').onmessage=e=>{const m=e.data||{};if(m.cmd){remoteDrive=true;simCmd(m.cmd,m.v);}};}catch(e){}
   if(location.hash){const t=document.querySelector(`.tab[data-t="${location.hash.slice(1)}"]`);if(t)t.click();}
 })();
 </script></body></html>

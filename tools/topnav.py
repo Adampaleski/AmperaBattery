@@ -14,6 +14,18 @@ CSS = """<style id="tnav-css">
 #tnav .lbl{margin-left:auto;padding-left:calc(10px*var(--k));color:#5f6368;font-size:calc(11px*var(--k));font-weight:400}
 body>header{top:calc(48px*var(--tnk,1) + env(safe-area-inset-top))!important}
 @media print{#tnav{display:none}}
+/* Build 15 phone rules (all 4 pages): no double-tap zoom on controls, thumb-sized controls on touch screens,
+   room for the iPhone notch / home bar (safe-area insets; needs viewport-fit=cover). */
+a,button,input,select,textarea,label,summary,[role=button],[data-sc],[data-sv]{touch-action:manipulation}
+@media (pointer:coarse){
+ body button,body select,body summary,body [role=button]{min-height:calc(44px*var(--tnk,1))!important;min-width:calc(44px*var(--tnk,1))!important}
+ body input[type=range]{min-height:calc(44px*var(--tnk,1))!important}
+ body input[type=number],body input[type=text],body input[type=password],body input[type=search],body textarea{min-height:calc(44px*var(--tnk,1))!important;font-size:max(16px,1em)} /* 16px stops iOS zooming in when a box is tapped */
+ body input[type=checkbox],body input[type=radio]{min-width:22px;min-height:22px}
+}
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom)}
+@media (max-width:560px){#tnav{flex-wrap:wrap;height:auto;min-height:calc(48px*var(--k));white-space:normal;overflow-x:visible}
+ #tnav .lbl{flex-basis:100%;margin-left:0;padding:0 0 calc(4px*var(--k)) calc(4px*var(--k))}}
 </style>"""
 JS = """<script>/* keep the bar thumb-sized when the browser shows the page zoomed out (dash fit-to-screen); measured at load/rotate only, not on pinch */
 (function(){function k(){const v=window.visualViewport,sc=v&&v.scale>0?v.scale:1;document.documentElement.style.setProperty('--tnk',String(Math.max(1,Math.min(4,1/sc))));}
