@@ -17,7 +17,7 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 | Anchor | When | Notes |
 |---|---|---|
 | Full | Core reports `at charge limit` | P100 = 100 %. At P80 the point is tagged "not true 100 %" and shown as 80 % (linear-map assumption, UNVERIFIED). |
-| Restore | Saved count read back after power-off | Needs backlog item 5 (fault/state log that survives power-off). |
+| Restore | Saved count read back after power-off | `include/SocStore.h` (2026-10-23, host-tested, not wired yet). |
 
 ## Losing / doubting the count
 
@@ -31,7 +31,7 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 ## Not done yet
 
 - Go live: CURRENT_SENSE_ENABLE=1 plus LEM B's amps over the A-B link (then `kHaveLemB` in src/SocRun.cpp), and a measured capAh. Until then `socPct` stays null.
-- Persist used Ah + anchor at power-off (item 5).
+- Wire `include/SocStore.h` into SocRun (restore at boot, save on key-off / power-loss edge). The store itself is done, see below.
 - ~~Simulator page SoC readout.~~ Done 2026-10-20 (see below).
 
 ## Simulator page (sim only)
@@ -50,3 +50,14 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 - Hub frame: `bms.socPct` comes from SocRun but stays **null** while the count is half the bank (LEM B not shared, `halfBank:true`) or capAh is unknown. Optional key `"soc":{available,known,state,usedAh,pct,drift,why,halfBank,capAh}`; off role A `{"available":false}`.
 - With CURRENT_SENSE_ENABLE=0 the count only runs on the bench `I<amps>` dry-run.
 - Host check: `g++ -std=c++17 -DDUAL_STRING=1 -DTEENSY_ROLE=0 -Iscripts/hoststub -Iinclude -Isrc scripts/test_soc_run.cpp -o /tmp/tsr && /tmp/tsr` (5 checks).
+
+## Saving the count at power-off (2026-10-23, store only, not wired)
+
+`include/SocStore.h` keeps the count in EEPROM 1469..1514, right after DriveStore. It uses two ping-pong slots, each with magic `SOC1`, a sequence number, used Ah, anchor %, learned capAh, the known and drift flags, and a CRC-16.
+
+- Boot restores the newest valid slot. A blank slot, a bad CRC or an out-of-range value restores nothing, so the count stays UNKNOWN until the next full-charge anchor (fail closed).
+- Power pulled mid-write only damages the slot being written, so the previous count comes back.
+- When the count goes UNKNOWN (current lost), it writes known=0, so a stale count can never come back after a reboot.
+- Wear (PLACEHOLDER): it writes on the key-off / power-loss edge, or after 0.5 Ah moved and at least 60 s since the last write, at most 120 writes per boot. Identical records are skipped.
+- UNVERIFIED: it assumes no unmetered Ah flows while the BMS is off (self-discharge and 12 V draw not measured), and Teensy emulated-EEPROM endurance is unverified.
+- 16 host checks in `scripts/test_soc_store.cpp`, part of `scripts/run_all_tests.sh`.
