@@ -13,6 +13,7 @@ run controls "node scripts/test_controls.js"
 run wasm "scripts/build_bms_sim_html.sh >/dev/null && node scripts/check_bms_sim_wasm.js /tmp/bms_sim.wasm > /tmp/rt_wasm_out.log 2>&1; ! grep -q '^FAIL' /tmp/rt_wasm_out.log && grep -c '^PASS' /tmp/rt_wasm_out.log"
 run parts "python3 scripts/check_parts.py"
 run boards "python3 scripts/check_boards.py"
+run layout "python3 scripts/check_layout.py"
 [ -f scripts/test_pinmap.py ] && run pinmap "python3 scripts/test_pinmap.py"
 run review_fixes "python3 scripts/test_review_fixes.py"
 if [ -z "$FAST" ]; then
@@ -21,5 +22,6 @@ if [ -z "$FAST" ]; then
   run iphone "python3 scripts/test_iphone.py"
   run perfboard "python3 scripts/test_perfboard.py"
   run perfboard_edit "python3 scripts/test_perfboard_edit.py"
+  run layout_ui "python3 scripts/test_layout.py"
 fi
 exit $fail

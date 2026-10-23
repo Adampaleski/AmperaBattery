@@ -1,0 +1,326 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Teryx EV · Layout</title><style>
+:root{--bg:#0b0c0e;--card:#141619;--line:#26292e;--tx:#e8eaed;--mut:#8a9099;--acc:#3e6ae1;--red:#ff5c5c;--ok:#30d158;--warn:#ffd60a}
+*{box-sizing:border-box}html,body{overflow-x:clip}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 -apple-system,system-ui,"Inter","Segoe UI",Roboto,sans-serif}
+#hd{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 12px;border-bottom:1px solid var(--line)}
+#hd .ttl{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 260px}#hd .ttl b{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{font-size:11px;font-weight:600;letter-spacing:.02em;padding:2px 7px;border-radius:9px;border:1px solid var(--line);color:var(--mut);white-space:nowrap}
+.chip.P{color:var(--red);border-color:#5a2a2a}.chip.ok{color:var(--ok);border-color:#1f4d2c}.chip.bad{color:var(--red);border-color:#5a2a2a}.chip.lc{color:var(--warn);border-color:#4d4420}
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+button,select,input{font:inherit;font-size:13px;color:#c9ccd1;background:transparent;border:1px solid var(--line);border-radius:8px;height:30px;padding:0 10px;cursor:pointer}
+select{padding:0 6px;max-width:190px}input{cursor:text;background:#101215}button:active{background:#1c1e22}
+button.on{color:#fff;border-color:var(--acc);background:#16213d}button:disabled{opacity:.35;cursor:default}
+.seg{display:inline-flex}.seg button{border-radius:0}.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0}.seg button+button{margin-left:-1px}
+.sep{width:1px;height:20px;background:var(--line)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 340px;height:calc(100vh - 48px - 48px - env(safe-area-inset-top));min-height:420px}
+#view{position:relative;overflow:hidden;touch-action:none;background:#08090b;border-right:1px solid var(--line)}
+#sv{width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#hint{position:absolute;left:10px;bottom:8px;font-size:12px;color:var(--mut);pointer-events:none;background:#0b0c0ecc;padding:2px 6px;border-radius:6px}
+#zb{position:absolute;right:8px;top:8px;display:flex;gap:4px}#zb button{width:30px;padding:0;background:#0b0c0ecc}
+aside{overflow:auto;padding:10px 12px 40px;font-size:13px}aside h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px;font-weight:600}
+aside .box{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:var(--card)}
+aside ul{margin:4px 0;padding-left:18px}aside li{margin:2px 0}.e{color:var(--red)}.w{color:var(--warn)}.mut{color:var(--mut)}a{color:#8ab4ff}
+.pins{width:100%;border-collapse:collapse}.pins td{padding:2px 4px;border-bottom:1px solid var(--line);vertical-align:middle}.pins select{height:26px;font-size:12px;max-width:150px}
+#addf{display:none}#addf.on{display:block}#addf label{display:block;margin:4px 0;color:var(--mut)}#addf select,#addf input{width:100%;max-width:none}
+/* svg (model inches) */
+.body{fill:#121418;stroke:#4a5058;stroke-width:.35}.hood{fill:none;stroke:#3a3f46;stroke-width:.25}.whl{fill:#2a2d33;stroke:#5f6670;stroke-width:.25}
+.seat{fill:#1b1e24;stroke:#4a5058;stroke-width:.25}.bed{fill:none;stroke:#5f6670;stroke-width:.3;stroke-dasharray:1 .6}.rail{stroke:#3a4048;stroke-width:1.2;stroke-linecap:round}
+.axl{stroke:#3a3f46;stroke-width:.25;stroke-dasharray:.8 .8}.dash{stroke:#6f7782;stroke-width:.6}
+.vl{fill:#6f7782;font-size:1.6px;font-family:ui-monospace,Menlo,monospace;pointer-events:none}.vl.big{font-size:2.2px;font-weight:700;fill:#8a9099}
+.zn{pointer-events:none}.zn.keepout rect{fill:url(#hatch);stroke:#ff5c5c;stroke-width:.2;stroke-dasharray:.6 .4;opacity:.75}.zn.area rect{fill:#ffffff06;stroke:#6f7782;stroke-width:.15;stroke-dasharray:1 .8}
+.zn.cab rect{fill:rgba(191,90,242,.07);stroke:#bf5af2;stroke-width:.25;stroke-dasharray:1.2 .6}.zn text{font-size:1.25px;fill:#ff8f8f;paint-order:stroke;stroke:#08090b;stroke-width:.3}.zn.area text{fill:#8a9099}.zn.cab text{fill:#d9a8f5}
+.blk rect.bd{stroke-width:.25;cursor:move}.blk.HV rect.bd{fill:rgba(255,92,92,.16);stroke:#ff6b6b}.blk.LV rect.bd{fill:rgba(100,210,255,.13);stroke:#64d2ff}
+.blk.kid rect.bd{stroke-dasharray:.5 .3}.blk.later rect.bd{opacity:.55;stroke-dasharray:1 .5}.blk.sel rect.bd{stroke:var(--warn);stroke-width:.5}.blk.msel rect.bd{stroke:#30d158;stroke-width:.5}
+.bl{font-size:1.25px;font-weight:700;fill:#f2f3f5;paint-order:stroke;stroke:#0b0c0e;stroke-width:.35;pointer-events:none}.bl2{font-size:.95px;fill:#b8bec6;paint-order:stroke;stroke:#0b0c0e;stroke-width:.3;pointer-events:none}
+.term{fill:#e8eaed;stroke:#0b0c0e;stroke-width:.12;pointer-events:none}
+.run{fill:none;stroke-linecap:round;stroke-linejoin:round}.run.HV{stroke:#ff9f0a}.run.LV{stroke:#64d2ff}.run.later{stroke-dasharray:1.2 .8;opacity:.6}.run.sel{stroke:var(--warn)!important}.run.msel{stroke:#30d158!important}
+.rhit{fill:none;stroke:transparent;stroke-width:1.6;cursor:pointer}.rl{font-size:.95px;fill:#e8eaed;paint-order:stroke;stroke:#08090b;stroke-width:.35;pointer-events:none}
+.vh{fill:#0b0c0e;stroke:var(--warn);stroke-width:.25;cursor:move}.vh.ms{stroke:#30d158}
+.wx{fill:none;stroke:var(--red);stroke-width:.35;pointer-events:none}.sb line{stroke:#e8eaed;stroke-width:.3}.sb text{fill:#e8eaed;font-size:1.3px}
+.wm{fill:var(--red);opacity:.22;font-size:6px;font-weight:800;letter-spacing:.3px;pointer-events:none}
+.selwin,.selcross{pointer-events:none}.selwin{fill:rgba(62,106,225,.13);stroke:#5b8cff;stroke-width:.25}.selcross{fill:rgba(48,209,88,.12);stroke:#30d158;stroke-width:.25;stroke-dasharray:.9 .6}
+#ctx{position:absolute;z-index:5;display:flex;flex-direction:column;gap:2px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px #000b}#ctx[hidden]{display:none}#ctx button{text-align:left;white-space:nowrap;touch-action:manipulation}
+.rt{width:100%;border-collapse:collapse;font-size:12px}.rt td,.rt th{padding:2px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.rt th{color:var(--mut);font-weight:600}.rt td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rt tr.HV td:first-child{border-left:3px solid #ff9f0a}.rt tr.LV td:first-child{border-left:3px solid #64d2ff}.rt tr{cursor:pointer}.rt tr.on td{background:#1c1e22}
+.lab{font-size:10px;font-weight:700;padding:0 4px;border-radius:5px;border:1px solid var(--line);color:var(--mut)}.lab.ASSUMED{color:#ffcf8a}.lab.SOURCED{color:var(--ok)}.lab.PROPOSED{color:#8ab4ff}.lab.DECIDED{color:#30d158}.lab.OPEN{color:var(--red)}.lab.EST{color:var(--warn)}
+#scl input{width:90px}#scl select{max-width:150px}
+@media (max-width:820px){main{grid-template-columns:1fr;height:auto}#view{height:62vh;border-right:0;border-bottom:1px solid var(--line)}aside{max-height:none}}
+@media (pointer:coarse){#scl input,#scl select{min-height:44px}
+ /* 44 px hit areas that stay invisible: a transparent 7 px border pads the slim 30 px pill out to 44 px */
+ #hd .tools{gap:0 2px}#hd .tools button,#zb button,#ctx button,#scl button{border:7px solid transparent!important;background-clip:padding-box;box-shadow:inset 0 0 0 1px var(--line);border-radius:15px}
+ #hd .tools button.on{box-shadow:inset 0 0 0 1px var(--acc)}#hd .seg button{border-left-width:0!important;border-right-width:0!important;border-radius:0}
+ #hd .seg button:first-child{border-left-width:7px!important;border-radius:15px 0 0 15px}#hd .seg button:last-child{border-right-width:7px!important;border-radius:0 15px 15px 0}#hd .seg button+button{margin-left:0}
+ #zb{gap:0}#zb button{width:44px;padding:0}#ctx{padding:0}}
+@media print{#hd .tools,#zb,aside{display:none}main{display:block;height:auto}#view{height:90vh}}
+</style></head><body>@@TOPNAV@@
+<header id="hd"><div class="ttl"><b id="bt">Layout</b><span id="st" class="chip"></span><span id="sc" class="chip lc"></span><span id="ck" class="chip"></span><span id="lc" class="chip lc" hidden>local edits</span></div>
+<div class="tools"><span class="seg"><button id="mSel" class="on">Select</button><button id="mBox" title="Window select: drag left→right = window (inside only), right→left = crossing (touching)">Window</button></span>
+<button id="bend" disabled title="Add a bend to the selected run">+ Bend</button><button id="lat" class="on" title="Show 4p-end-state / LATER items">LATER</button>
+<span class="sep"></span><button id="exp">Export JSON</button><button id="csv">Cut list CSV</button><button id="rst">Reset</button></div></header>
+<main><div id="view"><svg id="sv" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="hatch" width="1.6" height="1.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.6" height="1.6" fill="rgba(255,92,92,.06)"/><line x1="0" y1="0" x2="0" y2="1.6" stroke="rgba(255,92,92,.35)" stroke-width=".35"/></pattern></defs>
+<g id="gV"></g><g id="gZ"></g><g id="gB"></g><g id="gR"></g><g id="gX"></g><g id="gD"></g></svg>
+<div id="zb"><button id="zi" aria-label="Zoom in">+</button><button id="zo" aria-label="Zoom out">−</button><button id="zf" aria-label="Fit">⤢</button></div><div id="hint"></div><div id="ctx" hidden></div></div>
+<aside id="side"><div id="selb"></div><h3>Check</h3><div id="chk" class="box"></div>
+<h3>Scale to a measured reference</h3><div id="scl" class="box"></div>
+<h3>Runs · lengths</h3><div id="runs" class="box"></div>
+<h3>Measurements to take</h3><div id="meas" class="box"></div>
+<h3>Zones</h3><div id="zones" class="box"></div>
+<h3>Vehicle dimensions (one config)</h3><div id="dims" class="box"></div>
+<h3>Notes</h3><div id="notes" class="box"></div>
+<p class="mut">Top-down, front to the left, passenger (right) side at the top. Model units are inches from the published Teryx 750 dims (ASSUMED) — every length is <b>ESTIMATED</b> until one tape measurement is entered above. Drag blocks (boxes carry what is inside them; run ends follow their terminals), drag a run's bends, or the whole run. Window: drag left→right to pick what is fully inside, right→left to pick what it touches; drag the picked set to stretch. Right-click or long-press a run to add a bend, a bend to delete it. Pinch or scroll to zoom, drag the background to pan. Edits stay in this browser (localStorage) until you Export JSON and commit it as <code>docs/layout/teryx.layout.json</code>; <code>scripts/check_layout.py</code> runs the same check as this page.</p></aside></main>
+<script>/*DATA*/</script><script>
+"use strict";
+const NS="http://www.w3.org/2000/svg",$=id=>document.getElementById(id),LAYOUTS=window.LAYOUTS,PARTS=window.PARTS||{},PMW=window.PM_WIRES||{};
+const LABELS=["SOURCED","ASSUMED","PROPOSED","UNVERIFIED","DECIDED","OPEN"],FUSE_MARKER="reachable from above, tool-only cover";
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e}
+const f1=x=>(Math.floor(x*10+.5)/10).toFixed(1),hyp=Math.hypot,lab=l=>`<span class="lab ${esc(l)}">${esc(l)}</span>`;
+// ---- model (identical to scripts/check_layout.py)
+function scaleK(L){const s=L.scale||{},d=(L.dims||{})[s.ref||""],m=s.measured_in;return d&&typeof m==="number"&&m>0&&d.v?m/d.v:1}
+function vehicle(dims){const D={};for(const k in dims)D[k]=dims[k].v;const Lx=D.overall_length,Wy=D.overall_width,cy=Wy/2,fa=D.front_overhang,ra=fa+D.wheelbase,td=D.tire_dia,wheels=[];
+ for(const [ax,tw,tr,nm] of [[fa,D.tire_w_front,D.track_front,"front"],[ra,D.tire_w_rear,D.track_rear,"rear"]])for(const [sd,sg] of [["passenger",-1],["driver",1]])wheels.push({name:`${nm} ${sd}`,x:ax-td/2,y:cy+sg*tr/2-tw/2,w:td,h:tw});
+ const sw=D.seat_width,sdp=D.seat_depth,sx=D.seat_x0,cw=D.console_width;
+ const seats=[{name:"passenger",x:sx,y:cy-cw/2-sw,w:sdp,h:sw},{name:"driver",x:sx,y:cy+cw/2,w:sdp,h:sw}];for(const s of seats)s.reach_from=[s.x+s.w/2,s.y+s.h/2];
+ const bed={x:Lx-D.bed_rear_gap-D.bed_length,y:cy-D.bed_width/2,w:D.bed_length,h:D.bed_width};
+ const cab={id:"cab",name:"cab",kind:"cab",x:D.dash_x,y:D.cab_margin,w:D.cab_x1-D.dash_x,h:Wy-2*D.cab_margin};
+ const rails=[-1,1].map(sg=>({x0:D.rail_x0,x1:D.rail_x1,y:cy+sg*D.rail_spacing/2}));
+ return {length:Lx,width:Wy,cy,axles:[fa,ra],wheels,seats,bed,cab,rails,dash_x:D.dash_x}}
+const BY=L=>Object.fromEntries((L.blocks||[]).map(b=>[b.id,b]));
+function termXY(L,ref,by){const i=String(ref).indexOf("."),bid=i<0?ref:ref.slice(0,i),t=i<0?"":ref.slice(i+1),b=(by||BY(L))[bid];if(!b||!(b.terms||{})[t])return null;const [fx,fy]=b.terms[t];return [b.x+fx*b.w,b.y+fy*b.h]}
+function runPts(L,r,by){const a=termXY(L,r.from,by),b=termXY(L,r.to,by);if(!a||!b)return null;return [a,...(r.pts||[]).map(p=>[p[0],p[1]]),b]}
+const plen=P=>P.slice(1).reduce((s,p,i)=>s+hyp(p[0]-P[i][0],p[1]-P[i][1]),0);
+function lengths(L){const k=scaleK(L),sl=L.slack||{},pct=(sl.pct||{}).v||0,pe=(sl.per_end_in||{}).v||0,by=BY(L),out=[];
+ for(const r of L.runs||[]){const P=runPts(L,r,by);if(!P)continue;const ln=plen(P)*k,cut=ln*(1+pct/100)+2*pe;out.push({id:r.id,type:r.type,gauge:r.gauge||"",n:r.n||1,len:ln,cut,total:cut*(r.n||1)})}return out}
+function totals(L){const t={};for(const x of lengths(L)){const a=t[x.type]=t[x.type]||{len:0,cut:0,runs:0};a.len+=x.len*x.n;a.cut+=x.total;a.runs++}return t}
+function segRect(a,b,x0,y0,x1,y1){let t0=0,t1=1;const dx=b[0]-a[0],dy=b[1]-a[1];
+ for(const [p,q] of [[-dx,a[0]-x0],[dx,x1-a[0]],[-dy,a[1]-y0],[dy,y1-a[1]]]){if(p===0){if(q<0)return false}else{const t=q/p;if(p<0){if(t>t1)return false;t0=Math.max(t0,t)}else{if(t<t0)return false;t1=Math.min(t1,t)}}}return true}
+const rectOverlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
+function segX(a,b,c,d){const r=[b[0]-a[0],b[1]-a[1]],s=[d[0]-c[0],d[1]-c[1]],den=r[0]*s[1]-r[1]*s[0];if(Math.abs(den)<1e-9)return null;
+ const t=((c[0]-a[0])*s[1]-(c[1]-a[1])*s[0])/den,u=((c[0]-a[0])*r[1]-(c[1]-a[1])*r[0])/den;return t>=-1e-9&&t<=1+1e-9&&u>=-1e-9&&u<=1+1e-9?[a[0]+t*r[0],a[1]+t*r[1]]:null}
+function ptSeg(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy,t=l2===0?0:Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l2)),q=[a[0]+t*dx,a[1]+t*dy];return [hyp(p[0]-q[0],p[1]-q[1]),q]}
+function segSeg(a,b,c,d){let best=null;for(const [p,s0,s1] of [[a,c,d],[b,c,d],[c,a,b],[d,a,b]]){const [dd,q]=ptSeg(p,s0,s1);if(best===null||dd<best[0])best=[dd,[(p[0]+q[0])/2,(p[1]+q[1])/2]]}return best}
+function angle(a,b,c,d){const u=Math.atan2(b[1]-a[1],b[0]-a[0]),v=Math.atan2(d[1]-c[1],d[0]-c[0]),x=Math.abs((u-v)*180/Math.PI)%180;return Math.min(x,180-x)}
+const inRect=(p,b,m)=>b.x-m<=p[0]&&p[0]<=b.x+b.w+m&&b.y-m<=p[1]&&p[1]<=b.y+b.h+m;
+function checkLayout(L){const E=[],W=[],k=scaleK(L),RU=L.rules||{},rv=(n,d)=>(RU[n]||{}).v!==undefined?RU[n].v:d;
+ const gap=rv("hv_lv_gap_in",2),tol=rv("cross_tol_deg",10),p01max=rv("p01_max_in",60),fmax=rv("fmain_max_in",7),reach=rv("reach_in",30),marker=rv("fuse_marker",FUSE_MARKER);
+ if(!LABELS.includes(L.status))W.push(`status ${JSON.stringify(L.status)} is not one of the labels`);
+ for(const [n,d] of Object.entries(L.dims||{}))if(!LABELS.includes(d.label))E.push(`dim ${n}: label '${d.label}' is not one of the labels`);
+ const by=BY(L),seen=new Set();
+ for(const b of L.blocks||[]){if(seen.has(b.id))E.push(`duplicate block id ${b.id}`);seen.add(b.id);
+  for(const p of [b.part,...(b.contains||[])])if(!PARTS[p])E.push(`block ${b.id}: part id '${p}' is not in docs/PARTS.yaml`);
+  if(!LABELS.includes(b.label))E.push(`block ${b.id}: label '${b.label}' is not one of the labels`);
+  if(b.v!=="HV"&&b.v!=="LV")E.push(`block ${b.id}: v must be HV or LV`);if(b.in&&!by[b.in])E.push(`block ${b.id}: parent '${b.in}' is not a block`)}
+ for(const z of L.zones||[])if(!LABELS.includes(z.label))E.push(`zone ${z.id}: label '${z.label}' is not one of the labels`);
+ const runs=L.runs||[],RP={},rs=new Set();
+ for(const r of runs){if(rs.has(r.id))E.push(`duplicate run id ${r.id}`);rs.add(r.id);
+  if(r.type!=="HV"&&r.type!=="LV")E.push(`run ${r.id}: type must be HV or LV`);if(!LABELS.includes(r.label))E.push(`run ${r.id}: label '${r.label}' is not one of the labels`);
+  for(const w of r.wires||[])if(!PMW[w])E.push(`run ${r.id}: wire id '${w}' is not in docs/PINMAP.yaml`);
+  if(!(r.wires||[]).length&&!r.no_wire_id)E.push(`run ${r.id}: no PINMAP wire ids (set no_wire_id with the reason)`);
+  for(const e of ["from","to"])if(!termXY(L,r[e]||"",by))E.push(`run ${r.id}: ${e} '${r[e]}' is not a block terminal`);
+  const P=runPts(L,r,by);if(P)RP[r.id]=P}
+ const V=vehicle(L.dims),cab=[V.cab],keep=(L.zones||[]).filter(z=>z.kind==="keepout"),lat=o=>o.later?` (${o.later})`:"";
+ for(const b of L.blocks||[]){
+  if(b.v==="HV"&&!b.in)for(const z of cab)if(rectOverlap(b,z))W.push(`HV in cab: block ${b.id} (${b.name}) is inside the ${z.name} zone${lat(b)}`);
+  if(b.part==="msd"||(b.contains||[]).includes("msd"))W.push(`MSD: block ${b.id} — there is no MSD in this build (DECIDED 2026-10-23: pull the 4 A6T200 string fuses)`);
+  if(b.part==="precharge_res"&&!(b.flags||{}).metal_mount)W.push(`precharge resistor ${b.id} has no metal-mount flag (Sparky: metal mount with airflow)`);
+  if(b.part==="fuse_a6t200"&&b.marker!==marker)W.push(`string fuses ${b.id} must carry the marker '${marker}'`);
+  if(!b.in)for(const z of keep)if(!(z.exempt||[]).includes(b.id)&&rectOverlap(b,z))W.push(`keep-out: block ${b.id} is inside ${z.name}${lat(b)}`)}
+ for(const r of runs){const P=RP[r.id];if(!P)continue;const segs=P.slice(1).map((b,i)=>[P[i],b]);
+  if(r.type==="HV")for(const z of cab)if(segs.some(([a,b])=>segRect(a,b,z.x,z.y,z.x+z.w,z.y+z.h)))W.push(`HV in cab: run ${r.id} passes through the ${z.name} zone${lat(r)}`);
+  for(const z of keep)if(!(z.exempt||[]).includes(r.id)&&segs.some(([a,b])=>segRect(a,b,z.x,z.y,z.x+z.w,z.y+z.h)))W.push(`keep-out: run ${r.id} passes through ${z.name}${lat(r)}`)}
+ const encl=L.blocks||[],inside=p=>encl.some(b=>inRect(p,b,.5));
+ const HV=runs.filter(r=>r.type==="HV"&&RP[r.id]),LV=runs.filter(r=>r.type==="LV"&&RP[r.id]);
+ for(const h of HV)for(const l of LV){let wx=null,wd=null;const A=RP[h.id],C=RP[l.id];
+  for(let i=0;i<A.length-1;i++)for(let j=0;j<C.length-1;j++){const a=A[i],b=A[i+1],c=C[j],d=C[j+1],x=segX(a,b,c,d);
+   if(x){if(inside(x))continue;const an=angle(a,b,c,d);if(Math.abs(90-an)>tol&&(wx===null||an<wx))wx=an;continue}
+   const [dd,mid]=segSeg(a,b,c,d);if(dd*k<gap&&!inside(mid)&&(wd===null||dd<wd))wd=dd}
+  const lt=lat(h)||lat(l);
+  if(wx!==null)W.push(`HV/LV crossing: ${h.id} and ${l.id} cross at ${f1(wx)}° (want 90° ± ${f1(tol)}°)${lt}`);
+  if(wd!==null)W.push(wd*k<.05?`HV/LV loom: ${h.id} and ${l.id} share a segment${lt}`:`HV/LV loom: ${h.id} and ${l.id} run ${f1(wd*k)} in apart (want ≥ ${f1(gap)} in)${lt}`)}
+ for(const x of lengths(L))if(((runs.find(r=>r.id===x.id)||{}).wires||[]).includes("P01")&&x.len>p01max)W.push(`P01: run ${x.id} is ${f1(x.len)} in (over ${f1(p01max)} in / 5 ft)`);
+ const fm=(L.blocks||[]).filter(b=>b.part==="fuse_main"),bt=(L.blocks||[]).filter(b=>b.part==="lv_battery");
+ for(const f of fm)for(const b of bt){const p=termXY(L,f.id+".in",by),q=termXY(L,b.id+".pos",by);if(p&&q){const d=hyp(p[0]-q[0],p[1]-q[1])*k;if(d>fmax)W.push(`F-MAIN: ${f.id} is ${f1(d)} in from the buffer battery + (want ≤ ${f1(fmax)} in)`)}}
+ const es=(L.blocks||[]).filter(b=>b.part==="estop_head");
+ for(const e of es){const c=[e.x+e.w/2,e.y+e.h/2];for(const s of V.seats){const d=hyp(c[0]-s.reach_from[0],c[1]-s.reach_from[1])*k;if(d>reach)W.push(`e-stop ${e.id} is ${f1(d)} in from the ${s.name} seat reach point (want ≤ ${f1(reach)} in, ASSUMED)`)}}
+ if(!fm.length)W.push("F-MAIN: no fuse_main block placed");if(!es.length)W.push("e-stop: no estop_head block placed");
+ return {E,W,RP}}
+// ---- state
+const LID="teryx";let L,R,sel=null,mode="sel",vb=null,ms=null,box=null,lpT=0,showLater=true;
+const LSK=b=>"teryx-layout-"+b,clone=o=>JSON.parse(JSON.stringify(o)),repoTxt=b=>JSON.stringify(LAYOUTS[b]);
+function load(b){let s=null;try{s=JSON.parse(localStorage.getItem(LSK(b))||"null")}catch(_){}
+ L=s&&s.L?s.L:clone(LAYOUTS[b]);$("lc").hidden=!(s&&s.L);if(s&&s.L)$("lc").textContent=s.base===repoTxt(b)?"local edits":"local edits · repo changed";
+ sel=null;ms=null;box=null;setMode("sel");fit();full()}
+function save(){localStorage.setItem(LSK(LID),JSON.stringify({saved:new Date().toISOString(),base:repoTxt(LID),L}));$("lc").hidden=false;$("lc").textContent="local edits"}
+function commit(){save();draw();side()}
+const lenTag=()=>scaleK(L)===1?"ESTIMATED":"SCALED";
+function scaleTxt(){const k=scaleK(L),s=L.scale||{};return k===1?"ESTIMATED — not scaled to a tape measurement":`SCALED to measured ${s.ref} = ${f1(s.measured_in)} in (k = ${k.toFixed(4)})`}
+// ---- drawing
+function drawVehicle(){const g=$("gV");g.innerHTML="";const V=vehicle(L.dims),Lx=V.length,Wy=V.width;
+ const nose=8;el("path",{d:`M${nose},0 H${Lx-2} Q${Lx},0 ${Lx},2 V${Wy-2} Q${Lx},${Wy} ${Lx-2},${Wy} H${nose} Q0,${Wy} 0,${Wy-nose} V${nose} Q0,0 ${nose},0 Z`,class:"body"},g);
+ el("line",{x1:V.dash_x,y1:V.cab.y,x2:V.dash_x,y2:V.cab.y+V.cab.h,class:"dash"},g);
+ for(const r of V.rails)el("line",{x1:r.x0,y1:r.y,x2:r.x1,y2:r.y,class:"rail"},g);
+ for(const a of V.axles)el("line",{x1:a,y1:1,x2:a,y2:Wy-1,class:"axl"},g);
+ for(const w of V.wheels)el("rect",{x:w.x,y:w.y,width:w.w,height:w.h,rx:1.2,class:"whl"},g);
+ for(const s of V.seats){el("rect",{x:s.x,y:s.y,width:s.w,height:s.h,rx:1.5,class:"seat"},g);const t=el("text",{x:s.x+s.w/2,y:s.y+s.h/2+.5,class:"vl","text-anchor":"middle"},g);t.textContent=s.name+" seat"}
+ el("rect",{x:V.bed.x,y:V.bed.y,width:V.bed.w,height:V.bed.h,class:"bed"},g);
+ const T=(x,y,s,c,a)=>{const t=el("text",{x,y,class:"vl"+(c?" "+c:""),"text-anchor":a||"start"},g);t.textContent=s};
+ T(V.bed.x+V.bed.w-1,V.bed.y+V.bed.h-1,"bed (above)","","end");T(V.dash_x+.6,V.cab.y+V.cab.h-.8,"dash");
+ T(0,-1.6,"◀ FRONT","big","start");T(Lx/2,-1.6,"PASSENGER (R) side","big","middle");T(Lx/2,Wy+3,"DRIVER (L) side","big","middle");
+ T(V.axles[0],Wy+1.7,"front axle","","middle");T(V.axles[1],Wy+1.7,"rear axle","","middle");
+ const k=scaleK(L),bar=12/k,sb=el("g",{class:"sb"},g);el("line",{x1:0,y1:Wy+6,x2:bar,y2:Wy+6},sb);el("line",{x1:0,y1:Wy+5.4,x2:0,y2:Wy+6.6},sb);el("line",{x1:bar,y1:Wy+5.4,x2:bar,y2:Wy+6.6},sb);
+ const st=el("text",{x:bar+1,y:Wy+6.5},sb);st.textContent=`12 in (${lenTag()})`;
+ const wm=el("text",{x:Lx,y:Wy+11,class:"wm","text-anchor":"end"},g);wm.textContent=(L.status||"")+" · "+lenTag();
+ const gz=$("gZ");gz.innerHTML="";for(const z of [...(L.zones||[]),V.cab]){const zg=el("g",{class:"zn "+z.kind},gz);el("rect",{x:z.x,y:z.y,width:z.w,height:z.h},zg);
+  const t=el("text",{x:z.x+.4,y:z.kind==="cab"?z.y+1.6:z.y+z.h-.5},zg);t.textContent=(z.kind==="cab"?"CAB ZONE (no HV)":z.name)+" · "+(z.label||"ASSUMED")}}
+function full(){drawVehicle();draw();side()}
+const vis=o=>showLater||!o.later;
+function draw(){R=checkLayout(L);const gB=$("gB"),gR=$("gR"),gX=$("gX");gB.innerHTML=gR.innerHTML=gX.innerHTML="";const by=BY(L),k=scaleK(L);
+ const order=[...(L.blocks||[])].sort((a,b)=>(a.in?1:0)-(b.in?1:0));
+ for(const b of order){if(!vis(b)&&!(b.in&&vis(by[b.in]||{})))continue;const cls=["blk",b.v,b.in?"kid":"",b.later?"later":"",sel&&sel.t==="b"&&sel.id===b.id?"sel":"",ms&&ms.blocks.has(b.id)?"msel":""].join(" ");
+  const g=el("g",{class:cls,"data-blk":b.id},gB);el("rect",{x:b.x,y:b.y,width:b.w,height:b.h,rx:.4,class:"bd"},g);
+  const t=el("text",{x:b.x+.35,y:b.y+1.25,class:"bl"},g);t.textContent=b.id;
+  if(!b.in&&b.h>3){const t2=el("text",{x:b.x+.35,y:b.y+2.4,class:"bl2"},g);t2.textContent=(PARTS[b.part]||{}).name?b.part:b.part}
+  for(const [n,[fx,fy]] of Object.entries(b.terms||{}))el("circle",{cx:b.x+fx*b.w,cy:b.y+fy*b.h,r:.28,class:"term"},g)}
+ for(const r of L.runs||[]){const P=R.RP[r.id];if(!P||!vis(r))continue;const d=P.map(p=>p.join(",")).join(" "),on=sel&&sel.t==="r"&&sel.id===r.id,mm=ms&&ms.runs.has(r.id);
+  const g=el("g",{"data-run":r.id},gR);el("polyline",{points:d,class:"rhit"},g);
+  const sw=r.type==="HV"?(/3\/0|1\/0/.test(r.gauge)?.75:.5):(/2 AWG|16|18/.test(r.gauge)?.32:.22);
+  el("polyline",{points:d,class:["run",r.type,r.later?"later":"",on?"sel":"",mm?"msel":""].join(" "),"stroke-width":sw},g);
+  let best=0,bi=0;for(let i=0;i<P.length-1;i++){const l=hyp(P[i+1][0]-P[i][0],P[i+1][1]-P[i][1]);if(l>best){best=l;bi=i}}
+  const m=[(P[bi][0]+P[bi+1][0])/2,(P[bi][1]+P[bi+1][1])/2],t=el("text",{x:m[0]+.3,y:m[1]-.35,class:"rl"},g);t.textContent=`${r.id} ${f1(plen(P)*k)}″${k===1?" EST":""}`;
+  if(on||mm)(r.pts||[]).forEach((p,i)=>el("circle",{cx:p[0],cy:p[1],r:.45,class:"vh"+(mm&&ms.verts.has(r.id+":"+i)?" ms":""),"data-vh":i,"data-vr":r.id},g))}
+ drawDraft();chips()}
+function drawDraft(){const g=$("gD");g.innerHTML="";if(box){const [a,b]=[box.a,box.b],cr=b[0]<a[0];el("rect",{x:Math.min(a[0],b[0]),y:Math.min(a[1],b[1]),width:Math.abs(b[0]-a[0]),height:Math.abs(b[1]-a[1]),class:cr?"selcross":"selwin"},g)}}
+function chips(){$("st").textContent=L.status||"";$("st").className="chip "+(L.status==="PROPOSED"?"lc":"");
+ $("sc").textContent=lenTag()==="ESTIMATED"?"lengths ESTIMATED":"lengths SCALED";$("sc").className="chip "+(lenTag()==="ESTIMATED"?"lc":"ok");
+ $("ck").textContent=R.E.length?`${R.E.length} error(s)`:`${R.W.length} warning(s)`;$("ck").className="chip "+(R.E.length?"bad":R.W.length?"lc":"ok")}
+// ---- side panel
+function partCard(pid){const p=PARTS[pid];if(!p)return `<div class="e">'${esc(pid)}' is not a PARTS id</div>`;
+ const li=a=>(a||[]).map(x=>`<li>${esc(typeof x==="string"?x:JSON.stringify(x))}</li>`).join("");
+ return `<div><b>${esc(p.name)}</b> <span class="mut">${esc(pid)}</span><br>${esc(p.maker||"")} ${esc(p.model||"")} · qty ${esc(p.qty)} · ${lab(p.status||"")} ${p.tier?`<span class="mut">${esc(p.tier)}</span>`:""}${p.verified?` · verified ${esc(p.verified)}`:""}</div>`+
+  ((p.specs||[]).length?`<ul>${li(p.specs)}</ul>`:"")+((p.open_questions||[]).length?`<div class="w">Open questions</div><ul>${li(p.open_questions)}</ul>`:"")+
+  ((p.source||[]).length?`<div class="mut">Source</div><ul>${(p.source||[]).map(s=>/^https?:/.test(s)?`<li><a href="${esc(s)}" target="_blank" rel="noopener">${esc(s)}</a></li>`:`<li>${esc(s)}</li>`).join("")}</ul>`:"")}
+function selBox(){const s=$("selb"),by=BY(L),k=scaleK(L);if(ms&&(ms.blocks.size||ms.runs.size)){s.innerHTML=`<h3>Selection</h3><div class="box">${ms.kind} pick: ${ms.blocks.size} block(s) ${esc([...ms.blocks].join(", "))}, ${ms.verts.size} bend(s) on ${ms.runs.size} run(s). Drag any picked item to stretch. Esc clears.</div>`;$("bend").disabled=true;return}
+ if(sel&&sel.t==="b"&&by[sel.id]){const b=by[sel.id];
+  s.innerHTML=`<h3>Selected block</h3><div class="box" id="selcard"><b>${esc(b.id)}</b> — ${esc(b.name)} ${lab(b.v)}<br>position ${lab(b.label)} x ${f1(b.x)} y ${f1(b.y)} in · size ${lab(b.size_label||"ASSUMED")} ${f1(b.w*k)} × ${f1(b.h*k)} in${k===1?" (ESTIMATED)":""}${b.in?` · inside <b>${esc(b.in)}</b>`:""}${b.later?` · <span class="w">${esc(b.later)}</span>`:""}`+
+   `<div class="mut">why: ${esc(b.why||"")} · src: ${esc(b.src||"")}</div>`+(b.marker?`<div>marker: <b>${esc(b.marker)}</b></div>`:"")+(b.flags?`<div class="mut">flags: ${esc(Object.entries(b.flags).map(([a,v])=>a+"="+v).join(", "))}</div>`:"")+
+   `<hr style="border:0;border-top:1px solid var(--line)">${partCard(b.part)}${(b.contains||[]).map(c=>`<details><summary>${esc(c)}</summary>${partCard(c)}</details>`).join("")}</div>`;$("bend").disabled=true;return}
+ if(sel&&sel.t==="r"){const r=(L.runs||[]).find(r=>r.id===sel.id),x=lengths(L).find(x=>x.id===sel.id);if(r){
+  s.innerHTML=`<h3>Selected run</h3><div class="box" id="selcard"><b>${esc(r.id)}</b> — ${esc(r.name)} ${lab(r.type)} ${lab(r.label)}<br>${esc(r.gauge)} × ${r.n} · ${esc(r.from)} → ${esc(r.to)}${r.later?` · <span class="w">${esc(r.later)}</span>`:""}<br>length <b>${x?f1(x.len):"?"} in</b> ${lab(lenTag()==="ESTIMATED"?"EST":"SCALED")} · cut ${x?f1(x.cut):"?"} in each (slack incl.)`+
+   (r.note?`<div class="mut">${esc(r.note)}</div>`:"")+(r.no_wire_id?`<div class="w">${esc(r.no_wire_id)}</div>`:"")+
+   `<table class="rt"><tr><th>wire</th><th>from → to</th><th>AWG</th></tr>${(r.wires||[]).map(w=>{const p=PMW[w]||{};return `<tr><td>${esc(w)}</td><td>${esc(p.from||"?")} → ${esc(p.to||"?")}</td><td>${esc(p.awg||"")}</td></tr>`}).join("")}</table></div>`;$("bend").disabled=false;return}}
+ s.innerHTML="";$("bend").disabled=true}
+function side(){selBox();const k=scaleK(L);
+ $("chk").innerHTML=(R.E.length?`<div class="e"><b>${R.E.length} error(s)</b></div><ul>${R.E.map(e=>`<li class="e">${esc(e)}</li>`).join("")}</ul>`:`<div class="ok" style="color:var(--ok)">0 errors</div>`)+
+  (R.W.length?`<div class="w"><b>${R.W.length} rule warning(s)</b></div><ul>${R.W.map(e=>`<li class="w">${esc(e)}</li>`).join("")}</ul>`:`<div class="mut">no rule warnings</div>`)+
+  `<div class="mut">Rules: no HV in the cab · HV/LV ≥ ${f1((L.rules.hv_lv_gap_in||{}).v||2)} in apart, never sharing a segment · HV/LV cross at 90° ± ${f1((L.rules.cross_tol_deg||{}).v||10)}° · P01 ≤ 5 ft · F-MAIN ≤ 7 in from battery + · precharge resistor metal-mounted · string fuses marked '${esc(FUSE_MARKER)}' · no MSD · keep-outs · e-stop reach.</div>`;
+ const s=L.scale||{},dk=Object.keys(L.dims).filter(n=>/overall|wheelbase|bed_|track|tire_dia/.test(n));
+ $("scl").innerHTML=`<div><b>${esc(scaleTxt())}</b></div><div class="tools" style="margin-top:6px"><select id="sref" aria-label="Reference dimension">${dk.map(n=>`<option value="${n}"${n===s.ref?" selected":""}>${n} (model ${f1(L.dims[n].v)} in)</option>`).join("")}</select>`+
+  `<input id="sval" type="number" step="0.1" min="1" inputmode="decimal" placeholder="tape" aria-label="Measured value" value="${s.measured_in?f1(s.measured_in):""}"><select id="sunit" aria-label="Unit"><option value="in">in</option><option value="cm">cm</option></select>`+
+  `<button id="sapp">Apply</button><button id="sclr"${s.measured_in?"":" disabled"}>Clear</button></div><div class="mut">Tape one dimension on the vehicle; k = measured ÷ model, and every length, distance and rule threshold check uses k. ${lab((s.label)||"OPEN")} ${esc(s.note||"")}</div>`;
+ $("sapp").onclick=()=>{const v=parseFloat($("sval").value);if(!(v>0)){alert("Enter the measured value");return}L.scale={...(L.scale||{}),ref:$("sref").value,measured_in:$("sunit").value==="cm"?v/2.54:v,entered:v+" "+$("sunit").value,label:"SOURCED",note:"tape measurement entered on the layout page"};commit();drawVehicle()};
+ $("sclr").onclick=()=>{L.scale={...(L.scale||{}),measured_in:null,label:"OPEN"};delete L.scale.entered;commit();drawVehicle()};
+ const X=lengths(L),T=totals(L),tag=lenTag(),sl=L.slack||{};
+ $("runs").innerHTML=`<table class="rt" id="rtab"><tr><th>run</th><th>gauge × n</th><th class="n">len in</th><th class="n">cut in</th></tr>${X.map(x=>{const r=L.runs.find(r=>r.id===x.id);return `<tr class="${x.type}${sel&&sel.t==="r"&&sel.id===x.id?" on":""}" data-r="${esc(x.id)}"><td>${esc(x.id)}${r.later?` <span class="mut">(${esc(r.later)})</span>`:""}</td><td>${esc(x.gauge)} × ${x.n}</td><td class="n">${f1(x.len)}</td><td class="n">${f1(x.cut)}</td></tr>`}).join("")}</table>`+
+  Object.entries(T).sort().map(([t,a])=>`<div><b>${t}</b>: ${a.runs} runs · ${f1(a.len)} in of conductor (${f1(a.len/12)} ft) · cut with slack <b>${f1(a.cut)} in (${f1(a.cut/12)} ft)</b></div>`).join("")+
+  `<div class="mut">All lengths ${lab(tag==="ESTIMATED"?"EST":"SCALED")} ${tag}. Slack ${lab((sl.pct||{}).label||"")} ${f1((sl.pct||{}).v||0)} % + ${f1((sl.per_end_in||{}).v||0)} in per end ${lab((sl.per_end_in||{}).label||"")}. Cut = length × (1 + slack) + 2 × per-end, per conductor.</div>`;
+ for(const tr of $("rtab").querySelectorAll("tr[data-r]"))tr.onclick=()=>{sel={t:"r",id:tr.dataset.r};ms=null;draw();side()};
+ $("meas").innerHTML=`<ol style="margin:0;padding-left:18px">${MEAS.map(m=>`<li>${m}</li>`).join("")}</ol>`;
+ $("zones").innerHTML=`<ul>${[...(L.zones||[]),{...vehicle(L.dims).cab,label:"ASSUMED",why:"chief: no HV in the cab (derived from dims dash_x, cab_x1, cab_margin)"}].map(z=>`<li><b>${esc(z.name)}</b> ${lab(z.label)} <span class="mut">${esc(z.kind)} · ${esc(z.why||"")}${z.exempt?` · exempt: ${esc(z.exempt.join(", "))}`:""}</span></li>`).join("")}</ul>`;
+ $("dims").innerHTML=`<table class="rt">${Object.entries(L.dims).map(([n,d])=>`<tr><td>${esc(n)}</td><td class="n">${f1(d.v*k)} in</td><td>${lab(d.label)}</td><td class="mut">${esc(d.note||d.src||"")}</td></tr>`).join("")}</table><div class="mut">Shown × k (${k.toFixed(4)}); the model keeps the ASSUMED values.</div>`;
+ $("notes").innerHTML=`<ul>${(L.notes||[]).map(n=>`<li>${esc(n)}</li>`).join("")}</ul><div class="mut">${esc(L.axes||"")}</div>`}
+const MEAS=["<b>Wheelbase</b> (hub centre to hub centre, one side) — enter it above as the scale reference; the published 75.8 in is ASSUMED.",
+ "Tape <b>1–2 real runs</b> (e.g. HV box → Kelly B+ along the planned path, and BMS box → HV box) to confirm the scaled estimates (chief).",
+ "<b>Bed</b> inside length × width (sources disagree on orientation) and the <b>old engine-bay cavity</b> under the bed (L × W × H).",
+ "<b>Under-seat cavities</b> (old fuel-tank area) L × W × H — and whether they are open to the cab floor.",
+ "<b>Frame-rail spacing</b> (inside faces) and where the rails run; <b>front overhang</b> (bumper → front hub) and <b>dash → seat-front</b> distance.",
+ "<b>Chain centre distance</b> and the chain line position (sets the chain keep-out and the motor mount).",
+ "<b>Ground clearance</b> under the old engine bay and the lowest point a box would sit at (fording).",
+ "<b>Seat reach</b>: from each seat, can the e-stop on the dash be hit without leaning (≤ 30 in ASSUMED)?",
+ "<b>Kelly coolant fitting</b> and <b>radiator neck</b> diameters (hose run, not drawn here).",
+ "<b>Fitted 24 in tire width</b> front/rear and the full-lock steering sweep (sets the front keep-outs)."];
+// ---- view (viewBox in model inches)
+const sv=$("sv");function setVB(){sv.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`)}
+function fit(){const V=vehicle(L.dims);vb={x:-4,y:-5,w:V.length+8,h:V.width+18};setVB()}
+function zoomAt(k,px,py){const nw=Math.min(500,Math.max(6,vb.w*k)),f=nw/vb.w;vb.x=px-(px-vb.x)*f;vb.y=py-(py-vb.y)*f;vb.w*=f;vb.h*=f;setVB()}
+function svgPt(cx,cy){const m=sv.getScreenCTM().inverse(),p=new DOMPoint(cx,cy).matrixTransform(m);return [p.x,p.y]}
+const q1=v=>Math.round(v*10)/10;
+const kidsOf=id=>(L.blocks||[]).filter(b=>b.in===id).map(b=>b.id);
+function famOf(ids){const s=new Set(ids);let ch=true;while(ch){ch=false;for(const b of L.blocks||[])if(b.in&&s.has(b.in)&&!s.has(b.id)){s.add(b.id);ch=true}}return s}
+// ---- selection (window / crossing), same convention as the perf-board designer
+function selectRect(a,b,add){const cross=b[0]<a[0],x0=Math.min(a[0],b[0]),x1=Math.max(a[0],b[0]),y0=Math.min(a[1],b[1]),y1=Math.max(a[1],b[1]);
+ const nb=new Set(),nv=new Set(),nr=new Set();
+ for(const bl of L.blocks||[]){if(!vis(bl))continue;const ins=bl.x>=x0&&bl.x+bl.w<=x1&&bl.y>=y0&&bl.y+bl.h<=y1,tch=bl.x<=x1&&bl.x+bl.w>=x0&&bl.y<=y1&&bl.y+bl.h>=y0;if(cross?tch:ins)nb.add(bl.id)}
+ for(const r of L.runs||[]){const P=R.RP[r.id];if(!P||!vis(r))continue;
+  if(cross){if(P.slice(1).some((p,i)=>segRect(P[i],p,x0,y0,x1,y1))){nr.add(r.id);(r.pts||[]).forEach((_,i)=>nv.add(r.id+":"+i))}}
+  else (r.pts||[]).forEach((p,i)=>{if(p[0]>=x0&&p[0]<=x1&&p[1]>=y0&&p[1]<=y1){nv.add(r.id+":"+i);nr.add(r.id)}})}
+ if(add&&ms){ms.blocks.forEach(x=>nb.add(x));ms.verts.forEach(x=>nv.add(x));ms.runs.forEach(x=>nr.add(x))}
+ ms=nb.size||nv.size?{blocks:nb,verts:nv,runs:nr,kind:cross?"crossing":"window"}:null;sel=null;draw();selBox()}
+function startStretch(base){const fam=famOf(ms.blocks),B0=new Map([...fam].map(id=>{const b=BY(L)[id];return [b,[b.x,b.y]]})),V0=[];
+ for(const v of ms.verts){const [rid,i]=v.split(":"),r=L.runs.find(r=>r.id===rid);if(r&&r.pts[+i])V0.push([r,+i,r.pts[+i].slice()])}
+ return {...base,k:"stretch",B0,V0,undo:()=>{B0.forEach(([x,y],b)=>{b.x=x;b.y=y});V0.forEach(([r,i,p])=>r.pts[i]=p);draw()}}}
+// ---- pointer handling: 1 finger/mouse = drag block / bend / run or pan; 2 fingers = pinch zoom + pan; wheel = zoom
+const ptrs=new Map();let act=null,pinch=null;
+sv.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;try{sv.setPointerCapture(e.pointerId)}catch(_){}ptrs.set(e.pointerId,[e.clientX,e.clientY]);clearTimeout(lpT);
+ if(ptrs.size===2){if(act&&act.undo&&act.moved)act.undo();act=null;box=null;drawDraft();const [a,b]=[...ptrs.values()];pinch={d:hyp(a[0]-b[0],a[1]-b[1]),m:svgPt((a[0]+b[0])/2,(a[1]+b[1])/2)};return}
+ if(ptrs.size>2)return;const p0=svgPt(e.clientX,e.clientY),t=e.target,ctm=sv.getScreenCTM();
+ const base={x0:e.clientX,y0:e.clientY,p0,moved:false,sc:ctm.a,vb0:{...vb},shift:e.shiftKey};
+ if(e.pointerType!=="mouse"){const cx=e.clientX,cy=e.clientY;lpT=setTimeout(()=>{if(act&&!act.moved&&ptrs.size===1&&openCtx(cx,cy,p0,t)){ptrs.clear();act=null}},550)}
+ const vh=t.closest&&t.closest("[data-vh]"),bg=t.closest&&t.closest("[data-blk]"),rg=t.closest&&t.closest("[data-run]");
+ const tgt=bg?{t:"b",id:bg.dataset.blk}:rg?{t:"r",id:rg.dataset.run}:null,inMs=ms&&tgt&&(tgt.t==="b"?famOf(ms.blocks).has(tgt.id):ms.runs.has(tgt.id));
+ if(inMs&&!e.shiftKey)act=startStretch({...base,tgt});
+ else if(vh){const r=L.runs.find(r=>r.id===vh.dataset.vr),i=+vh.dataset.vh,o=r.pts[i].slice();act={...base,k:"vtx",r,i,o,undo:()=>{r.pts[i]=o;draw()}}}
+ else if(mode==="box"||(e.shiftKey&&!tgt))act={...base,k:"box",tgt};
+ else if(bg){const fam=famOf([bg.dataset.blk]),B0=new Map([...fam].map(id=>{const b=BY(L)[id];return [b,[b.x,b.y]]}));act={...base,k:"blk",id:bg.dataset.blk,B0,tgt,undo:()=>{B0.forEach(([x,y],b)=>{b.x=x;b.y=y});draw()}}}
+ else if(rg){const r=L.runs.find(r=>r.id===rg.dataset.run),o=(r.pts||[]).map(p=>p.slice());act={...base,k:"run",r,o,tgt,undo:()=>{r.pts=o;draw()}}}
+ else act={...base,k:"pan"}});
+sv.addEventListener("pointermove",e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+ if(pinch&&ptrs.size===2){const [a,b]=[...ptrs.values()],d=hyp(a[0]-b[0],a[1]-b[1]);if(d>10){zoomAt(pinch.d/d,pinch.m[0],pinch.m[1]);pinch.d=d}
+  const m=svgPt((a[0]+b[0])/2,(a[1]+b[1])/2);vb.x+=pinch.m[0]-m[0];vb.y+=pinch.m[1]-m[1];setVB();return}
+ if(!act)return;const dxp=e.clientX-act.x0,dyp=e.clientY-act.y0;if(!act.moved&&hyp(dxp,dyp)<6)return;act.moved=true;clearTimeout(lpT);
+ if(act.k==="box"){box={a:act.p0,b:svgPt(e.clientX,e.clientY)};drawDraft();return}
+ if(act.k==="pan"){vb.x=act.vb0.x-dxp/act.sc;vb.y=act.vb0.y-dyp/act.sc;setVB();return}
+ const p=svgPt(e.clientX,e.clientY),dx=q1(p[0]-act.p0[0]),dy=q1(p[1]-act.p0[1]);
+ if(act.k==="blk"||act.k==="stretch"){act.B0.forEach(([x,y],b)=>{b.x=q1(x+dx);b.y=q1(y+dy)});if(act.V0)act.V0.forEach(([r,i,o])=>r.pts[i]=[q1(o[0]+dx),q1(o[1]+dy)]);draw()}
+ else if(act.k==="vtx"){act.r.pts[act.i]=[q1(act.o[0]+dx),q1(act.o[1]+dy)];draw()}
+ else if(act.k==="run"){act.r.pts=act.o.map(o=>[q1(o[0]+dx),q1(o[1]+dy)]);draw()}});
+function up(e){clearTimeout(lpT);ptrs.delete(e.pointerId);if(pinch){if(ptrs.size<2)pinch=null;act=null;return}if(!act)return;const a=act;act=null;
+ if(a.k==="box"){if(a.moved){box=null;selectRect(a.p0,svgPt(e.clientX,e.clientY),a.shift)}else{if(a.tgt)toggleMs(a.tgt);else if(!a.shift){ms=null;sel=null;draw();side()}}return}
+ if(a.moved){if(a.k!=="pan")commit();return}
+ if(a.k==="stretch"){if(mode==="box")return;ms=null;sel={t:a.tgt.t,id:a.tgt.id};draw();side();return}
+ if(a.k==="blk")sel={t:"b",id:a.id};else if(a.k==="run"||a.k==="vtx")sel={t:"r",id:a.r.id};else sel=null;ms=null;draw();side()}
+function toggleMs(t){ms=ms||{blocks:new Set(),verts:new Set(),runs:new Set(),kind:"pick"};if(t.t==="b"){ms.blocks.has(t.id)?ms.blocks.delete(t.id):ms.blocks.add(t.id)}else{const r=L.runs.find(r=>r.id===t.id);if(ms.runs.has(t.id)){ms.runs.delete(t.id);(r.pts||[]).forEach((_,i)=>ms.verts.delete(t.id+":"+i))}else{ms.runs.add(t.id);(r.pts||[]).forEach((_,i)=>ms.verts.add(t.id+":"+i))}}draw();selBox()}
+sv.addEventListener("pointerup",up);sv.addEventListener("pointercancel",e=>{clearTimeout(lpT);if(act&&act.undo&&act.moved)act.undo();act=null;box=null;ptrs.delete(e.pointerId);pinch=null});
+sv.addEventListener("wheel",e=>{e.preventDefault();const p=svgPt(e.clientX,e.clientY);zoomAt(Math.exp(e.deltaY*.0015),p[0],p[1])},{passive:false});
+sv.addEventListener("contextmenu",e=>{e.preventDefault();clearTimeout(lpT);openCtx(e.clientX,e.clientY,svgPt(e.clientX,e.clientY),e.target)});
+// ---- bends: add (nearest segment) / delete
+function addBend(r,p){const P=R.RP[r.id];if(!P)return;let bi=0,bd=1e9;for(let i=0;i<P.length-1;i++){const [d]=ptSeg(p,P[i],P[i+1]);if(d<bd){bd=d;bi=i}}r.pts=r.pts||[];r.pts.splice(bi,0,[q1(p[0]),q1(p[1])]);sel={t:"r",id:r.id};commit()}
+function openCtx(cx,cy,p,t){const c=$("ctx"),vh=t&&t.closest&&t.closest("[data-vh]"),rg=t&&t.closest&&t.closest("[data-run]"),items=[];
+ if(vh){const r=L.runs.find(r=>r.id===vh.dataset.vr),i=+vh.dataset.vh;items.push(["Delete bend",()=>{r.pts.splice(i,1);commit()}])}
+ else if(rg){const r=L.runs.find(r=>r.id===rg.dataset.run);items.push(["Add bend here",()=>addBend(r,p)],["Straighten (drop all bends)",()=>{r.pts=[];commit()}])}
+ if(!items.length)return false;c.innerHTML="";for(const [lbl,fn] of items){const b=document.createElement("button");b.textContent=lbl;b.onclick=()=>{closeCtx();fn()};c.appendChild(b)}
+ const vr=$("view").getBoundingClientRect();c.style.left=Math.min(cx-vr.left,vr.width-190)+"px";c.style.top=Math.min(cy-vr.top,vr.height-90)+"px";c.hidden=false;return true}
+function closeCtx(){$("ctx").hidden=true}
+document.addEventListener("pointerdown",e=>{if(!(e.target.closest&&e.target.closest("#ctx")))closeCtx()},true);
+// ---- tools
+function hint(){$("hint").textContent=mode==="box"?"Window: drag left→right = window (fully inside) · right→left = crossing (touching) · Shift adds · Esc clears":`lengths ${lenTag()} · drag blocks / runs / bends · right-click or long-press a run for bends`}
+function setMode(m){mode=m;$("mSel").classList.toggle("on",m==="sel");$("mBox").classList.toggle("on",m==="box");hint()}
+$("mSel").onclick=()=>setMode("sel");$("mBox").onclick=()=>setMode(mode==="box"?"sel":"box");
+$("bend").onclick=()=>{const r=sel&&sel.t==="r"&&L.runs.find(r=>r.id===sel.id),P=r&&R.RP[r.id];if(!P)return;let bi=0,bl=0;for(let i=0;i<P.length-1;i++){const l=hyp(P[i+1][0]-P[i][0],P[i+1][1]-P[i][1]);if(l>bl){bl=l;bi=i}}addBend(r,[(P[bi][0]+P[bi+1][0])/2,(P[bi][1]+P[bi+1][1])/2])};
+$("lat").onclick=()=>{showLater=!showLater;$("lat").classList.toggle("on",showLater);draw()};
+document.addEventListener("keydown",e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;
+ if(e.key==="Escape"){box=null;ms=null;sel=null;closeCtx();if(act&&act.undo&&act.moved)act.undo();act=null;draw();side()}});
+$("zi").onclick=()=>zoomAt(1/1.3,vb.x+vb.w/2,vb.y+vb.h/2);$("zo").onclick=()=>zoomAt(1.3,vb.x+vb.w/2,vb.y+vb.h/2);$("zf").onclick=fit;
+function dl(name,txt,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+const csvq=v=>{const s=String(v==null?"":v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+function csv(){const tag=lenTag()==="ESTIMATED"?"ESTIMATED":scaleTxt(),rows=[["run","name","wires","type","gauge","conductors","from","to","est_len_in","cut_len_in_each","total_cut_in","length_label","phase","label"]];
+ for(const x of lengths(L)){const r=L.runs.find(r=>r.id===x.id);rows.push([r.id,r.name,(r.wires||[]).join(" ")||r.no_wire_id||"",r.type,r.gauge,r.n,r.from,r.to,f1(x.len),f1(x.cut),f1(x.total),tag,r.later||"first drive",r.label])}
+ for(const [t,a] of Object.entries(totals(L)).sort())rows.push([`TOTAL ${t}`,`${a.runs} runs`,"",t,"","","","",f1(a.len),"",f1(a.cut),tag,"",""]);
+ const sl=L.slack||{};rows.push(["SLACK",`${f1((sl.pct||{}).v||0)} % + ${f1((sl.per_end_in||{}).v||0)} in per end (${(sl.pct||{}).label||""})`,"","","","","","","","","","","",""]);
+ return rows.map(r=>r.map(csvq).join(",")).join("\n")+"\n"}
+$("exp").onclick=()=>dl(LID+".layout.json",JSON.stringify(L,null,1)+"\n","application/json");
+$("csv").onclick=()=>dl(LID+".cutlist.csv",csv(),"text/csv");
+$("rst").onclick=()=>{if(!confirm("Drop the local layout edits and reload the committed docs/layout/teryx.layout.json?"))return;localStorage.removeItem(LSK(LID));load(LID)};
+window.LY={get L(){return L},get ms(){return ms&&{blocks:[...ms.blocks].sort(),verts:[...ms.verts].sort(),runs:[...ms.runs].sort(),kind:ms.kind}},get sel(){return sel},get mode(){return mode},
+ check:()=>checkLayout(L),checkL:x=>checkLayout(x),lengths:()=>lengths(L),totals:()=>totals(L),csv,k:()=>scaleK(L),vehicle:()=>vehicle(L.dims),termXY:r=>termXY(L,r),load,LSK:LSK(LID)};
+load(LID);
+</script></body></html>

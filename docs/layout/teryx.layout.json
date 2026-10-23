@@ -1,0 +1,1721 @@
+{
+ "layout": "teryx",
+ "title": "Teryx 750 — top-down EV layout",
+ "status": "PROPOSED",
+ "units": "model inches; every length ESTIMATED until scaled to one tape measurement",
+ "axes": "x = 0 at the front bumper → rear; y = 0 at the passenger (right) side → driver (left) side (US left-hand drive, ASSUMED)",
+ "dims": {
+  "overall_length": {
+   "v": 115.7,
+   "label": "ASSUMED",
+   "src": "published 2008 Teryx 750 spec (atvriders.com, utvguide.net, owner's manual) — not measured on this vehicle"
+  },
+  "overall_width": {
+   "v": 58.3,
+   "label": "ASSUMED",
+   "src": "published 2008 Teryx 750 spec (atvriders.com, utvguide.net, owner's manual) — not measured on this vehicle"
+  },
+  "wheelbase": {
+   "v": 75.8,
+   "label": "ASSUMED",
+   "src": "published 2008 Teryx 750 spec (atvriders.com, utvguide.net, owner's manual) — not measured on this vehicle",
+   "note": "best scale reference: hub centre to hub centre, one side"
+  },
+  "front_overhang": {
+   "v": 18.0,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured",
+   "note": "front bumper to front hub centre"
+  },
+  "tire_dia": {
+   "v": 24.0,
+   "label": "SOURCED",
+   "src": "Adam measured the tires at 24 in (layout_input_mechanic.md)"
+  },
+  "tire_w_front": {
+   "v": 8.0,
+   "label": "ASSUMED",
+   "src": "stock 26x8-12 width; the fitted 24 in tires' width is not measured"
+  },
+  "tire_w_rear": {
+   "v": 10.0,
+   "label": "ASSUMED",
+   "src": "stock 26x10-12 width; the fitted 24 in tires' width is not measured"
+  },
+  "track_front": {
+   "v": 50.3,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured",
+   "note": "centre-to-centre; overall width minus one tire width"
+  },
+  "track_rear": {
+   "v": 48.3,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured",
+   "note": "centre-to-centre; overall width minus one tire width"
+  },
+  "dash_x": {
+   "v": 40.0,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured",
+   "note": "front bumper to dash face"
+  },
+  "cab_x1": {
+   "v": 80.0,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured",
+   "note": "rear of the cab zone = seat backs + 2 in"
+  },
+  "cab_margin": {
+   "v": 6.0,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured",
+   "note": "cab zone inset from the body sides"
+  },
+  "seat_x0": {
+   "v": 60.0,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured",
+   "note": "front edge of the seat bases"
+  },
+  "seat_depth": {
+   "v": 18.0,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured"
+  },
+  "seat_width": {
+   "v": 18.0,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured"
+  },
+  "console_width": {
+   "v": 6.3,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured",
+   "note": "gap between the two seats"
+  },
+  "bed_length": {
+   "v": 32.7,
+   "label": "ASSUMED",
+   "src": "published 2008 Teryx 750 spec (atvriders.com, utvguide.net, owner's manual) — not measured on this vehicle",
+   "note": "sources disagree on L vs W orientation (44.1 x 32.7 vs 44.2 x 32.7 'LxW'); drawn 32.7 fore-aft — Adam to measure"
+  },
+  "bed_width": {
+   "v": 44.1,
+   "label": "ASSUMED",
+   "src": "published 2008 Teryx 750 spec (atvriders.com, utvguide.net, owner's manual) — not measured on this vehicle",
+   "note": "see bed_length note"
+  },
+  "bed_rear_gap": {
+   "v": 1.0,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured",
+   "note": "bed tailgate to rear bumper"
+  },
+  "rail_spacing": {
+   "v": 18.3,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured",
+   "note": "frame-rail centre spacing"
+  },
+  "rail_x0": {
+   "v": 6.0,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured"
+  },
+  "rail_x1": {
+   "v": 112.0,
+   "label": "ASSUMED",
+   "src": "estimate from photos/proportions — not published, not measured"
+  }
+ },
+ "scale": {
+  "ref": "wheelbase",
+  "measured_in": null,
+  "label": "OPEN",
+  "note": "Adam tapes the wheelbase (hub centre to hub centre, one side) and enters it; everything rescales"
+ },
+ "slack": {
+  "pct": {
+   "v": 10,
+   "label": "PROPOSED",
+   "src": "routing slack on every run"
+  },
+  "per_end_in": {
+   "v": 3,
+   "label": "PROPOSED",
+   "src": "per end for lugs/strip/drip loop"
+  }
+ },
+ "rules": {
+  "hv_lv_gap_in": {
+   "v": 2,
+   "label": "DECIDED",
+   "src": "layout_constraints.md (Sparky)"
+  },
+  "cross_tol_deg": {
+   "v": 10,
+   "label": "PROPOSED",
+   "src": "'cross at 90°' with about 10° allowance"
+  },
+  "p01_max_in": {
+   "v": 60,
+   "label": "DECIDED",
+   "src": "layout_constraints.md P01 < 5 ft"
+  },
+  "fmain_max_in": {
+   "v": 7,
+   "label": "DECIDED",
+   "src": "layout_constraints.md F-MAIN ≤ 7 in"
+  },
+  "reach_in": {
+   "v": 30,
+   "label": "ASSUMED",
+   "src": "seated arm reach from the seat centre"
+  },
+  "fuse_marker": {
+   "v": "reachable from above, tool-only cover",
+   "label": "DECIDED",
+   "src": "layout_constraints.md 06:11"
+  }
+ },
+ "zones": [
+  {
+   "id": "susp_fp",
+   "name": "front suspension + steering throw (passenger)",
+   "kind": "keepout",
+   "x": 4,
+   "y": 0,
+   "w": 28,
+   "h": 13,
+   "label": "ASSUMED",
+   "src": "layout_input_mechanic.md Avoid: suspension travel, steering throw, wheel wells",
+   "why": "moving parts; no harness, no box"
+  },
+  {
+   "id": "susp_fd",
+   "name": "front suspension + steering throw (driver)",
+   "kind": "keepout",
+   "x": 4,
+   "y": 45.3,
+   "w": 28,
+   "h": 13.0,
+   "label": "ASSUMED",
+   "src": "layout_input_mechanic.md Avoid: suspension travel, steering throw, wheel wells",
+   "why": "moving parts; no harness, no box"
+  },
+  {
+   "id": "susp_rp",
+   "name": "rear suspension travel + wheel well (passenger)",
+   "kind": "keepout",
+   "x": 81,
+   "y": 0,
+   "w": 26,
+   "h": 12,
+   "label": "ASSUMED",
+   "src": "layout_input_mechanic.md Avoid: suspension travel, wheel wells; travel 7.3 in published",
+   "why": "moving parts; Sparky: no HV at pinch points"
+  },
+  {
+   "id": "susp_rd",
+   "name": "rear suspension travel + wheel well (driver)",
+   "kind": "keepout",
+   "x": 81,
+   "y": 46.3,
+   "w": 26,
+   "h": 12.0,
+   "label": "ASSUMED",
+   "src": "layout_input_mechanic.md Avoid: suspension travel, wheel wells",
+   "why": "moving parts; Sparky: no HV at pinch points"
+  },
+  {
+   "id": "chain",
+   "name": "chain line + sprockets (thrown-chain reach)",
+   "kind": "keepout",
+   "x": 92,
+   "y": 27.5,
+   "w": 14,
+   "h": 6.0,
+   "label": "ASSUMED",
+   "src": "layout_input_mechanic.md Avoid: chain line and sprocket area",
+   "why": "a thrown chain cuts cable",
+   "exempt": [
+    "motor"
+   ]
+  },
+  {
+   "id": "exhaust",
+   "name": "old exhaust area (no heat now; mud + splash)",
+   "kind": "keepout",
+   "x": 107,
+   "y": 47,
+   "w": 8.7,
+   "h": 11.3,
+   "label": "ASSUMED",
+   "src": "layout_input_mechanic.md Avoid: old exhaust area",
+   "why": "splash/mud; position of the old muffler ASSUMED"
+  },
+  {
+   "id": "radiator",
+   "name": "stock radiator (kept, Kelly loop)",
+   "kind": "area",
+   "x": 3,
+   "y": 14,
+   "w": 6,
+   "h": 30,
+   "label": "ASSUMED",
+   "src": "layout_input_mechanic.md",
+   "why": "coolant loop: Kelly W3-GT2 heatsink → radiator; pump at the loop's low point"
+  },
+  {
+   "id": "enginebay",
+   "name": "old engine bay (under the bed)",
+   "kind": "area",
+   "x": 80,
+   "y": 12,
+   "w": 30,
+   "h": 34.3,
+   "label": "ASSUMED",
+   "src": "layout_input_mechanic.md strings low + centred here",
+   "why": "pack, HV box, Kelly, motor area"
+  },
+  {
+   "id": "fueltank",
+   "name": "old fuel-tank area (under the seats)",
+   "kind": "area",
+   "x": 60,
+   "y": 8,
+   "w": 18,
+   "h": 18,
+   "label": "ASSUMED",
+   "src": "layout_input_mechanic.md 'old fuel-tank area under the seats'",
+   "why": "Mechanic's 2nd pack area — but it is inside the cab"
+  }
+ ],
+ "blocks": [
+  {
+   "id": "bms_box",
+   "part": "bms_master",
+   "name": "BMS master box (Teensy + boards)",
+   "x": 44,
+   "y": 25,
+   "w": 8,
+   "h": 8,
+   "v": "LV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_constraints.md / bms_master",
+   "why": "in the cab, sealed, rubber-mounted",
+   "terms": {
+    "esp": [
+     0,
+     0.2
+    ],
+    "estop": [
+     0,
+     0.45
+    ],
+    "key": [
+     0,
+     0.75
+    ],
+    "ped": [
+     0.3,
+     1
+    ],
+    "lem": [
+     1,
+     0.15
+    ],
+    "can1": [
+     1,
+     0.25
+    ],
+    "can2": [
+     1,
+     0.35
+    ],
+    "cd": [
+     1,
+     0.45
+    ],
+    "kel": [
+     1,
+     0.55
+    ],
+    "vcan": [
+     1,
+     0.65
+    ],
+    "prox": [
+     1,
+     0.75
+    ],
+    "tbgnd": [
+     1,
+     0.85
+    ],
+    "pwr": [
+     1,
+     0.95
+    ]
+   },
+   "flags": {
+    "sealed": true,
+    "rubber_mount": true
+   }
+  },
+  {
+   "id": "esp32",
+   "part": "esp32",
+   "name": "ESP32 dash/telemetry",
+   "x": 40.5,
+   "y": 19,
+   "w": 3.0,
+   "h": 4,
+   "v": "LV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_constraints.md",
+   "why": "high near the dash, under the plastic",
+   "terms": {
+    "in": [
+     1,
+     0.5
+    ]
+   }
+  },
+  {
+   "id": "estop",
+   "part": "estop_head",
+   "name": "E-stop (dash)",
+   "x": 40.5,
+   "y": 27.6,
+   "w": 2.5,
+   "h": 3.0,
+   "v": "LV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md / layout_constraints.md",
+   "why": "on the dash, reachable from both seats",
+   "terms": {
+    "in": [
+     1,
+     0.3
+    ],
+    "blk3": [
+     1,
+     0.5
+    ],
+    "out": [
+     1,
+     0.7
+    ]
+   }
+  },
+  {
+   "id": "key",
+   "part": "key_switch",
+   "name": "Key switch",
+   "x": 40.5,
+   "y": 33,
+   "w": 2.0,
+   "h": 2,
+   "v": "LV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "PINMAP S42/S43",
+   "why": "stock key position (dash)",
+   "terms": {
+    "out": [
+     1,
+     0.5
+    ]
+   }
+  },
+  {
+   "id": "pedal",
+   "part": "pedal",
+   "name": "Throttle pedal",
+   "x": 41,
+   "y": 41,
+   "w": 4,
+   "h": 4,
+   "v": "LV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "PINMAP S14/S15",
+   "why": "driver footwell",
+   "terms": {
+    "out": [
+     0.5,
+     0
+    ]
+   }
+  },
+  {
+   "id": "lvf",
+   "part": "lv_fuses",
+   "name": "LV fuse panel + 12 V bus (F-KEL, F-COIL, F-EBOX)",
+   "x": 73.5,
+   "y": 27,
+   "w": 5.0,
+   "h": 4.5,
+   "v": "LV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "PINMAP P02-P05",
+   "why": "console between the seats; LV side",
+   "terms": {
+    "in": [
+     1,
+     0.9
+    ],
+    "kel": [
+     1,
+     0.2
+    ],
+    "coil": [
+     0,
+     0.3
+    ],
+    "ebox": [
+     0,
+     0.7
+    ]
+   }
+  },
+  {
+   "id": "coil_drv",
+   "part": "coil_driver",
+   "name": "Coil-driver board",
+   "x": 77.5,
+   "y": 17,
+   "w": 3.0,
+   "h": 4.5,
+   "v": "LV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_constraints.md (Sparky)",
+   "why": "just outside the HV box",
+   "terms": {
+    "gate": [
+     0,
+     0.5
+    ],
+    "coil": [
+     1,
+     0.5
+    ],
+    "gnd": [
+     0,
+     0.9
+    ]
+   }
+  },
+  {
+   "id": "hv_box",
+   "part": "busbar",
+   "name": "HV box (bus bar, clear tool-only cover, aluminium backplate)",
+   "x": 81,
+   "y": 13,
+   "w": 10,
+   "h": 14,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md / layout_constraints.md",
+   "why": "beside the pack; tool-only cover; bonded to chassis",
+   "terms": {},
+   "contains": [
+    "contactor_main",
+    "precharge_relay",
+    "fuse_a6t200",
+    "lem",
+    "precharge_res"
+   ],
+   "flags": {
+    "bonded": true,
+    "tool_only_cover": true
+   }
+  },
+  {
+   "id": "hv_fuses",
+   "part": "fuse_a6t200",
+   "name": "String fuses F-S1..S4 (A6T200) = service disconnect",
+   "x": 82,
+   "y": 13.6,
+   "w": 8,
+   "h": 3.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "DECIDED 06:11 (layout_constraints.md)",
+   "why": "no MSD; pull the 4 fuses with the insulated wrench",
+   "terms": {
+    "s1": [
+     1,
+     0.25
+    ],
+    "s2": [
+     1,
+     0.75
+    ],
+    "s3": [
+     0,
+     0.25
+    ],
+    "s4": [
+     0,
+     0.75
+    ]
+   },
+   "in": "hv_box",
+   "marker": "reachable from above, tool-only cover"
+  },
+  {
+   "id": "hv_lem",
+   "part": "lem",
+   "name": "LEM DHAB S/124 (B− path)",
+   "x": 82,
+   "y": 17.5,
+   "w": 3.5,
+   "h": 3.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md",
+   "why": "inside the HV box on the B− path",
+   "terms": {
+    "sig": [
+     0,
+     0.5
+    ]
+   },
+   "in": "hv_box"
+  },
+  {
+   "id": "hv_pre",
+   "part": "precharge_res",
+   "name": "Precharge resistor 50 Ω 100 W",
+   "x": 86.5,
+   "y": 17.5,
+   "w": 3.5,
+   "h": 2.5,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md (aluminium backplate)",
+   "why": "Sparky: metal mount with airflow",
+   "terms": {},
+   "in": "hv_box",
+   "flags": {
+    "metal_mount": true
+   }
+  },
+  {
+   "id": "hv_cont",
+   "part": "contactor_main",
+   "name": "EV200 B+/B− + AEV14012 precharge relay",
+   "x": 82,
+   "y": 21.5,
+   "w": 8,
+   "h": 4.5,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md",
+   "why": "inside the HV box",
+   "terms": {
+    "coil": [
+     0,
+     0.5
+    ],
+    "out": [
+     0.6,
+     1
+    ],
+    "dcdc": [
+     0.3125,
+     1
+    ],
+    "chg": [
+     0.8125,
+     1
+    ]
+   },
+   "in": "hv_box",
+   "contains": [
+    "precharge_relay"
+   ]
+  },
+  {
+   "id": "S1",
+   "part": "pack",
+   "name": "String 1 (36S, first drive)",
+   "x": 92,
+   "y": 12.5,
+   "w": 20,
+   "h": 6.5,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md (strings low + centred, old engine bay / under the bed)",
+   "why": "beside the HV box",
+   "terms": {
+    "bus": [
+     0,
+     0.5
+    ],
+    "x2": [
+     0.1,
+     0
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "part": "pack",
+   "name": "String 2 (36S, first drive)",
+   "x": 92,
+   "y": 19.5,
+   "w": 20,
+   "h": 6.5,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md",
+   "why": "beside the HV box",
+   "terms": {
+    "bus": [
+     0,
+     0.5
+    ],
+    "x2": [
+     0.1,
+     1
+    ]
+   }
+  },
+  {
+   "id": "S3",
+   "part": "pack",
+   "name": "String 3 (36S, 4p end state)",
+   "x": 61,
+   "y": 9,
+   "w": 16,
+   "h": 7,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md ('old fuel-tank area under the seats')",
+   "why": "Mechanic's 2nd pack area — inside the cab zone",
+   "terms": {
+    "bus": [
+     1,
+     0.5
+    ],
+    "x2": [
+     0.5,
+     1
+    ]
+   },
+   "later": "4p end state"
+  },
+  {
+   "id": "S4",
+   "part": "pack",
+   "name": "String 4 (36S, 4p end state)",
+   "x": 61,
+   "y": 42,
+   "w": 16,
+   "h": 7,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md ('old fuel-tank area under the seats')",
+   "why": "Mechanic's 2nd pack area — inside the cab zone",
+   "terms": {
+    "bus": [
+     1,
+     0.2
+    ],
+    "x2": [
+     0.5,
+     0
+    ]
+   },
+   "later": "4p end state"
+  },
+  {
+   "id": "motor",
+   "part": "motor",
+   "name": "Zero 75-7R motor",
+   "x": 104,
+   "y": 27,
+   "w": 9,
+   "h": 8,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md (chain to final-drive input)",
+   "why": "on the chain line",
+   "terms": {
+    "ph": [
+     0,
+     0.95
+    ]
+   }
+  },
+  {
+   "id": "kelly",
+   "part": "controller",
+   "name": "Kelly KLS8080 + W3-GT2 heatsink",
+   "x": 93,
+   "y": 35,
+   "w": 9,
+   "h": 7,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md / layout_constraints.md",
+   "why": "near the motor and the HV box; coolant ports up; phase leads away from LEMs + CAN",
+   "terms": {
+    "bp": [
+     0.2,
+     0
+    ],
+    "ph": [
+     1,
+     0.3
+    ],
+    "pwr": [
+     0,
+     0.35
+    ],
+    "sig": [
+     0,
+     0.5
+    ],
+    "can": [
+     0,
+     0.8
+    ]
+   },
+   "contains": [
+    "kelly_heatsink"
+   ]
+  },
+  {
+   "id": "dcdc",
+   "part": "dcdc",
+   "name": "DC-DC (HV → 12 V)",
+   "x": 81,
+   "y": 36,
+   "w": 7,
+   "h": 5.5,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md / layout_constraints.md",
+   "why": "near the HV box and the buffer battery",
+   "terms": {
+    "hv": [
+     0.5,
+     0
+    ],
+    "out": [
+     1,
+     0.5
+    ]
+   }
+  },
+  {
+   "id": "lv_batt",
+   "part": "lv_battery",
+   "name": "12 V buffer battery",
+   "x": 81,
+   "y": 42,
+   "w": 7,
+   "h": 3.5,
+   "v": "LV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md",
+   "why": "next to the DC-DC; F-MAIN on its + post",
+   "terms": {
+    "pos": [
+     1,
+     0.15
+    ]
+   }
+  },
+  {
+   "id": "fmain",
+   "part": "fuse_main",
+   "name": "F-MAIN 150 A",
+   "x": 89,
+   "y": 41,
+   "w": 1.5,
+   "h": 2,
+   "v": "LV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "Sparky: F-MAIN ≤ 7 in from battery +",
+   "why": "on the battery + lead",
+   "terms": {
+    "in": [
+     0,
+     0.5
+    ],
+    "out": [
+     1,
+     0.5
+    ]
+   }
+  },
+  {
+   "id": "charger",
+   "part": "charger",
+   "name": "Elcon charger",
+   "x": 105,
+   "y": 37,
+   "w": 8,
+   "h": 8,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md",
+   "why": "rear, near the inlet",
+   "terms": {
+    "dc": [
+     0,
+     0.3
+    ],
+    "ac": [
+     1,
+     0.575
+    ],
+    "can": [
+     0,
+     0.8
+    ]
+   },
+   "later": "charging (LATER)"
+  },
+  {
+   "id": "inlet",
+   "part": "ac_inlet",
+   "name": "NACS AC inlet (rear panel, high)",
+   "x": 114.5,
+   "y": 40,
+   "w": 1.2,
+   "h": 4,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "layout_input_mechanic.md (side or rear panel, high)",
+   "why": "out of splash",
+   "terms": {
+    "ac": [
+     0,
+     0.4
+    ],
+    "prox": [
+     0,
+     0.95
+    ]
+   },
+   "later": "LATER"
+  }
+ ],
+ "runs": [
+  {
+   "id": "S1-BUS",
+   "name": "String 1 B+/B− → fuse F-S1 / LEM",
+   "wires": [
+    "H01",
+    "H11"
+   ],
+   "type": "HV",
+   "gauge": "1/0 AWG",
+   "n": 2,
+   "from": "S1.bus",
+   "to": "hv_fuses.s1",
+   "pts": [
+    [
+     91,
+     15.75
+    ],
+    [
+     91,
+     14.35
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "note": "B+ and B− tied side by side (Sparky)"
+  },
+  {
+   "id": "S2-BUS",
+   "name": "String 2 B+/B− → fuse F-S2 / LEM",
+   "wires": [
+    "H01",
+    "H11"
+   ],
+   "type": "HV",
+   "gauge": "1/0 AWG",
+   "n": 2,
+   "from": "S2.bus",
+   "to": "hv_fuses.s2",
+   "pts": [
+    [
+     90.6,
+     22.75
+    ],
+    [
+     90.6,
+     15.85
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "S3-BUS",
+   "name": "String 3 B+/B− → fuse F-S3",
+   "wires": [
+    "H01",
+    "H11"
+   ],
+   "type": "HV",
+   "gauge": "1/0 AWG",
+   "n": 2,
+   "from": "S3.bus",
+   "to": "hv_fuses.s3",
+   "pts": [
+    [
+     81.6,
+     12.5
+    ],
+    [
+     81.6,
+     14.35
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "later": "4p end state"
+  },
+  {
+   "id": "S4-BUS",
+   "name": "String 4 B+/B− → fuse F-S4",
+   "wires": [
+    "H01",
+    "H11"
+   ],
+   "type": "HV",
+   "gauge": "1/0 AWG",
+   "n": 2,
+   "from": "S4.bus",
+   "to": "hv_fuses.s4",
+   "pts": [
+    [
+     80.9,
+     43.4
+    ],
+    [
+     80.9,
+     15.85
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "later": "4p end state"
+  },
+  {
+   "id": "MAIN",
+   "name": "EV200 → Kelly B+ and Kelly B− → EV200 B−",
+   "wires": [
+    "H07",
+    "H10"
+   ],
+   "type": "HV",
+   "gauge": "3/0 AWG",
+   "n": 2,
+   "from": "hv_cont.out",
+   "to": "kelly.bp",
+   "pts": [
+    [
+     86.8,
+     34
+    ],
+    [
+     94.8,
+     34
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "note": "tied side by side; west of the chain line"
+  },
+  {
+   "id": "PHASE",
+   "name": "Kelly U/V/W → motor",
+   "wires": [
+    "H09"
+   ],
+   "type": "HV",
+   "gauge": "per Kelly lugs (ASSUMED 3/0)",
+   "n": 3,
+   "from": "kelly.ph",
+   "to": "motor.ph",
+   "pts": [
+    [
+     103,
+     37.1
+    ],
+    [
+     103,
+     34.6
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "note": "short; away from LEMs and CAN (Sparky)"
+  },
+  {
+   "id": "H12",
+   "name": "HV bus → F-DCDC → DC-DC",
+   "wires": [
+    "H12"
+   ],
+   "type": "HV",
+   "gauge": "14 AWG HV",
+   "n": 2,
+   "from": "hv_cont.dcdc",
+   "to": "dcdc.hv",
+   "pts": [],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "H13",
+   "name": "Elcon DC → F-ELC → pack bus",
+   "wires": [
+    "H13"
+   ],
+   "type": "HV",
+   "gauge": "6 AWG",
+   "n": 2,
+   "from": "charger.dc",
+   "to": "hv_cont.chg",
+   "pts": [
+    [
+     104.2,
+     39.4
+    ],
+    [
+     104.2,
+     34.6
+    ],
+    [
+     88.5,
+     34.6
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "later": "charging (LATER)"
+  },
+  {
+   "id": "H14",
+   "name": "NACS AC → Elcon",
+   "wires": [
+    "H14"
+   ],
+   "type": "HV",
+   "gauge": "per charger (ASSUMED 12 AWG)",
+   "n": 3,
+   "from": "inlet.ac",
+   "to": "charger.ac",
+   "pts": [],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "later": "LATER"
+  },
+  {
+   "id": "P01",
+   "name": "DC-DC +12 → F-MAIN",
+   "wires": [
+    "P01"
+   ],
+   "type": "LV",
+   "gauge": "2 AWG (PARTS fuse_main; PINMAP P01 awg still TBD)",
+   "n": 1,
+   "from": "dcdc.out",
+   "to": "fmain.in",
+   "pts": [
+    [
+     88.6,
+     38.75
+    ],
+    [
+     88.6,
+     42
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "P02",
+   "name": "F-MAIN → 12 V bus / fuse panel",
+   "wires": [
+    "P02"
+   ],
+   "type": "LV",
+   "gauge": "2 AWG (as P01, ASSUMED)",
+   "n": 1,
+   "from": "fmain.out",
+   "to": "lvf.in",
+   "pts": [
+    [
+     91.2,
+     42
+    ],
+    [
+     91.2,
+     31.05
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "P03",
+   "name": "F-KEL → Kelly PWR",
+   "wires": [
+    "P03"
+   ],
+   "type": "LV",
+   "gauge": "16 AWG",
+   "n": 1,
+   "from": "lvf.kel",
+   "to": "kelly.pwr",
+   "pts": [
+    [
+     91.2,
+     27.9
+    ],
+    [
+     91.2,
+     37.45
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "E01",
+   "name": "bus → F-COIL → e-stop",
+   "wires": [
+    "P04",
+    "E01"
+   ],
+   "type": "LV",
+   "gauge": "18 AWG",
+   "n": 1,
+   "from": "lvf.coil",
+   "to": "estop.in",
+   "pts": [],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "E02",
+   "name": "e-stop → EV200 coils + / precharge coil +",
+   "wires": [
+    "E02",
+    "E03"
+   ],
+   "type": "LV",
+   "gauge": "18 AWG",
+   "n": 3,
+   "from": "estop.out",
+   "to": "hv_cont.coil",
+   "pts": [
+    [
+     81.6,
+     29.7
+    ],
+    [
+     81.6,
+     23.75
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "E03-KSI",
+   "name": "e-stop → Kelly KSI (pin 7)",
+   "wires": [
+    "E03"
+   ],
+   "type": "LV",
+   "gauge": "18 AWG",
+   "n": 1,
+   "from": "estop.out",
+   "to": "kelly.sig",
+   "pts": [
+    [
+     91.2,
+     29.7
+    ],
+    [
+     91.2,
+     38.5
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "E09",
+   "name": "e-stop block 3 → Teensy B:9",
+   "wires": [
+    "E09"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG",
+   "n": 2,
+   "from": "estop.blk3",
+   "to": "bms_box.estop",
+   "pts": [],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "GATE",
+   "name": "Teensy gates → coil-driver board",
+   "wires": [
+    "S01",
+    "S02",
+    "S03"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG",
+   "n": 4,
+   "from": "bms_box.cd",
+   "to": "coil_drv.gate",
+   "pts": [
+    [
+     76,
+     28.6
+    ],
+    [
+     76,
+     19.25
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "note": "3 gates + signal ground"
+  },
+  {
+   "id": "COIL",
+   "name": "coil-driver drains → EV200 B+/B−, precharge coil −",
+   "wires": [
+    "S01",
+    "S02",
+    "S03"
+   ],
+   "type": "LV",
+   "gauge": "18 AWG",
+   "n": 3,
+   "from": "coil_drv.coil",
+   "to": "hv_cont.coil",
+   "pts": [
+    [
+     81.4,
+     19.25
+    ],
+    [
+     81.4,
+     23.75
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "COIL-RET",
+   "name": "coil-driver return → TB-GND (star)",
+   "wires": [],
+   "type": "LV",
+   "gauge": "16 AWG",
+   "n": 1,
+   "from": "coil_drv.gnd",
+   "to": "bms_box.tbgnd",
+   "pts": [
+    [
+     76.5,
+     21.05
+    ],
+    [
+     76.5,
+     31.8
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "no_wire_id": "OPEN: no PINMAP wire id for the coil return to TB-GND"
+  },
+  {
+   "id": "LEM",
+   "name": "LEM A/B → Teensy",
+   "wires": [
+    "S05",
+    "S06",
+    "S07",
+    "S25",
+    "S26",
+    "S27"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG shielded (ASSUMED)",
+   "n": 8,
+   "from": "bms_box.lem",
+   "to": "hv_lem.sig",
+   "pts": [
+    [
+     81.7,
+     26.2
+    ],
+    [
+     81.7,
+     19
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "CAN-S1",
+   "name": "SN65 → string 1 X2 (CAN, 5 V, GND)",
+   "wires": [
+    "C11",
+    "P10",
+    "G07"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG (CAN twisted pair)",
+   "n": 4,
+   "from": "bms_box.can1",
+   "to": "S1.x2",
+   "pts": [
+    [
+     79.7,
+     27
+    ],
+    [
+     79.7,
+     12.2
+    ],
+    [
+     94,
+     12.2
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "CAN-S2",
+   "name": "SN65 → string 2 X2 (CAN, 5 V, GND)",
+   "wires": [
+    "C12",
+    "P10",
+    "G07"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG (CAN twisted pair)",
+   "n": 4,
+   "from": "bms_box.can2",
+   "to": "S2.x2",
+   "pts": [
+    [
+     53,
+     27.35
+    ],
+    [
+     94,
+     27.35
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "CAN-S3",
+   "name": "SN65 → string 3 X2",
+   "wires": [
+    "C13",
+    "P10",
+    "G07"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG (CAN twisted pair)",
+   "n": 4,
+   "from": "bms_box.can1",
+   "to": "S3.x2",
+   "pts": [
+    [
+     69,
+     27
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "later": "4p end state"
+  },
+  {
+   "id": "CAN-S4",
+   "name": "SN65 → string 4 X2",
+   "wires": [
+    "C14",
+    "P10",
+    "G07"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG (CAN twisted pair)",
+   "n": 4,
+   "from": "bms_box.can2",
+   "to": "S4.x2",
+   "pts": [
+    [
+     69,
+     27.8
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "later": "4p end state"
+  },
+  {
+   "id": "CANV-K",
+   "name": "CAN-V: Teensy → Kelly",
+   "wires": [
+    "C10"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG twisted pair",
+   "n": 2,
+   "from": "bms_box.vcan",
+   "to": "kelly.can",
+   "pts": [
+    [
+     91.2,
+     30.2
+    ],
+    [
+     91.2,
+     40.6
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "CANV-E",
+   "name": "CAN-V: Kelly → Elcon",
+   "wires": [
+    "C10"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG twisted pair",
+   "n": 2,
+   "from": "kelly.can",
+   "to": "charger.can",
+   "pts": [
+    [
+     92.4,
+     40.6
+    ],
+    [
+     92.4,
+     43.4
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "later": "charging (LATER)"
+  },
+  {
+   "id": "KELLY",
+   "name": "throttle + ECO → Kelly",
+   "wires": [
+    "K01",
+    "K03"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG (K01 shielded)",
+   "n": 3,
+   "from": "bms_box.kel",
+   "to": "kelly.sig",
+   "pts": [
+    [
+     91.2,
+     29.4
+    ],
+    [
+     91.2,
+     38.5
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "PROX",
+   "name": "NACS proximity → Teensy",
+   "wires": [
+    "S45"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG",
+   "n": 2,
+   "from": "inlet.prox",
+   "to": "bms_box.prox",
+   "pts": [
+    [
+     114,
+     43.8
+    ],
+    [
+     114,
+     45.9
+    ],
+    [
+     91.2,
+     45.9
+    ],
+    [
+     91.2,
+     31
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "later": "LATER"
+  },
+  {
+   "id": "PEDAL",
+   "name": "pedal → Teensy",
+   "wires": [
+    "S14",
+    "S15",
+    "P20"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG",
+   "n": 4,
+   "from": "pedal.out",
+   "to": "bms_box.ped",
+   "pts": [
+    [
+     43,
+     37
+    ],
+    [
+     46.4,
+     37
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "KEY",
+   "name": "key switch → opto",
+   "wires": [
+    "S42",
+    "S43"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG",
+   "n": 2,
+   "from": "key.out",
+   "to": "bms_box.key",
+   "pts": [
+    [
+     43.3,
+     34
+    ],
+    [
+     43.3,
+     31
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "ESP",
+   "name": "Teensy ↔ ESP32",
+   "wires": [
+    "S30",
+    "G05"
+   ],
+   "type": "LV",
+   "gauge": "22 AWG",
+   "n": 2,
+   "from": "bms_box.esp",
+   "to": "esp32.in",
+   "pts": [
+    [
+     43.8,
+     26.6
+    ],
+    [
+     43.8,
+     21
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "P05",
+   "name": "F-EBOX → BMS box 12 V",
+   "wires": [
+    "P05"
+   ],
+   "type": "LV",
+   "gauge": "16 AWG",
+   "n": 1,
+   "from": "lvf.ebox",
+   "to": "bms_box.pwr",
+   "pts": [
+    [
+     55,
+     30.15
+    ],
+    [
+     55,
+     32.6
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  }
+ ],
+ "notes": [
+  "Every position is PROPOSED; block sizes ASSUMED. Vehicle dims are ASSUMED (published spec) except tire_dia (SOURCED, measured).",
+  "Inside-HV-box links (H05 fuses→bus, H06 bus→EV200, H08 precharge) are bus bar / short leads and not drawn as runs.",
+  "Not drawn: G01/G02/G03 ground straps (to the nearest frame point), A01-A05 actuators (LATER), S08 (not fitted), P06-P08 aux.",
+  "Low points / fording depth cannot be shown top-down: keep every box above the old engine bay floor (ground clearance 11.2 in published).",
+  "No MSD in this build (DECIDED 06:11): the 4 A6T200 string fuses are the service disconnect."
+ ]
+}
