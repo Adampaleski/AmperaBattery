@@ -12,7 +12,19 @@ Every value is **PROPOSED** and adjustable (firmware: `MP <key> expo|cur|ramp|to
 | Mud | 0 (strongest the trim allows) | 90 % | 2500 fast | 30 | 20 light |
 | Sand | 0 | 100 % | 3000 fast | 35 | 15 light |
 | Kid | 0.7 | 20 % | 60 very soft | 10 | 30 |
-| Reverse (sim) | 0.3 | 25 % | 500 | 9 | 30 |
+| Reverse (sim) | 0.3 | 25 % | 500 | 15 (10 from Low/Kid; never above the mode's forward top) | 30 |
+
+## Reverse cap per mode (PROPOSED, Adam request 2026-10-22, was 9 mph)
+| Reverse from | Cap (mph) | Where it comes from |
+|---|---|---|
+| High, Medium | 15 | Kelly Max / MidSpeed Rev 31 % of 6000 = 1860 RPM ≈ 15.2 mph |
+| Low, Kid | 10 | sim cap; Kid also via the Kelly ECO LowSpeed Rev 20 % = 1200 RPM ≈ 9.8 mph |
+| Snow, Mud, Sand | min(15, mode top) = 15 | today all three tops are ≥ 25, so 15 |
+- The gentle reverse feel is unchanged: expo 0.3, 25 % current, 500 %/s ramp, Kelly TPS Rev MAP stays 20 %.
+- The sim remembers which mode you shifted into R from. Kid → R → Kid needs no PIN; reverse from Kid keeps Kid rules (10 mph cap, ECO Low cap held). R (from Kid) → any other mode still asks for the Kid PIN.
+- Firmware has no separate reverse profile: the trim applies the current mode's top speed to |mph|. The 15 / 10 mph reverse caps are owned by the Kelly (kelly-settings.md #25–30). **Kelly side UNVERIFIED** until those parameters are read back from the controller.
+- With no pedal, a forward gear rolling backwards downhill is held by Kelly overspeed regen at the reverse cap, so that roll-back limit also goes from about 9 to about 15 mph in the sim.
+- Checks: scripts/test_controls.js (cap table per mode, full-pedal reverse speed per mode, Kid reverse with both Teensys dead, gentle launch) and scripts/test_dash_ui.py (Kid → R without the PIN).
 
 ## Firmware: reduce-only throttle trim (`src/ThrottleTrim.*`, `THROTTLE_TRIM_ENABLE=0`)
 - MCP4131 as a divider in the throttle wiper: Kelly sees pedal × wiper/128, so the trim can only **lower** the pedal. Wiper rounds down.
@@ -31,7 +43,7 @@ Teensy A OUT3 (pin 20) --- logic FET low-side --- relay coil (12 V) + 1N4007 fly
 ```
 - Relay **de-energized = NC closed = ECO at 12 V = LOW cap** (SW Level default = high-level enable, SOURCED KLS-8080N V2.11 item 93). So Teensy unpowered, reset, hung or flashing → capped.
 - Teensy A must actively drive OUT3 **HIGH** to energize the relay and **release** the cap. `src/KellyLimit.cpp`: cap held (OUT3 LOW) when BMS limp **or Kid mode**. Boot writes OUT3 LOW. Pins are driven only with `BMS_CAP_KELLY_LIMIT_DRV=1` + `TELEMETRY_ONLY=0` (both still off). **Firmware semantics changed** (OUT3 was "HIGH = limp"): CREW REVIEW.
-- Kelly config PROPOSED: Three Speed = 1 or 2 with ECO = low speed. LowSpeed Forw Speed ≈ 20 % of Max Speed 6000 RPM ≈ 1225 RPM ≈ 10 mph (122.5 RPM/mph SOURCED gearing). LowSpeed Rev 30 % (SOURCED default). Three Gears (F/N/R) shares FWD pin 12 with the high-speed switch, so use ECO + max only (SOURCED note 4).
+- Kelly config PROPOSED: Three Speed = 1 or 2 with ECO = low speed. LowSpeed Forw Speed ≈ 20 % of Max Speed 6000 RPM ≈ 1225 RPM ≈ 10 mph (122.5 RPM/mph SOURCED gearing). LowSpeed Rev 20 % ≈ 1200 RPM ≈ 10 mph (kelly-settings.md #30; the SOURCED Kelly default is 30 %). **CONFLICT, needs a decision:** kelly-settings.md #29 sets LowSpeed Fwd to 30 % (≈ 15 mph), not 20 %; at 30 % the hardware Kid backstop would be ≈ 15 mph forward, not 10. Three Gears (F/N/R) shares FWD pin 12 with the high-speed switch, so use ECO + max only (SOURCED note 4).
 - **UNVERIFIED:** relay part (12 V automotive SPDT, e.g. Bosch-style 30/87a — not chosen), whether Adam's harness brings ECO out, the exact ECO pin on his connector, and that ECO really caps speed on his firmware (bench: ECO 12 V → RPM ≤ cap at full pedal).
 - **Limp threshold (crew 2026-10-21, `BmsCore::kellyLogic`, PROPOSED + adjustable):**
   - **Soft derates only scale current smoothly**, with no Low cap: pack hot, low-ish cells at rest, pack/cell sag, discharge amps.
