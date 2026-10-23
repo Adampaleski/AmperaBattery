@@ -44,3 +44,7 @@ Status: logic + host test only. **Not wired into any output**: BMS_CAP flags sta
 - Twist to release: nothing re-closes until a key cycle and a new precharge.
 - Unplug block 3's wire: same as a press (latched).
 - Meter the Kelly KSI draw (expected < 0.2 A) to close out block 2.
+
+## Pop-ups and wake (Build 15, Adam t284)
+
+A latched e-stop is listed first among the pop-up reasons ("Can't wake" / "Throttle blocked") from `blockReasons()` (include/BlockReasons.h). The pop-up only explains; the hardware cut and the firmware latch above are unchanged, and the pop-up never latches or logs anything. Brake wake (PROPOSED) refuses while the e-stop latch is set. Phone key and PIN to Drive are outside every safety path: they can only add a block, never remove one.

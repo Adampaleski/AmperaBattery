@@ -51,6 +51,30 @@ STATUS_SCHEMA v1 (teryx-ev-hub/docs/STATUS_SCHEMA.md) plus the additive fields b
 
 The firmware's `HubStatus` emitter doesn't send these extra fields yet. Adding them is firmware work and needs the crew to agree first.
 
+## Build 15: why an action is refused, brake wake, phone key, PIN to Drive (Adam t284)
+
+**Pop-up, not a fault.** When a driver request is refused (throttle, wake, shift, changing a drive setting), the sim and the dash show a short pop-up that lists the reasons in plain words, most important first. Example: key on with the parking brake set and the throttle pressed gives "Throttle blocked: Parking brake is on, release it to drive". This never latches a fault and never writes the fault log. One list decides it: `include/BmsCore` facts plus the sim interlocks go through `blockReasons()` in `include/BlockReasons.h` (host test `scripts/test_block_reasons.cpp`; wasm `sim_block_mask` / `sim_block_text`). `simInfo.block.{drive,wake,shift,setting}` carries the same text to dash.html.
+
+**Brake wake (PROPOSED).** With "Brake wakes" on (Sim tab), pressing the brake to full travel (≥98 %) for 1 s with the key off turns the machine on. The dash shows "Hold brake… waking", then "Waking…". If it can't wake (e-stop latched, charger plugged in, …) it says "Can't wake:" and the reasons. It works from the dash.html SIMULATOR panel brake slider too.
+
+**Phone nearby (PROPOSED / UNVERIFIED).** The Sim tab has a "Phone nearby (Bluetooth)" toggle and the dash shows a phone icon. In the car this would be a future ESP32 that only reads the phone's Bluetooth presence: read-only, outside every safety path. In the sim it is only a simulated input.
+- Key off: no setting can be changed.
+- Key on, no phone: drive settings need the PIN.
+- Display settings (night mode) are always open.
+- Kid mode can be entered without the PIN; leaving it needs the PIN.
+
+**PIN to Drive (PROPOSED, off by default).** When on, the throttle is blocked until the phone is seen or the PIN is entered, and the pop-up says "Enter PIN or bring phone to drive". Turning the setting on or off needs the PIN or the phone. The first time it asks you to set a PIN.
+
+## Build 15: iPhone / in-page sim engine
+
+iOS Safari freezes background tabs, so a dash fed by a Sim tab in another tab goes stale. dash.html?src=sim can now run the simulator itself, in a hidden frame inside the page:
+- `?engine=auto` (default): use a Sim tab if one answers; if none answers within 2.5 s, or the Sim tab goes quiet, start the engine in this page. The SIMULATOR panel shows "Sim engine: running in this page (no Sim tab needed)".
+- `?engine=page`: always run in this page. `?engine=tab`: never (old behaviour).
+- "Run sim in this page" starts it by hand. "Full sim controls" shows the whole simulator over the dash; "✕ Back to dash" hides it (it keeps running).
+- PIN pads and pop-ups from the engine show on the dash and work by touch.
+- Touch: every control is at least 44 px on screen, `touch-action: manipulation` (no double-tap zoom), safe-area padding for the notch, number boxes use 16 px text (iOS won't zoom in), tapping a warning light shows what it means.
+- Checked headless at 390×844 and 844×390 by `scripts/test_iphone.py`. NOT checked on a real iPhone: Safari tab freezing, notch insets, tap feel, the frame + messaging on the published (gist) host.
+
 ## Data source per gauge
 
 | Gauge | Source | Status |
