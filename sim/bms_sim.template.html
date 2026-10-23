@@ -672,7 +672,7 @@ function requestDrivePin(){padReqN++;if(TeryxPad.isOpen())return;
 function dashToast(m){if(!m)return;noticeN++;noticeText=m;try{if(dashC&&dashC.toast)dashC.toast(m);}catch(e){}TeryxPad.toast(m);}
 function wireCluster(){
   $('cpark').onchange=e=>{ulog('Parking brake '+(e.target.checked?'set':'released'));hparkPaint();};$('hpark').onclick=()=>simCmd('park');$('cneut').onchange=e=>ulog('F/N/R '+(e.target.checked?'neutral':'drive'));
-  $('cparkb').onchange=e=>ulog('Park contact B '+(e.target.checked?'open-circuit injected':'restored'));$('cdead').onchange=e=>ulog(e.target.checked?'Both Teensys dead (sim): relay off → Kelly ECO 12 V → Low cap':'Teensys restored');$('cparkclr').onclick=()=>{PK.clear();ulog('Park faults cleared');};
+  $('cparkb').onchange=e=>ulog('Park contact B '+(e.target.checked?'open-circuit injected':'restored'));$('cdead').onchange=e=>ulog(e.target.checked?'Both Teensys dead (sim): relay off → Kelly ECO 12 V → Low cap (Kelly holds ≈ 15 mph fwd / 10 mph rev; the 10 mph Kid software cap is gone)':'Teensys restored');$('cparkclr').onclick=()=>{PK.clear();ulog('Park faults cleared');};
   $('cgsel').querySelectorAll('button').forEach(b=>b.onclick=()=>requestMode(b.dataset.g));
   $('phonek').onchange=e=>{ulog('Phone '+(e.target.checked?'nearby':'not nearby')+' (Bluetooth, PROPOSED sim input)');};
   $('cestop').onchange=e=>{X.sim_set_estop(e.target.checked?1:0);ulog('E-stop button '+(e.target.checked?'pressed':'released')+' (sim)');if(e.target.checked)dashToast('E-stop pressed: contactors open. Release it, then turn the key off and on');};

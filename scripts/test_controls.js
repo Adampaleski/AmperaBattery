@@ -46,11 +46,15 @@ c.setLight('high',true);r=run({mph:0},100);ok(r.out.headLow&&r.out.headHigh&&r.o
  {const q=Object.assign({},ctx.D);ok(q.analogBrake===false,'Brake_AN DEFERRED: default off');const a=ctx.V(q,{mph:25},I(10),0.05).regenReqA,b=ctx.V(q,{mph:25},I(90),0.05).regenReqA;
   ok(a>0&&Math.abs(a-b)<1e-9&&Math.abs(a-q.maxRegenA*q.brkSwRegenPct/50)<1e-9,'default: brake-switch regen at a fixed level ('+a+' A asked)');}
  ok(ctx.V(p,{mph:0},I(0,{thr:80,parkBrake:true}),0.05).driveA===0,'park brake interlock: no drive');}
-{const vm=require('vm');const ctx={};vm.createContext(ctx);vm.runInContext(require('fs').readFileSync(__dirname+'/../sim/vehicle.js','utf8')+';this.V=vehStep;this.D=VEH_DEF;this.R=vehRpm;',ctx);
+{const vm=require('vm');const ctx={};vm.createContext(ctx);vm.runInContext(require('fs').readFileSync(__dirname+'/../sim/vehicle.js','utf8')+';this.V=vehStep;this.D=VEH_DEF;this.R=vehRpm;this.M=vehMphAtRpm;this.Mg=vehMigrate;',ctx);
  const p=Object.assign({},ctx.D);const drive=x=>{let st={mph:0},o;for(let i=0;i<1200;i++){o=ctx.V(p,st,Object.assign({thr:100,brake:0,gear:'H',closed:true,allowPct:100,regenOk:true,packV:140},x),0.05);st.mph=o.mph;}return o;};
  const dead=drive({teensyDead:true,kellyLowCap:true}),kid=drive({gear:'KID',kellyLowCap:true}),free=drive({});
  ok(dead.rpm<=p.lowCapRpm+1&&free.rpm>p.lowCapRpm*2,'both Teensys dead: Kelly Low cap holds ('+dead.rpm.toFixed(0)+' RPM ≈ '+dead.mph.toFixed(1)+' mph)');
- ok(kid.rpm<=p.lowCapRpm+1,'Kid mode engages the Kelly Low cap');}
+ ok(kid.rpm<=p.lowCapRpm+1,'Kid mode engages the Kelly Low cap');
+ ok(p.lowCapRpm===1800&&Math.abs(ctx.M(p,p.lowCapRpm)-14.7)<0.2,'DECIDED (Adam 2026-10-23): Kelly LowSpeed Fwd 30 % = 1800 RPM ≈ '+ctx.M(p,p.lowCapRpm).toFixed(1)+' mph');
+ ok(dead.mph>13.5&&dead.mph<=ctx.M(p,p.lowCapRpm)+0.05,'Kid hardware backstop, both Teensys dead: forward held at ≈ 15 mph ('+dead.mph.toFixed(1)+' mph)');
+ ok(kid.mph<=10.05&&kid.mph>9,'Kid with the Teensys alive: software cap still 10 mph forward ('+kid.mph.toFixed(1)+' mph)');
+ ok(ctx.Mg({lowCapRpm:1225}).lowCapRpm===undefined&&ctx.Mg({lowCapRpm:1500}).lowCapRpm===1500,'saved old 1225 RPM Low cap migrates to the 1800 default; a custom value is kept');}
 // ---- grade physics sign + no runaway (Build 1 bug: 0 throttle on 15 % reached 80 mph rolling back)
 {const vm=require('vm');const ctx={};vm.createContext(ctx);vm.runInContext(require('fs').readFileSync(__dirname+'/../sim/vehicle.js','utf8')+';this.V=vehStep;this.D=VEH_DEF;this.M=vehMphAtRpm;this.R=vehRpm;this.G=VEH_GEARS;',ctx);
  const run=(g,gear,m0,x,secs)=>{const p=Object.assign({},ctx.D,{gradePct:g});let st={mph:m0},o,mx=0,first=null;for(let i=0;i<(secs||60)*20;i++){o=ctx.V(p,st,Object.assign({thr:0,brake:0,gear,closed:true,allowPct:100,regenOk:true,packV:140},x||{}),0.05);if(i===0)first=o.mph;st.mph=o.mph;mx=Math.max(mx,Math.abs(o.mph));}return {end:o.mph,mx,first,o};};
