@@ -12,10 +12,17 @@ Model (same maths and wording as the page's live check, tools/layout.template.ht
   * Run length = polyline length x k. Cut length per conductor = length x (1 + slack pct/100) + 2 x per-end.
 ERRORS (exit 1): bad label, unknown PARTS id, unknown PINMAP wire id, unknown block/terminal, bad type,
   duplicate ids, child box with an unknown parent.
-WARNINGS (rules, shown on the page): HV in the cab zone; HV and LV looms closer than 2 in or sharing a
+WARNINGS (rules, shown on the page): an UNSEALED HV block in the cab zone; two top-level blocks overlapping on the
+  same layer; HV and LV looms closer than 2 in or sharing a
   segment; HV/LV crossing not at 90 deg (+-10); P01 over 5 ft; F-MAIN more than 7 in from the DC-DC + out; F-BATT more than 7 in from the buffer battery +;
   precharge resistor without metal_mount; string-fuse group without the marker; any MSD block; a block or run
   inside a keep-out zone; e-stop out of reach of either seat.
+INFO (shown, not warnings): a sealed HV housing in the cab and HV runs through the cab (in conduit/loom between sealed
+  housings) — Adam 2026-10-23 DECIDED, supersedes chief's 'no HV in the cab' pending crew comment; blocks stacked on
+  different layers.
+LAYERS: a block or keep-out may carry z = low | mid | high (Adam 2026-10-23: Kelly high in the dash, motor mid in front of
+  the dash, axle/driveshaft/chain low). Overlap and keep-out hits between two EXPLICIT different layers are skipped (INFO
+  'stacked'); no z = every layer, so it still conflicts.
 """
 import json, math, pathlib, sys
 import yaml
@@ -130,8 +137,13 @@ def angle(a, b, c, d):
 
 def in_rect(p, b, m=0.0): return b["x"] - m <= p[0] <= b["x"] + b["w"] + m and b["y"] - m <= p[1] <= b["y"] + b["h"] + m
 
+ZT = {"low": 0, "mid": 1, "high": 2}
+
+def zdiff(a, b):  # both on an explicit, different layer
+    return a.get("z") in ZT and b.get("z") in ZT and a["z"] != b["z"]
+
 def check(L, parts, wires):
-    E, W = [], []
+    E, W, I = [], [], []
     k = scale_k(L); RU = L.get("rules") or {}
     rv = lambda n, d: (RU.get(n) or {}).get("v", d)
     gap, tol, p01max, fmax, reach = rv("hv_lv_gap_in", 2), rv("cross_tol_deg", 10), rv("p01_max_in", 60), rv("fmain_max_in", 7), rv("reach_in", 30)
@@ -149,8 +161,12 @@ def check(L, parts, wires):
         if b.get("label") not in LABELS: E.append(f"block {b['id']}: label {b.get('label')!r} is not one of the labels")
         if b.get("v") not in ("HV", "LV"): E.append(f"block {b['id']}: v must be HV or LV")
         if b.get("in") and b["in"] not in B: E.append(f"block {b['id']}: parent '{b['in']}' is not a block")
+        if "z" in b and b["z"] not in ZT: E.append(f"block {b['id']}: z {b['z']!r} must be low, mid or high")
+        for f in ("z_label", "sealed_label", "guard_label"):
+            if f in b and b[f] not in LABELS: E.append(f"block {b['id']}: {f} {b[f]!r} is not one of the labels")
     for z in L.get("zones", []):
         if z.get("label") not in LABELS: E.append(f"zone {z['id']}: label {z.get('label')!r} is not one of the labels")
+        if "z" in z and z["z"] not in ZT: E.append(f"zone {z['id']}: z {z['z']!r} must be low, mid or high")
     runs = L.get("runs", []); RP = {}; rs = set()
     for r in runs:
         if r["id"] in rs: E.append(f"duplicate run id {r['id']}")
@@ -168,23 +184,36 @@ def check(L, parts, wires):
     V = vehicle(L["dims"]); cab = [V["cab"]]
     keep = [z for z in L.get("zones", []) if z.get("kind") == "keepout"]
     lat = lambda o: f" ({o['later']})" if o.get("later") else ""
+    sealed = lambda b: bool(b.get("sealed") or (b.get("in") and (B.get(b["in"]) or {}).get("sealed")))
     for b in L.get("blocks", []):
         if b.get("v") == "HV" and not b.get("in"):
             for z in cab:
-                if rect_overlap(b, z): W.append(f"HV in cab: block {b['id']} ({b['name']}) is inside the {z['name']} zone{lat(b)}")
+                if rect_overlap(b, z):
+                    if sealed(b): I.append(f"HV in cab (sealed housing): block {b['id']} ({b['name']}) is inside the {z['name']} zone{lat(b)}")
+                    else: W.append(f"HV in cab: block {b['id']} ({b['name']}) is inside the {z['name']} zone and is not a sealed housing{lat(b)}")
         if b.get("part") == "msd" or "msd" in (b.get("contains") or []): W.append(f"MSD: block {b['id']} — there is no MSD in this build (DECIDED 2026-10-23: pull the 4 A6T200 string fuses)")
         if b.get("part") == "precharge_res" and not (b.get("flags") or {}).get("metal_mount"): W.append(f"precharge resistor {b['id']} has no metal-mount flag (Sparky: metal mount with airflow)")
         if b.get("part") == "fuse_a6t200" and b.get("marker") != marker: W.append(f"string fuses {b['id']} must carry the marker '{marker}'")
         if not b.get("in"):
             for z in keep:
-                if b["id"] not in (z.get("exempt") or []) and rect_overlap(b, z): W.append(f"keep-out: block {b['id']} is inside {z['name']}{lat(b)}")
+                if b["id"] not in (z.get("exempt") or []) and rect_overlap(b, z):
+                    if zdiff(b, z):
+                        I.append(f"stacked: block {b['id']} ({b['z']}) is over {z['name']} ({z['z']}) — different layers" + (f"; {b['guard']}" if b.get("guard") else "") + lat(b))
+                        if z.get("guard_rule") and b.get("v") == "HV" and not b.get("guard"): W.append(f"guard: HV block {b['id']} is stacked over {z['name']} with no guard / clearance note (crew: ≥ 2 in vertical clearance or a guard){lat(b)}")
+                    else: W.append(f"keep-out: block {b['id']} is inside {z['name']}{lat(b)}")
+    top = [b for b in L.get("blocks", []) if not b.get("in")]
+    for i, a in enumerate(top):
+        for c in top[i + 1:]:
+            if rect_overlap(a, c):
+                if zdiff(a, c): I.append(f"stacked: {a['id']} ({a['z']}) and {c['id']} ({c['z']}) overlap on different layers{lat(a) or lat(c)}")
+                else: W.append(f"overlap: blocks {a['id']} and {c['id']} overlap on the same layer{lat(a) or lat(c)}")
     for r in runs:
         P = RP.get(r["id"])
         if not P: continue
         segs = list(zip(P, P[1:]))
         if r["type"] == "HV":
             for z in cab:
-                if any(seg_rect(a, b, z["x"], z["y"], z["x"] + z["w"], z["y"] + z["h"]) for a, b in segs): W.append(f"HV in cab: run {r['id']} passes through the {z['name']} zone{lat(r)}")
+                if any(seg_rect(a, b, z["x"], z["y"], z["x"] + z["w"], z["y"] + z["h"]) for a, b in segs): I.append(f"HV in cab: run {r['id']} passes through the {z['name']} zone — in conduit/loom between sealed housings{lat(r)}")
         for z in keep:
             if r["id"] not in (z.get("exempt") or []) and any(seg_rect(a, b, z["x"], z["y"], z["x"] + z["w"], z["y"] + z["h"]) for a, b in segs): W.append(f"keep-out: run {r['id']} passes through {z['name']}{lat(r)}")
     encl = [b for b in L.get("blocks", [])]
@@ -229,7 +258,7 @@ def check(L, parts, wires):
     if not fm: W.append("F-MAIN: no fuse_main block placed")
     if bt and not fb: W.append("F-BATT: no fuse_batt block placed next to the buffer battery")
     if not es: W.append("e-stop: no estop_head block placed")
-    return E, W
+    return E, W, I
 
 def load_refs():
     parts = yaml.safe_load((R / "docs/PARTS.yaml").read_text())["parts"]
@@ -245,15 +274,16 @@ def totals(L):
 def main(argv):
     js = "--json" in argv; args = [a for a in argv if not a.startswith("--")]
     f = pathlib.Path(args[0]) if args else R / "docs/layout/teryx.layout.json"
-    L = json.loads(f.read_text()); parts, wires = load_refs(); E, W = check(L, parts, wires)
+    L = json.loads(f.read_text()); parts, wires = load_refs(); E, W, I = check(L, parts, wires)
     if js:
-        print(json.dumps({"E": E, "W": W, "k": scale_k(L), "lengths": lengths(L), "totals": totals(L)}, ensure_ascii=False)); return 1 if E else 0
+        print(json.dumps({"E": E, "W": W, "I": I, "k": scale_k(L), "lengths": lengths(L), "totals": totals(L)}, ensure_ascii=False)); return 1 if E else 0
     k = scale_k(L); tag = "ESTIMATED" if k == 1 else f"SCALED k={k:.4f}"
     for x in lengths(L): print(f"  {x['id']:<14} {x['type']} {x['gauge']:<22} x{x['n']}  {f1(x['len']):>6} in  cut {f1(x['cut']):>6} in/cond  [{tag}]")
     for ty, a in sorted(totals(L).items()): print(f"  total {ty}: {a['runs']} runs, {f1(a['len'])} in of conductor ({f1(a['len']/12)} ft), cut with slack {f1(a['cut'])} in ({f1(a['cut']/12)} ft) [{tag}]")
     for e in E: print("ERROR", e)
     for w in W: print("WARN ", w)
-    print(f"{f.name}: layout {L.get('layout')} [{L.get('status')}] {len(L.get('blocks', []))} blocks, {len(L.get('runs', []))} runs, {len(L.get('zones', []))} zones — " + ("FAIL" if E else "PASS") + f" ({len(E)} errors, {len(W)} rule warnings)")
+    for i in I: print("INFO ", i)
+    print(f"{f.name}: layout {L.get('layout')} [{L.get('status')}] {len(L.get('blocks', []))} blocks, {len(L.get('runs', []))} runs, {len(L.get('zones', []))} zones — " + ("FAIL" if E else "PASS") + f" ({len(E)} errors, {len(W)} rule warnings, {len(I)} info)")
     return 1 if E else 0
 
 if __name__ == "__main__": sys.exit(main(sys.argv[1:]))

@@ -30,7 +30,7 @@ aside ul{margin:4px 0;padding-left:18px}aside li{margin:2px 0}.e{color:var(--red
 .zn{pointer-events:none}.zn.keepout rect{fill:url(#hatch);stroke:#ff5c5c;stroke-width:.2;stroke-dasharray:.6 .4;opacity:.75}.zn.area rect{fill:#ffffff06;stroke:#6f7782;stroke-width:.15;stroke-dasharray:1 .8}
 .zn.cab rect{fill:rgba(191,90,242,.07);stroke:#bf5af2;stroke-width:.25;stroke-dasharray:1.2 .6}.zn text{font-size:1.25px;fill:#ff8f8f;paint-order:stroke;stroke:#08090b;stroke-width:.3}.zn.area text{fill:#8a9099}.zn.cab text{fill:#d9a8f5}
 .blk rect.bd{stroke-width:.25;cursor:move}.blk.HV rect.bd{fill:rgba(255,92,92,.16);stroke:#ff6b6b}.blk.LV rect.bd{fill:rgba(100,210,255,.13);stroke:#64d2ff}
-.blk.kid rect.bd{stroke-dasharray:.5 .3}.blk.later rect.bd{opacity:.55;stroke-dasharray:1 .5}.blk.sel rect.bd{stroke:var(--warn);stroke-width:.5}.blk.msel rect.bd{stroke:#30d158;stroke-width:.5}
+.blk.up rect.bd{fill-opacity:.35;stroke-dasharray:.9 .4;stroke-width:.35}.blk.up .ztag{fill:var(--warn)}.blk.kid rect.bd{stroke-dasharray:.5 .3}.blk.later rect.bd{opacity:.55;stroke-dasharray:1 .5}.blk.sel rect.bd{stroke:var(--warn);stroke-width:.5}.blk.msel rect.bd{stroke:#30d158;stroke-width:.5}
 .bl{font-size:1.25px;font-weight:700;fill:#f2f3f5;paint-order:stroke;stroke:#0b0c0e;stroke-width:.35;pointer-events:none}.bl2{font-size:.95px;fill:#b8bec6;paint-order:stroke;stroke:#0b0c0e;stroke-width:.3;pointer-events:none}
 .term{fill:#e8eaed;stroke:#0b0c0e;stroke-width:.12;pointer-events:none}
 .run{fill:none;stroke-linecap:round;stroke-linejoin:round}.run.HV{stroke:#ff9f0a}.run.LV{stroke:#64d2ff}.run.later{stroke-dasharray:1.2 .8;opacity:.6}.run.sel{stroke:var(--warn)!important}.run.msel{stroke:#30d158!important}
@@ -101,7 +101,8 @@ function ptSeg(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy,t=l2===0?0:
 function segSeg(a,b,c,d){let best=null;for(const [p,s0,s1] of [[a,c,d],[b,c,d],[c,a,b],[d,a,b]]){const [dd,q]=ptSeg(p,s0,s1);if(best===null||dd<best[0])best=[dd,[(p[0]+q[0])/2,(p[1]+q[1])/2]]}return best}
 function angle(a,b,c,d){const u=Math.atan2(b[1]-a[1],b[0]-a[0]),v=Math.atan2(d[1]-c[1],d[0]-c[0]),x=Math.abs((u-v)*180/Math.PI)%180;return Math.min(x,180-x)}
 const inRect=(p,b,m)=>b.x-m<=p[0]&&p[0]<=b.x+b.w+m&&b.y-m<=p[1]&&p[1]<=b.y+b.h+m;
-function checkLayout(L){const E=[],W=[],k=scaleK(L),RU=L.rules||{},rv=(n,d)=>(RU[n]||{}).v!==undefined?RU[n].v:d;
+const ZT={low:0,mid:1,high:2},zdiff=(a,b)=>a.z in ZT&&b.z in ZT&&a.z!==b.z;
+function checkLayout(L){const E=[],W=[],I=[],k=scaleK(L),RU=L.rules||{},rv=(n,d)=>(RU[n]||{}).v!==undefined?RU[n].v:d;
  const gap=rv("hv_lv_gap_in",2),tol=rv("cross_tol_deg",10),p01max=rv("p01_max_in",60),fmax=rv("fmain_max_in",7),fbmax=rv("fbatt_max_in",7),reach=rv("reach_in",30),marker=rv("fuse_marker",FUSE_MARKER);
  if(!LABELS.includes(L.status))W.push(`status ${JSON.stringify(L.status)} is not one of the labels`);
  for(const [n,d] of Object.entries(L.dims||{}))if(!LABELS.includes(d.label))E.push(`dim ${n}: label '${d.label}' is not one of the labels`);
@@ -109,8 +110,11 @@ function checkLayout(L){const E=[],W=[],k=scaleK(L),RU=L.rules||{},rv=(n,d)=>(RU
  for(const b of L.blocks||[]){if(seen.has(b.id))E.push(`duplicate block id ${b.id}`);seen.add(b.id);
   for(const p of [b.part,...(b.contains||[])])if(!PARTS[p])E.push(`block ${b.id}: part id '${p}' is not in docs/PARTS.yaml`);
   if(!LABELS.includes(b.label))E.push(`block ${b.id}: label '${b.label}' is not one of the labels`);
-  if(b.v!=="HV"&&b.v!=="LV")E.push(`block ${b.id}: v must be HV or LV`);if(b.in&&!by[b.in])E.push(`block ${b.id}: parent '${b.in}' is not a block`)}
- for(const z of L.zones||[])if(!LABELS.includes(z.label))E.push(`zone ${z.id}: label '${z.label}' is not one of the labels`);
+  if(b.v!=="HV"&&b.v!=="LV")E.push(`block ${b.id}: v must be HV or LV`);if(b.in&&!by[b.in])E.push(`block ${b.id}: parent '${b.in}' is not a block`);
+  if("z" in b&&!(b.z in ZT))E.push(`block ${b.id}: z '${b.z}' must be low, mid or high`);
+  for(const f of ["z_label","sealed_label","guard_label"])if(f in b&&!LABELS.includes(b[f]))E.push(`block ${b.id}: ${f} '${b[f]}' is not one of the labels`)}
+ for(const z of L.zones||[]){if(!LABELS.includes(z.label))E.push(`zone ${z.id}: label '${z.label}' is not one of the labels`);
+  if("z" in z&&!(z.z in ZT))E.push(`zone ${z.id}: z '${z.z}' must be low, mid or high`)}
  const runs=L.runs||[],RP={},rs=new Set();
  for(const r of runs){if(rs.has(r.id))E.push(`duplicate run id ${r.id}`);rs.add(r.id);
   if(r.type!=="HV"&&r.type!=="LV")E.push(`run ${r.id}: type must be HV or LV`);if(!LABELS.includes(r.label))E.push(`run ${r.id}: label '${r.label}' is not one of the labels`);
@@ -119,14 +123,17 @@ function checkLayout(L){const E=[],W=[],k=scaleK(L),RU=L.rules||{},rv=(n,d)=>(RU
   for(const e of ["from","to"])if(!termXY(L,r[e]||"",by))E.push(`run ${r.id}: ${e} '${r[e]}' is not a block terminal`);
   const P=runPts(L,r,by);if(P)RP[r.id]=P}
  const V=vehicle(L.dims),cab=[V.cab],keep=(L.zones||[]).filter(z=>z.kind==="keepout"),lat=o=>o.later?` (${o.later})`:"";
+const sealed=b=>!!(b.sealed||(b.in&&(by[b.in]||{}).sealed));
  for(const b of L.blocks||[]){
-  if(b.v==="HV"&&!b.in)for(const z of cab)if(rectOverlap(b,z))W.push(`HV in cab: block ${b.id} (${b.name}) is inside the ${z.name} zone${lat(b)}`);
+  if(b.v==="HV"&&!b.in)for(const z of cab)if(rectOverlap(b,z)){if(sealed(b))I.push(`HV in cab (sealed housing): block ${b.id} (${b.name}) is inside the ${z.name} zone${lat(b)}`);else W.push(`HV in cab: block ${b.id} (${b.name}) is inside the ${z.name} zone and is not a sealed housing${lat(b)}`)}
   if(b.part==="msd"||(b.contains||[]).includes("msd"))W.push(`MSD: block ${b.id} — there is no MSD in this build (DECIDED 2026-10-23: pull the 4 A6T200 string fuses)`);
   if(b.part==="precharge_res"&&!(b.flags||{}).metal_mount)W.push(`precharge resistor ${b.id} has no metal-mount flag (Sparky: metal mount with airflow)`);
   if(b.part==="fuse_a6t200"&&b.marker!==marker)W.push(`string fuses ${b.id} must carry the marker '${marker}'`);
-  if(!b.in)for(const z of keep)if(!(z.exempt||[]).includes(b.id)&&rectOverlap(b,z))W.push(`keep-out: block ${b.id} is inside ${z.name}${lat(b)}`)}
+  if(!b.in)for(const z of keep)if(!(z.exempt||[]).includes(b.id)&&rectOverlap(b,z)){if(zdiff(b,z)){I.push(`stacked: block ${b.id} (${b.z}) is over ${z.name} (${z.z}) — different layers`+(b.guard?`; ${b.guard}`:"")+lat(b));if(z.guard_rule&&b.v==="HV"&&!b.guard)W.push(`guard: HV block ${b.id} is stacked over ${z.name} with no guard / clearance note (crew: ≥ 2 in vertical clearance or a guard)${lat(b)}`)}else W.push(`keep-out: block ${b.id} is inside ${z.name}${lat(b)}`)}}
+ const top=(L.blocks||[]).filter(b=>!b.in);
+ for(let i=0;i<top.length;i++)for(const c of top.slice(i+1)){const a=top[i];if(rectOverlap(a,c)){if(zdiff(a,c))I.push(`stacked: ${a.id} (${a.z}) and ${c.id} (${c.z}) overlap on different layers${lat(a)||lat(c)}`);else W.push(`overlap: blocks ${a.id} and ${c.id} overlap on the same layer${lat(a)||lat(c)}`)}}
  for(const r of runs){const P=RP[r.id];if(!P)continue;const segs=P.slice(1).map((b,i)=>[P[i],b]);
-  if(r.type==="HV")for(const z of cab)if(segs.some(([a,b])=>segRect(a,b,z.x,z.y,z.x+z.w,z.y+z.h)))W.push(`HV in cab: run ${r.id} passes through the ${z.name} zone${lat(r)}`);
+  if(r.type==="HV")for(const z of cab)if(segs.some(([a,b])=>segRect(a,b,z.x,z.y,z.x+z.w,z.y+z.h)))I.push(`HV in cab: run ${r.id} passes through the ${z.name} zone — in conduit/loom between sealed housings${lat(r)}`);
   for(const z of keep)if(!(z.exempt||[]).includes(r.id)&&segs.some(([a,b])=>segRect(a,b,z.x,z.y,z.x+z.w,z.y+z.h)))W.push(`keep-out: run ${r.id} passes through ${z.name}${lat(r)}`)}
  const encl=L.blocks||[],inside=p=>encl.some(b=>inRect(p,b,.5));
  const HV=runs.filter(r=>r.type==="HV"&&RP[r.id]),LV=runs.filter(r=>r.type==="LV"&&RP[r.id]);
@@ -144,7 +151,7 @@ function checkLayout(L){const E=[],W=[],k=scaleK(L),RU=L.rules||{},rv=(n,d)=>(RU
  const es=(L.blocks||[]).filter(b=>b.part==="estop_head");
  for(const e of es){const c=[e.x+e.w/2,e.y+e.h/2];for(const s of V.seats){const d=hyp(c[0]-s.reach_from[0],c[1]-s.reach_from[1])*k;if(d>reach)W.push(`e-stop ${e.id} is ${f1(d)} in from the ${s.name} seat reach point (want ≤ ${f1(reach)} in, ASSUMED)`)}}
  if(!fm.length)W.push("F-MAIN: no fuse_main block placed");if(bt.length&&!fb.length)W.push("F-BATT: no fuse_batt block placed next to the buffer battery");if(!es.length)W.push("e-stop: no estop_head block placed");
- return {E,W,RP}}
+ return {E,W,I,RP}}
 // ---- state
 const LID="teryx";let L,R,sel=null,mode="sel",vb=null,ms=null,box=null,lpT=0,showLater=true;
 const LSK=b=>"teryx-layout-"+b,clone=o=>JSON.parse(JSON.stringify(o)),repoTxt=b=>JSON.stringify(LAYOUTS[b]);
@@ -172,15 +179,18 @@ function drawVehicle(){const g=$("gV");g.innerHTML="";const V=vehicle(L.dims),Lx
  const st=el("text",{x:bar+1,y:Wy+6.5},sb);st.textContent=`12 in (${lenTag()})`;
  const wm=el("text",{x:Lx,y:Wy+11,class:"wm","text-anchor":"end"},g);wm.textContent=(L.status||"")+" · "+lenTag();
  const gz=$("gZ");gz.innerHTML="";for(const z of [...(L.zones||[]),V.cab]){const zg=el("g",{class:"zn "+z.kind},gz);el("rect",{x:z.x,y:z.y,width:z.w,height:z.h},zg);
-  const t=el("text",{x:z.x+.4,y:z.kind==="cab"?z.y+1.6:z.y+z.h-.5},zg);t.textContent=(z.kind==="cab"?"CAB ZONE (no HV)":z.name)+" · "+(z.label||"ASSUMED")}}
+  const t=el("text",{x:z.x+.4,y:z.kind==="cab"?z.y+1.6:z.y+z.h-.5},zg);t.textContent=(z.kind==="cab"?"CAB ZONE (HV only in sealed housings)":z.name)+(z.z?` · ${z.z} layer`:"")+" · "+(z.label||"ASSUMED")}}
 function full(){drawVehicle();draw();side()}
 const vis=o=>showLater||!o.later;
 function draw(){R=checkLayout(L);const gB=$("gB"),gR=$("gR"),gX=$("gX");gB.innerHTML=gR.innerHTML=gX.innerHTML="";const by=BY(L),k=scaleK(L);
- const order=[...(L.blocks||[])].sort((a,b)=>(a.in?1:0)-(b.in?1:0));
- for(const b of order){if(!vis(b)&&!(b.in&&vis(by[b.in]||{})))continue;const cls=["blk",b.v,b.in?"kid":"",b.later?"later":"",sel&&sel.t==="b"&&sel.id===b.id?"sel":"",ms&&ms.blocks.has(b.id)?"msel":""].join(" ");
+ const zt=b=>b.z in ZT?ZT[b.z]:1,order=[...(L.blocks||[])].sort((a,b)=>(a.in?1:0)-(b.in?1:0)||zt(a)-zt(b));
+ const under=b=>b.in||!(b.z in ZT)?[]:(L.blocks||[]).filter(c=>!c.in&&c.id!==b.id&&c.z in ZT&&ZT[c.z]<ZT[b.z]&&rectOverlap(b,c)).map(c=>c.id);
+ for(const b of order){if(!vis(b)&&!(b.in&&vis(by[b.in]||{})))continue;const un=under(b),cls=["blk",b.v,b.in?"kid":"",b.later?"later":"",un.length?"up":"",sel&&sel.t==="b"&&sel.id===b.id?"sel":"",ms&&ms.blocks.has(b.id)?"msel":""].join(" ");
   const g=el("g",{class:cls,"data-blk":b.id},gB);el("rect",{x:b.x,y:b.y,width:b.w,height:b.h,rx:.4,class:"bd"},g);
   const t=el("text",{x:b.x+.35,y:b.y+1.25,class:"bl"},g);t.textContent=b.id;
   if(!b.in&&b.h>3){const t2=el("text",{x:b.x+.35,y:b.y+2.4,class:"bl2"},g);t2.textContent=(PARTS[b.part]||{}).name?b.part:b.part}
+  if(un.length){const t3=el("text",{x:b.x+.35,y:b.y+b.h-.5,class:"bl2 ztag"},g);t3.textContent=`▲ stacked above ${un.join(", ")} (${b.z})`}
+  if(b.sealed&&!b.in&&b.h>4.5){const t4=el("text",{x:b.x+.35,y:b.y+3.5,class:"bl2"},g);t4.textContent="sealed"}
   for(const [n,[fx,fy]] of Object.entries(b.terms||{}))el("circle",{cx:b.x+fx*b.w,cy:b.y+fy*b.h,r:.28,class:"term"},g)}
  for(const r of L.runs||[]){const P=R.RP[r.id];if(!P||!vis(r))continue;const d=P.map(p=>p.join(",")).join(" "),on=sel&&sel.t==="r"&&sel.id===r.id,mm=ms&&ms.runs.has(r.id);
   const g=el("g",{"data-run":r.id},gR);el("polyline",{points:d,class:"rhit"},g);
@@ -213,7 +223,8 @@ function selBox(){const s=$("selb"),by=BY(L),k=scaleK(L);if(ms&&(ms.blocks.size|
 function side(){selBox();const k=scaleK(L);
  $("chk").innerHTML=(R.E.length?`<div class="e"><b>${R.E.length} error(s)</b></div><ul>${R.E.map(e=>`<li class="e">${esc(e)}</li>`).join("")}</ul>`:`<div class="ok" style="color:var(--ok)">0 errors</div>`)+
   (R.W.length?`<div class="w"><b>${R.W.length} rule warning(s)</b></div><ul>${R.W.map(e=>`<li class="w">${esc(e)}</li>`).join("")}</ul>`:`<div class="mut">no rule warnings</div>`)+
-  `<div class="mut">Rules: no HV in the cab · HV/LV ≥ ${f1((L.rules.hv_lv_gap_in||{}).v||2)} in apart, never sharing a segment · HV/LV cross at 90° ± ${f1((L.rules.cross_tol_deg||{}).v||10)}° · P01 ≤ 5 ft · F-MAIN ≤ ${f1((L.rules.fmain_max_in||{}).v||7)} in from DC-DC out · F-BATT ≤ ${f1((L.rules.fbatt_max_in||{}).v||7)} in from battery + · precharge resistor metal-mounted · string fuses marked '${esc(FUSE_MARKER)}' · no MSD · keep-outs · e-stop reach.</div>`;
+  (R.I.length?`<details id="info"><summary class="mut"><b>${R.I.length} info</b> (sealed HV in the cab, HV runs in conduit, stacked layers — not warnings)</summary><ul>${R.I.map(e=>`<li class="mut">${esc(e)}</li>`).join("")}</ul></details>`:"")+
+  `<div class="mut">Rules: HV in the cab only in sealed housings (Adam 2026-10-23 DECIDED; sealed = info, unsealed = warning; HV runs in conduit/loom = info) · blocks must not overlap on the same layer (z low/mid/high; no z = every layer) · HV/LV ≥ ${f1((L.rules.hv_lv_gap_in||{}).v||2)} in apart, never sharing a segment · HV/LV cross at 90° ± ${f1((L.rules.cross_tol_deg||{}).v||10)}° · P01 ≤ 5 ft · F-MAIN ≤ ${f1((L.rules.fmain_max_in||{}).v||7)} in from DC-DC out · F-BATT ≤ ${f1((L.rules.fbatt_max_in||{}).v||7)} in from battery + · precharge resistor metal-mounted · string fuses marked '${esc(FUSE_MARKER)}' · no MSD · keep-outs · e-stop reach.</div>`;
  const s=L.scale||{},dk=Object.keys(L.dims).filter(n=>/overall|wheelbase|bed_|track|tire_dia/.test(n));
  $("scl").innerHTML=`<div><b>${esc(scaleTxt())}</b></div><div class="tools" style="margin-top:6px"><select id="sref" aria-label="Reference dimension">${dk.map(n=>`<option value="${n}"${n===s.ref?" selected":""}>${n} (model ${f1(L.dims[n].v)} in)</option>`).join("")}</select>`+
   `<input id="sval" type="number" step="0.1" min="1" inputmode="decimal" placeholder="tape" aria-label="Measured value" value="${s.measured_in?f1(s.measured_in):""}"><select id="sunit" aria-label="Unit"><option value="in">in</option><option value="cm">cm</option></select>`+
@@ -226,7 +237,7 @@ function side(){selBox();const k=scaleK(L);
   `<div class="mut">All lengths ${lab(tag==="ESTIMATED"?"EST":"SCALED")} ${tag}. Slack ${lab((sl.pct||{}).label||"")} ${f1((sl.pct||{}).v||0)} % + ${f1((sl.per_end_in||{}).v||0)} in per end ${lab((sl.per_end_in||{}).label||"")}. Cut = length × (1 + slack) + 2 × per-end, per conductor.</div>`;
  for(const tr of $("rtab").querySelectorAll("tr[data-r]"))tr.onclick=()=>{sel={t:"r",id:tr.dataset.r};ms=null;draw();side()};
  $("meas").innerHTML=`<ol style="margin:0;padding-left:18px">${MEAS.map(m=>`<li>${m}</li>`).join("")}</ol>`;
- $("zones").innerHTML=`<ul>${[...(L.zones||[]),{...vehicle(L.dims).cab,label:"ASSUMED",why:"chief: no HV in the cab (derived from dims dash_x, cab_x1, cab_margin)"}].map(z=>`<li><b>${esc(z.name)}</b> ${lab(z.label)} <span class="mut">${esc(z.kind)} · ${esc(z.why||"")}${z.exempt?` · exempt: ${esc(z.exempt.join(", "))}`:""}</span></li>`).join("")}</ul>`;
+ $("zones").innerHTML=`<ul>${[...(L.zones||[]),{...vehicle(L.dims).cab,label:"ASSUMED",why:"Adam 2026-10-23 DECIDED: HV only in sealed housings in the cab (supersedes chief's 'no HV in the cab', pending crew comment); derived from dims dash_x, cab_x1, cab_margin"}].map(z=>`<li><b>${esc(z.name)}</b> ${lab(z.label)} <span class="mut">${esc(z.kind)} · ${esc(z.why||"")}${z.exempt?` · exempt: ${esc(z.exempt.join(", "))}`:""}${z.z?` · layer ${esc(z.z)} (${esc(z.z_src||"")})`:""}</span></li>`).join("")}</ul>`;
  $("dims").innerHTML=`<table class="rt">${Object.entries(L.dims).map(([n,d])=>`<tr><td>${esc(n)}</td><td class="n">${f1(d.v*k)} in</td><td>${lab(d.label)}</td><td class="mut">${esc(d.note||d.src||"")}</td></tr>`).join("")}</table><div class="mut">Shown × k (${k.toFixed(4)}); the model keeps the ASSUMED values.</div>`;
  $("notes").innerHTML=`<ul>${(L.notes||[]).map(n=>`<li>${esc(n)}</li>`).join("")}</ul><div class="mut">${esc(L.axes||"")}</div>`}
 const MEAS=["<b>Wheelbase</b> (hub centre to hub centre, one side) — enter it above as the scale reference; the published 75.8 in is ASSUMED.",

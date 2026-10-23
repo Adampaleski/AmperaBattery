@@ -182,6 +182,25 @@
    "v": "reachable from above, tool-only cover",
    "label": "DECIDED",
    "src": "layout_constraints.md 06:11"
+  },
+  "hv_in_cab": {
+   "v": "sealed housings only",
+   "label": "DECIDED",
+   "src": "Adam 2026-10-23: HV can sit in the cab in sealed housings (packs under the seats, Kelly, DC-DC, HV box). Sealed = INFO; unsealed HV block in the cab = warning; HV runs in the cab = INFO (in conduit/loom between sealed housings). Supersedes chief's earlier 'no HV in the cab', pending crew comment"
+  },
+  "layers": {
+   "v": [
+    "low",
+    "mid",
+    "high"
+   ],
+   "label": "SOURCED",
+   "src": "Adam 2026-10-23: Kelly in the dash (high), motor in front of the dash (mid), axle/driveshaft/chain lowest where the stock shafts went (low). Overlaps / keep-out hits between explicit different layers are not warnings; a block with no z counts as every layer"
+  },
+  "shaft_guard": {
+   "v": "≥ 2 in vertical clearance or a guard",
+   "label": "DECIDED",
+   "src": "crew rule: HV stacked over the driveshaft/chain needs ≥ 2 in vertical clearance or a guard/floor plate; a block with z above a 'guard_rule' keep-out must carry a 'guard' note"
   }
  },
  "zones": [
@@ -246,7 +265,11 @@
    "why": "a thrown chain cuts cable; keep wiring out of the sprocket/chain envelope",
    "exempt": [
     "motor"
-   ]
+   ],
+   "z": "low",
+   "z_label": "SOURCED",
+   "z_src": "Adam 2026-10-23: axle/driveshaft/chain lowest, where the stock shafts went",
+   "guard_rule": true
   },
   {
    "id": "driveshaft",
@@ -259,7 +282,11 @@
    "label": "PROPOSED",
    "src": "Adam 2026-10-23 (SOURCED): motor at the front for airflow, chain to a solid drive shaft to the rear drive; zone width 4 in (shaft ±2 in) and path from the front chain along the motor centreline (y≈29) to the rear drive at x≈95 PROPOSED",
    "why": "spinning shaft: wires cross it at ~90° only, never run along it; clamp/standoff so no wiring is within 2 in of the shaft",
-   "exempt": []
+   "exempt": [],
+   "z": "low",
+   "z_label": "SOURCED",
+   "z_src": "Adam 2026-10-23: axle/driveshaft/chain lowest, where the stock shafts went",
+   "guard_rule": true
   },
   {
    "id": "exhaust",
@@ -555,7 +582,10 @@
    "flags": {
     "bonded": true,
     "tool_only_cover": true
-   }
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)"
   },
   {
    "id": "hv_fuses",
@@ -668,102 +698,450 @@
    ]
   },
   {
-   "id": "S1",
+   "id": "S1a",
    "part": "pack",
-   "name": "String 1 (36S, first drive)",
-   "x": 61.1,
-   "y": 17.5,
-   "w": 20,
-   "h": 6.5,
+   "name": "String 1 · 12S module a of 3 (B+ end) — first drive",
+   "x": 61.5,
+   "y": 9.5,
+   "w": 12.0,
+   "h": 12.0,
    "v": "HV",
    "label": "PROPOSED",
    "size_label": "ASSUMED",
-   "src": "layout_input_mechanic.md (strings low + centred, old engine bay / under the bed)",
-   "why": "beside the HV box",
-   "terms": {
-    "bus": [
-     0,
-     0.5
-    ],
-    "x2": [
-     0.1,
-     0
-    ]
-   }
-  },
-  {
-   "id": "S2",
-   "part": "pack",
-   "name": "String 2 (36S, first drive)",
-   "x": 61.2,
-   "y": 9,
-   "w": 20,
-   "h": 6.5,
-   "v": "HV",
-   "label": "PROPOSED",
-   "size_label": "ASSUMED",
-   "src": "layout_input_mechanic.md",
-   "why": "beside the HV box",
-   "terms": {
-    "bus": [
-     0,
-     0.5
-    ],
-    "x2": [
-     0.1,
-     1
-    ]
-   }
-  },
-  {
-   "id": "S3",
-   "part": "pack",
-   "name": "String 3 (36S, 4p end state)",
-   "x": 61.1,
-   "y": 33.6,
-   "w": 16,
-   "h": 7,
-   "v": "HV",
-   "label": "PROPOSED",
-   "size_label": "ASSUMED",
-   "src": "layout_input_mechanic.md ('old fuel-tank area under the seats')",
-   "why": "Mechanic's 2nd pack area — inside the cab zone",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — under passenger seat; only one cube fits under each seat (18 × 18 in)",
+   "string": "S1",
    "terms": {
     "bus": [
      1,
      0.5
     ],
+    "jo": [
+     0,
+     0.5
+    ]
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "under passenger seat"
+  },
+  {
+   "id": "S1b",
+   "part": "pack",
+   "name": "String 1 · 12S module b of 3 (middle) — first drive",
+   "x": 49.2,
+   "y": 9.5,
+   "w": 12.0,
+   "h": 12.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — passenger footwell (not under a seat); only one cube fits under each seat (18 × 18 in)",
+   "string": "S1",
+   "terms": {
+    "ji": [
+     1,
+     0.5
+    ],
+    "jo": [
+     0.4833,
+     1
+    ]
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "passenger footwell (not under a seat)"
+  },
+  {
+   "id": "S1c",
+   "part": "pack",
+   "name": "String 1 · 12S module c of 3 (B− end, BICM X2) — first drive",
+   "x": 52.3,
+   "y": 26.0,
+   "w": 12.0,
+   "h": 12.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — centreline over the driveshaft; only one cube fits under each seat (18 × 18 in)",
+   "string": "S1",
+   "terms": {
+    "ji": [
+     0.225,
+     0
+    ],
+    "neg": [
+     0.9,
+     0
+    ],
     "x2": [
+     0,
+     0.0833
+    ]
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "centreline over the driveshaft",
+   "guard": "needs a guard/floor plate between the shaft and the box, PROPOSED (crew rule: HV needs ≥ 2 in vertical clearance or a guard over the shaft)",
+   "guard_label": "PROPOSED"
+  },
+  {
+   "id": "S2a",
+   "part": "pack",
+   "name": "String 2 · 12S module a of 3 (B+ end) — first drive",
+   "x": 64.6,
+   "y": 26.0,
+   "w": 12.0,
+   "h": 12.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — centreline over the driveshaft; only one cube fits under each seat (18 × 18 in)",
+   "string": "S2",
+   "terms": {
+    "bus": [
+     1,
+     0.05
+    ],
+    "jo": [
+     0.2833,
+     1
+    ]
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "centreline over the driveshaft",
+   "guard": "needs a guard/floor plate between the shaft and the box, PROPOSED (crew rule: HV needs ≥ 2 in vertical clearance or a guard over the shaft)",
+   "guard_label": "PROPOSED"
+  },
+  {
+   "id": "S2b",
+   "part": "pack",
+   "name": "String 2 · 12S module b of 3 (middle) — first drive",
+   "x": 61.5,
+   "y": 38.3,
+   "w": 12.0,
+   "h": 12.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — under driver seat; only one cube fits under each seat (18 × 18 in)",
+   "string": "S2",
+   "terms": {
+    "ji": [
+     0.5417,
+     0
+    ],
+    "jo": [
+     0,
+     0.5
+    ]
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "under driver seat"
+  },
+  {
+   "id": "S2c",
+   "part": "pack",
+   "name": "String 2 · 12S module c of 3 (B− end, BICM X2) — first drive",
+   "x": 49.2,
+   "y": 38.3,
+   "w": 12.0,
+   "h": 12.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — driver footwell (not under a seat); only one cube fits under each seat (18 × 18 in)",
+   "string": "S2",
+   "terms": {
+    "ji": [
+     1,
+     0.5
+    ],
+    "neg": [
+     1,
+     0.85
+    ],
+    "x2": [
+     0.2458,
+     0
+    ]
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "driver footwell (not under a seat)"
+  },
+  {
+   "id": "S3a",
+   "part": "pack",
+   "name": "String 3 · 12S module a of 3 (B+ end)",
+   "x": 91.3,
+   "y": 13.7,
+   "w": 12.0,
+   "h": 12.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — under the bed, behind the HV box (not centreline); only one cube fits under each seat (18 × 18 in)",
+   "string": "S3",
+   "terms": {
+    "bus": [
+     0,
+     0.054
+    ],
+    "jo": [
+     0.475,
+     1
+    ]
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "later": "4p end state",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "under the bed, behind the HV box (not centreline)",
+   "guard": "needs a guard/floor plate between the shaft and the box, PROPOSED (crew rule: HV needs ≥ 2 in vertical clearance or a guard over the shaft)",
+   "guard_label": "PROPOSED"
+  },
+  {
+   "id": "S3b",
+   "part": "pack",
+   "name": "String 3 · 12S module b of 3 (middle)",
+   "x": 91.3,
+   "y": 26.0,
+   "w": 12.0,
+   "h": 12.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — centreline over the rear drive / axle; only one cube fits under each seat (18 × 18 in)",
+   "string": "S3",
+   "terms": {
+    "ji": [
+     0.475,
+     0
+    ],
+    "jo": [
+     1,
+     0.5
+    ],
+    "x2": [
+     0,
+     0.9
+    ]
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "later": "4p end state",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "centreline over the rear drive / axle",
+   "guard": "needs a guard/floor plate between the shaft and the box, PROPOSED (crew rule: HV needs ≥ 2 in vertical clearance or a guard over the shaft)",
+   "guard_label": "PROPOSED"
+  },
+  {
+   "id": "S3c",
+   "part": "pack",
+   "name": "String 3 · 12S module c of 3 (B− end, BICM X2)",
+   "x": 103.6,
+   "y": 26.0,
+   "w": 12.0,
+   "h": 12.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — centreline over the rear drive / axle; only one cube fits under each seat (18 × 18 in)",
+   "string": "S3",
+   "terms": {
+    "ji": [
+     0,
+     0.5
+    ],
+    "neg": [
+     0.1,
+     0
+    ]
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "later": "4p end state",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "centreline over the rear drive / axle",
+   "guard": "needs a guard/floor plate between the shaft and the box, PROPOSED (crew rule: HV needs ≥ 2 in vertical clearance or a guard over the shaft)",
+   "guard_label": "PROPOSED"
+  },
+  {
+   "id": "S4a",
+   "part": "pack",
+   "name": "String 4 · 12S module a of 3 (B+ end)",
+   "x": 18.6,
+   "y": 13.3,
+   "w": 12.0,
+   "h": 12.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — front, ahead of the motor (not centreline); only one cube fits under each seat (18 × 18 in)",
+   "string": "S4",
+   "terms": {
+    "bus": [
+     1,
+     0.1
+    ],
+    "jo": [
      0.5,
      1
     ]
    },
-   "later": "4p end state"
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "later": "4p end state",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "front, ahead of the motor (not centreline)",
+   "guard": "needs a guard/floor plate between the shaft and the box, PROPOSED (crew rule: HV needs ≥ 2 in vertical clearance or a guard over the shaft)",
+   "guard_label": "PROPOSED"
   },
   {
-   "id": "S4",
+   "id": "S4b",
    "part": "pack",
-   "name": "String 4 (36S, 4p end state)",
-   "x": 61.6,
-   "y": 41.4,
-   "w": 16,
-   "h": 7,
+   "name": "String 4 · 12S module b of 3 (middle)",
+   "x": 18.6,
+   "y": 26.0,
+   "w": 12.0,
+   "h": 12.0,
    "v": "HV",
    "label": "PROPOSED",
    "size_label": "ASSUMED",
-   "src": "layout_input_mechanic.md ('old fuel-tank area under the seats')",
-   "why": "Mechanic's 2nd pack area — inside the cab zone",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — centreline, front (over the front axle); only one cube fits under each seat (18 × 18 in)",
+   "string": "S4",
    "terms": {
-    "bus": [
-     1,
-     0.2
+    "ji": [
+     0.5,
+     0
+    ],
+    "jo": [
+     0,
+     0.5
     ],
     "x2": [
+     0.8667,
+     1
+    ]
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "later": "4p end state",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "centreline, front (over the front axle)",
+   "guard": "needs a guard/floor plate between the shaft and the box, PROPOSED (crew rule: HV needs ≥ 2 in vertical clearance or a guard over the shaft)",
+   "guard_label": "PROPOSED"
+  },
+  {
+   "id": "S4c",
+   "part": "pack",
+   "name": "String 4 · 12S module c of 3 (B− end, BICM X2)",
+   "x": 6.3,
+   "y": 26.0,
+   "w": 12.0,
+   "h": 12.0,
+   "v": "HV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "docs/PACK_LAYOUT.md (36S strings; 12S bricks; 3 × 12S per string is the doc's example — module-to-string allocation not decided) + Adam 2026-10-23 'make the packs out of 12S blocks'",
+   "why": "Build 26 (Adam 12:26/12:27): 12 in cube placeholder — centreline, front nose (over the front axle); only one cube fits under each seat (18 × 18 in)",
+   "string": "S4",
+   "terms": {
+    "ji": [
+     1,
+     0.5
+    ],
+    "neg": [
      0.5,
      0
     ]
    },
-   "later": "4p end state"
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "later": "4p end state",
+   "size_note": "ASSUMED placeholder (Adam 12:26): 12 × 12 in footprint, 12 in tall per 12S block; real size later (smaller when run in series)",
+   "height_in": 12,
+   "z": "mid",
+   "z_label": "PROPOSED",
+   "z_src": "Adam 12:27: 12S blocks that don't fit under the seats go along the centreline above the drive axle/driveshaft, on a layer above it",
+   "slot": "centreline, front nose (over the front axle)",
+   "guard": "needs a guard/floor plate between the shaft and the box, PROPOSED (crew rule: HV needs ≥ 2 in vertical clearance or a guard over the shaft)",
+   "guard_label": "PROPOSED"
   },
   {
    "id": "motor",
@@ -783,7 +1161,10 @@
      0,
      0.95
     ]
-   }
+   },
+   "z": "mid",
+   "z_label": "SOURCED",
+   "z_src": "Adam 2026-10-23: motor in front of the dash, below the Kelly"
   },
   {
    "id": "kelly",
@@ -822,7 +1203,15 @@
    },
    "contains": [
     "kelly_heatsink"
-   ]
+   ],
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)",
+   "z": "high",
+   "z_label": "SOURCED",
+   "z_src": "Adam 2026-10-23: Kelly sits in the dash, highest (stacked above the motor)",
+   "guard": "≥ 2 in vertical clearance expected: Kelly sits in the dash, highest (Adam 2026-10-23) — measure it",
+   "guard_label": "UNVERIFIED"
   },
   {
    "id": "dcdc",
@@ -846,7 +1235,10 @@
      1,
      0.5
     ]
-   }
+   },
+   "sealed": true,
+   "sealed_label": "DECIDED",
+   "sealed_src": "Adam 2026-10-23: HV may sit in the cab in sealed housings (supersedes chief's earlier 'no HV in the cab', pending crew comment)"
   },
   {
    "id": "lv_batt",
@@ -986,29 +1378,76 @@
    "type": "HV",
    "gauge": "1/0 AWG",
    "n": 2,
-   "from": "S1.bus",
+   "from": "S1a.bus",
    "to": "hv_fuses.s1",
    "pts": [
     [
-     61,
-     20.75
+     90.6,
+     15.5
     ],
     [
-     61,
-     16.9
-    ],
-    [
-     90.3,
-     16.9
-    ],
-    [
-     90.3,
+     90.6,
      14.35
     ]
    ],
    "label": "PROPOSED",
    "src": "PINMAP",
    "note": "B+ and B− tied side by side (Sparky)"
+  },
+  {
+   "id": "S1-J1",
+   "name": "String 1 series jumper a→b (12S → 12S)",
+   "no_wire_id": "inter-module series jumper — no PINMAP wire id yet (PROPOSED; add one when the module allocation is decided)",
+   "type": "HV",
+   "gauge": "1/0 AWG (ASSUMED, as the string lead)",
+   "n": 1,
+   "from": "S1a.jo",
+   "to": "S1b.ji",
+   "label": "PROPOSED",
+   "src": "Adam 2026-10-23: packs from 12S blocks",
+   "pts": []
+  },
+  {
+   "id": "S1-J2",
+   "name": "String 1 series jumper b→c (12S → 12S)",
+   "no_wire_id": "inter-module series jumper — no PINMAP wire id yet (PROPOSED; add one when the module allocation is decided)",
+   "type": "HV",
+   "gauge": "1/0 AWG (ASSUMED, as the string lead)",
+   "n": 1,
+   "from": "S1b.jo",
+   "to": "S1c.ji",
+   "label": "PROPOSED",
+   "src": "Adam 2026-10-23: packs from 12S blocks",
+   "pts": []
+  },
+  {
+   "id": "S1-BN",
+   "name": "String 1 B− lead (module c − end → bus exit beside B+)",
+   "wires": [
+    "H11"
+   ],
+   "type": "HV",
+   "gauge": "1/0 AWG",
+   "n": 1,
+   "from": "S1c.neg",
+   "to": "S1a.bus",
+   "label": "PROPOSED",
+   "src": "PINMAP H11 (string B− lead); path along the modules PROPOSED",
+   "note": "continues as the B− conductor of S1-BUS (B+ and B− tied side by side from the bus exit)",
+   "pts": [
+    [
+     63.1,
+     20.5
+    ],
+    [
+     73.1,
+     20.5
+    ],
+    [
+     73.1,
+     15.5
+    ]
+   ]
   },
   {
    "id": "S2-BUS",
@@ -1020,24 +1459,71 @@
    "type": "HV",
    "gauge": "1/0 AWG",
    "n": 2,
-   "from": "S2.bus",
+   "from": "S2a.bus",
    "to": "hv_fuses.s2",
    "pts": [
     [
-     61.1,
-     12.25
+     86,
+     26.6
     ],
     [
-     61.1,
-     16.7
-    ],
-    [
-     90,
-     16.7
+     86,
+     15.85
     ]
    ],
    "label": "PROPOSED",
    "src": "PINMAP"
+  },
+  {
+   "id": "S2-J1",
+   "name": "String 2 series jumper a→b (12S → 12S)",
+   "no_wire_id": "inter-module series jumper — no PINMAP wire id yet (PROPOSED; add one when the module allocation is decided)",
+   "type": "HV",
+   "gauge": "1/0 AWG (ASSUMED, as the string lead)",
+   "n": 1,
+   "from": "S2a.jo",
+   "to": "S2b.ji",
+   "label": "PROPOSED",
+   "src": "Adam 2026-10-23: packs from 12S blocks",
+   "pts": []
+  },
+  {
+   "id": "S2-J2",
+   "name": "String 2 series jumper b→c (12S → 12S)",
+   "no_wire_id": "inter-module series jumper — no PINMAP wire id yet (PROPOSED; add one when the module allocation is decided)",
+   "type": "HV",
+   "gauge": "1/0 AWG (ASSUMED, as the string lead)",
+   "n": 1,
+   "from": "S2b.jo",
+   "to": "S2c.ji",
+   "label": "PROPOSED",
+   "src": "Adam 2026-10-23: packs from 12S blocks",
+   "pts": []
+  },
+  {
+   "id": "S2-BN",
+   "name": "String 2 B− lead (module c − end → bus exit beside B+)",
+   "wires": [
+    "H11"
+   ],
+   "type": "HV",
+   "gauge": "1/0 AWG",
+   "n": 1,
+   "from": "S2c.neg",
+   "to": "S2a.bus",
+   "label": "PROPOSED",
+   "src": "PINMAP H11 (string B− lead); path along the modules PROPOSED",
+   "note": "continues as the B− conductor of S2-BUS (B+ and B− tied side by side from the bus exit)",
+   "pts": [
+    [
+     66,
+     48.5
+    ],
+    [
+     66,
+     26.6
+    ]
+   ]
   },
   {
    "id": "S3-BUS",
@@ -1049,20 +1535,69 @@
    "type": "HV",
    "gauge": "1/0 AWG",
    "n": 2,
-   "from": "S3.bus",
+   "from": "S3a.bus",
    "to": "hv_fuses.s3",
+   "pts": [],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "later": "4p end state"
+  },
+  {
+   "id": "S3-J1",
+   "name": "String 3 series jumper a→b (12S → 12S)",
+   "no_wire_id": "inter-module series jumper — no PINMAP wire id yet (PROPOSED; add one when the module allocation is decided)",
+   "type": "HV",
+   "gauge": "1/0 AWG (ASSUMED, as the string lead)",
+   "n": 1,
+   "from": "S3a.jo",
+   "to": "S3b.ji",
+   "label": "PROPOSED",
+   "src": "Adam 2026-10-23: packs from 12S blocks",
+   "pts": [],
+   "later": "4p end state"
+  },
+  {
+   "id": "S3-J2",
+   "name": "String 3 series jumper b→c (12S → 12S)",
+   "no_wire_id": "inter-module series jumper — no PINMAP wire id yet (PROPOSED; add one when the module allocation is decided)",
+   "type": "HV",
+   "gauge": "1/0 AWG (ASSUMED, as the string lead)",
+   "n": 1,
+   "from": "S3b.jo",
+   "to": "S3c.ji",
+   "label": "PROPOSED",
+   "src": "Adam 2026-10-23: packs from 12S blocks",
+   "pts": [],
+   "later": "4p end state"
+  },
+  {
+   "id": "S3-BN",
+   "name": "String 3 B− lead (module c − end → bus exit beside B+)",
+   "wires": [
+    "H11"
+   ],
+   "type": "HV",
+   "gauge": "1/0 AWG",
+   "n": 1,
+   "from": "S3c.neg",
+   "to": "S3a.bus",
+   "label": "PROPOSED",
+   "src": "PINMAP H11 (string B− lead); path along the modules PROPOSED",
+   "note": "continues as the B− conductor of S3-BUS (B+ and B− tied side by side from the bus exit)",
    "pts": [
     [
-     81.8,
-     37.1
+     104.8,
+     14.0
     ],
     [
-     81.8,
+     91.7,
+     14.0
+    ],
+    [
+     91.7,
      14.35
     ]
    ],
-   "label": "PROPOSED",
-   "src": "PINMAP",
    "later": "4p end state"
   },
   {
@@ -1075,28 +1610,78 @@
    "type": "HV",
    "gauge": "1/0 AWG",
    "n": 2,
-   "from": "S4.bus",
+   "from": "S4a.bus",
    "to": "hv_fuses.s4",
    "pts": [
     [
-     80.9,
-     42.8
+     81.5,
+     14.5
     ],
     [
-     80.9,
-     24.4
-    ],
-    [
-     81.8,
-     24.4
-    ],
-    [
-     81.8,
+     81.5,
      15.85
     ]
    ],
    "label": "PROPOSED",
    "src": "PINMAP",
+   "later": "4p end state"
+  },
+  {
+   "id": "S4-J1",
+   "name": "String 4 series jumper a→b (12S → 12S)",
+   "no_wire_id": "inter-module series jumper — no PINMAP wire id yet (PROPOSED; add one when the module allocation is decided)",
+   "type": "HV",
+   "gauge": "1/0 AWG (ASSUMED, as the string lead)",
+   "n": 1,
+   "from": "S4a.jo",
+   "to": "S4b.ji",
+   "label": "PROPOSED",
+   "src": "Adam 2026-10-23: packs from 12S blocks",
+   "pts": [],
+   "later": "4p end state"
+  },
+  {
+   "id": "S4-J2",
+   "name": "String 4 series jumper b→c (12S → 12S)",
+   "no_wire_id": "inter-module series jumper — no PINMAP wire id yet (PROPOSED; add one when the module allocation is decided)",
+   "type": "HV",
+   "gauge": "1/0 AWG (ASSUMED, as the string lead)",
+   "n": 1,
+   "from": "S4b.jo",
+   "to": "S4c.ji",
+   "label": "PROPOSED",
+   "src": "Adam 2026-10-23: packs from 12S blocks",
+   "pts": [],
+   "later": "4p end state"
+  },
+  {
+   "id": "S4-BN",
+   "name": "String 4 B− lead (module c − end → bus exit beside B+)",
+   "wires": [
+    "H11"
+   ],
+   "type": "HV",
+   "gauge": "1/0 AWG",
+   "n": 1,
+   "from": "S4c.neg",
+   "to": "S4a.bus",
+   "label": "PROPOSED",
+   "src": "PINMAP H11 (string B− lead); path along the modules PROPOSED",
+   "note": "continues as the B− conductor of S4-BUS (B+ and B− tied side by side from the bus exit)",
+   "pts": [
+    [
+     12.3,
+     14.0
+    ],
+    [
+     30.2,
+     14.0
+    ],
+    [
+     30.2,
+     14.5
+    ]
+   ],
    "later": "4p end state"
   },
   {
@@ -1600,11 +2185,11 @@
    "pts": [
     [
      77.5,
-     25
+     23.5
     ],
     [
      52.6,
-     25
+     23.5
     ],
     [
      52.6,
@@ -1666,25 +2251,8 @@
    "gauge": "22 AWG (CAN twisted pair)",
    "n": 4,
    "from": "bms_box.can1",
-   "to": "S1.x2",
-   "pts": [
-    [
-     52,
-     26
-    ],
-    [
-     52.6,
-     26
-    ],
-    [
-     52.6,
-     25
-    ],
-    [
-     63.1,
-     25
-    ]
-   ],
+   "to": "S1c.x2",
+   "pts": [],
    "label": "PROPOSED",
    "src": "PINMAP"
   },
@@ -1700,23 +2268,11 @@
    "gauge": "22 AWG (CAN twisted pair)",
    "n": 4,
    "from": "bms_box.can2",
-   "to": "S2.x2",
+   "to": "S2c.x2",
    "pts": [
     [
-     52,
-     26.6
-    ],
-    [
-     52.6,
-     26.6
-    ],
-    [
-     52.6,
-     25
-    ],
-    [
-     63.2,
-     25
+     52.15,
+     27.8
     ]
    ],
    "label": "PROPOSED",
@@ -1734,23 +2290,23 @@
    "gauge": "22 AWG (CAN twisted pair)",
    "n": 4,
    "from": "bms_box.can1",
-   "to": "S3.x2",
+   "to": "S3b.x2",
    "pts": [
     [
-     52,
-     26.6
+     52.15,
+     27
     ],
     [
-     52.6,
-     26.6
+     52.15,
+     38.15
     ],
     [
-     52.6,
-     40.8
+     89,
+     38.15
     ],
     [
-     69.1,
-     40.8
+     89,
+     36.8
     ]
    ],
    "label": "PROPOSED",
@@ -1769,23 +2325,19 @@
    "gauge": "22 AWG (CAN twisted pair)",
    "n": 4,
    "from": "bms_box.can2",
-   "to": "S4.x2",
+   "to": "S4b.x2",
    "pts": [
     [
-     52,
-     26.6
+     52.15,
+     27.8
     ],
     [
-     52.6,
-     26.6
+     52.15,
+     38.15
     ],
     [
-     52.6,
-     41.2
-    ],
-    [
-     69.6,
-     41.2
+     29,
+     38.15
     ]
    ],
    "label": "PROPOSED",
@@ -2059,6 +2611,7 @@
   "Inside-HV-box links (H05 fuses→bus, H06 bus→EV200, H08 precharge) are bus bar / short leads and not drawn as runs.",
   "Not drawn: G01/G02/G03 ground straps (to the nearest frame point), A01-A05 actuators (LATER), S08 (not fitted), P06-P08 aux.",
   "Low points / fording depth cannot be shown top-down: keep every box above the old engine bay floor (ground clearance 11.2 in published).",
-  "No MSD in this build (DECIDED 06:11): the 4 A6T200 string fuses are the service disconnect."
+  "No MSD in this build (DECIDED 06:11): the 4 A6T200 string fuses are the service disconnect.",
+  "Build 26: each 36S string is drawn as 3 × 12S module blocks (S1a–S4c), 12 in cube placeholders (ASSUMED placeholder, Adam 12:26). 3 × 12S is docs/PACK_LAYOUT.md's example; which modules go in which string is not decided. Only one cube fits under each seat; per Adam 12:27 the rest go along the centreline above the driveshaft/axle on layer mid (guard/floor plate PROPOSED). The centreline cannot hold all 10 others: S1b/S2c sit in the footwells, S3a under the bed beside the HV box, S4a ahead of the motor (see each block's 'slot'). Series jumpers S*-J1/J2 PROPOSED (no PINMAP id yet)."
  ]
 }
