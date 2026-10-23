@@ -6,6 +6,7 @@ R = pathlib.Path(__file__).resolve().parent
 lbl = os.environ.get("BUILD_LABEL") or "dev build · " + subprocess.run(["git","rev-parse","--short","HEAD"],cwd=R,capture_output=True,text=True).stdout.strip() + "+"
 t = (R/"wiring.template.html").read_text()
 import json
+__import__("build_parts_json").build()  # tools/parts.json + parts.js <- docs/PARTS.yaml
 cs = json.loads((R/"cutsheets.json").read_text()); ins = json.loads((R/"install_src.json").read_text())
 extra = "\nwindow.CUTSHEETS=" + json.dumps(cs["parts"], ensure_ascii=False) + ";\nwindow.INSTALL=" + json.dumps(ins["pages"], ensure_ascii=False) + ";\n"
 # docs/PINMAP.yaml is the single source: every drawn line gets its wire number from it (build fails if one is missing)
@@ -24,4 +25,4 @@ for pg in _pages:
             seen.append(y["id"])
             pg["net"].append([y["label"] + " · " + y["from"], y["to"], y["signal"], f'{y["awg"]} AWG', y["color"], y["src"], {"SOURCED": "S", "PROPOSED": "P"}.get(y["status"], "U")])
 _pm_js = "\nwindow.PAGES=" + json.dumps(_pages, ensure_ascii=False) + ";\nwindow.PINMAP=" + json.dumps({"wires": _pm["wires"], "conflicts": _pm["conflicts"]}, ensure_ascii=False) + ";\n"
-(R/"wiring.html").write_text(t.replace("/*DATA*/", (R/"wiring_data.js").read_text() + _pm_js + extra, 1).replace("@@BUILD_LABEL@@", lbl).replace("@@TOPNAV@@", __import__("topnav").topnav("wiring", lbl)))
+(R/"wiring.html").write_text(t.replace("/*DATA*/", (R/"wiring_data.js").read_text() + "\n" + (R/"parts.js").read_text() + _pm_js + extra, 1).replace("@@BUILD_LABEL@@", lbl).replace("@@TOPNAV@@", __import__("topnav").topnav("wiring", lbl)))

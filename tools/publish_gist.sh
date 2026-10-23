@@ -13,7 +13,7 @@ scripts/build_bms_sim_html.sh
 python3 tools/build_wiring.py
 python3 tools/build_checklist.py
 echo "$N" > tools/BUILD_NUMBER
-git add tools/BUILD_NUMBER tools/bms_sim.html tools/dash.html tools/wiring.html tools/checklist.html
+git add tools/parts.json tools/parts.js tools/BUILD_NUMBER tools/bms_sim.html tools/dash.html tools/wiring.html tools/checklist.html
 git commit -qm "Publish $BUILD_LABEL (gist)"
 gh gist edit $G -f index.html tools/bms_sim.html
 gh gist edit $G -f dash.html tools/dash.html
