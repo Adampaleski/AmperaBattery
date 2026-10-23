@@ -119,8 +119,8 @@ Brake switch 12 V -> Kelly pin 25 + brake light; state readable on Kelly CAN 0x0
 Kelly pin numbers are from the KLS-8080N V2.11 manual (SOURCED). Adam's harness is UNVERIFIED. Details: docs/PARK_BRAKE.md, docs/DRIVE_MODES.md, docs/THROTTLE_CLAMP.md, docs/KELLY_CAN_ROLES.md.
 
 
-## Drawing standard (Adam, 2026-10-21, all diagrams incl. schematic/gen.py)
+## Drawing standard (Adam, 2026-10-21, all diagrams incl. tools/schematic/gen.py)
 - Wires that cross without connecting: draw a hop arc (or a gap break). Never a bare crossing.
 - A real junction (same terminal / node): filled dot. No dot = no connection.
 - Unrelated wires never run on top of each other.
-- tools/wiring.html enforces this in draw(); checked by scripts/test_wiring_crossings.py. schematic/gen.py: apply the same rule when it is next edited (not changed in Build 2).
+- tools/wiring.html enforces this in draw(); checked by scripts/test_wiring_crossings.py. tools/schematic/gen.py (copied into the repo in Build 18; outputs docs/schematic/teryx-system.{drawio,png,pdf}) draws hop arcs at crossings and dots at real junctions.
