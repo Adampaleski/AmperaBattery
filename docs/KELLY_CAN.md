@@ -1,4 +1,4 @@
-# Kelly KLS8080 NPS — CAN ingest plan (Teensy CAN2)
+# Kelly KLS8080 NPS — CAN ingest plan (Teensy CAN3 vehicle bus)
 
 ## Decision (not serial)
 
@@ -9,11 +9,13 @@ Kelly **KLS8080 NPS** already **broadcasts** motor telemetry on CAN:
 | Speed | **250 kbit/s** |
 | Framing | J1939-style **29-bit** extended IDs |
 | IDs | `0x0CF11E05` (RPM / current / V / errors), `0x0CF11F05` (throttle / temps) |
-| Teensy bus | **CAN2** pins **0 RX / 1 TX** — **same bus as Elcon** |
-| Transceiver | Existing SN65HVD230 #2 (shared) |
-| Not used | BICM **CAN3 @ 125 kbit**, RS232 “serial sniffer”, separate bridge MCU |
+| Teensy bus | **CAN3** pins **30 RX / 31 TX** @ **250k** — the shared **vehicle bus** `CAN-V` (Kelly + Elcon + Teensy A-B link). SOURCED: include/FlexCanCompat.h:42-45 (`CAN_LAYOUT_V2`, Adam 2026-10-21), docs/PINMAP.yaml `CAN-V` |
+| Transceiver | SN65HVD230 **#5** on Teensy A (end, 120 Ω), **#6** on Teensy B (stub, no 120 Ω) — SOURCED docs/PINMAP.yaml `CAN-V` |
+| Not used | BICM string buses **CAN1 22/23** and **CAN2 0/1 @ 125 kbit**, RS232 “serial sniffer”, separate bridge MCU |
 
-Gap was never “how does Kelly talk?” — it was **decode those frames on the shared Elcon CAN2**. Stale docs that say serial/TBD interface are wrong; fix them here and in `teryx-ev-hub`.
+Gap was never “how does Kelly talk?” — it was **decode those frames on the shared CAN3 vehicle bus**. Stale docs that say serial/TBD interface are wrong; fix them here and in `teryx-ev-hub`.
+
+> Single-string envs (`CAN_LAYOUT_V2=0`, e.g. `teensy41_k112_36s`) still map the vehicle bus to CAN2 0/1 (FlexCanCompat.h:62-64). The Teryx build is dual-string (`teensy41_dual_a` / `_b`, `DUAL_STRING=1`), so the vehicle bus is **CAN3 30/31**.
 
 ## Firmware hooks (this branch)
 
@@ -30,7 +32,7 @@ Gap was never “how does Kelly talk?” — it was **decode those frames on the
 ## Shared-bus notes
 
 - Elcon TX remains gated by `BMS_CAP_CHARGE_TX=0`. Kelly RX works with Elcon silent.
-- Terminate CAN2 once (120 Ω). Both nodes + Teensy on the same twisted pair.
+- Terminate the CAN3 vehicle bus at its two ends only: 120 Ω at Teensy A and at the far end (Elcon built-in 120 Ω is UNVERIFIED: meter ~60 Ω powered off). Teensy B is a stub with no 120 Ω. All nodes on the same twisted pair (PINMAP `CAN-V`).
 - If Elcon floods the bus later, Kelly frames still land in the same RX drain (`ChargerCan::tick`).
 
 ## Byte layout (verify before enabling unpack)
@@ -47,11 +49,11 @@ With `BMS_CAP_KELLY_RX=0`, firmware only counts IDs and keeps raw bytes for `y`.
 
 ## Bench next step
 
-1. Flash `teensy41_k112_36s` (this branch) — caps stay 0.
-2. Wire Kelly CANH/L onto the **Elcon** CAN2 pair (or Kelly alone if Elcon not present).
+1. Flash `teensy41_dual_a` (PROPOSED env for the CAN3 vehicle bus; this branch; Adam does the flashing) — caps stay 0, TELEMETRY_ONLY stays 1.
+2. Wire Kelly CANH/L onto the **CAN3 vehicle bus** pair (`CAN-V`, Teensy pins 30/31 via SN65HVD230 #5) — with or without the Elcon present.
 3. Key ignition / enable Kelly logic 12 V so NPS broadcast starts.
 4. USB serial → press `y` — expect non-zero `0x0CF11E05` / `0x0CF11F05` counts and raw hex.
-5. Optional: `c` candump on CAN2 path is Elcon-handler only today; use an external sniffer or add a one-line debug later if raw IDs never appear.
+5. Optional: `c` candump on the vehicle-bus path is Elcon-handler only today (UNVERIFIED that it follows the CAN3 remap); use an external sniffer or add a one-line debug later if raw IDs never appear.
 6. **Do not** set `BMS_CAP_KELLY_RX=1` until raw bytes match the map above.
 
 ## Hub schema
