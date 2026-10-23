@@ -39,4 +39,6 @@ document.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{cfg.src=b.data
 dash.F('apply').onclick=()=>{cfg.url=dash.F('url').value.trim();localStorage.setItem('teryxDashSrc',JSON.stringify(cfg));start();};
 start();
 setInterval(()=>{const stale=!last||Date.now()-lastAt>STALE_MS;dash.update(stale?null:last,{});},100);
+// ?src=sim: heartbeat so the sim keeps running even when its tab is in the background (browsers slow hidden-tab timers).
+if(simPanel)setInterval(()=>simPanel.send('tick'),100);
 </script></body></html>
