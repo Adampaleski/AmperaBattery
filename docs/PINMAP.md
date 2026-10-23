@@ -30,7 +30,9 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 19. RESOLVED: SN65HVD230 — 4 owned enough for the one-string bench; 2 extra on the buy list for Gate 3 (no purchase now).
 20. RESOLVED: PEDAL_IN_B = B pin 41, pedal track 2 via 10k/18k; A reads track 1 on pin 40.
 21. Kelly pin 3: ONE pull-down, the existing 100k (R1). Sparky's 10k NOT added — PROPOSED bench option only if pin 3 floats, after a full-voltage check through the 4066s.
-22. RESOLVED: DC-DC = Elcon TDC-JH-144-12, 110 A out (SOURCED crew 2026-10-23). F-MAIN and P01/P02 gauge: Sparky sizes them (TBD).
+22. RESOLVED: DC-DC = Elcon TDC-JH-144-12, 110 A out (SOURCED crew 2026-10-23). F-MAIN = 150 A MIDI/MEGA at the DC-DC output, P01/P02 = 2 AWG (Sparky 07:34 DECIDED).
+23. RESOLVED (Sparky 07:34 DECIDED): 12 V buffer battery: + -> F-BATT 150 A MIDI/MEGA (≤ 7 in from the post) -> 12 V bus + (P13/P14, 2 AWG); - -> TB-GND/chassis (G13, 2 AWG). Wire ids PROPOSED (P10-P12 already used). F-BATT holder + P/N TBD.
+24. RESOLVED (Sparky 07:34 DECIDED): LEM DHAB GND = pin C (SOURCED, LEM datasheet via Sparky), GM harness BK/GY circuit 2963 -> master star bar (G09/G10).
 
 ## Teensy A pins
 
@@ -178,13 +180,14 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | ESTOP | E-stop mushroom head (1 NC incl.) — XB4BS8442 (PROPOSED; alternate XB5AS8442) [`estop_head`]; E-stop extra NC blocks — ZBE102 [`estop_blocks`] | XB5AS8442 (or XB4BS8442) head + 2x ZBE102 = 3 NC blocks | each block: terminals 11 (in) / 12 (out), NC | SOURCED | docs/ESTOP.md; se.com XB5AS8442 page (1 NC in head) |
 | EBOX-DT | Deutsch DT kit + crimper — Amazon B0DZ331GDL (217 pc) [`deutsch`] | Electronics box Deutsch DT harness connector | UNDEFINED — pin-out not assigned yet | UNDEFINED | tools/schematic/gen.py 'dt' |
 | TB-5V | LV distribution terminal blocks — 5 V rail (TB-5V) + single-point GND (TB-GND) — UNKNOWN (type/position count not chosen; barrier or DIN terminal block PROPOSED) [`lv_tb`] | 5 V terminal block | Teensy A VIN, Teensy B VIN, transceivers? (SN65 run on 3.3 V from each Teensy), LEM 5 V, pedal 5 V, clamp chips | PROPOSED | tools/wiring_data.js power12/clamp |
-| TB-GND | LV distribution terminal blocks — 5 V rail (TB-5V) + single-point GND (TB-GND) — UNKNOWN (type/position count not chosen; barrier or DIN terminal block PROPOSED) [`lv_tb`] | GND terminal block (single point) | LV STAR (DECIDED chief 06:57 #5): G03 buck return, G07 BICM GND (stays), G08 coil_driver dedicated 16 AWG return, plus EXACTLY ONE link from the bms_master board star (J-PWR.2, = G03 path; no loop). Nothing else lands here | SOURCED | tools/schematic/gen.py 'gnd' |
+| TB-GND | LV distribution terminal blocks — 5 V rail (TB-5V) + single-point GND (TB-GND) — UNKNOWN (type/position count not chosen; barrier or DIN terminal block PROPOSED) [`lv_tb`] | GND terminal block (single point) | LV STAR (DECIDED chief 06:57 #5): G03 buck return, G07 BICM GND (stays), G08 coil_driver dedicated 16 AWG return, G13 buffer battery - 2 AWG (Sparky 07:34 DECIDED: TB-GND/chassis; a 2 AWG lug needs a stud, OPEN), plus EXACTLY ONE link from the bms_master board star (J-PWR.2, = G03 path; no loop). Nothing else lands here | SOURCED | tools/schematic/gen.py 'gnd' |
 
 ## Fuses
 
 | ID | Part (docs/PARTS.yaml) | Where | Rating | Status | Source |
 |---|---|---|---|---|---|
-| F-MAIN | Main 12 V fuse F-MAIN (DC-DC out, P01) — 150 A MIDI/MEGA bolt-down fuse (exact P/N + holder not chosen) [`fuse_main`] | DC-DC 12 V out | TBD — Sparky sizes it (TDC-JH-144-12 = 110 A out, SOURCED crew 2026-10-23) | PROPOSED | Sparky 2026-10-22 |
+| F-MAIN | Main 12 V fuse F-MAIN (DC-DC out, bus end: P01 -> F-MAIN -> P02) — 150 A MIDI/MEGA bolt-down fuse (exact P/N + holder not chosen) [`fuse_main`] | DC-DC 12 V out, bus end (DC-DC -> P01 -> F-MAIN -> P02 -> 12 V bus +), as drawn | 150 A MIDI/MEGA bolt-down (TDC-JH-144-12 = 110 A out, SOURCED); holder + P/N TBD | PROPOSED | Sparky 07:34 DECIDED (rating + position); Sparky 2026-10-22 |
+| F-BATT | Buffer battery fuse F-BATT (battery + post -> 12 V bus +, P13/P14) — 150 A MIDI/MEGA bolt-down fuse (P/N + holder TBD) [`fuse_batt`] | 12 V buffer battery + post, within 7 in of the post (P13 -> F-BATT -> P14 -> 12 V bus +) | 150 A MIDI/MEGA bolt-down; holder + P/N TBD | PROPOSED | Sparky 07:34 DECIDED |
 | F-COIL | Mini-blade fuses + holders — Amazon B0B24YYYCF / B0C15H3F9M [`lv_fuses`] | 12 V coil feed -> e-stop blocks 1+2 | 10 A | PROPOSED | Sparky 2026-10-22 |
 | F-KEL | Mini-blade fuses + holders — Amazon B0B24YYYCF / B0C15H3F9M [`lv_fuses`] | Kelly PWR logic | 2 A | PROPOSED | Sparky 2026-10-22 |
 | F-EBOX | Mini-blade fuses + holders — Amazon B0B24YYYCF / B0C15H3F9M [`lv_fuses`] | electronics box 12 V | 5 A (F-BUCK 3 A after it) | PROPOSED | Sparky 2026-10-22 |
@@ -229,8 +232,9 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | G01 | 1 | wire | 12V bus bar:- | frame ground strap | GND | 0 V | BK | strap | none | G01 12V- CHASSIS | CRITICAL | PROPOSED | wiring_data power12 net (Mechanic) |
 | G02 | 1 | wire | Kelly case | frame | GND | 0 V | BK | strap | none | G02 KELLY CASE | CRITICAL | PROPOSED | wiring_data power12 |
 | G03 | 1 | wire | 5 V buck OUT- (on the bms_master board star) via J-PWR.2 | TB-GND | GND | 0 V | BK | 20 | none | G03 BUCK GND | CRITICAL | PROPOSED | gen.py gnd; chief 06:57 #5 DECIDED: the ONE link board star -> TB-GND (no loop) |
-| P01 | 1 | wire | DC-DC TDC-JH-144-12:+12V out | F-MAIN:in | +12V main | 12-14 V | RD | TBD: Sparky sizes it; TDC-JH-144-12 = 110 A out (SOURCED) (10 AWG ≤30 A, 8 AWG ≤40 A, 6 AWG ≤60 A) | F-MAIN | P01 12V MAIN | CRITICAL | UNVERIFIED | gen.py; wiring_data power12 |
-| P02 | 1 | wire | F-MAIN:out | 12V bus bar:+ | +12V main | 12-14 V | RD | TBD: same as P01 | F-MAIN | P02 12V BUS | CRITICAL | PROPOSED | gen.py |
+| G13 | 1 | wire | 12 V buffer battery:- post | TB-GND / chassis (LV star) | GND | 0 V | BK | 2 | none | G13 BATT- | CRITICAL | PROPOSED | Sparky 07:34 DECIDED; id PROPOSED Gilfoyle (G series = grounds) |
+| P01 | 1 | wire | DC-DC TDC-JH-144-12:+12V out | F-MAIN:in | +12V main | 12-14 V | RD | 2 | F-MAIN | P01 12V MAIN | CRITICAL | UNVERIFIED | gen.py; wiring_data power12; 2 AWG = Sparky 07:34 DECIDED (run under 5 ft) |
+| P02 | 1 | wire | F-MAIN:out | 12V bus bar:+ | +12V main | 12-14 V | RD | 2 | F-MAIN | P02 12V BUS | CRITICAL | PROPOSED | gen.py; 2 AWG = Sparky 07:34 DECIDED |
 | P03 | 1 | wire | 12V bus bar:+ | F-KEL:in -> Kelly PWR | +12V | 12 V | RD/WH | 16 | F-KEL | P03 KELLY PWR | CRITICAL | UNVERIFIED | gen.py fkel |
 | P04 | 1 | wire | 12V bus bar:+ | F-COIL:in | +12V coil feed | 12 V | RD/WH | 18 | F-COIL | P04 COIL FEED | CRITICAL | PROPOSED | docs/ESTOP.md |
 | P05 | 1 | wire | 12V bus bar:+ | F-EBOX:in (electronics box) | +12V | 12 V | RD/WH | 16 | F-EBOX | P05 EBOX 12V | CRITICAL | UNVERIFIED | gen.py fesp |
@@ -238,6 +242,8 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | P07 | 1 | wire | F-EBOX:out | F-BUCK 3 A -> 5 V buck IN+ | +12V | 12 V | RD/WH | 18 | F-BUCK | P07 BUCK IN | CRITICAL | SOURCED | gen.py fbx |
 | P08 | 1 | wire | 5 V buck OUT+ | TB-5V | +5V | 5.00 V | OR | 20 | F-BUCK | P08 5V | CRITICAL | PROPOSED | gen.py conv/v5 |
 | P09 | 1 | board | Zener 1N5339B cathode | TB-5V (anode to TB-GND) | 5 V clamp | 5 V | — | lead | none | P09 ZENER | CRITICAL | SOURCED | gen.py z |
+| P13 | 1 | wire | 12 V buffer battery:+ post | F-BATT:in (≤ 7 in from the post) | +12V battery | 12-14 V | RD | 2 | F-BATT | P13 BATT+ | CRITICAL | PROPOSED | Sparky 07:34 DECIDED; id PROPOSED Gilfoyle (P10-P12 taken) |
+| P14 | 1 | wire | F-BATT:out | 12V bus bar:+ | +12V battery | 12-14 V | RD | 2 | F-BATT | P14 BATT BUS | CRITICAL | PROPOSED | Sparky 07:34 DECIDED; id PROPOSED Gilfoyle |
 | G04 | 2 | board | Teensy A:GND | bms_master board star (signal ground) — NO wire to TB-GND (G04 to TB-GND dropped: DECIDED room Sparky + chief 2026-10-23 06:11). Teensy signal GND reaches coil_driver on J-SIG.1 in the gate cable; coil_driver J-GND -> TB-GND carries only the coil return (16 AWG+) | GND | 0 V | — | board | none | G04 TA GND STAR | CRITICAL | PROPOSED | room decision 2026-10-23 06:11 CT; docs/boards/bms_master.layout.json (Build 21) |
 | G06 | 2 | board | Teensy B:GND | bms_master board star (signal ground) — same as G04 (PROPOSED Gilfoyle Build 21 for consistency with the 06:11 room decision; no separate wire to TB-GND) | GND | 0 V | — | board | none | G06 TB GND STAR | CRITICAL | PROPOSED | docs/boards/bms_master.layout.json (Build 21); consistency with G04 |
 | P11 | 2 | wire | TB-5V | Teensy A:VIN (VIN/VUSB pad CUT) | +5V | 5 V | OR | 20 | F-BUCK | P11 TA VIN | CRITICAL | SOURCED | gen.py teensy; wiring_data power12 |
@@ -267,8 +273,8 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 | E02 | 6 | wire | E-stop block 1:12 | EV200 B+ coil + AND EV200 B- coil + (high sides) | 12V coil (cut) | 12 V | RD/YE | 18 | F-COIL | E02 BLK1 MAIN COILS | CRITICAL | SOURCED | docs/ESTOP.md:112 (0.26 A break measured, OK) |
 | E03 | 6 | wire | E-stop block 2:12 | precharge relay coil + AND Kelly KSI/PWR pin 7 | 12V coil + KSI (cut) | 12 V | RD/YE | 18 | F-COIL | E03 BLK2 PRE+KSI | CRITICAL | UNVERIFIED | docs/ESTOP.md:113 (KSI draw: Adam meters; Kelly pin 7 from manual) |
 | E09 | 6 | wire | E-stop block 3:11 -> TB-GND; block 3:12 | Teensy B:9 (10k pull-up) — free on B per this map | e-stop sense (latch, never the cut) | 3.3 V | BU/BK | 22 | none | E09 BLK3 TB-ESTOP | CRITICAL | PROPOSED | crew 2026-10-22; docs/ESTOP.md; EstopLatch.h not wired (chief review #5) |
-| G09 | 6 | wire | LEM A GND (Sparky 'pin C'; DHAB pin number UNVERIFIED vs S05/S06 numbering) | bms_master J-LEMA.2 -> own board-star hole (no daisy-chain) | GND | 0 V | BK | 22 | none | G09 LEMA GND | CRITICAL | PROPOSED | Sparky 06:57 #4 DECIDED; id PROPOSED Gilfoyle Build 24 |
-| G10 | 6 | wire | LEM B GND (Sparky 'pin C'; pin number UNVERIFIED) | bms_master J-LEMB.2 -> own board-star hole | GND | 0 V | BK | 22 | none | G10 LEMB GND | CRITICAL | PROPOSED | Sparky 06:57 #4 DECIDED; id PROPOSED Gilfoyle Build 24 |
+| G09 | 6 | wire | LEM A DHAB pin C GND (GM harness BK/GY, circuit 2963) | bms_master J-LEMA.2 -> own hole on the master star bar (no daisy-chain) | GND | 0 V | BK/GY (GM ckt 2963) | factory | none | G09 LEMA GND | CRITICAL | SOURCED | pin C = LEM DHAB datasheet via Sparky 07:34 (SOURCED); BK/GY ckt 2963 GM harness; own star hole = Sparky 06:57 #4 DECIDED; id PROPOSED Gilfoyle Build 24 |
+| G10 | 6 | wire | LEM B DHAB pin C GND (GM harness BK/GY, circuit 2963) | bms_master J-LEMB.2 -> own hole on the master star bar | GND | 0 V | BK/GY (GM ckt 2963) | factory | none | G10 LEMB GND | CRITICAL | SOURCED | pin C = LEM DHAB datasheet via Sparky 07:34 (SOURCED); BK/GY ckt 2963 GM harness; own star hole = Sparky 06:57 #4 DECIDED; id PROPOSED Gilfoyle Build 24 |
 | G11 | 6 | wire | Pedal GND (pedal not chosen, S14 UNVERIFIED) | bms_master J-THR.2 -> own board-star hole | GND | 0 V | BK | 22 | none | G11 PEDAL GND | CRITICAL | PROPOSED | Sparky 06:57 #4 DECIDED; id PROPOSED Gilfoyle Build 24 |
 | G12 | 6 | wire | Kelly KLS-8080N throttle RTN (KELLY-J pin number UNVERIFIED) | bms_master J-KEL.2 -> own board-star hole | GND (throttle return) | 0 V | BK | 22 | none | G12 KELLY RTN | CRITICAL | PROPOSED | Sparky 06:57 #4 DECIDED; id PROPOSED Gilfoyle Build 24 |
 | K01 | 6 | wire | U2b out (R1 100k to GND — the ONLY pull-down) | Kelly throttle input (pin 3) | throttle | 0-5 V | BU/WH | 22 shielded | none | K01 KELLY THR | CRITICAL | UNVERIFIED | docs/THROTTLE_CLAMP.md; docs/KELLY_SETTINGS.md (100k, crew 2026-10-22); Kelly pin from manual |
@@ -326,7 +332,7 @@ Checked against `include/Config.h` and `include/FlexCanCompat.h` by `scripts/tes
 
 ## Open UNVERIFIED / UNDEFINED wires (17)
 
-- **P01** UNVERIFIED: DC-DC TDC-JH-144-12:+12V out → F-MAIN:in (gen.py; wiring_data power12)
+- **P01** UNVERIFIED: DC-DC TDC-JH-144-12:+12V out → F-MAIN:in (gen.py; wiring_data power12; 2 AWG = Sparky 07:34 DECIDED (run under 5 ft))
 - **P03** UNVERIFIED: 12V bus bar:+ → F-KEL:in -> Kelly PWR (gen.py fkel)
 - **P05** UNVERIFIED: 12V bus bar:+ → F-EBOX:in (electronics box) (gen.py fesp)
 - **P06** UNVERIFIED: 12V bus bar:+ → F-TAB -> tablet USB-C PD (gen.py ftab)

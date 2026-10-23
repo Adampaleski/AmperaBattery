@@ -5,7 +5,7 @@
   "generator": "/workspace/teryx/tools_parts/build_parts.py (writes AmperaBattery/docs/PARTS.yaml + PARTS.md)",
   "keying": "parts is a mapping keyed by stable snake_case id; diagram_ids = DERIVED from the explicit part: tags in the repo tooling (wiring:<page>/<node> = tools/wiring_data.js node {part:}, schem:<block> = tools/schematic/gen.py PART, pinmap:connector/<id> and pinmap:fuse/<id> = docs/PINMAP.yaml part:, cutsheet:<sheet> = tools/cutsheets.json id/also_parts, board:<board>[/<refdes>] = docs/boards/<board>.layout.json board_part/parts/offboard); pinmap_refs = docs/PINMAP.yaml wire/fuse/connector/bus ids; checked both ways by scripts/check_parts.py",
   "source": "docs/PARTS.yaml",
-  "count": 130,
+  "count": 131,
   "conflicts": [
    "coil_fet",
    "tablet"
@@ -1668,17 +1668,22 @@
    "status": "to-buy",
    "tier": "CRITICAL",
    "specs": [
-    "Keeps contactors fed if DC-DC drops (review 2026-10-23)"
+    "Keeps contactors fed if DC-DC drops (review 2026-10-23)",
+    "+ post -> F-BATT 150 A (≤ 7 in) -> 12 V bus + (P13/P14, 2 AWG, PROPOSED); - post -> TB-GND/chassis (G13, 2 AWG, PROPOSED) — Sparky 2026-10-23 07:34 CT (DECIDED)"
    ],
    "source": [
     "cash-spend/teryx-main-power-path.md",
-    "teryx/review/full_program_review_chief.md"
+    "teryx/review/full_program_review_chief.md",
+    "Sparky 2026-10-23 07:34 CT (DECIDED)"
    ],
    "verified": "no",
    "open_questions": [],
    "diagram_ids": [],
    "pinmap_refs": [
-    "F-MAIN",
+    "F-BATT",
+    "P13",
+    "P14",
+    "G13",
     "F-AUX"
    ],
    "superseded_by": null,
@@ -3394,24 +3399,25 @@
   },
   "fuse_main": {
    "category": "lv",
-   "name": "Main 12 V fuse F-MAIN (DC-DC out, P01)",
+   "name": "Main 12 V fuse F-MAIN (DC-DC out, bus end: P01 -> F-MAIN -> P02)",
    "maker": "UNKNOWN",
    "model": "150 A MIDI/MEGA bolt-down fuse (exact P/N + holder not chosen)",
    "qty": 1,
    "status": "to-buy",
    "tier": "CRITICAL",
    "specs": [
-    "150 A (TDC-JH-144-12 = 110 A out)",
-    "P01 = 2 AWG 105 °C copper, run under ~5 ft",
-    "Mount within ~7 in of the buffer battery +"
+    "150 A MIDI/MEGA bolt-down (DECIDED Sparky 07:34; TDC-JH-144-12 = 110 A out, SOURCED)",
+    "At the DC-DC 12 V output, bus end, as drawn (DECIDED Sparky 07:34)",
+    "P01 + P02 = 2 AWG 105 °C copper (DECIDED Sparky 07:34); P01 run under 5 ft (DECIDED)"
    ],
    "source": [
     "Sparky 2026-10-23",
-    "crew decision 2026-10-23"
+    "crew decision 2026-10-23",
+    "Sparky 2026-10-23 07:34 CT (DECIDED)"
    ],
    "verified": "no",
    "open_questions": [
-    "Fuse P/N and holder"
+    "Fuse P/N and holder (TBD)"
    ],
    "diagram_ids": [
     "wiring:power12/fm",
@@ -3420,7 +3426,8 @@
    ],
    "pinmap_refs": [
     "F-MAIN",
-    "P01"
+    "P01",
+    "P02"
    ],
    "superseded_by": null,
    "owned": "no",
@@ -4049,6 +4056,39 @@
     "board:bms_master/CX2"
    ],
    "pinmap_refs": [],
+   "superseded_by": null,
+   "owned": "no",
+   "cost": null
+  },
+  "fuse_batt": {
+   "category": "lv",
+   "name": "Buffer battery fuse F-BATT (battery + post -> 12 V bus +, P13/P14)",
+   "maker": "UNKNOWN",
+   "model": "150 A MIDI/MEGA bolt-down fuse (P/N + holder TBD)",
+   "qty": 1,
+   "status": "to-buy (PROPOSED)",
+   "tier": "CRITICAL",
+   "specs": [
+    "150 A MIDI/MEGA (DECIDED Sparky 07:34)",
+    "Within 7 in of the buffer battery + post (DECIDED Sparky 07:34)",
+    "P13 battery + -> F-BATT, P14 F-BATT -> 12 V bus +: both 2 AWG (DECIDED); wire ids PROPOSED"
+   ],
+   "source": [
+    "Sparky 2026-10-23 07:34 CT (DECIDED)",
+    "AmperaBattery/docs/PINMAP.yaml F-BATT, P13, P14"
+   ],
+   "verified": "no",
+   "open_questions": [
+    "Fuse P/N and holder (TBD)"
+   ],
+   "diagram_ids": [
+    "pinmap:fuse/F-BATT"
+   ],
+   "pinmap_refs": [
+    "F-BATT",
+    "P13",
+    "P14"
+   ],
    "superseded_by": null,
    "owned": "no",
    "cost": null

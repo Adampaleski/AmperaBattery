@@ -11,9 +11,11 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: <0.5 Ω
 - [ ] **G03 BUCK GND** (CRITICAL, PROPOSED) — 5 V buck OUT- (on the bms_master board star) via J-PWR.2 → TB-GND · GND · 20 AWG BK · fuse none  
   Meter: <0.5 Ω to 12V-; with G03 lifted, board star to TB-GND reads open (no second path)
-- [ ] **P01 12V MAIN** (CRITICAL, UNVERIFIED) — DC-DC TDC-JH-144-12:+12V out → F-MAIN:in · +12V main · TBD: Sparky sizes it; TDC-JH-144-12 = 110 A out (SOURCED) (10 AWG ≤30 A, 8 AWG ≤40 A, 6 AWG ≤60 A) AWG RD · fuse F-MAIN  
+- [ ] **G13 BATT-** (CRITICAL, PROPOSED) — 12 V buffer battery:- post → TB-GND / chassis (LV star) · GND · 2 AWG BK · fuse none  
+  Meter: <0.5 Ω battery - to chassis/TB-GND; lug torqued
+- [ ] **P01 12V MAIN** (CRITICAL, UNVERIFIED) — DC-DC TDC-JH-144-12:+12V out → F-MAIN:in · +12V main · 2 AWG RD · fuse F-MAIN  
   Meter: continuity end-to-end <1 Ω; NOT to chassis (>1 MΩ)
-- [ ] **P02 12V BUS** (CRITICAL, PROPOSED) — F-MAIN:out → 12V bus bar:+ · +12V main · TBD: same as P01 AWG RD · fuse F-MAIN  
+- [ ] **P02 12V BUS** (CRITICAL, PROPOSED) — F-MAIN:out → 12V bus bar:+ · +12V main · 2 AWG RD · fuse F-MAIN  
   Meter: continuity <1 Ω
 - [ ] **P03 KELLY PWR** (CRITICAL, UNVERIFIED) — 12V bus bar:+ → F-KEL:in -> Kelly PWR · +12V · 16 AWG RD/WH · fuse F-KEL  
   Meter: continuity; fuse rating written on label
@@ -29,6 +31,10 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: power on with nothing else connected: 4.95-5.05 V
 - [ ] **P09 ZENER** (CRITICAL, SOURCED) — Zener 1N5339B cathode → TB-5V (anode to TB-GND) · 5 V clamp · lead AWG — · fuse none  
   Meter: diode test: band end on +5V
+- [ ] **P13 BATT+** (CRITICAL, PROPOSED) — 12 V buffer battery:+ post → F-BATT:in (≤ 7 in from the post) · +12V battery · 2 AWG RD · fuse F-BATT  
+  Meter: <1 Ω; fuse ≤ 7 in from the post (tape it); NOT to chassis
+- [ ] **P14 BATT BUS** (CRITICAL, PROPOSED) — F-BATT:out → 12V bus bar:+ · +12V battery · 2 AWG RD · fuse F-BATT  
+  Meter: continuity <1 Ω battery + to bus +; fuse pulled = open
 
 ## Step 2: Teensys
 
@@ -100,9 +106,9 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: as E02; meter KSI current < 0.2 A
 - [ ] **E09 BLK3 TB-ESTOP** (CRITICAL, PROPOSED) — E-stop block 3:11 -> TB-GND; block 3:12 → Teensy B:9 (10k pull-up) — free on B per this map · e-stop sense (latch, never the cut) · 22 AWG BU/BK · fuse none  
   Meter: released: pin reads LOW (closed to GND); pushed: HIGH
-- [ ] **G09 LEMA GND** (CRITICAL, PROPOSED) — LEM A GND (Sparky 'pin C'; DHAB pin number UNVERIFIED vs S05/S06 numbering) → bms_master J-LEMA.2 -> own board-star hole (no daisy-chain) · GND · 22 AWG BK · fuse none  
+- [ ] **G09 LEMA GND** (CRITICAL, SOURCED) — LEM A DHAB pin C GND (GM harness BK/GY, circuit 2963) → bms_master J-LEMA.2 -> own hole on the master star bar (no daisy-chain) · GND · factory AWG BK/GY (GM ckt 2963) · fuse none  
   Meter: <0.5 Ω LEM A GND to board star; not shared with any other sensor wire
-- [ ] **G10 LEMB GND** (CRITICAL, PROPOSED) — LEM B GND (Sparky 'pin C'; pin number UNVERIFIED) → bms_master J-LEMB.2 -> own board-star hole · GND · 22 AWG BK · fuse none  
+- [ ] **G10 LEMB GND** (CRITICAL, SOURCED) — LEM B DHAB pin C GND (GM harness BK/GY, circuit 2963) → bms_master J-LEMB.2 -> own hole on the master star bar · GND · factory AWG BK/GY (GM ckt 2963) · fuse none  
   Meter: as G09
 - [ ] **G11 PEDAL GND** (CRITICAL, PROPOSED) — Pedal GND (pedal not chosen, S14 UNVERIFIED) → bms_master J-THR.2 -> own board-star hole · GND · 22 AWG BK · fuse none  
   Meter: as G09

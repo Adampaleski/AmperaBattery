@@ -13,7 +13,7 @@ Model (same maths and wording as the page's live check, tools/layout.template.ht
 ERRORS (exit 1): bad label, unknown PARTS id, unknown PINMAP wire id, unknown block/terminal, bad type,
   duplicate ids, child box with an unknown parent.
 WARNINGS (rules, shown on the page): HV in the cab zone; HV and LV looms closer than 2 in or sharing a
-  segment; HV/LV crossing not at 90 deg (+-10); P01 over 5 ft; F-MAIN more than 7 in from the buffer battery +;
+  segment; HV/LV crossing not at 90 deg (+-10); P01 over 5 ft; F-MAIN more than 7 in from the DC-DC + out; F-BATT more than 7 in from the buffer battery +;
   precharge resistor without metal_mount; string-fuse group without the marker; any MSD block; a block or run
   inside a keep-out zone; e-stop out of reach of either seat.
 """
@@ -135,6 +135,7 @@ def check(L, parts, wires):
     k = scale_k(L); RU = L.get("rules") or {}
     rv = lambda n, d: (RU.get(n) or {}).get("v", d)
     gap, tol, p01max, fmax, reach = rv("hv_lv_gap_in", 2), rv("cross_tol_deg", 10), rv("p01_max_in", 60), rv("fmain_max_in", 7), rv("reach_in", 30)
+    fbmax = rv("fbatt_max_in", 7)
     marker = rv("fuse_marker", FUSE_MARKER)
     if L.get("status") not in LABELS: W.append(f"status {json.dumps(L.get('status'))} is not one of the labels")
     for n, d in (L.get("dims") or {}).items():
@@ -208,13 +209,17 @@ def check(L, parts, wires):
     for x in lengths(L):
         if "P01" in (next(r for r in runs if r["id"] == x["id"]).get("wires") or []) and x["len"] > p01max:
             W.append(f"P01: run {x['id']} is {f1(x['len'])} in (over {f1(p01max)} in / 5 ft)")
-    fm = [b for b in L.get("blocks", []) if b.get("part") == "fuse_main"]; bt = [b for b in L.get("blocks", []) if b.get("part") == "lv_battery"]
-    for f in fm:
-        for b in bt:
-            p, q = term_xy(L, f["id"] + ".in"), term_xy(L, b["id"] + ".pos")
-            if p and q:
-                d = math.hypot(p[0] - q[0], p[1] - q[1]) * k
-                if d > fmax: W.append(f"F-MAIN: {f['id']} is {f1(d)} in from the buffer battery + (want ≤ {f1(fmax)} in)")
+    blk = lambda part: [b for b in L.get("blocks", []) if b.get("part") == part]
+    fm, fb, bt, dc = blk("fuse_main"), blk("fuse_batt"), blk("lv_battery"), blk("dcdc")
+    def near(fs, srcs, term, lim, tag, what):  # Sparky 07:34: F-MAIN at the DC-DC output, F-BATT <= 7 in from battery +
+        for f in fs:
+            for b in srcs:
+                p, q = term_xy(L, f["id"] + ".in"), term_xy(L, b["id"] + "." + term)
+                if p and q:
+                    d = math.hypot(p[0] - q[0], p[1] - q[1]) * k
+                    if d > lim: W.append(f"{tag}: {f['id']} is {f1(d)} in from the {what} (want ≤ {f1(lim)} in)")
+    near(fm, dc, "out", fmax, "F-MAIN", "DC-DC + out")
+    near(fb, bt, "pos", fbmax, "F-BATT", "buffer battery +")
     es = [b for b in L.get("blocks", []) if b.get("part") == "estop_head"]
     for e in es:
         c = (e["x"] + e["w"] / 2, e["y"] + e["h"] / 2)
@@ -222,6 +227,7 @@ def check(L, parts, wires):
             d = math.hypot(c[0] - s["reach_from"][0], c[1] - s["reach_from"][1]) * k
             if d > reach: W.append(f"e-stop {e['id']} is {f1(d)} in from the {s['name']} seat reach point (want ≤ {f1(reach)} in, ASSUMED)")
     if not fm: W.append("F-MAIN: no fuse_main block placed")
+    if bt and not fb: W.append("F-BATT: no fuse_batt block placed next to the buffer battery")
     if not es: W.append("e-stop: no estop_head block placed")
     return E, W
 

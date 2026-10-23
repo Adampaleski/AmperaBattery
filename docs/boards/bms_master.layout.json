@@ -367,7 +367,7 @@
    "value": "LEM A (S05-S07)",
    "pin_names": {
     "1": "+5 V LEM A (S07)",
-    "2": "GND LEM A (Sparky 'pin C') -> own star hole (G09)",
+    "2": "GND LEM A = DHAB pin C, BK/GY ckt 2963 -> own star hole (G09)",
     "3": "CH2 -> A:15 (S06)",
     "4": "CH1 -> A:14 (S05)"
    }
@@ -381,7 +381,7 @@
    "value": "LEM B (S25-S27)",
    "pin_names": {
     "1": "+5 V LEM B (S27)",
-    "2": "GND LEM B (Sparky 'pin C') -> own star hole (G10)",
+    "2": "GND LEM B = DHAB pin C, BK/GY ckt 2963 -> own star hole (G10)",
     "3": "CH2 -> B:15 (S26)",
     "4": "CH1 -> B:14 (S25)"
    }

@@ -2,7 +2,7 @@
 # 1) check_layout.py: the repo layout PASSES; temp copies with a bogus PARTS id / PINMAP wire id / bad label FAIL.
 # 2) tools/layout.html loads with no JS errors; the in-page check (errors, warnings), every run length and the totals
 #    equal check_layout.py --json exactly; chips PROPOSED + lengths ESTIMATED.
-# 3) rule triggers (same mutation in python and in the page, same warning text): F-MAIN moved away, metal-mount flag
+# 3) rule triggers (same mutation in python and in the page, same warning text): F-MAIN moved from the DC-DC out, F-BATT moved from battery +, metal-mount flag
 #    cleared, fuse marker changed, an MSD block added, P01 stretched over 5 ft, an LV run crossing HV at 45°, HV block in the cab.
 # 4) scale to a measured reference: entering a wheelbase changes k, the chip flips to SCALED, lengths scale by k, Clear restores.
 # 5) drag a block: it snaps to 0.1 in, its children move with it and run ends follow; edits persist across reload;
@@ -43,7 +43,9 @@ def mut_py(code):
     L = copy.deepcopy(REPO); exec(code, {'L': L, 'B': {b['id']: b for b in L['blocks']}, 'R': {r['id']: r for r in L['runs']}}); return CL.check(L, PARTS, WIRES)[1]
 # mutations written once, run in both python (exec) and JS (same syntax subset)
 MUTS = [
-    ('F-MAIN 10 in from the battery', "B['fmain']['x'] = B['fmain']['x'] + 10", 'F-MAIN: fmain is'),
+    ('F-MAIN 10 in from the DC-DC out', "B['fmain']['x'] = B['fmain']['x'] + 10", 'F-MAIN: fmain is'),
+    ('F-BATT 10 in from the battery +', "B['fbatt']['y'] = B['fbatt']['y'] + 10", 'F-BATT: fbatt is'),
+    ('P01 over 5 ft (DC-DC moved away)', "R['P01']['pts'] = [[88.6, 38.75], [20, 38.75], [20, 39]]", 'P01: run P01 is'),
     ('precharge resistor without the metal-mount flag', "B['hv_pre']['flags'] = {}", 'precharge resistor hv_pre has no metal-mount flag'),
     ('string fuses without the marker', "B['hv_fuses']['marker'] = 'under the seat'", "string fuses hv_fuses must carry the marker"),
     ('an MSD block', "L['blocks'].append({'id': 'msd1', 'name': 'MSD', 'part': 'msd', 'v': 'HV', 'x': 95, 'y': 30, 'w': 2, 'h': 2, 'label': 'PROPOSED'})", 'MSD: block msd1'),

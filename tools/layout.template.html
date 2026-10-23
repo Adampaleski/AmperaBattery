@@ -102,7 +102,7 @@ function segSeg(a,b,c,d){let best=null;for(const [p,s0,s1] of [[a,c,d],[b,c,d],[
 function angle(a,b,c,d){const u=Math.atan2(b[1]-a[1],b[0]-a[0]),v=Math.atan2(d[1]-c[1],d[0]-c[0]),x=Math.abs((u-v)*180/Math.PI)%180;return Math.min(x,180-x)}
 const inRect=(p,b,m)=>b.x-m<=p[0]&&p[0]<=b.x+b.w+m&&b.y-m<=p[1]&&p[1]<=b.y+b.h+m;
 function checkLayout(L){const E=[],W=[],k=scaleK(L),RU=L.rules||{},rv=(n,d)=>(RU[n]||{}).v!==undefined?RU[n].v:d;
- const gap=rv("hv_lv_gap_in",2),tol=rv("cross_tol_deg",10),p01max=rv("p01_max_in",60),fmax=rv("fmain_max_in",7),reach=rv("reach_in",30),marker=rv("fuse_marker",FUSE_MARKER);
+ const gap=rv("hv_lv_gap_in",2),tol=rv("cross_tol_deg",10),p01max=rv("p01_max_in",60),fmax=rv("fmain_max_in",7),fbmax=rv("fbatt_max_in",7),reach=rv("reach_in",30),marker=rv("fuse_marker",FUSE_MARKER);
  if(!LABELS.includes(L.status))W.push(`status ${JSON.stringify(L.status)} is not one of the labels`);
  for(const [n,d] of Object.entries(L.dims||{}))if(!LABELS.includes(d.label))E.push(`dim ${n}: label '${d.label}' is not one of the labels`);
  const by=BY(L),seen=new Set();
@@ -138,11 +138,12 @@ function checkLayout(L){const E=[],W=[],k=scaleK(L),RU=L.rules||{},rv=(n,d)=>(RU
   if(wx!==null)W.push(`HV/LV crossing: ${h.id} and ${l.id} cross at ${f1(wx)}° (want 90° ± ${f1(tol)}°)${lt}`);
   if(wd!==null)W.push(wd*k<.05?`HV/LV loom: ${h.id} and ${l.id} share a segment${lt}`:`HV/LV loom: ${h.id} and ${l.id} run ${f1(wd*k)} in apart (want ≥ ${f1(gap)} in)${lt}`)}
  for(const x of lengths(L))if(((runs.find(r=>r.id===x.id)||{}).wires||[]).includes("P01")&&x.len>p01max)W.push(`P01: run ${x.id} is ${f1(x.len)} in (over ${f1(p01max)} in / 5 ft)`);
- const fm=(L.blocks||[]).filter(b=>b.part==="fuse_main"),bt=(L.blocks||[]).filter(b=>b.part==="lv_battery");
- for(const f of fm)for(const b of bt){const p=termXY(L,f.id+".in",by),q=termXY(L,b.id+".pos",by);if(p&&q){const d=hyp(p[0]-q[0],p[1]-q[1])*k;if(d>fmax)W.push(`F-MAIN: ${f.id} is ${f1(d)} in from the buffer battery + (want ≤ ${f1(fmax)} in)`)}}
+ const blk=pt=>(L.blocks||[]).filter(b=>b.part===pt),fm=blk("fuse_main"),fb=blk("fuse_batt"),bt=blk("lv_battery"),dc=blk("dcdc");
+ const near=(fs,srcs,term,lim,tag,what)=>{for(const f of fs)for(const b of srcs){const p=termXY(L,f.id+".in",by),q=termXY(L,b.id+"."+term,by);if(p&&q){const d=hyp(p[0]-q[0],p[1]-q[1])*k;if(d>lim)W.push(`${tag}: ${f.id} is ${f1(d)} in from the ${what} (want ≤ ${f1(lim)} in)`)}}};
+ near(fm,dc,"out",fmax,"F-MAIN","DC-DC + out");near(fb,bt,"pos",fbmax,"F-BATT","buffer battery +");
  const es=(L.blocks||[]).filter(b=>b.part==="estop_head");
  for(const e of es){const c=[e.x+e.w/2,e.y+e.h/2];for(const s of V.seats){const d=hyp(c[0]-s.reach_from[0],c[1]-s.reach_from[1])*k;if(d>reach)W.push(`e-stop ${e.id} is ${f1(d)} in from the ${s.name} seat reach point (want ≤ ${f1(reach)} in, ASSUMED)`)}}
- if(!fm.length)W.push("F-MAIN: no fuse_main block placed");if(!es.length)W.push("e-stop: no estop_head block placed");
+ if(!fm.length)W.push("F-MAIN: no fuse_main block placed");if(bt.length&&!fb.length)W.push("F-BATT: no fuse_batt block placed next to the buffer battery");if(!es.length)W.push("e-stop: no estop_head block placed");
  return {E,W,RP}}
 // ---- state
 const LID="teryx";let L,R,sel=null,mode="sel",vb=null,ms=null,box=null,lpT=0,showLater=true;
@@ -212,7 +213,7 @@ function selBox(){const s=$("selb"),by=BY(L),k=scaleK(L);if(ms&&(ms.blocks.size|
 function side(){selBox();const k=scaleK(L);
  $("chk").innerHTML=(R.E.length?`<div class="e"><b>${R.E.length} error(s)</b></div><ul>${R.E.map(e=>`<li class="e">${esc(e)}</li>`).join("")}</ul>`:`<div class="ok" style="color:var(--ok)">0 errors</div>`)+
   (R.W.length?`<div class="w"><b>${R.W.length} rule warning(s)</b></div><ul>${R.W.map(e=>`<li class="w">${esc(e)}</li>`).join("")}</ul>`:`<div class="mut">no rule warnings</div>`)+
-  `<div class="mut">Rules: no HV in the cab · HV/LV ≥ ${f1((L.rules.hv_lv_gap_in||{}).v||2)} in apart, never sharing a segment · HV/LV cross at 90° ± ${f1((L.rules.cross_tol_deg||{}).v||10)}° · P01 ≤ 5 ft · F-MAIN ≤ 7 in from battery + · precharge resistor metal-mounted · string fuses marked '${esc(FUSE_MARKER)}' · no MSD · keep-outs · e-stop reach.</div>`;
+  `<div class="mut">Rules: no HV in the cab · HV/LV ≥ ${f1((L.rules.hv_lv_gap_in||{}).v||2)} in apart, never sharing a segment · HV/LV cross at 90° ± ${f1((L.rules.cross_tol_deg||{}).v||10)}° · P01 ≤ 5 ft · F-MAIN ≤ ${f1((L.rules.fmain_max_in||{}).v||7)} in from DC-DC out · F-BATT ≤ ${f1((L.rules.fbatt_max_in||{}).v||7)} in from battery + · precharge resistor metal-mounted · string fuses marked '${esc(FUSE_MARKER)}' · no MSD · keep-outs · e-stop reach.</div>`;
  const s=L.scale||{},dk=Object.keys(L.dims).filter(n=>/overall|wheelbase|bed_|track|tire_dia/.test(n));
  $("scl").innerHTML=`<div><b>${esc(scaleTxt())}</b></div><div class="tools" style="margin-top:6px"><select id="sref" aria-label="Reference dimension">${dk.map(n=>`<option value="${n}"${n===s.ref?" selected":""}>${n} (model ${f1(L.dims[n].v)} in)</option>`).join("")}</select>`+
   `<input id="sval" type="number" step="0.1" min="1" inputmode="decimal" placeholder="tape" aria-label="Measured value" value="${s.measured_in?f1(s.measured_in):""}"><select id="sunit" aria-label="Unit"><option value="in">in</option><option value="cm">cm</option></select>`+

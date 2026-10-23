@@ -70,8 +70,8 @@ part("U5", "lm339", "DIP14", 56, 44, 0, "LM339 (quad comparator)", zone="ana")
 part("J-PROX", "bm_term", "TB2_508", 64, 47, 180, "NACS PROX", {"1": "PROX -> NACS inlet proximity pin (S45)", "2": "NC — plug side returns to inlet PE (chassis), UNVERIFIED"}, zone="ana")
 part("J-KEL", "bm_term", "TB2_508", 64, 39, 180, "Kelly throttle (K01)", {"1": "clamped throttle -> Kelly throttle input (K01)", "2": "Kelly throttle RTN -> own star hole (G12; Kelly pin number UNVERIFIED)"}, zone="ana")
 part("J-THR", "bm_term", "TB4_508", 64, 71, 180, "pedal (P20/S14/S15)", {"1": "+5 V pedal supply (P20)", "2": "GND pedal return -> own star hole (G11)", "3": "TRK1 pedal wiper/track 1 (S14)", "4": "TRK2 pedal track 2 (S15)"}, zone="ana")
-part("J-LEMA", "bm_term", "TB4_508", 64, 63, 180, "LEM A (S05-S07)", {"1": "+5 V LEM A (S07)", "2": "GND LEM A (Sparky 'pin C') -> own star hole (G09)", "3": "CH2 -> A:15 (S06)", "4": "CH1 -> A:14 (S05)"}, zone="ana")
-part("J-LEMB", "bm_term", "TB4_508", 45, 71, 90, "LEM B (S25-S27)", {"1": "+5 V LEM B (S27)", "2": "GND LEM B (Sparky 'pin C') -> own star hole (G10)", "3": "CH2 -> B:15 (S26)", "4": "CH1 -> B:14 (S25)"}, zone="ana")
+part("J-LEMA", "bm_term", "TB4_508", 64, 63, 180, "LEM A (S05-S07)", {"1": "+5 V LEM A (S07)", "2": "GND LEM A = DHAB pin C, BK/GY ckt 2963 -> own star hole (G09)", "3": "CH2 -> A:15 (S06)", "4": "CH1 -> A:14 (S05)"}, zone="ana")
+part("J-LEMB", "bm_term", "TB4_508", 45, 71, 90, "LEM B (S25-S27)", {"1": "+5 V LEM B (S27)", "2": "GND LEM B = DHAB pin C, BK/GY ckt 2963 -> own star hole (G10)", "3": "CH2 -> B:15 (S26)", "4": "CH1 -> B:14 (S25)"}, zone="ana")
 
 # spread: everything right of the clamp moves 6 columns right so the clamp channel between the Teensys is wider
 SPREAD = 6

@@ -165,8 +165,13 @@
   },
   "fmain_max_in": {
    "v": 7,
+   "label": "PROPOSED",
+   "src": "F-MAIN at the DC-DC output (Sparky 07:34 DECIDED); 7 in limit from DC-DC + out PROPOSED (as F-BATT)"
+  },
+  "fbatt_max_in": {
+   "v": 7,
    "label": "DECIDED",
-   "src": "layout_constraints.md F-MAIN ≤ 7 in"
+   "src": "Sparky 07:34: F-BATT within 7 in of the battery + post"
   },
   "reach_in": {
    "v": 30,
@@ -842,11 +847,15 @@
    "label": "PROPOSED",
    "size_label": "ASSUMED",
    "src": "layout_input_mechanic.md",
-   "why": "next to the DC-DC; F-MAIN on its + post",
+   "why": "next to the DC-DC; F-BATT on its + post (Sparky 07:34)",
    "terms": {
     "pos": [
      1,
      0.15
+    ],
+    "neg": [
+     1,
+     0.85
     ]
    }
   },
@@ -855,14 +864,14 @@
    "part": "fuse_main",
    "name": "F-MAIN 150 A",
    "x": 89,
-   "y": 41,
+   "y": 38,
    "w": 1.5,
    "h": 2,
    "v": "LV",
    "label": "PROPOSED",
    "size_label": "ASSUMED",
-   "src": "Sparky: F-MAIN ≤ 7 in from battery +",
-   "why": "on the battery + lead",
+   "src": "Sparky 07:34 DECIDED: F-MAIN 150 A at the DC-DC output (bus end)",
+   "why": "on the DC-DC + out lead",
    "terms": {
     "in": [
      0,
@@ -871,6 +880,30 @@
     "out": [
      1,
      0.5
+    ]
+   }
+  },
+  {
+   "id": "fbatt",
+   "part": "fuse_batt",
+   "name": "F-BATT 150 A",
+   "x": 89,
+   "y": 42,
+   "w": 1.5,
+   "h": 1.5,
+   "v": "LV",
+   "label": "PROPOSED",
+   "size_label": "ASSUMED",
+   "src": "Sparky 07:34 DECIDED: F-BATT 150 A ≤ 7 in from battery +",
+   "why": "on the battery + post lead",
+   "terms": {
+    "in": [
+     0,
+     0.35
+    ],
+    "out": [
+     1,
+     0.35
     ]
    }
   },
@@ -1151,7 +1184,7 @@
     "P01"
    ],
    "type": "LV",
-   "gauge": "2 AWG (PARTS fuse_main; PINMAP P01 awg still TBD)",
+   "gauge": "2 AWG (DECIDED Sparky 07:34)",
    "n": 1,
    "from": "dcdc.out",
    "to": "fmain.in",
@@ -1162,7 +1195,7 @@
     ],
     [
      88.6,
-     42
+     39
     ]
    ],
    "label": "PROPOSED",
@@ -1175,14 +1208,14 @@
     "P02"
    ],
    "type": "LV",
-   "gauge": "2 AWG (as P01, ASSUMED)",
+   "gauge": "2 AWG (DECIDED Sparky 07:34)",
    "n": 1,
    "from": "fmain.out",
    "to": "lvf.in",
    "pts": [
     [
      91.2,
-     42
+     39
     ],
     [
      91.2,
@@ -1191,6 +1224,78 @@
    ],
    "label": "PROPOSED",
    "src": "PINMAP"
+  },
+  {
+   "id": "P13",
+   "name": "battery + → F-BATT",
+   "wires": [
+    "P13"
+   ],
+   "type": "LV",
+   "gauge": "2 AWG (DECIDED Sparky 07:34)",
+   "n": 1,
+   "from": "lv_batt.pos",
+   "to": "fbatt.in",
+   "pts": [],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "P14",
+   "name": "F-BATT → 12 V bus +",
+   "wires": [
+    "P14"
+   ],
+   "type": "LV",
+   "gauge": "2 AWG (DECIDED Sparky 07:34)",
+   "n": 1,
+   "from": "fbatt.out",
+   "to": "lvf.in",
+   "pts": [
+    [
+     91.8,
+     42.525
+    ],
+    [
+     91.8,
+     31.05
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP"
+  },
+  {
+   "id": "G13",
+   "name": "battery − → TB-GND / chassis",
+   "wires": [
+    "G13"
+   ],
+   "type": "LV",
+   "gauge": "2 AWG (DECIDED Sparky 07:34)",
+   "n": 1,
+   "from": "lv_batt.neg",
+   "to": "bms_box.tbgnd",
+   "pts": [
+    [
+     88.6,
+     44.975
+    ],
+    [
+     88.6,
+     46.2
+    ],
+    [
+     78.6,
+     46.2
+    ],
+    [
+     78.6,
+     31.8
+    ]
+   ],
+   "label": "PROPOSED",
+   "src": "PINMAP",
+   "note": "Sparky: TB-GND/chassis — a chassis stud next to the battery would be far shorter (OPEN)"
   },
   {
    "id": "P03",
