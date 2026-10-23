@@ -51,11 +51,19 @@ int main() {
     int kfail = 0;
     {
         static BmsSim::World w;
+        w.reset();
+        // Midpoints come from the live Config so a threshold change (e.g. Build 10:
+        // derateLowV 0.20, derateTempC 40) can't leave the expectation stale.
+        const float lowHalfV = w.core.cfg.lowCutV + w.core.cfg.derateLowV * 0.5f;
+        const float hotHalfC = 0.5f * (w.core.cfg.derateTempC + w.core.cfg.overTempC);
+        static char lowName[48], hotName[48];
+        snprintf(lowName, sizeof lowName, "all cells %.3f V at rest (half)", lowHalfV);
+        snprintf(hotName, sizeof hotName, "pack hot %.1f C (halfway)", hotHalfC);
         struct K { const char *name; int what; float val; float wantPct; const char *why; bool regen; };
         const K ks[] = {
             {"full power, healthy",          0, 0,      100, "",               true},
-            {"all cells 3.375 V at rest (half)", 1, 3.375f, 50, "low cell",       true},
-            {"pack hot 52.5 C (halfway)",    2, 52.5f,   50, "pack hot",       true},
+            {lowName,                        1, lowHalfV, 50, "low cell",       true},
+            {hotName,                        2, hotHalfC, 50, "pack hot",       true},
             {"550 A launch: no BMS cap",     3, 550.f,  100, "",               true},
             {"cells full 4.09 V: no regen",  4, 4.09f,  100, "",               false},
             {"pack cold -2 C: no regen",     5, -2.f,   100, "",               false},
