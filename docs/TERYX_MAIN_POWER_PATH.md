@@ -20,7 +20,7 @@ Tick boxes on GitHub or in VS Code. Prices are verified new prices (Oct 2026); T
 - [x] Precharge relay + 50 Ω resistor (listed owned in `docs/COMPONENTS.md`; resistor value still to be confirmed against Kelly capacitance)
 
 ## Already on BOM (not yet owned)
-From `docs/COMPONENTS.md`, `../diagram/components.json`, `../perfboard/BOM.md`:
+From `docs/PARTS.yaml` (the one parts list; `docs/PARTS.md` is the readable view), `docs/COMPONENTS.md`, `../perfboard/BOM.md`. (`../diagram/components.json` was retired 2026-10-23.)
 - [x] EV200HAANA main + (bought 2026-10-20, eBay ecrunch, $31.65)
 - [x] EV200HAANA main − (bought 2026-10-20, eBay ecrunch, $31.65)
 - [x] Mersen A6T200 200 A Class T ×4 — **BOUGHT 2026-10-20** ($36.20 ea, unitedfuses.com); A6T is 300 V class, check the body on arrival; bolt straight to the bus bar on insulated standoffs (no holders), tool-only cover with captive screws
