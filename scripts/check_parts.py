@@ -3,10 +3,10 @@
 
 Fails (exit 1) on a dangling id in EITHER direction:
   forward  tool -> PARTS : every part: tag in tools/wiring_data.js nodes, tools/schematic/gen.py PART,
-                           docs/PINMAP.yaml connectors/fuses, tools/cutsheets.json id/also_parts
-                           must be a PARTS id.
+                           docs/PINMAP.yaml connectors/fuses, tools/cutsheets.json id/also_parts, docs/boards/*.layout.json
+                           (board:<board>[/<refdes>]) must be a PARTS id.
   reverse  PARTS -> tool : every diagram_ids entry (wiring:<page>/<node>, schem:<block>,
-                           pinmap:connector|fuse/<id>, cutsheet:<sheet>) must exist AND carry that part;
+                           pinmap:connector|fuse/<id>, cutsheet:<sheet>, board:<board>[/<refdes>]) must exist AND carry that part;
                            every tool tag must be listed in the part's diagram_ids (else PARTS.yaml is stale:
                            rerun /workspace/teryx/tools_parts/build_parts.py);
                            pinmap_refs must be PINMAP wire/fuse/connector/bus ids;
@@ -58,6 +58,11 @@ for sec, kind in (("connectors", "connector"), ("fuses", "fuse")):
 for c in CS:
     ref = f"cutsheet:{c.get('cutsheet', c['id'])}"; exists.add(ref)
     tags[ref] = [c["id"]] + c.get("also_parts", [])
+for f in sorted((R / "docs/boards").glob("*.layout.json")):  # perf-board layouts (scripts/check_boards.py checks the copper)
+    L = json.loads(f.read_text()); b = L["board"]
+    if L.get("board_part"): exists.add(f"board:{b}"); tags[f"board:{b}"] = [L["board_part"]]
+    for q in L.get("parts", []) + L.get("offboard", []):
+        ref = f"board:{b}/{q['ref']}"; exists.add(ref); tags.setdefault(ref, []).append(q["part"])
 
 # ---- forward
 superseded = {k for k, v in P.items() if v.get("superseded_by") or v.get("category") == "superseded"}

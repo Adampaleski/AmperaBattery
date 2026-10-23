@@ -88,7 +88,7 @@ with sync_playwright() as p:
     ok(p2.evaluate("!document.getElementById('simEngine')"), '?engine=tab: no in-page engine (waits for a Sim tab)')
     c2.close()
     # ---- 2) layout audit, every page, both orientations
-    pages = ['bms_sim.html', 'dash.html?src=sim&engine=tab', 'wiring.html', 'checklist.html']
+    pages = ['bms_sim.html', 'dash.html?src=sim&engine=tab', 'wiring.html', 'checklist.html', 'perfboard.html?board=coil_driver']
     for (w, h) in [(390, 844), (844, 390)]:
         c = b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=3, is_mobile=True, has_touch=True, user_agent=UA)
         for f_ in pages:

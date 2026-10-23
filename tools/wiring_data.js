@@ -106,7 +106,7 @@ nodes:[
 ["evp","EV200HAANA B+|coil ← driver Q-B+ (A pin 11, OUT1)",20,200,320,50,"S",{part:"contactor_main"}],["pre","AEV14012 + 50 Ω 100 W|coil ← driver Q-PRE (A pin 12, OUT2)",400,200,320,50,"U",{part:["precharge_relay", "precharge_res"]}],
 ["kel","Kelly B+ / B−",20,300,320,40,"S",{part:"controller"}],["evn","EV200HAANA B−|coil ← driver Q-B− (A pin 21, OUT4)",400,300,320,50,"S",{part:"contactor_main"}],
 ["hvs","A:24 RESERVED spare · NOT FITTED (room DECIDED 2026-10-23)|Precharge + weld check = Kelly CAN B+ vs BICM sum|Main+ only at B+ ≥ 95% AND min time · stale >200 ms = fail|AMC1311EVM only if the Kelly B+ bench gate fails",780,20,380,70,"P","later",{part:"teensy"}],
-["drv","Coil-driver board (3× IRLB8721)|Q-B+ ← A:11 · Q-PRE ← A:12|Q-B− ← A:21 · CAP=0, not driven",920,296,250,72,"P",{part:"coil_driver"}],
+["drv","Coil-driver board (3× IRLB8721)|Q-B+ ← A:11 · Q-PRE ← A:12|Q-B− ← A:21 · CAP=0, not driven",920,296,250,72,"P",{part:"coil_driver",board:"coil_driver"}],
 ["cpre","AEV14012 coil|D-PRE 1N4007 at coil, band +12 V",920,180,250,50,"P",{part:["precharge_relay", "cd_flyback"]}],
 ["cevn","EV200 B− coil|no ext. diode (economizer)",920,414,250,50,"P",{part:"contactor_main"}],
 ["cevp","B+ coil|EV200 · no ext. diode",730,306,170,52,"P",{part:"contactor_main"}],

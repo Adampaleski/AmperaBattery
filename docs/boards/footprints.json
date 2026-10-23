@@ -1,0 +1,10 @@
+{
+ "_note": "Perf-board footprints for tools/perfboard.html and scripts/check_boards.py. Units = holes on the 0.1 in (2.54 mm) grid. pins: [name, d_row, d_col] at rot 0; rot turns clockwise about the anchor (pin 1). body: drawing only, [x0, y0, x1, y1] in holes (x = col, y = row) at rot 0. Pin spacing is SOURCED from the part datasheets / the item spec: TO-220 0.1 in, axial 0.4 in, screw terminal 5.08 mm (= 2 holes).",
+ "TO220": {"desc": "TO-220 standing, G-D-S at 0.1 in (IRLB8721PbF datasheet p.1)", "pins": [["G",0,0],["D",0,1],["S",0,2]],
+           "body": [-1.0,-1.25,3.0,0.55], "tab": [-1.0,-1.25,3.0,-0.95]},
+ "AXIAL400": {"desc": "Axial lead, 0.4 in (10.16 mm) pitch: 1/4 W resistor or 1N4007", "pins": [["1",0,0],["2",0,4]],
+           "body": [0.75,-0.38,3.25,0.38]},
+ "TB2_508": {"desc": "Screw terminal block, 2 pos, 5.08 mm pitch", "pins": [["1",0,0],["2",0,2]], "body": [-1.0,-1.6,3.0,1.25], "entry": "up"},
+ "TB3_508": {"desc": "Screw terminal block, 3 pos, 5.08 mm pitch", "pins": [["1",0,0],["2",0,2],["3",0,4]], "body": [-1.0,-1.6,5.0,1.25], "entry": "up"},
+ "TB4_508": {"desc": "Screw terminal block, 4 pos, 5.08 mm pitch", "pins": [["1",0,0],["2",0,2],["3",0,4],["4",0,6]], "body": [-1.0,-1.6,7.0,1.25], "entry": "up"}
+}

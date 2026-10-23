@@ -97,4 +97,5 @@ Coil **+** does not come from this board. F-COIL feeds it (10 A, PROPOSED, PINMA
 ## Open before this ships
 - Adam: how many IRLB8721s are on hand (`cd_fet`; `coil_fet` CONFLICT vs IRLB3813PBF).
 - Board size and enclosure. Terminal type and count.
-- Diagram: the schematic node `drv` maps to `coil_driver`. wiring_data.js has **no** coil-driver node yet. The precharge page draws the FETs only as text inside evp/pre/evn. A `drv` node would need adding in the repo, which is not done here.
+- Diagram: done. The precharge page has a `drv` node (part `coil_driver`); clicking it opens the PROPOSED perf-board layout `tools/perfboard.html?board=coil_driver` (`docs/boards/coil_driver.layout.json`, checked by `scripts/check_boards.py`). Board size in that layout: 26 × 36 holes (PROPOSED).
+- Sparky: the layout feeds coil + (J-12V) from the e-stop block outputs, but step 10 keeps coil + off the board; and J-SIG.1 (Teensy signal GND at the star) plus the Teensy GND at TB-GND (G04) would make a ground loop. Fit only one. Both OPEN.

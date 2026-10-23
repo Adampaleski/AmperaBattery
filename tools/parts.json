@@ -3,7 +3,7 @@
   "title": "Teryx EV canonical parts list (single source of truth)",
   "generated": "2026-10-23 America/Chicago",
   "generator": "/workspace/teryx/tools_parts/build_parts.py (writes AmperaBattery/docs/PARTS.yaml + PARTS.md)",
-  "keying": "parts is a mapping keyed by stable snake_case id; diagram_ids = DERIVED from the explicit part: tags in the repo tooling (wiring:<page>/<node> = tools/wiring_data.js node {part:}, schem:<block> = tools/schematic/gen.py PART, pinmap:connector/<id> and pinmap:fuse/<id> = docs/PINMAP.yaml part:, cutsheet:<sheet> = tools/cutsheets.json id/also_parts); pinmap_refs = docs/PINMAP.yaml wire/fuse/connector/bus ids; checked both ways by scripts/check_parts.py",
+  "keying": "parts is a mapping keyed by stable snake_case id; diagram_ids = DERIVED from the explicit part: tags in the repo tooling (wiring:<page>/<node> = tools/wiring_data.js node {part:}, schem:<block> = tools/schematic/gen.py PART, pinmap:connector/<id> and pinmap:fuse/<id> = docs/PINMAP.yaml part:, cutsheet:<sheet> = tools/cutsheets.json id/also_parts, board:<board>[/<refdes>] = docs/boards/<board>.layout.json board_part/parts/offboard); pinmap_refs = docs/PINMAP.yaml wire/fuse/connector/bus ids; checked both ways by scripts/check_parts.py",
   "source": "docs/PARTS.yaml",
   "count": 124,
   "conflicts": [
@@ -3438,7 +3438,10 @@
    ],
    "parent": "coil_driver",
    "diagram_ids": [
-    "cutsheet:irlb8721"
+    "cutsheet:irlb8721",
+    "board:coil_driver/Q-B+",
+    "board:coil_driver/Q-PRE",
+    "board:coil_driver/Q-B−"
    ],
    "pinmap_refs": [
     "S01",
@@ -3468,7 +3471,11 @@
    "verified": "yes",
    "open_questions": [],
    "parent": "coil_driver",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "board:coil_driver/RG-B+",
+    "board:coil_driver/RG-PRE",
+    "board:coil_driver/RG-B−"
+   ],
    "pinmap_refs": [
     "S01",
     "S02",
@@ -3497,7 +3504,11 @@
    "verified": "yes",
    "open_questions": [],
    "parent": "coil_driver",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "board:coil_driver/RP-B+",
+    "board:coil_driver/RP-PRE",
+    "board:coil_driver/RP-B−"
+   ],
    "pinmap_refs": [
     "S01",
     "S02",
@@ -3531,7 +3542,8 @@
    "parent": "coil_driver",
    "diagram_ids": [
     "wiring:precharge/cpre",
-    "schem:drv"
+    "schem:drv",
+    "board:coil_driver/D-PRE"
    ],
    "pinmap_refs": [
     "S02",
@@ -3563,7 +3575,9 @@
     "Board size and enclosure (shares ebox_enclosure?)"
    ],
    "parent": "coil_driver",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "board:coil_driver"
+   ],
    "pinmap_refs": [],
    "superseded_by": null,
    "owned": "no",
@@ -3590,7 +3604,14 @@
     "Terminal type/count once layout is fixed"
    ],
    "parent": "coil_driver",
-   "diagram_ids": [],
+   "diagram_ids": [
+    "board:coil_driver/J-12V",
+    "board:coil_driver/J-B+",
+    "board:coil_driver/J-PRE",
+    "board:coil_driver/J-B−",
+    "board:coil_driver/J-SIG",
+    "board:coil_driver/J-GND"
+   ],
    "pinmap_refs": [
     "S01",
     "S02",

@@ -1,0 +1,553 @@
+{
+ "schema": "teryx-perfboard/1",
+ "board": "coil_driver",
+ "title": "Contactor coil-driver board — 3 ch low-side (Q-B+ / Q-PRE / Q-B−)",
+ "status": "PROPOSED",
+ "assembly": "coil_driver",
+ "board_part": "cd_board",
+ "grid": {
+  "pitch_mm": 2.54,
+  "rows": 26,
+  "cols": 36
+ },
+ "mounts": [
+  "A1",
+  "A36",
+  "Z1",
+  "Z36"
+ ],
+ "star": "V22",
+ "notes": [
+  "PROPOSED (Gilfoyle 2026-10-23, Build 20) — not yet reviewed by Sparky. Edit in tools/perfboard.html, Export JSON, commit to docs/boards/coil_driver.layout.json.",
+  "Board: plated-through, double-sided perfboard (cd_board; Sparky 05:35). Solid wires = top side, dashed = bottom side. A wire is soldered at every hole it bends at (each vertex), nowhere else.",
+  "Coil paths (drains, sources, star, 12 V − return, +12 V feeds) in 18–20 AWG solid core, not thin jumper wire (Sparky 05:35). Gate/signal wires 22 AWG (PROPOSED).",
+  "STAR ground at hole V22: the three FET sources, the 10k pull-downs, Teensy A signal GND (J-SIG.1) and the single 12 V − return (J-GND.2 -> TB-GND) all land there and nowhere else.",
+  "Gate: Teensy pin -> 100 Ω -> G; 10k G-to-S on the FET side of the 100 Ω (PINMAP S01–S03; chief review #10).",
+  "FETs stand upright, pins G-D-S left to right (IRLB8721PbF datasheet p.1). No heatsink (Sparky 05:35, guide check #6).",
+  "Logic/signal terminals on the bottom edge, coil terminals on the top edge (guide §2, Sparky 05:35/05:36).",
+  "OPEN for Sparky: the F-COIL 12 V input (J-12V) is fed from the e-stop NC block outputs (E02 BLK1 -> both EV200 coil +, E03 BLK2 -> AEV14012 coil +), never raw F-COIL, so the e-stop still cuts coil + (PROPOSED). The guide (step 10) currently keeps coil + OFF the board; if Sparky keeps that, delete J-12V and the three COIL+ pins.",
+  "OPEN for Sparky: guide step 9 says Teensy A signal GND already lands at TB-GND (G04). J-SIG.1 joins it at this board's star as asked; wiring BOTH is a second ground path (loop). Fit only one (UNVERIFIED).",
+  "Strain relief: tie every off-board lead down next to its terminal; never let a solder joint hold a wire. 4× M3 standoffs at the corner holes; sealed box (Sparky 05:35).",
+  "Flyback: D-PRE 1N4007 is OFF-BOARD, across the AEV14012 coil terminals (DECIDED Sparky 05:41). No diode on either EV200: built-in economizer (SOURCED, TE datasheet)."
+ ],
+ "source": [
+  "docs/PINMAP.yaml S01–S03, E01–E03, TB-GND",
+  "docs/guided_install/coil_driver.md",
+  "Sparky chat 2026-10-23 05:31/05:35/05:36/05:41 CT",
+  "IRLB8721PbF datasheet (cutsheet:irlb8721)"
+ ],
+ "parts": [
+  {
+   "ref": "J-12V",
+   "part": "cd_term",
+   "fp": "TB2_508",
+   "at": "B4",
+   "rot": 0,
+   "pin_names": {
+    "1": "+12 V BLK1 (F-COIL via e-stop block 1:12, E02)",
+    "2": "+12 V BLK2 (F-COIL via e-stop block 2:12, E03)"
+   }
+  },
+  {
+   "ref": "J-B+",
+   "part": "cd_term",
+   "fp": "TB2_508",
+   "at": "B10",
+   "rot": 0,
+   "pin_names": {
+    "1": "COIL+ -> EV200 B+ coil +",
+    "2": "COIL− -> EV200 B+ coil − (S01)"
+   }
+  },
+  {
+   "ref": "Q-B+",
+   "part": "cd_fet",
+   "fp": "TO220",
+   "at": "I11",
+   "rot": 0,
+   "value": "IRLB8721PbF"
+  },
+  {
+   "ref": "RG-B+",
+   "part": "cd_rgate",
+   "fp": "AXIAL400",
+   "at": "L11",
+   "rot": 90,
+   "value": "100 Ω"
+  },
+  {
+   "ref": "RP-B+",
+   "part": "cd_rpull",
+   "fp": "AXIAL400",
+   "at": "K13",
+   "rot": 90,
+   "value": "10 kΩ"
+  },
+  {
+   "ref": "J-PRE",
+   "part": "cd_term",
+   "fp": "TB2_508",
+   "at": "B18",
+   "rot": 0,
+   "pin_names": {
+    "1": "COIL+ -> AEV14012 precharge coil +",
+    "2": "COIL− -> AEV14012 precharge coil − (S02)"
+   }
+  },
+  {
+   "ref": "Q-PRE",
+   "part": "cd_fet",
+   "fp": "TO220",
+   "at": "I19",
+   "rot": 0,
+   "value": "IRLB8721PbF"
+  },
+  {
+   "ref": "RG-PRE",
+   "part": "cd_rgate",
+   "fp": "AXIAL400",
+   "at": "L19",
+   "rot": 90,
+   "value": "100 Ω"
+  },
+  {
+   "ref": "RP-PRE",
+   "part": "cd_rpull",
+   "fp": "AXIAL400",
+   "at": "K21",
+   "rot": 90,
+   "value": "10 kΩ"
+  },
+  {
+   "ref": "J-B−",
+   "part": "cd_term",
+   "fp": "TB2_508",
+   "at": "B26",
+   "rot": 0,
+   "pin_names": {
+    "1": "COIL+ -> EV200 B− coil +",
+    "2": "COIL− -> EV200 B− coil − (S03)"
+   }
+  },
+  {
+   "ref": "Q-B−",
+   "part": "cd_fet",
+   "fp": "TO220",
+   "at": "I27",
+   "rot": 0,
+   "value": "IRLB8721PbF"
+  },
+  {
+   "ref": "RG-B−",
+   "part": "cd_rgate",
+   "fp": "AXIAL400",
+   "at": "L27",
+   "rot": 90,
+   "value": "100 Ω"
+  },
+  {
+   "ref": "RP-B−",
+   "part": "cd_rpull",
+   "fp": "AXIAL400",
+   "at": "K29",
+   "rot": 90,
+   "value": "10 kΩ"
+  },
+  {
+   "ref": "J-SIG",
+   "part": "cd_term",
+   "fp": "TB4_508",
+   "at": "Y10",
+   "rot": 180,
+   "pin_names": {
+    "1": "Teensy A signal GND",
+    "2": "S03 Teensy A:21 (Q-B−)",
+    "3": "S02 Teensy A:12 (Q-PRE)",
+    "4": "S01 Teensy A:11 (Q-B+)"
+   }
+  },
+  {
+   "ref": "J-GND",
+   "part": "cd_term",
+   "fp": "TB2_508",
+   "at": "Y24",
+   "rot": 180,
+   "pin_names": {
+    "1": "NC (spare)",
+    "2": "12 V − return -> TB-GND (single point)"
+   }
+  }
+ ],
+ "wires": [
+  {
+   "id": "w1",
+   "net": "COILN_B+",
+   "side": "top",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "I12",
+    "B12"
+   ]
+  },
+  {
+   "id": "w2",
+   "net": "GATE_B+",
+   "side": "top",
+   "awg": "22 AWG (signal)",
+   "pts": [
+    "I11",
+    "L11"
+   ]
+  },
+  {
+   "id": "w3",
+   "net": "GATE_B+",
+   "side": "top",
+   "awg": "22 AWG (signal)",
+   "pts": [
+    "O13",
+    "O12",
+    "L12",
+    "L11"
+   ]
+  },
+  {
+   "id": "w4",
+   "net": "GND",
+   "side": "top",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "I13",
+    "K13"
+   ]
+  },
+  {
+   "id": "w5",
+   "net": "COILN_PRE",
+   "side": "top",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "I20",
+    "B20"
+   ]
+  },
+  {
+   "id": "w6",
+   "net": "GATE_PRE",
+   "side": "top",
+   "awg": "22 AWG (signal)",
+   "pts": [
+    "I19",
+    "L19"
+   ]
+  },
+  {
+   "id": "w7",
+   "net": "GATE_PRE",
+   "side": "top",
+   "awg": "22 AWG (signal)",
+   "pts": [
+    "O21",
+    "O20",
+    "L20",
+    "L19"
+   ]
+  },
+  {
+   "id": "w8",
+   "net": "GND",
+   "side": "top",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "I21",
+    "K21"
+   ]
+  },
+  {
+   "id": "w9",
+   "net": "COILN_B−",
+   "side": "top",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "I28",
+    "B28"
+   ]
+  },
+  {
+   "id": "w10",
+   "net": "GATE_B−",
+   "side": "top",
+   "awg": "22 AWG (signal)",
+   "pts": [
+    "I27",
+    "L27"
+   ]
+  },
+  {
+   "id": "w11",
+   "net": "GATE_B−",
+   "side": "top",
+   "awg": "22 AWG (signal)",
+   "pts": [
+    "O29",
+    "O28",
+    "L28",
+    "L27"
+   ]
+  },
+  {
+   "id": "w12",
+   "net": "GND",
+   "side": "top",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "I29",
+    "K29"
+   ]
+  },
+  {
+   "id": "w13",
+   "net": "GND",
+   "side": "top",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "K13",
+    "K14",
+    "V14",
+    "V22"
+   ],
+   "note": "Q-B+ source -> star"
+  },
+  {
+   "id": "w14",
+   "net": "GND",
+   "side": "top",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "K21",
+    "K22",
+    "V22"
+   ],
+   "note": "Q-PRE source -> star"
+  },
+  {
+   "id": "w15",
+   "net": "GND",
+   "side": "top",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "K29",
+    "K30",
+    "V30",
+    "V22"
+   ],
+   "note": "Q-B− source -> star"
+  },
+  {
+   "id": "w16",
+   "net": "V12_BLK1",
+   "side": "top",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "B4",
+    "D4",
+    "D10",
+    "B10"
+   ]
+  },
+  {
+   "id": "w17",
+   "net": "V12_BLK1",
+   "side": "bot",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "B4",
+    "F4",
+    "F26",
+    "B26"
+   ],
+   "note": "bottom side: passes under the Q-B+/Q-PRE drain jumpers"
+  },
+  {
+   "id": "w18",
+   "net": "V12_BLK2",
+   "side": "bot",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "B6",
+    "D6",
+    "D18",
+    "B18"
+   ],
+   "note": "bottom side"
+  },
+  {
+   "id": "w19",
+   "net": "S01",
+   "side": "bot",
+   "awg": "22 AWG (signal)",
+   "pts": [
+    "Y4",
+    "P4",
+    "P11"
+   ]
+  },
+  {
+   "id": "w20",
+   "net": "S02",
+   "side": "bot",
+   "awg": "22 AWG (signal)",
+   "pts": [
+    "Y6",
+    "Q6",
+    "Q19",
+    "P19"
+   ]
+  },
+  {
+   "id": "w21",
+   "net": "S03",
+   "side": "bot",
+   "awg": "22 AWG (signal)",
+   "pts": [
+    "Y8",
+    "R8",
+    "R27",
+    "P27"
+   ]
+  },
+  {
+   "id": "w22",
+   "net": "GND",
+   "side": "bot",
+   "awg": "22 AWG (signal)",
+   "pts": [
+    "Y10",
+    "X10",
+    "X20",
+    "W21",
+    "V22"
+   ],
+   "note": "Teensy signal GND joins at the star only"
+  },
+  {
+   "id": "w23",
+   "net": "GND",
+   "side": "bot",
+   "awg": "18 AWG solid (coil path)",
+   "pts": [
+    "Y22",
+    "V22"
+   ],
+   "note": "the ONE ground return to TB-GND"
+  }
+ ],
+ "nets": {
+  "V12_BLK1": {
+   "members": [
+    "J-12V.1",
+    "J-B+.1",
+    "J-B−.1"
+   ],
+   "desc": "+12 V coil feed after e-stop block 1 (E02) -> EV200 B+ and B− coil +"
+  },
+  "V12_BLK2": {
+   "members": [
+    "J-12V.2",
+    "J-PRE.1"
+   ],
+   "desc": "+12 V coil feed after e-stop block 2 (E03) -> AEV14012 coil + (Kelly KSI stays on its own E03 lead)"
+  },
+  "GND": {
+   "members": [
+    "Q-B+.S",
+    "RP-B+.1",
+    "Q-PRE.S",
+    "RP-PRE.1",
+    "Q-B−.S",
+    "RP-B−.1",
+    "J-SIG.1",
+    "J-GND.2"
+   ],
+   "desc": "STAR ground: all FET sources, the 10k pull-downs, the Teensy A signal GND and the one 12 V − return to TB-GND meet at hole V22 only (Sparky 05:35)"
+  },
+  "COILN_B+": {
+   "members": [
+    "J-B+.2",
+    "Q-B+.D"
+   ],
+   "desc": "EV200 B+ coil − to Q-B+ drain (S01)"
+  },
+  "GATE_B+": {
+   "members": [
+    "RG-B+.1",
+    "Q-B+.G",
+    "RP-B+.2"
+   ],
+   "desc": "Q-B+ gate: 100 Ω from S01, 10k to source"
+  },
+  "S01": {
+   "members": [
+    "RG-B+.2",
+    "J-SIG.4"
+   ],
+   "desc": "Teensy A:11 -> 100 Ω (S01)"
+  },
+  "COILN_PRE": {
+   "members": [
+    "J-PRE.2",
+    "Q-PRE.D"
+   ],
+   "desc": "AEV14012 precharge coil − to Q-PRE drain (S02)"
+  },
+  "GATE_PRE": {
+   "members": [
+    "RG-PRE.1",
+    "Q-PRE.G",
+    "RP-PRE.2"
+   ],
+   "desc": "Q-PRE gate: 100 Ω from S02, 10k to source"
+  },
+  "S02": {
+   "members": [
+    "RG-PRE.2",
+    "J-SIG.3"
+   ],
+   "desc": "Teensy A:12 -> 100 Ω (S02)"
+  },
+  "COILN_B−": {
+   "members": [
+    "J-B−.2",
+    "Q-B−.D"
+   ],
+   "desc": "EV200 B− coil − to Q-B− drain (S03)"
+  },
+  "GATE_B−": {
+   "members": [
+    "RG-B−.1",
+    "Q-B−.G",
+    "RP-B−.2"
+   ],
+   "desc": "Q-B− gate: 100 Ω from S03, 10k to source"
+  },
+  "S03": {
+   "members": [
+    "RG-B−.2",
+    "J-SIG.2"
+   ],
+   "desc": "Teensy A:21 -> 100 Ω (S03)"
+  }
+ },
+ "nc": [
+  "J-GND.1"
+ ],
+ "offboard": [
+  {
+   "ref": "D-PRE",
+   "part": "cd_flyback",
+   "value": "1N4007",
+   "near": "J-PRE",
+   "text": "D-PRE 1N4007 OFF-BOARD at the AEV14012 coil terminals: band (cathode) to coil + / +12 V (E03), anode to coil − (S02, J-PRE.2). DECIDED Sparky 05:41. No diode on the EV200 coils."
+  }
+ ]
+}

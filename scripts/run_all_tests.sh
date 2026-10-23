@@ -12,11 +12,13 @@ run soc_run "$CXX -std=c++17 -DDUAL_STRING=1 -DTEENSY_ROLE=0 -Iscripts/hoststub 
 run controls "node scripts/test_controls.js"
 run wasm "scripts/build_bms_sim_html.sh >/dev/null && node scripts/check_bms_sim_wasm.js /tmp/bms_sim.wasm > /tmp/rt_wasm_out.log 2>&1; ! grep -q '^FAIL' /tmp/rt_wasm_out.log && grep -c '^PASS' /tmp/rt_wasm_out.log"
 run parts "python3 scripts/check_parts.py"
+run boards "python3 scripts/check_boards.py"
 [ -f scripts/test_pinmap.py ] && run pinmap "python3 scripts/test_pinmap.py"
 run review_fixes "python3 scripts/test_review_fixes.py"
 if [ -z "$FAST" ]; then
   run wiring_crossings "python3 scripts/test_wiring_crossings.py"
   run dash_ui "python3 scripts/test_dash_ui.py"
   run iphone "python3 scripts/test_iphone.py"
+  run perfboard "python3 scripts/test_perfboard.py"
 fi
 exit $fail

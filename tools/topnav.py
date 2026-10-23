@@ -1,8 +1,9 @@
-"""Shared top tab bar for the 4 published pages (Sim, Dash, Wiring, Checklist). Relative links (gist-safe).
+"""Shared top tab bar for the 5 published pages (Sim, Dash, Wiring, Boards, Checklist). Relative links (gist-safe).
 Sim <-> Dash open in named tabs so the sim keeps running while the dash shows it (BroadcastChannel)."""
 import html
 TABS = [("sim", "Sim", "index.html", "teryx_sim"), ("dash", "Dash", "dash.html?src=sim", "teryx_dash"),
-        ("wiring", "Wiring", "wiring.html", ""), ("checklist", "Checklist", "checklist.html", "")]
+        ("wiring", "Wiring", "wiring.html", ""), ("perfboard", "Boards", "perfboard.html", ""),
+        ("checklist", "Checklist", "checklist.html", "")]
 CSS = """<style id="tnav-css">
 #tnav{--k:var(--tnk,1);position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:calc(6px*var(--k));
  height:calc(48px*var(--k));padding:0 calc(8px*var(--k));padding-top:env(safe-area-inset-top);box-sizing:content-box;
