@@ -280,7 +280,7 @@
    "s": 6,
    "o": "Adam",
    "src": "COMPONENTS.md",
-   "t": "Zero 75-7R ratings (kW, torque, max RPM, voltage) for the motor model"
+   "t": "Zero 75-7R (used, sin/cos, spin test DONE) ratings (kW, torque, max RPM, voltage) for the motor model; motor nameplate pole count + thermistor OPEN"
   },
   {
    "s": 6,

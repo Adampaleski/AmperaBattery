@@ -44,6 +44,9 @@ FORCE_CRIT = re.compile(r"NACS|proximity / charger-present|Push \+ flash OK", re
 def tier(x):
     # Crew review 2026-10-22 (chief): CRITICAL only where tagged ([CRITICAL sN] in BACKLOG or "tier" in checklist_src.json).
     if x.get("tier"): return x["tier"]
+    # Chief full review 2026-10-23 (gap 2): every first-drive item (section 1, "REQUIRED BEFORE FIRST DRIVE" / curated s=1) is CRITICAL,
+    # so the checklist can never show e-stop, plug interlock, weld check, isolation, 12 V alarm, pedal, brake override, Kelly CAN timeout or cooling as LATER.
+    if x.get("s") == 1 and not x.get("later"): return "CRITICAL"
     return "LATER"
 def tier_regex_old(x):
     if FORCE_CRIT.search(x["t"]): return "CRITICAL"
