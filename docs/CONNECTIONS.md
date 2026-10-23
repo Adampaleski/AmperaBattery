@@ -142,14 +142,24 @@ Nothing HV (step 7) without Sparky present and all 4 string fuses OUT. Status in
   Meter: ≈3.2 V
 - [ ] **S40 12V SENSE** (CRITICAL, PROPOSED) — 12V bus via divider (PROPOSED 47k/10k + 100 nF) → Teensy B:26 (A12) — free on B per this map · 12 V sense · 22 AWG BU · fuse PROPOSED 1 A  
   Meter: 13.8 V in -> ≈2.4 V at pin
-- [ ] **S41 PLUG A33** (CRITICAL, PROPOSED) — NACS inlet PROXIMITY (SOURCED Adam 2026-10-22: ~150 Ω latched / ~480 Ω button pressed = plugged, open = not plugged) -> Sparky network (330 Ω pull-up to 5 V, 2.7k to GND, 10k/20k scaling) -> LM393 comparator (one per board, PROPOSED, NOT OWNED: buy list, needs Adam approval), 2.5 V threshold on the divided signal (~3.75 V raw), ~50 mV hysteresis, open-collector out pulled up to 3.3 V; plugged = output pulls 33 LOW. If the pilot/proximity board gives a digital plug-present output it may drive 33 instead (opto). Analog fallback NOT possible on A: no free analog pin (audit 2026-10-22) → opto transistor -> Teensy A:33 (10k pull-up 3V3 + 100 nF), LOW = plugged · plug-in detect A (drive blocked on A when plugged, like park) · 22 AWG BU/GN · fuse PROPOSED 1 A  
+- [ ] **S41 PLUG A33** (CRITICAL, PROPOSED) — LM393 output 1 (pin 1, open collector) — the ONE shared LM393 (PROPOSED, NOT OWNED: pending purchase approval) → Teensy A:33 with its own 10k pull-up to Teensy A 3.3 V + 100 nF, LOW = plugged · plug-in detect A (drive blocked on A when plugged, like park) · 22 AWG BU/GN · fuse none (signal; 5 V feed already fused)  
   Meter: unplugged (prox open): 3.3 V at A:33; plugged latched (~150 Ω) and button pressed (~480 Ω): <0.4 V; bench: plug/unplug confirms drive block on A, open-wire test
 - [ ] **S42 KEY A34** (CRITICAL, PROPOSED) — Stock Teryx key switch SWITCHED output (SOURCED Adam 2026-10-22; wire colour UNVERIFIED — Adam backprobes: 0 V key off, 12 V key on), fed from the TDC-JH 12 V bus, through its OWN 1 A fuse (Sparky 2026-10-22) -> opto ch1 LED (PROPOSED PC827 + 1k5) → opto ch1 transistor -> Teensy A:34 (10k pull-up 3V3 + 100 nF), LOW = key on · KEY-ON A · 22 AWG BU/YE · fuse own 1 A fuse (Sparky 2026-10-22, PROPOSED)  
   Meter: BEFORE wiring: backprobe key switch output 0 V key off / 12 V key on (record colour). Then key off: 3.3 V at A:34; key on: <0.4 V
 - [ ] **S43 KEY B34** (CRITICAL, PROPOSED) — Same stock key switch switched output (after the S42 fuse) -> opto ch2 LED (PROPOSED PC827 + 1k5) → opto ch2 transistor -> Teensy B:34 (10k pull-up 3V3 + 100 nF), LOW = key on · KEY-ON B · 22 AWG BU/YE · fuse shares S42 fuse  
   Meter: as S42 at B:34
-- [ ] **S44 PLUG B33** (CRITICAL, PROPOSED) — Same NACS proximity line as S41 -> own Sparky network + own LM393 on B (same 2.5 V threshold as A; PROPOSED, NOT OWNED: buy list, needs Adam approval) → LM393 open-collector -> Teensy B:33 (pull-up 3V3 + 100 nF), LOW = plugged · plug-in detect B mirror (drive blocked on B when plugged, like park) · 22 AWG BU/GN · fuse shares S41 fuse  
-  Meter: as S41 at B:33
+- [ ] **S44 PLUG B33** (CRITICAL, PROPOSED) — LM393 output 2 (pin 7, open collector) — same chip as S41 → Teensy B:33 with its own 10k pull-up to Teensy B 3.3 V + 100 nF, LOW = plugged · plug-in detect B mirror (drive blocked on B when plugged, like park) · 22 AWG BU/GN · fuse none (signal; 5 V feed already fused)  
+  Meter: as S41 at B:33; with B powered off, A:33 must still read correctly (separate pull-ups)
+- [ ] **S45 PROX NET** (CRITICAL, PROPOSED) — NACS inlet PROXIMITY pin (SOURCED Adam 2026-10-22: ~150 Ω latched / ~480 Ω button pressed = plugged, open = not plugged; plug side returns to inlet PE) → proximity node: 330 Ω pull-up to the shared 5 V + 2.7k to GND (Sparky; same values as the J1772 vehicle side) · plug proximity (one network for both boards) · 22 AWG BU/GN · fuse none (330 Ω limits it to 15 mA)  
+  Meter: unplugged ≈4.4 V at the node; plugged latched ≈1.5 V, button pressed ≈2.8 V (calculated, UNVERIFIED until metered). Inlet PE to the single-point ground is UNVERIFIED
+- [ ] **S46 PROX DIV** (CRITICAL, PROPOSED) — proximity node -> 10k (top) / 20k (to GND) divider → LM393 IN+ of BOTH halves (pins 3 and 5 tied) — one divider feeds both · divided proximity (×2/3, keeps it inside the LM393 input range at 5 V) · 22 AWG BU/GN · fuse none  
+  Meter: unplugged ≈2.9 V on pins 3/5, plugged ≤1.9 V (2.5 V switch point ≈3.75 V at the node)
+- [ ] **S47 LM393 5V** (CRITICAL, PROPOSED) — shared 5 V rail (5 V terminal block, same rail as the throttle clamp chips) → LM393 VCC pin 8 (+ 100 nF to pin 4) and the 330 Ω proximity pull-up · LM393 + proximity supply · 22 AWG OR · fuse 5 V rail (3 A mini blade upstream)  
+  Meter: 5.0 V between pin 8 and pin 4
+- [ ] **S48 LM393 REF** (CRITICAL, PROPOSED) — 2.5 V reference (PROPOSED 10k/10k from the shared 5 V; ~50 mV hysteresis part values TBD by Sparky — both halves share IN+) → LM393 IN− of BOTH halves (pins 2 and 6 tied) · 2.5 V threshold · 22 AWG BU · fuse none  
+  Meter: 2.50 V on pins 2/6
+- [ ] **S49 LM393 GND** (CRITICAL, PROPOSED) — LM393 GND pin 4 (also the 2.7k, 20k and reference bottoms) → single-point ground (same star point as the Teensy A/B grounds) · LM393 ground · 22 AWG BK · fuse none  
+  Meter: <0.1 Ω pin 4 to the single-point ground
 
 ## Step 7: HIGH VOLTAGE — LATER, Sparky present, string fuses OUT
 
