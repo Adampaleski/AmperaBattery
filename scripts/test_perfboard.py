@@ -91,9 +91,14 @@ with sync_playwright() as p:
     FET_ENDS = J(f"""(()=>{{const p=PB.L.parts.find(p=>p.ref==='{ref}'),set=new Set(Object.values(PB.pinsOf(p)).map(x=>PB.hname(x)));
       return PB.L.wires.flatMap(w=>[[w.id,0],[w.id,w.pts.length-1]].filter(([i,k])=>set.has(w.pts[k])))}})()""")
     x, y, sc = scr(at0); pitch = 2.54 * sc
-    pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x + pitch * .6, y, steps=4); pg.mouse.move(x + pitch * 3, y + pitch * 2, steps=8); pg.mouse.up(); pg.wait_for_timeout(200)
+    def fdrag(dr, dc):
+        pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x + pitch * .6, y, steps=4); pg.mouse.move(x + pitch * dc, y + pitch * dr, steps=8); pg.mouse.up(); pg.wait_for_timeout(200)
+    # Build 25: (2,3) lands the FET body on RP-B+ and wire w4 -> rejected, it snaps back; (-2,3) is a free spot (also for the 90° rotate below)
+    fdrag(2, 3)
+    ok(J(f"PB.L.parts.find(p=>p.ref==='{ref}').at") == at0 and 'Blocked' in J("PB.msg"), f'drag {ref} by (2,3) onto RP-B+ / a wire is rejected and snaps back: {J("PB.msg")[:90]!r}')
+    fdrag(-2, 3)
     r0, c0 = J(f"PB.hole('{at0}')"); at1 = J(f"PB.L.parts.find(p=>p.ref==='{ref}').at"); r1, c1 = J(f"PB.hole('{at1}')")
-    ok((r1 - r0, c1 - c0) == (2, 3), f'drag {ref} snaps to holes: {at0} -> {at1}')
+    ok((r1 - r0, c1 - c0) == (-2, 3), f'drag {ref} snaps to holes: {at0} -> {at1}')
     pg.mouse.click(*scr(at1)[:2]); pg.wait_for_timeout(150); pg.click('#rot'); pg.wait_for_timeout(150)
     ok(J(f"PB.L.parts.find(p=>p.ref==='{ref}').rot") == 90, f'Rotate turns {ref} to 90°')
     # Build 22: wire ends on the FET's pins are attached, so they followed the drag and the rotate

@@ -58,5 +58,7 @@ lay={"schema":"teryx-perfboard/1","board":"coil_driver","title":"Contactor coil-
  "source":["docs/PINMAP.yaml S01–S03, E01–E03, TB-GND, G08, G04 (dropped)","bms_master_answers.md: chief + Sparky 2026-10-23 06:57 CT (DECIDED: 5.08 mm ≥10 A J-GND, doubled 20 AWG bus, cathode to coil +)","Room decision 2026-10-23 06:11 CT (Sparky + chief): low side only, G04 dropped, coil return 16 AWG+","docs/guided_install/coil_driver.md","Sparky chat 2026-10-23 05:31/05:35/05:36/05:41 CT","IRLB8721PbF datasheet (cutsheet:irlb8721)"],
  "parts":parts,"wires":wires,"nets":nets,"nc":["J-GND.1"]+NC,
  "offboard":[{"ref":"D-PRE","part":"cd_flyback","value":"1N4007","near":"J-PRE","short":"at the AEV14012 coil, cathode to coil +","text":"D-PRE 1N4007 OFF-BOARD at the AEV14012 coil terminals: mounted AT THE COIL, cathode to coil + (E03 feed; cathode = banded end), anode to coil − (S02, J-PRE.2). DECIDED Sparky 05:41, confirmed room 06:11; wording 'cathode to coil +' DECIDED chief 06:57 #6. No diode on the EV200 coils."}]}
+import sys; sys.path.insert(0,str(pathlib.Path(__file__).resolve().parent)); import install_steps  # Build 25: Install-mode steps from docs/guided_install/coil_driver.md §3
+install_steps.attach(lay,install_steps.COIL_DRIVER,json.loads((pathlib.Path(__file__).resolve().parents[2]/"docs/boards/footprints.json").read_text()))
 open(pathlib.Path(__file__).resolve().parents[2]/"docs/boards/coil_driver.layout.json","w").write(json.dumps(lay,indent=1,ensure_ascii=False)+"\n")
 print(len(parts),len(wires),len(nets))

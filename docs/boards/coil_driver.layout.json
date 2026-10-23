@@ -491,5 +491,189 @@
    "short": "at the AEV14012 coil, cathode to coil +",
    "text": "D-PRE 1N4007 OFF-BOARD at the AEV14012 coil terminals: mounted AT THE COIL, cathode to coil + (E03 feed; cathode = banded end), anode to coil − (S02, J-PRE.2). DECIDED Sparky 05:41, confirmed room 06:11; wording 'cathode to coil +' DECIDED chief 06:57 #6. No diode on the EV200 coils."
   }
+ ],
+ "steps": [
+  {
+   "id": "prep",
+   "title": "1 · Board prep",
+   "label": "PROPOSED",
+   "text": "cd_board: mark the three channel columns (B+, PRE, B−) and the ground bus; keep the 4 corner holes free for M3 standoffs (guide §3.1).",
+   "parts": [],
+   "wires": [],
+   "offboard": [],
+   "part_ids": []
+  },
+  {
+   "id": "fets",
+   "title": "2 · FETs",
+   "label": "PROPOSED",
+   "text": "Fit Q-B+, Q-PRE, Q-B− (IRLB8721), flat face up, pins G-D-S left to right (SOURCED BOM.md:33). Check pin order before soldering (guide §3.2).",
+   "parts": [
+    "Q-B+",
+    "Q-PRE",
+    "Q-B−"
+   ],
+   "wires": [],
+   "offboard": [],
+   "part_ids": [
+    "cd_fet"
+   ]
+  },
+  {
+   "id": "rgate",
+   "title": "3 · Gate resistors",
+   "label": "PROPOSED",
+   "text": "100 Ω in series between each gate-input and the FET G pin, close to the pin (guide §3.3).",
+   "parts": [
+    "RG-B+",
+    "RG-PRE",
+    "RG-B−"
+   ],
+   "wires": [
+    "w2",
+    "w6",
+    "w10"
+   ],
+   "offboard": [],
+   "part_ids": [
+    "cd_rgate"
+   ]
+  },
+  {
+   "id": "rpull",
+   "title": "4 · Pull-downs",
+   "label": "PROPOSED",
+   "text": "10 kΩ from G to that FET's S on the FET side of the 100 Ω — keeps the FET off while the Teensy boots (guide §3.4).",
+   "parts": [
+    "RP-B+",
+    "RP-PRE",
+    "RP-B−"
+   ],
+   "wires": [
+    "w3",
+    "w7",
+    "w11"
+   ],
+   "offboard": [],
+   "part_ids": [
+    "cd_rpull"
+   ]
+  },
+  {
+   "id": "gnd",
+   "title": "5 · Ground bus",
+   "label": "PROPOSED",
+   "text": "Join the three S pins / pull-downs to the star at V22. On-board bus = DOUBLED 20 AWG solid (DECIDED Sparky 06:57 #5; the guide's 16 AWG is the off-board return, which lands in J-GND) (guide §3.5).",
+   "parts": [],
+   "wires": [
+    "w4",
+    "w8",
+    "w12",
+    "w13",
+    "w14",
+    "w15"
+   ],
+   "offboard": [],
+   "part_ids": []
+  },
+  {
+   "id": "coil",
+   "title": "6 · Coil outputs",
+   "label": "PROPOSED",
+   "text": "Each D pin to its coil-out terminal, 18–20 AWG solid: Q-B+ → EV200 B+ coil − (S01), Q-PRE → AEV14012 coil − (S02), Q-B− → EV200 B− coil − (S03) (guide §3.6; lead colours PROPOSED).",
+   "parts": [
+    "J-B+",
+    "J-PRE",
+    "J-B−"
+   ],
+   "wires": [
+    "w1",
+    "w5",
+    "w9"
+   ],
+   "offboard": [],
+   "part_ids": [
+    "cd_term"
+   ]
+  },
+  {
+   "id": "gate",
+   "title": "7 · Gate inputs",
+   "label": "PROPOSED",
+   "text": "J-SIG: Teensy A:11 → B+ (S01), A:12 → PRE (S02), A:21 → B− (S03); J-SIG.1 = Teensy signal GND to the star (guide §3.7).",
+   "parts": [
+    "J-SIG"
+   ],
+   "wires": [
+    "w16",
+    "w17",
+    "w18",
+    "w19"
+   ],
+   "offboard": [],
+   "part_ids": [
+    "cd_term"
+   ]
+  },
+  {
+   "id": "flyback",
+   "title": "8 · Flyback at the coil (off-board)",
+   "label": "DECIDED",
+   "text": "D-PRE 1N4007 across the AEV14012 coil terminals AT THE RELAY, band (cathode) to coil +, anode to coil − (DECIDED Sparky 05:41). No diode on the EV200s (guide §3.8).",
+   "parts": [],
+   "wires": [],
+   "offboard": [
+    "D-PRE"
+   ],
+   "part_ids": [
+    "cd_flyback"
+   ]
+  },
+  {
+   "id": "gndpt",
+   "title": "9 · Single-point ground",
+   "label": "PROPOSED",
+   "text": "J-GND.2 → TB-GND, 16 AWG+, coil return only (DECIDED room 06:11). No Teensy GND wire at TB-GND (G04 dropped) (guide §3.9).",
+   "parts": [
+    "J-GND"
+   ],
+   "wires": [
+    "w20"
+   ],
+   "offboard": [],
+   "part_ids": [
+    "cd_term"
+   ]
+  },
+  {
+   "id": "feed",
+   "title": "10 · Coil + feed (off-board)",
+   "label": "PROPOSED",
+   "text": "Confirm coil + leads come from the e-stop NC blocks fed by F-COIL (E01–E03); on the bench use a current-limited 12 V supply (guide §3.10).",
+   "parts": [],
+   "wires": [],
+   "offboard": [],
+   "part_ids": []
+  },
+  {
+   "id": "strain",
+   "title": "11 · Strain relief + mounting",
+   "label": "PROPOSED",
+   "text": "Tie every off-board lead down; no solder joint holds a wire. Standoffs, sealed box; coat only after the PASS checks (guide §3.11).",
+   "parts": [],
+   "wires": [],
+   "offboard": [],
+   "part_ids": []
+  },
+  {
+   "id": "checks",
+   "title": "Checks (12 V bench, pack disconnected)",
+   "label": "PROPOSED",
+   "text": "Guide §4 PASS 1–8: gate-GND ≈10.1 kΩ · D-PRE orientation · fail-safe OFF · drive at 3.3 V · coil current · FET temperature · release · e-stop cut.",
+   "parts": [],
+   "wires": [],
+   "offboard": [],
+   "part_ids": []
+  }
  ]
 }

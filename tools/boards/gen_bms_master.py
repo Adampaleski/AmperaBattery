@@ -550,6 +550,8 @@ def write_layout(W):
                       "short": "ESP32 is OFF-BOARD: J-ESP 1 = A:17 TX, 2 = GND, 3 = +5 V",
                       "text": "ESP32 telemetry module is NOT on this board. J-ESP.1 = Teensy A:17 Serial4 TX -> ESP32 GPIO16 RX (S30, TX-only link); J-ESP.2 = GND (G05, from the Teensy A ground group); J-ESP.3 = +5 V board bus (P08). TELEMETRY_ONLY 1."}],
     }
+    sys.path.insert(0, str(ROOT / "tools/boards")); import install_steps  # Build 25: Install-mode steps (PROPOSED order)
+    install_steps.attach(lay, install_steps.BMS_MASTER, FP)
     out = ROOT / "docs/boards/bms_master.layout.json"
     out.write_text(json.dumps(lay, indent=1, ensure_ascii=False) + "\n")
     print(f"wrote {out.relative_to(ROOT)}: {rows}x{cols} holes, {len(parts)} parts, {len(wires)} wires, {len(nets)} nets, {len(nc)} nc; analog<->CAN/buck min {dmin} holes", file=sys.stderr)

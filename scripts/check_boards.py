@@ -15,7 +15,8 @@ ERRORS (exit 1): part id not in docs/PARTS.yaml (parts, board_part, assembly, of
 WARNINGS: pin in no net and not NC, dangling wire end (no pin, no other wire), same-side crossing of two
   different nets, a wire running over a pin hole it is not soldered at, part not the assembly or one of its PARTS children/uses, status not one of the labels.
 """
-import json, pathlib, re, sys
+import json, math, pathlib, re, sys
+from math import gcd
 import yaml
 
 R = pathlib.Path(__file__).resolve().parent.parent
@@ -143,7 +144,71 @@ def check(L, name):
             for k in range(1, g):
                 rc = (a[0] + dr // g * k, a[1] + dc // g * k)
                 if rc in pin_at: W.append(f"wire {w['id']} runs over {pin_at[rc]} at {hname(rc)} without a solder point")
+    # install steps (Build 25; same rules as checkBoard in tools/perfboard.html)
+    if isinstance(L.get("steps"), list):
+        ids, ps, ws = set(), {}, {}
+        wid = {w["id"] for w in L.get("wires", [])}; ob = {o["ref"]: o for o in L.get("offboard", [])}
+        for st in L["steps"]:
+            sid = st.get("id")
+            if not sid or sid in ids: E.append(f"install step {sid!r}: missing or duplicate id")
+            ids.add(sid)
+            if st.get("label") not in LABELS: W.append(f"install step {sid}: label {st.get('label')!r} is not one of {sorted(LABELS)}")
+            for r in st.get("parts", []):
+                if r not in refs: E.append(f"install step {sid}: unknown part {r}")
+                elif r in ps: E.append(f"install step {sid}: {r} is already in step {ps[r]}")
+                ps[r] = sid
+            for x in st.get("wires", []):
+                if x not in wid: E.append(f"install step {sid}: unknown wire {x}")
+                elif x in ws: E.append(f"install step {sid}: wire {x} is already in step {ws[x]}")
+                ws[x] = sid
+            for r in st.get("offboard", []):
+                if r not in ob: E.append(f"install step {sid}: unknown off-board item {r}")
+            for i in st.get("part_ids", []):
+                if i not in PARTS: E.append(f"install step {sid}: part id {i!r} is not in docs/PARTS.yaml")
+            need = sorted({refs[r]["part"] for r in st.get("parts", []) if r in refs} | {ob[r]["part"] for r in st.get("offboard", []) if r in ob})
+            have = sorted(set(st.get("part_ids", [])))
+            if need != have: W.append(f"install step {sid}: part_ids {have} do not match its parts {need}")
+        for r in refs:
+            if r not in ps: W.append(f"{r} is in no install step")
+        for w in L.get("wires", []):
+            if w["id"] not in ws: W.append(f"wire {w['id']} is in no install step")
     return E, W
+
+def body_cells(p):
+    f = FP.get(p.get("fp")); a = hole(p.get("at"))
+    if not f or a is None or p.get("rot", 0) not in (0, 90, 180, 270): return []
+    x0, y0, x1, y1 = f.get("body") or [-.5, -.5, .5, .5]
+    out = []
+    for r in range(math.ceil(y0), math.floor(y1) + 1):
+        for c in range(math.ceil(x0), math.floor(x1) + 1):
+            dr, dc = rot(r, c, p.get("rot", 0)); out.append((a[0] + dr, a[1] + dc))
+    return out
+
+def wire_cells(w):
+    P = [hole(h) for h in w.get("pts", [])]
+    if not P or any(x is None for x in P): return []
+    o = list(P)
+    for a, b in zip(P, P[1:]):
+        dr, dc = b[0] - a[0], b[1] - a[1]; g = gcd(abs(dr), abs(dc))
+        o += [(a[0] + dr // g * k, a[1] + dc // g * k) for k in range(1, g)]
+    return o
+
+def flags(L):
+    """Under-body flags: a top-side wire hole under a part body (not at one of its pins). The layout may already have
+    these (the designer rejects any NEW one); they are listed, not counted as warnings."""
+    body, out = {}, []
+    for p in L["parts"]:
+        if p.get("fp") not in FP or hole(p.get("at")) is None: continue
+        pk = set(pins_of(p).values())
+        for rc in body_cells(p):
+            if rc not in pk: body[rc] = p["ref"]
+    for w in L.get("wires", []):
+        if w.get("side", "top") != "top": continue
+        hit = {}
+        for rc in wire_cells(w):
+            if rc in body: hit.setdefault(body[rc], set()).add(hname(rc))
+        for r in sorted(hit): out.append(f"wire {w['id']} runs under the {r} body at {','.join(sorted(hit[r]))} (existing layout; a new move can't do this)")
+    return out
 
 def main(argv):
     files = [pathlib.Path(a) for a in argv] or sorted((R / "docs/boards").glob("*.layout.json"))
@@ -151,12 +216,13 @@ def main(argv):
     nerr = 0
     for fn in files:
         L = json.loads(fn.read_text())
-        E, W = check(L, fn.name)
+        E, W = check(L, fn.name); F = flags(L)
         nerr += len(E)
         print(f"{fn.name}: board {L.get('board')} [{L.get('status')}] {len(L['parts'])} parts, {len(L.get('wires', []))} wires, "
-              f"{len(L.get('nets', {}))} nets — {'PASS' if not E else 'FAIL'} ({len(E)} errors, {len(W)} warnings)")
+              f"{len(L.get('nets', {}))} nets, {len(L.get('steps', []))} install steps — {'PASS' if not E else 'FAIL'} ({len(E)} errors, {len(W)} warnings; {len(F)} under-body flags)")
         for e in E: print("  ERROR", e)
         for w in W: print("  warn ", w)
+        for x in F: print("  flag ", x)
     return 1 if nerr else 0
 
 if __name__ == "__main__":

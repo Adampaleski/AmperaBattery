@@ -23,7 +23,7 @@ aside ul{margin:4px 0;padding-left:18px}aside li{margin:2px 0}.e{color:var(--red
 .pins{width:100%;border-collapse:collapse}.pins td{padding:2px 4px;border-bottom:1px solid var(--line);vertical-align:middle}.pins select{height:26px;font-size:12px;max-width:150px}
 #addf{display:none}#addf.on{display:block}#addf label{display:block;margin:4px 0;color:var(--mut)}#addf select,#addf input{width:100%;max-width:none}
 /* svg */
-.brd{fill:#0f3326;stroke:#2f6b52;stroke-width:.3}.hr{fill:#a8733b;opacity:.55}.hh{fill:#08090b}.lbl{fill:#6f7782;font-size:1.15px;font-family:ui-monospace,Menlo,monospace}
+.brd{fill:#0f3326;stroke:#2f6b52;stroke-width:.3}.hr{fill:#a8733b;opacity:.55}.hh{fill:#08090b}.lbl{pointer-events:none;fill:#6f7782;font-size:1.15px;font-family:ui-monospace,Menlo,monospace}
 .mnt{fill:#08090b;stroke:#9aa0a6;stroke-width:.35}.mnt2{fill:none;stroke:#9aa0a6;stroke-width:.2;stroke-dasharray:.6 .6}
 .wire{fill:none;stroke-linecap:round;stroke-linejoin:round}.wire.bot{stroke-dasharray:1.2 .9;opacity:.7}.whit{fill:none;stroke:transparent;stroke-width:2.4;cursor:pointer}
 .sold{stroke:none}.vh{fill:#0b0c0e;stroke:var(--warn);stroke-width:.35;cursor:move}
@@ -37,6 +37,17 @@ aside ul{margin:4px 0;padding-left:18px}aside li{margin:2px 0}.e{color:var(--red
 .vsel{fill:none;stroke:#ffd60a;stroke-width:.3;pointer-events:none}.att{stroke:#0b0c0e;stroke-width:.14;pointer-events:none}
 .selwin,.selcross{pointer-events:none}.selwin{fill:rgba(62,106,225,.13);stroke:#5b8cff;stroke-width:.3}.selcross{fill:rgba(48,209,88,.12);stroke:#30d158;stroke-width:.3;stroke-dasharray:.9 .6}
 #ctx{position:absolute;z-index:5;display:flex;flex-direction:column;gap:2px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px #000b}#ctx[hidden]{display:none}#ctx button{text-align:left;white-space:nowrap;touch-action:manipulation}
+/* Build 25: collision ghost, board edges, row/col headers, install mode */
+.pb.bad rect.body{fill:#ff453a!important;opacity:.6}.pb.bad .pin{fill:#ff453a}.colx{fill:#ff453a;opacity:.45;pointer-events:none}
+.edge{stroke:transparent;stroke-width:1.6;cursor:ns-resize}.edge.v{cursor:ew-resize}.edge.on{stroke:#ffd60a;stroke-opacity:.85;stroke-width:.7}
+.nb{fill:none;stroke:#30d158;stroke-width:.45;stroke-dasharray:1 .6;pointer-events:none}.nb.bad{stroke:#ff453a}
+.hdr{fill:transparent;cursor:context-menu}.hdr:hover{fill:#ffffff18}
+.st-prev{opacity:.5}.st-fut{opacity:.12}.st-cur rect.body{stroke:#ffd60a!important;stroke-width:.6!important}.stglow{fill:#ffd60a14;stroke:#ffd60a;stroke-width:.35;pointer-events:none}
+#msg{position:absolute;left:10px;top:8px;max-width:70%;font-size:12px;padding:4px 8px;border-radius:8px;background:#141619ee;border:1px solid var(--line);pointer-events:none}#msg.bad{color:var(--red);border-color:#5a2a2a}#msg[hidden]{display:none}
+#ctx .hm{padding:4px 8px;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:6px}#ctx .hm input{width:64px;height:30px}
+#inst{display:none}#inst.on{display:block}#inst .ib{display:flex;align-items:center;gap:6px;justify-content:space-between}#inst h4{margin:8px 0 2px;font-size:14px}
+#inst ol{margin:6px 0 0;padding-left:0;list-style:none}#inst li{display:flex;align-items:center;gap:6px;padding:3px 4px;border-radius:6px;cursor:pointer}#inst li.cur{background:#16213d;color:#fff}#inst li.done span{text-decoration:line-through;color:var(--mut)}
+#inst label.chk{display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer}#inst input[type=checkbox]{width:18px;height:18px;margin:0}
 .hov,.draft{pointer-events:none}.draft{fill:none;stroke:var(--warn);stroke-width:.5;stroke-dasharray:.6 .4}.hov{fill:none;stroke:#fff;stroke-width:.25}
 @media (max-width:820px){main{grid-template-columns:1fr;height:auto}#view{height:62vh;border-right:0;border-bottom:1px solid var(--line)}aside{max-height:none}}
 @media (pointer:coarse){.pins select{min-height:44px!important}
@@ -44,20 +55,22 @@ aside ul{margin:4px 0;padding-left:18px}aside li{margin:2px 0}.e{color:var(--red
  #hd .tools{gap:0 2px}#hd .tools button,#zb button,#ctx button{border:7px solid transparent!important;background-clip:padding-box;box-shadow:inset 0 0 0 1px var(--line);border-radius:15px}
  #hd .tools button.on{box-shadow:inset 0 0 0 1px var(--acc)}#hd .seg button{border-left-width:0!important;border-right-width:0!important;border-radius:0}
  #hd .seg button:first-child{border-left-width:7px!important;border-radius:15px 0 0 15px}#hd .seg button:last-child{border-right-width:7px!important;border-radius:0 15px 15px 0}#hd .seg button+button{margin-left:0}
- #zb{gap:0}#zb button{width:44px;padding:0}#ctx{padding:0}}
+ #zb{gap:0}#zb button{width:44px;padding:0}#ctx{padding:0}
+ #inst button{border:7px solid transparent!important;background-clip:padding-box;box-shadow:inset 0 0 0 1px var(--line);border-radius:15px}
+ #ctx input,#inst li,#inst label.chk{min-height:44px}#inst input[type=checkbox]{width:26px;height:26px}}
 @media print{#hd .tools,#zb,aside{display:none}main{display:block;height:auto}#view{height:90vh}}
 </style></head><body>@@TOPNAV@@
 <header id="hd"><div class="ttl"><b id="bt">Perf-board</b><span id="st" class="chip"></span><span id="ck" class="chip"></span><span id="lc" class="chip lc" hidden>local edits</span></div>
 <div class="tools"><select id="bsel" aria-label="Board"></select>
-<span class="seg"><button id="mSel" class="on">Select</button><button id="mBox" title="Window select: drag left→right = window (inside only), right→left = crossing (touching)">Window</button><button id="mWire">Wire</button></span>
+<span class="seg"><button id="mSel" class="on">Select</button><button id="mBox" title="Window select: drag left→right = window (inside only), right→left = crossing (touching)">Window</button><button id="mWire">Wire</button><button id="mInst" title="Install mode: step-by-step build order">Install</button></span>
 <select id="wnet" aria-label="Wire net" hidden></select><button id="wside" hidden>Top side</button>
-<button id="rot" disabled>Rotate</button><button id="del" disabled>Delete</button><button id="addb">+ Part</button><button id="asz" title="Shrink the board to the parts plus a 2-hole margin">Auto-size</button>
+<button id="undo" disabled title="Undo (Ctrl+Z)" aria-label="Undo">↶</button><button id="redo" disabled title="Redo (Ctrl+Y)" aria-label="Redo">↷</button><button id="rot" disabled>Rotate</button><button id="del" disabled>Delete</button><button id="addb">+ Part</button><button id="asz" title="Shrink the board to the parts plus a 2-hole margin">Auto-size</button>
 <span class="sep"></span><button id="exp">Export JSON</button><button id="rst">Reset</button></div></header>
-<main><div id="view"><svg id="sv" xmlns="http://www.w3.org/2000/svg"><g id="gG"></g><g id="gW"></g><g id="gP"></g><g id="gO"></g><g id="gD"></g></svg>
-<div id="zb"><button id="zi" aria-label="Zoom in">+</button><button id="zo" aria-label="Zoom out">−</button><button id="zf" aria-label="Fit">⤢</button></div><div id="hint"></div><div id="ctx" hidden></div></div>
-<aside id="side"><div id="addf" class="box"><b>Add a part</b><label>PARTS.yaml id<select id="apid"></select></label><label>Footprint<select id="afp"></select></label><label>Refdes<input id="aref" type="text" placeholder="e.g. Q-B+2"></label><button id="ago">Place at view centre</button> <button id="acx">Cancel</button></div>
+<main><div id="view"><svg id="sv" xmlns="http://www.w3.org/2000/svg"><g id="gG"></g><g id="gE"></g><g id="gW"></g><g id="gP"></g><g id="gO"></g><g id="gD"></g></svg>
+<div id="zb"><button id="zi" aria-label="Zoom in">+</button><button id="zo" aria-label="Zoom out">−</button><button id="zf" aria-label="Fit">⤢</button></div><div id="hint"></div><div id="msg" hidden></div><div id="ctx" hidden></div></div>
+<aside id="side"><div id="inst" class="box"></div><div id="addf" class="box"><b>Add a part</b><label>PARTS.yaml id<select id="apid"></select></label><label>Footprint<select id="afp"></select></label><label>Refdes<input id="aref" type="text" placeholder="e.g. Q-B+2"></label><button id="ago">Place at view centre</button> <button id="acx">Cancel</button></div>
 <div id="selb"></div><h3>Check</h3><div id="chk" class="box"></div><h3>Notes</h3><div id="notes" class="box"></div><h3>Off-board</h3><div id="offb" class="box"></div><h3>Nets</h3><div id="netl" class="box"></div>
-<p class="mut">Grid 0.1 in (2.54 mm), to scale. Solid wire = top side, dashed = bottom side; a wire is soldered at every hole it bends at. Drag parts and wire points (wire ends on a pin stay attached and follow; right-click or long-press an end to detach). Window: drag left→right to pick what is fully inside, right→left to pick what it touches; drag the picked set to stretch. Auto-size trims the board to the parts plus 2 holes. Pinch or scroll to zoom, drag the board to pan. Edits stay in this browser (localStorage) until you Export JSON and commit it as <code>docs/boards/&lt;board&gt;.layout.json</code>. <code>scripts/check_boards.py</code> runs the same check as this page.</p></aside></main>
+<p class="mut">Grid 0.1 in (2.54 mm), to scale. Solid wire = top side, dashed = bottom side; a wire is soldered at every hole it bends at. Drag parts and wire points (wire ends on a pin stay attached and follow; right-click or long-press an end to detach). Window: drag left→right to pick what is fully inside, right→left to pick what it touches; drag the picked set to stretch. Auto-size trims the board to the parts plus 2 holes. A part can't be dropped where its body or pins land on another part or a wire (red ghost, it snaps back); wires already under a body are flagged in the check. Window/crossing also picks board edges and corners: drag them to grow or shrink the board by whole holes. Right-click or long-press a row letter or column number to insert or delete rows/columns. Undo/redo: Ctrl+Z / Ctrl+Y or ↶ ↷. Install shows the build order step by step. Pinch or scroll to zoom, drag the board to pan. Edits stay in this browser (localStorage) until you Export JSON and commit it as <code>docs/boards/&lt;board&gt;.layout.json</code>. <code>scripts/check_boards.py</code> runs the same check as this page.</p></aside></main>
 <script>/*DATA*/</script><script>
 "use strict";
 const NS="http://www.w3.org/2000/svg",PI=2.54,$=id=>document.getElementById(id),FP=window.FOOTPRINTS,BOARDS=window.BOARDS,PARTS=window.PARTS||{};
@@ -112,15 +125,38 @@ function checkBoard(L){const E=[],W=[],rows=L.grid.rows,cols=L.grid.cols,inb=rc=
  const gcd=(a,b)=>b?gcd(b,a%b):a;
  for(const w of WS)for(const [a,b] of segs(w)){const dr=b[0]-a[0],dc=b[1]-a[1],g=gcd(Math.abs(dr),Math.abs(dc));
   for(let k=1;k<g;k++){const rc=[a[0]+dr/g*k,a[1]+dc/g*k];if(pinAt[key(rc)])W.push(`wire ${w.id} runs over ${pinAt[key(rc)]} at ${hname(rc)} without a solder point`)}}
- return {E,W,pinAt,atPin,pinNet,nc}}
+ // install steps (Build 25): every ref / wire / PARTS id must exist; a part or wire is installed in at most one step
+ if(Array.isArray(L.steps)){const ids=new Set(),ps={},ws={},wid=new Set((L.wires||[]).map(w=>w.id)),ob={};(L.offboard||[]).forEach(o=>ob[o.ref]=o);
+  for(const st of L.steps){const sid=st.id;if(!sid||ids.has(sid))E.push(`install step ${JSON.stringify(sid)}: missing or duplicate id`);ids.add(sid);
+   if(!LABELS.includes(st.label))W.push(`install step ${sid}: label ${JSON.stringify(st.label)} is not one of ${LABELS.join(", ")}`);
+   for(const r of st.parts||[]){if(!refs[r])E.push(`install step ${sid}: unknown part ${r}`);else if(ps[r])E.push(`install step ${sid}: ${r} is already in step ${ps[r]}`);ps[r]=sid}
+   for(const w of st.wires||[]){if(!wid.has(w))E.push(`install step ${sid}: unknown wire ${w}`);else if(ws[w])E.push(`install step ${sid}: wire ${w} is already in step ${ws[w]}`);ws[w]=sid}
+   for(const r of st.offboard||[])if(!ob[r])E.push(`install step ${sid}: unknown off-board item ${r}`);
+   for(const id of st.part_ids||[])if(!PARTS[id])E.push(`install step ${sid}: part id '${id}' is not in docs/PARTS.yaml`);
+   const need=[...new Set([...(st.parts||[]).filter(r=>refs[r]).map(r=>refs[r].part),...(st.offboard||[]).filter(r=>ob[r]).map(r=>ob[r].part)])].sort(),have=[...new Set(st.part_ids||[])].sort();
+   if(need.join()!==have.join())W.push(`install step ${sid}: part_ids [${have.join(", ")}] do not match its parts [${need.join(", ")}]`)}
+  for(const r in refs)if(!ps[r])W.push(`${r} is in no install step`);for(const w of L.wires||[])if(!ws[w.id])W.push(`wire ${w.id} is in no install step`)}
+ return {E,W,F:bodyFlags(L),pinAt,atPin,pinNet,nc}}
+// under-body flags: a top-side wire hole under a part body (not at one of its pins). Allowed only where the layout already has it
+// (a move/drop that creates a new one is rejected); listed in the check, not counted as warnings. Same rule in check_boards.py.
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+function wireCells(w){const P=(w.pts||[]).map(hole);if(P.length<1||!P.every(Boolean))return [];const o=P.slice();
+ for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i],dr=b[0]-a[0],dc=b[1]-a[1],g=gcd(Math.abs(dr),Math.abs(dc));for(let k=1;k<g;k++)o.push([a[0]+dr/g*k,a[1]+dc/g*k])}return o}
+function bodyFlags(L){const body={},o=[];
+ for(const p of L.parts||[]){if(!FP[p.fp]||!hole(p.at)||!ROT[p.rot||0])continue;const pk=new Set(Object.values(pinsOf(p)).map(key));for(const rc of bodyCells(p))if(!pk.has(key(rc)))body[key(rc)]=p.ref}
+ for(const w of L.wires||[]){if((w.side||"top")!=="top")continue;const hit={};for(const rc of wireCells(w)){const r=body[key(rc)];if(r)(hit[r]=hit[r]||new Set()).add(hname(rc))}
+  for(const r of Object.keys(hit).sort())o.push(`wire ${w.id} runs under the ${r} body at ${[...hit[r]].sort().join(",")} (existing layout; a new move can't do this)`)}
+ return o}
 // ---- state
 const qs=new URLSearchParams(location.search);let B=BOARDS[qs.get("board")]?qs.get("board"):Object.keys(BOARDS)[0];
 let L,R,sel=null,mode="sel",draft=null,vb=null,hov=null,ms=null,box=null,lpT=0;
+let hist=[],redo=[],last=null,ghost=null,stepI=0,lastMsg="",flashT=0;   // Build 25: undo/redo snapshots, collision ghost, install step
 const LSK=b=>"teryx-pb-"+b,clone=o=>JSON.parse(JSON.stringify(o)),repoTxt=b=>JSON.stringify(BOARDS[b]);
 function load(b){B=b;let s=null;try{s=JSON.parse(localStorage.getItem(LSK(b))||"null")}catch(_){}
  L=s&&s.L?s.L:clone(BOARDS[b]);$("lc").hidden=!(s&&s.L);if(s&&s.L)$("lc").textContent=s.base===repoTxt(b)?"local edits":"local edits · repo changed";
  if(!L.grid||!L.grid.rows||!L.grid.cols)autosize(L);   // a new layout starts sized to its parts
- sel=null;ms=null;box=null;draft=null;setMode("sel");fit();full()}
+ sel=null;ms=null;box=null;draft=null;ghost=null;hist=[];redo=[];last=JSON.stringify(L);undoBtns();
+ const st=stState();stepI=Math.max(0,Math.min(steps().length-1,st.cur||0));setMode(mode==="inst"?"inst":"sel");fit();full()}
 function save(){localStorage.setItem(LSK(B),JSON.stringify({saved:new Date().toISOString(),base:repoTxt(B),L}));$("lc").hidden=false;$("lc").textContent="local edits"}
 // ---- colours
 const NETC=n=>/^GND/.test(n)?"#c7ccd4":/^V12|^V\d|12V/.test(n)?"#ff453a":/^COILN/.test(n)?"#ff9f0a":/^GATE/.test(n)?"#bf5af2":/^S\d/.test(n)?"#64d2ff":"hsl("+([...n].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0,7)%360)+",70%,65%)";
@@ -129,23 +165,25 @@ const AWGW=w=>{const m=/(\d+)\s*AWG/.exec(w.awg||"");const a=m?+m[1]:22;return a
 function drawGrid(){const g=$("gG");g.innerHTML="";const {rows,cols}=L.grid;
  el("rect",{x:-PI*.75,y:-PI*.75,width:(cols-1)*PI+PI*1.5,height:(rows-1)*PI+PI*1.5,rx:.8,class:"brd"},g);
  for(let r=0;r<rows;r++){for(let c=1;c<=cols;c++){const [x,y]=XY([r,c]);el("circle",{cx:x,cy:y,r:.8,class:"hr"},g);el("circle",{cx:x,cy:y,r:.45,class:"hh"},g)}
+  el("rect",{x:-PI*1.35-1.1,y:r*PI-1.1,width:2.2,height:2.2,rx:.4,class:"hdr","data-hdr":"r:"+r},g);   // right-click / long-press: insert / delete rows
   const t=el("text",{x:-PI*1.35,y:r*PI+.4,class:"lbl","text-anchor":"middle"},g);t.textContent=hname([r,1]).replace(/\d+$/,"")}
- for(let c=1;c<=cols;c++){const t=el("text",{x:(c-1)*PI,y:-PI*1.15,class:"lbl","text-anchor":"middle"},g);t.textContent=c}
+ for(let c=1;c<=cols;c++){el("rect",{x:(c-1)*PI-1.1,y:-PI*1.15-1.5,width:2.2,height:2.2,rx:.4,class:"hdr","data-hdr":"c:"+c},g);
+  const t=el("text",{x:(c-1)*PI,y:-PI*1.15,class:"lbl","text-anchor":"middle"},g);t.textContent=c}
  for(const m of L.mounts||[]){const [x,y]=XY(hole(m));el("circle",{cx:x,cy:y,r:1.6,class:"mnt"},g);el("circle",{cx:x,cy:y,r:2.9,class:"mnt2"},g)}
  if(L.star&&hole(L.star)){const [x,y]=XY(hole(L.star));el("circle",{cx:x,cy:y,r:1.7,class:"star"},g);const t=el("text",{x:x+2.1,y:y+2.6,class:"startx"},g);t.textContent="★ STAR GND "+L.star}
  const t=el("text",{x:(cols-1)*PI-.5,y:(rows-1)*PI-1.2,class:"wm","text-anchor":"end"},g);t.textContent=L.status||""}
 function full(){drawGrid();draw();side()}
-function draw(){R=checkBoard(L);const gW=$("gW"),gP=$("gP"),gO=$("gO");gW.innerHTML=gP.innerHTML=gO.innerHTML="";
+function draw(){R=checkBoard(L);const gW=$("gW"),gP=$("gP"),gO=$("gO");gW.innerHTML=gP.innerHTML=gO.innerHTML="";const SO=stepOf();drawEdges();
  const selNet=sel&&sel.t==="w"?(L.wires.find(w=>w.id===sel.id)||{}).net:sel&&sel.t==="p"?null:null;
  // wires: bottom first, then top
  for(const side of ["bot","top"])for(const w of L.wires){if((w.side||"top")!==side)continue;const P=(w.pts||[]).map(hole).filter(Boolean).map(XY);if(P.length<2)continue;
-  const pts=P.map(p=>p.join(",")).join(" "),c=NETC(w.net||""),g=el("g",{"data-wire":w.id},gW),hl=selNet&&w.net===selNet||ms&&ms.wires.has(w.id);
+  const pts=P.map(p=>p.join(",")).join(" "),c=NETC(w.net||""),g=el("g",{"data-wire":w.id,class:stCls(SO.W[w.id])},gW),hl=selNet&&w.net===selNet||ms&&ms.wires.has(w.id)||mode==="inst"&&SO.W[w.id]===stepI;
   if(hl)el("polyline",{points:pts,class:"wire",stroke:"#ffd60a","stroke-width":AWGW(w)+.7,opacity:.45},g);
   el("polyline",{points:pts,class:"wire "+side,stroke:c,"stroke-width":AWGW(w)},g);P.forEach(p=>el("circle",{cx:p[0],cy:p[1],r:side==="top"?.62:.5,class:"sold",fill:c,opacity:side==="top"?1:.7},g));
   el("polyline",{points:pts,class:"whit"},g)}
  // parts
  for(const p of L.parts){const f=FP[p.fp],a=hole(p.at);if(!f||!a)continue;const [ax,ay]=XY(a),s=sel&&sel.t==="p"&&sel.ref===p.ref||ms&&ms.parts.has(p.ref);
-  const g=el("g",{class:"pb"+(s?" sel":""),"data-ref":p.ref,transform:`translate(${ax},${ay}) rotate(${p.rot||0})`,style:"cursor:move"},gP);
+  const g=el("g",{class:"pb"+(s?" sel":"")+(ghost&&ghost.refs.has(p.ref)?" bad":"")+stCls(SO.P[p.ref]),"data-ref":p.ref,transform:`translate(${ax},${ay}) rotate(${p.rot||0})`,style:"cursor:move"},gP);
   const bx=f.body||[-.5,-.5,.5,.5],R2=v=>v*PI;
   if(p.fp.startsWith("AXIAL")){const last=f.pins[f.pins.length-1];el("line",{x1:0,y1:0,x2:last[2]*PI,y2:last[1]*PI,stroke:"#c0c4ca","stroke-width":.35},g);
    el("rect",{x:R2(bx[0]),y:R2(bx[1]),width:R2(bx[2]-bx[0]),height:R2(bx[3]-bx[1]),rx:.7,class:"body",fill:/diode|1N4/i.test(p.value||"")?"#222":"#cdb27c"},g)}
@@ -159,8 +197,10 @@ function draw(){R=checkBoard(L);const gW=$("gW"),gP=$("gP"),gO=$("gO");gW.innerH
    const t=el("text",{x:dc*PI,y:dr*PI+.3,class:"pn","text-anchor":"middle",transform:`rotate(${-(p.rot||0)} ${dc*PI} ${dr*PI})`},g);t.textContent=n}
   // labels unrotated at the body centre
   const cx=(bx[0]+bx[2])/2,cy=(bx[1]+bx[3])/2,[rr,rc]=ROT[p.rot||0](cy,cx),lx=ax+rc*PI,ly=ay+rr*PI,vert=(p.rot||0)%180!==0;
-  const tl=el("text",{x:lx,y:ly-(p.value?.15:-.5),class:"ref","text-anchor":"middle"},gP);tl.textContent=p.ref;
-  if(p.value){const tv=el("text",{x:lx,y:ly+1.25,class:"val","text-anchor":"middle"},gP);tv.textContent=p.value}}
+  const tl=el("text",{x:lx,y:ly-(p.value?.15:-.5),class:"ref"+stCls(SO.P[p.ref]),"text-anchor":"middle"},gP);tl.textContent=p.ref;
+  if(p.value){const tv=el("text",{x:lx,y:ly+1.25,class:"val"+stCls(SO.P[p.ref]),"text-anchor":"middle"},gP);tv.textContent=p.value}
+  if(mode==="inst"&&SO.P[p.ref]===stepI){const q=partBox(p);el("rect",{x:q[0]-1,y:q[1]-1,width:q[2]-q[0]+2,height:q[3]-q[1]+2,rx:.8,class:"stglow"},gO)}}
+ if(ghost)for(const rc of ghost.cells){const [x,y]=XY(rc);el("circle",{cx:x,cy:y,r:1.2,class:"colx"},gO)}
  // off-board notes, above the board, leader to the 'near' part
  (L.offboard||[]).forEach((o,i)=>{const near=L.parts.find(p=>p.ref===o.near),w=PI*15,h=PI*2.2,x=(near?XY(hole(near.at))[0]:0)+PI*3,y=-PI*(4.6+2.6*i);
   const g=el("g",{class:"ob"},gO);if(near){const [nx,ny]=XY(hole(near.at));el("line",{x1:x,y1:y+h,x2:nx+PI,y2:ny-PI*1.6},g)}
@@ -171,13 +211,15 @@ function draw(){R=checkBoard(L);const gW=$("gW"),gP=$("gP"),gO=$("gO");gW.innerH
  drawDraft();ckChip()}
 function drawDraft(){const g=$("gD");g.innerHTML="";if(hov){const [x,y]=XY(hov);el("circle",{cx:x,cy:y,r:1.1,class:"hov"},g)}
  if(sel&&sel.t==="w"&&mode==="sel"){const w=L.wires.find(w=>w.id===sel.id);if(w)w.pts.forEach((h,i)=>{const [x,y]=XY(hole(h));el("circle",{cx:x,cy:y,r:1.15,class:"vh","data-vh":i},g)})}
+ if(act&&act.nb){const n=act.nb,x0=(n.l-1)*PI-PI*.75,y0=n.t*PI-PI*.75;el("rect",{x:x0,y:y0,width:(n.r-n.l)*PI+PI*1.5,height:(n.b-n.t)*PI+PI*1.5,rx:.8,class:"nb"+(act.cut&&act.cut.length?" bad":"")},g)}
  if(ms)for(const w of L.wires){const s=ms.verts.get(w.id);if(s)s.forEach(i=>{const h=hole(w.pts[i]);if(h){const [x,y]=XY(h);el("rect",{x:x-.8,y:y-.8,width:1.6,height:1.6,class:"vsel"},g)}})}
  if(box){const a=box.a,b=box.b;el("rect",{x:Math.min(a[0],b[0]),y:Math.min(a[1],b[1]),width:Math.abs(b[0]-a[0]),height:Math.abs(b[1]-a[1]),class:b[0]<a[0]?"selcross":"selwin"},g)}
  if(draft&&draft.pts.length){const P=draft.pts.map(h=>XY(hole(h)));if(hov&&mode==="wire")P.push(XY(hov));el("polyline",{points:P.map(p=>p.join(",")).join(" "),class:"draft"},g);
   P.forEach(p=>el("circle",{cx:p[0],cy:p[1],r:.5,fill:"#ffd60a"},g))}}
 function ckChip(){const c=$("ck"),ok=!R.E.length;c.className="chip "+(ok?"ok":"bad");c.textContent=(ok?"✓ PASS":"✗ FAIL")+` · ${R.E.length} err · ${R.W.length} warn`;c.dataset.err=R.E.length;c.dataset.warn=R.W.length;
- $("chk").innerHTML=(R.E.length||R.W.length)?`<ul>${R.E.map(e=>`<li class="e">${esc(e)}</li>`).join("")}${R.W.map(w=>`<li class="w">${esc(w)}</li>`).join("")}</ul>`:
-  `<span style="color:var(--ok)">PASS</span> — every part is a PARTS.yaml id, every net is one copper island, no shorts, no same-side crossings.`}
+ $("chk").innerHTML=((R.E.length||R.W.length)?`<ul>${R.E.map(e=>`<li class="e">${esc(e)}</li>`).join("")}${R.W.map(w=>`<li class="w">${esc(w)}</li>`).join("")}</ul>`:
+  `<span style="color:var(--ok)">PASS</span> — every part is a PARTS.yaml id, every net is one copper island, no shorts, no same-side crossings.`)+
+  (R.F.length?`<details id="flg"><summary class="mut">${R.F.length} under-body flag${R.F.length>1?"s":""} (wires already under a part body)</summary><ul>${R.F.map(f=>`<li class="mut">${esc(f)}</li>`).join("")}</ul></details>`:"")}
 function partCard(pid){const P=PARTS[pid];if(!P)return `<p class="e">UNKNOWN PART id "${esc(pid)}" — not in docs/PARTS.yaml</p>`;
  return `<div><b>${esc(P.name)}</b> <span class="mut">(${esc(pid)})</span></div><div class="mut">${esc([P.maker,P.model].filter(Boolean).join(" · "))}</div><div>Status: ${esc(P.status||"")}</div>`+
   ((P.specs||[]).length?`<ul>${P.specs.slice(0,4).map(s=>`<li>${esc(s)}</li>`).join("")}</ul>`:"")}
@@ -187,8 +229,9 @@ function side(){const T=$("bt");T.textContent=L.title||L.board;const st=$("st");
  $("netl").innerHTML=`<ul>${Object.entries(L.nets||{}).map(([n,d])=>`<li><b style="color:${NETC(n)}">${esc(n)}</b>: ${esc((d.members||[]).join(", "))}${d.desc?`<div class="mut">${esc(d.desc)}</div>`:""}</li>`).join("")}</ul>`;
  const wn=$("wnet"),cur=wn.value;wn.innerHTML=Object.keys(L.nets||{}).map(n=>`<option>${esc(n)}</option>`).join("")+`<option value="+">+ new net…</option>`;if(cur&&L.nets[cur])wn.value=cur;
  selBox()}
-function selBox(){const b=$("selb");if(msN()){$("rot").disabled=true;$("del").disabled=false;const nv=[...ms.verts.values()].reduce((a,s)=>a+s.size,0);
-  b.innerHTML=`<h3>Selection</h3><div class="box"><b>${ms.parts.size}</b> parts · <b>${ms.wires.size}</b> wires · ${nv} wire points <span class="mut">(${esc(ms.kind||"picked")})</span><div class="mut">${esc([...ms.parts].join(", "))}</div><div class="mut">Drag any picked part or wire to stretch: parts move, their attached wire ends follow, wire points inside the window move, the rest stay. Shift adds · Esc clears · Delete removes.</div></div>`;return}
+function selBox(){const b=$("selb");if(mode==="inst"){$("rot").disabled=$("del").disabled=true;b.innerHTML="";return}
+ if(msN()){$("rot").disabled=true;$("del").disabled=!(ms.parts.size+ms.wires.size);const nv=[...ms.verts.values()].reduce((a,s)=>a+s.size,0),ed={t:"top",b:"bottom",l:"left",r:"right"};
+  b.innerHTML=`<h3>Selection</h3><div class="box"><b>${ms.parts.size}</b> parts · <b>${ms.wires.size}</b> wires · ${nv} wire points${ms.edges.size?` · board edge${ms.edges.size>1?"s":""} <b>${[...ms.edges].map(e=>ed[e]).join(" + ")}</b>`:""} <span class="mut">(${esc(ms.kind||"picked")})</span><div class="mut">${esc([...ms.parts].join(", "))}</div><div class="mut">Drag any picked part or wire to stretch: parts move, their attached wire ends follow, wire points inside the window move, the rest stay. Shift adds · Esc clears · Delete removes.</div></div>`;return}
  $("rot").disabled=!(sel&&sel.t==="p");$("del").disabled=!sel;if(!sel){b.innerHTML="";return}
  if(sel.t==="p"){const p=L.parts.find(p=>p.ref===sel.ref);if(!p){sel=null;return selBox()}const pins=pinsOf(p),nets=Object.keys(L.nets||{});
   b.innerHTML=`<h3>Selected part</h3><div class="box"><div><b style="font-size:15px">${esc(p.ref)}</b> ${esc(p.value||"")} <span class="mut">${esc(p.fp)} · ${esc(p.at)} · ${p.rot||0}°</span></div>${partCard(p.part)}
@@ -200,7 +243,14 @@ function selBox(){const b=$("selb");if(msN()){$("rot").disabled=true;$("del").di
   $("wflip").onclick=()=>{w.side=w.side==="bot"?"top":"bot";commit()}}}
 document.addEventListener("change",e=>{const d=e.target.dataset.pin;if(!d)return;const v=e.target.value;L.nc=(L.nc||[]).filter(x=>x!==d);
  for(const n of Object.values(L.nets))n.members=(n.members||[]).filter(x=>x!==d);if(v==="NC")L.nc.push(d);else if(v)L.nets[v].members.push(d);commit()});
-function commit(){save();draw();side()}
+// ---- undo / redo (Build 25): every committed edit pushes the previous layout; Ctrl+Z / Ctrl+Y or the ↶ ↷ buttons
+function record(){const t=JSON.stringify(L);if(last!==null&&t!==last){hist.push(last);if(hist.length>300)hist.shift();redo=[]}last=t;undoBtns()}
+function undoBtns(){const u=$("undo"),r=$("redo");if(u)u.disabled=!hist.length;if(r)r.disabled=!redo.length}
+function commit(){record();save();draw();side()}
+function commitFull(){record();save();full()}
+function undoRedo(back){if(act)return false;const from=back?hist:redo,to=back?redo:hist;if(!from.length)return false;to.push(JSON.stringify(L));L=JSON.parse(from.pop());last=JSON.stringify(L);
+ ms=null;sel=null;draft=null;ghost=null;save();full();undoBtns();flash(back?"Undo":"Redo");return true}
+function flash(t,bad){lastMsg=t;const m=$("msg");m.textContent=t;m.className=bad?"bad":"";m.hidden=false;clearTimeout(flashT);flashT=setTimeout(()=>{m.hidden=true},bad?7000:2500)}
 // ---- wire attachment: an end on a pin is attached (follows the pin) unless w.free[0|1] marks it detached
 const endIx=w=>(w.pts||[]).length>1?[0,w.pts.length-1]:[0];
 const isFree=(w,i)=>!!(w.free&&w.free[i===0?0:1]);
@@ -211,7 +261,15 @@ function attEnds(refs){const m={};for(const p of L.parts)if(refs.has(p.ref))for(
 function follow(att){for(const a of att){const p=L.parts.find(p=>p.ref===a.ref),rc=p&&pinsOf(p)[a.pin];if(rc)a.w.pts[a.i]=hname(rc)}}
 const snapW=att=>new Map([...new Set(att.map(a=>a.w))].map(w=>[w,w.pts.slice()]));
 // ---- window / crossing selection (AutoCAD rule: drag left→right = window, right→left = crossing)
-const msN=()=>ms?ms.parts.size+ms.wires.size:0,msNew=()=>({parts:new Set(),wires:new Set(),verts:new Map()});
+const msN=()=>ms?ms.parts.size+ms.wires.size+ms.edges.size:0,msNew=()=>({parts:new Set(),wires:new Set(),verts:new Map(),edges:new Set()});
+// Build 25 rule 1: a wire point on a pin of a part that is NOT picked never moves (that end stays attached and in place; the picked end stretches)
+function pinOwner(){const m={};for(const p of L.parts)for(const rc of Object.values(pinsOf(p)))m[key(rc)]=p.ref;return m}
+function filterMs(n){const own=pinOwner();for(const w of L.wires){const s=n.verts.get(w.id);if(!s)continue;
+ for(const i of [...s]){const h=hole(w.pts[i]),r=h&&own[key(h)];if(r&&!n.parts.has(r)&&!(endIx(w).includes(i)&&isFree(w,i)))s.delete(i)}}return n}
+// board edges (Build 25): hit lines on the outline; a window around an edge or a corner, or a crossing touching it, picks it
+function bEdges(){const {rows,cols}=L.grid,x0=-PI*.75,y0=-PI*.75,x1=(cols-1)*PI+PI*.75,y1=(rows-1)*PI+PI*.75;return {t:[[x0,y0],[x1,y0]],b:[[x0,y1],[x1,y1]],l:[[x0,y0],[x0,y1]],r:[[x1,y0],[x1,y1]]}}
+function drawEdges(){const g=$("gE");g.innerHTML="";if(mode==="inst"||mode==="wire")return;for(const [k,[a,b]] of Object.entries(bEdges()))
+ el("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],class:"edge"+(k==="l"||k==="r"?" v":"")+(ms&&ms.edges.has(k)?" on":""),"data-edge":k},g)}
 function partBox(p){const f=FP[p.fp],a=hole(p.at);if(!f||!a)return null;const b=f.body||[-.5,-.5,.5,.5],[ax,ay]=XY(a),xs=[],ys=[];
  const add=(r,c)=>{const [rr,cc]=ROT[p.rot||0](r,c);xs.push(ax+cc*PI);ys.push(ay+rr*PI)};add(b[1],b[0]);add(b[1],b[2]);add(b[3],b[0]);add(b[3],b[2]);for(const [,dr,dc] of f.pins)add(dr,dc);
  return [Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]}
@@ -222,22 +280,88 @@ function selectRect(a,b,add){const cross=b[0]<a[0],B=[Math.min(a[0],b[0]),Math.m
  for(const p of L.parts){const q=partBox(p);if(!q)continue;if(cross?q[0]<=B[2]&&q[2]>=B[0]&&q[1]<=B[3]&&q[3]>=B[1]:q[0]>=B[0]&&q[2]<=B[2]&&q[1]>=B[1]&&q[3]<=B[3])n.parts.add(p.ref)}
  for(const w of L.wires){if(!(w.pts||[]).length||!w.pts.every(hole))continue;const P=w.pts.map(h=>XY(hole(h))),vin=P.map((p,i)=>inB(p)?i:-1).filter(i=>i>=0);
   if(cross?vin.length||P.slice(1).some((q,i)=>segBox(P[i],q,B)):vin.length===P.length){n.wires.add(w.id);const s=n.verts.get(w.id)||new Set();vin.forEach(i=>s.add(i));n.verts.set(w.id,s)}}
- if(!n.parts.size&&!n.wires.size){ms=null;sel=null;draw();selBox();return}
+ const E=bEdges();for(const [k,[p,q]] of Object.entries(E))if(cross?segBox(p,q,B):inB(p)&&inB(q))n.edges.add(k);
+ if(!cross)for(const [pt,ks] of [[E.t[0],"tl"],[E.t[1],"tr"],[E.b[0],"bl"],[E.b[1],"br"]])if(inB(pt))[...ks].forEach(k=>n.edges.add(k));
+ filterMs(n);if(!n.parts.size&&!n.wires.size&&!n.edges.size){ms=null;sel=null;draw();selBox();return}
  n.kind=add&&ms&&ms.kind&&ms.kind!==(cross?"crossing":"window")?"mixed":cross?"crossing":"window";ms=n;sel=null;draw();selBox()}
 function toggleMs(t,add){if(!ms||!add)ms=msNew();if(t.t==="p"){ms.parts.has(t.ref)?ms.parts.delete(t.ref):ms.parts.add(t.ref)}
+ else if(t.t==="e"){ms.edges.has(t.e)?ms.edges.delete(t.e):ms.edges.add(t.e)}
  else{const w=L.wires.find(w=>w.id===t.id);if(ms.wires.has(t.id)){ms.wires.delete(t.id);ms.verts.delete(t.id)}else if(w){ms.wires.add(t.id);ms.verts.set(t.id,new Set(w.pts.map((_,i)=>i)))}}
- ms.kind=ms.kind||"picked";if(!msN())ms=null;sel=null;draw();selBox()}
+ ms.kind=ms.kind||"picked";filterMs(ms);if(!msN())ms=null;sel=null;draw();selBox()}
 // stretch: picked parts move; their attached wire ends follow; picked wire points (inside the window) move; everything else stays
-function startStretch(base){const P0=new Map(L.parts.filter(p=>ms.parts.has(p.ref)).map(p=>[p,p.at])),mv=new Map(),addV=(w,i)=>{if(!mv.has(w))mv.set(w,new Set());mv.get(w).add(i)};
+function startStretch(base){filterMs(ms);const P0=new Map(L.parts.filter(p=>ms.parts.has(p.ref)).map(p=>[p,p.at])),mv=new Map(),addV=(w,i)=>{if(!mv.has(w))mv.set(w,new Set());mv.get(w).add(i)};
  for(const w of L.wires){const s=ms.verts.get(w.id);if(s)s.forEach(i=>addV(w,i))}attEnds(ms.parts).forEach(a=>addV(a.w,a.i));
  const W0=new Map([...mv.keys()].map(w=>[w,w.pts.slice()]));
- return {...base,k:"stretch",P0,W0,mv,dr:0,dc:0,undo:()=>{P0.forEach((at,p)=>p.at=at);W0.forEach((pts,w)=>w.pts=pts);draw()}}}
+ const ed=new Set(ms.edges),g=L.grid,ob={t:0,b:g.rows-1,l:1,r:g.cols};
+ return {...base,k:"stretch",P0,W0,mv,dr:0,dc:0,ed,ob,out0:ed.size?outside(ob):null,pre:ed.size?JSON.stringify(L):null,before:overlaps(),E0:R.E.length,nb:null,cut:null,
+  undo:()=>{P0.forEach((at,p)=>p.at=at);W0.forEach((pts,w)=>w.pts=pts);ghost=null;draw()}}}
+// what sits outside bounds b (per item: how many of its holes) — an edge drag may not push anything (more) off the board
+function outside(b){const o={},c=b.cnr||{rows:L.grid.rows,cols:L.grid.cols},corner=x=>(x[0]===0||x[0]===c.rows-1)&&(x[1]===1||x[1]===c.cols),
+ out=x=>x[0]<b.t||x[0]>b.b||x[1]<b.l||x[1]>b.r,add=(n,x)=>{if(out(x))o[n]=(o[n]||0)+1};
+ for(const p of L.parts){if(!FP[p.fp]||!hole(p.at))continue;for(const x of [...Object.values(pinsOf(p)),...bodyCells(p)])add(p.ref,x)}
+ for(const w of L.wires)for(const x of wireCells(w))add("wire "+w.id,x);if(L.star&&hole(L.star))add("star "+L.star,hole(L.star));
+ for(const m of L.mounts||[]){const x=hole(m);if(x&&!corner(x))add("mount "+m,x)}return o}
+function edgeBounds(ed,dr,dc,ob){const n={...ob};if(ed.has("t"))n.t+=dr;if(ed.has("b"))n.b+=dr;if(ed.has("l"))n.l+=dc;if(ed.has("r"))n.r+=dc;return n.b-n.t>=1&&n.r-n.l>=1?n:null}
+// re-base the board onto bounds nb: shift everything so nb's top-left is A1, corner mounts go to the new corners
+function rebase(nb){const old={...L.grid},dr=-nb.t,dc=1-nb.l,rows=nb.b-nb.t+1,cols=nb.r-nb.l+1,sh=h=>{const x=hole(h);return x?hname([x[0]+dr,x[1]+dc]):h};
+ const corner=x=>(x[0]===0||x[0]===old.rows-1)&&(x[1]===1||x[1]===old.cols);
+ L.mounts=(L.mounts||[]).map(m=>{const x=hole(m);if(!x)return m;if(corner(x))return hname([x[0]===0?0:rows-1,x[1]===1?1:cols]);return sh(m)});
+ for(const p of L.parts)if(hole(p.at))p.at=sh(p.at);for(const w of L.wires)w.pts=w.pts.map(sh);if(L.star)L.star=sh(L.star);
+ L.grid={...old,rows,cols};vb.x+=dc*PI;vb.y+=dr*PI;setVB()}
+// ---- collision (Build 25): part/part, pin-on-wire and (top-side) body-over-wire overlaps. Only NEW overlaps block a move;
+// the ones the layout already has are allowed and listed as under-body flags by the check.
+function overlaps(){const own={},m=new Map(),add=(k,txt,rc,refs)=>{let v=m.get(k);if(!v)m.set(k,v={txt,cells:[],refs});v.cells.push(rc)};
+ for(const p of L.parts){if(!FP[p.fp]||!hole(p.at)||!ROT[p.rot||0])continue;const pins=pinsOf(p),pk=new Set(Object.values(pins).map(key));
+  for(const [n,rc] of Object.entries(pins))(own[key(rc)]=own[key(rc)]||[]).push([p.ref,"pin "+n,rc]);
+  for(const rc of bodyCells(p))if(!pk.has(key(rc)))(own[key(rc)]=own[key(rc)]||[]).push([p.ref,"body",rc])}
+ for(const a of Object.values(own))for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)if(a[i][0]!==a[j][0]){const [x,y]=a[i][0]<a[j][0]?[a[i],a[j]]:[a[j],a[i]];
+  add(`p|${x[0]}|${y[0]}`,`${x[0]} ${x[1]} overlaps ${y[0]} ${y[1]} at ${hname(a[i][2])}`,a[i][2],[x[0],y[0]])}
+ for(const w of L.wires){const seen=new Set();for(const rc of wireCells(w)){const k=key(rc);if(seen.has(k))continue;seen.add(k);
+  for(const [ref,kind] of own[k]||[]){if(kind==="body"&&(w.side||"top")!=="top")continue;
+   add(`w|${w.id}|${ref}|${kind}`,`${ref} ${kind==="body"?"body is over":kind+" is on"} wire ${w.id} at ${hname(rc)}`,rc,[ref])}}}
+ return m}
+function newHits(before){const o=[];overlaps().forEach((v,k)=>{if(!before.has(k))o.push(v)});return o}
+function setGhost(h){ghost=h&&h.length?{refs:new Set(h.flatMap(x=>x.refs)),cells:h.flatMap(x=>x.cells),txt:h.map(x=>x.txt)}:null}
+const blockedMsg=h=>"Blocked — "+h.slice(0,3).map(x=>x.txt).join("; ")+(h.length>3?` (+${h.length-3} more)`:"")+". Snapped back.";
 // right-click / long-press on a wire end at a pin: Detach (or re-Attach)
 function endsAt(rc){const o=[];for(const w of L.wires)for(const i of endIx(w)){const h=hole(w.pts[i]);if(h&&h[0]===rc[0]&&h[1]===rc[1])o.push([w,i])}return o}
-function openCtx(cx,cy){const rc=snap(svgPt(cx,cy)),pin=pinHere(rc),E=pin?endsAt(rc):[];if(!E.length)return false;const m=$("ctx");
+function openCtx(cx,cy){if(mode==="inst")return false;const hd=document.elementsFromPoint(cx,cy).find(x=>x.dataset&&x.dataset.hdr);if(hd)return openHdr(hd.dataset.hdr,cx,cy);const rc=snap(svgPt(cx,cy)),pin=pinHere(rc),E=pin?endsAt(rc):[];if(!E.length)return false;const m=$("ctx");
  m.innerHTML=E.map(([w,i],j)=>`<button data-j="${j}">${isFree(w,i)?"Attach":"Detach"} ${esc(w.id)} (${esc(w.net)}) ${isFree(w,i)?"to":"from"} ${esc(pin)}</button>`).join("");
  m.querySelectorAll("button").forEach(b=>b.onclick=()=>{const [w,i]=E[+b.dataset.j];setFree(w,i,!isFree(w,i));closeCtx();commit()});
  const v=$("view").getBoundingClientRect();m.hidden=false;m.style.left=Math.max(4,Math.min(cx-v.left,v.width-m.offsetWidth-4))+"px";m.style.top=Math.max(4,Math.min(cy-v.top,v.height-m.offsetHeight-4))+"px";return true}
+function placeCtx(m,cx,cy){const v=$("view").getBoundingClientRect();m.hidden=false;m.style.left=Math.max(4,Math.min(cx-v.left,v.width-m.offsetWidth-4))+"px";m.style.top=Math.max(4,Math.min(cy-v.top,v.height-m.offsetHeight-4))+"px";return true}
+const lineName=(ax,i)=>ax?"column "+i:"row "+hname([i,1]).replace(/\d+$/,"");
+function openHdr(h,cx,cy){const [a,i]=h.split(":"),ax=a==="c"?1:0,n=+i,m=$("ctx"),W=ax?"columns":"rows";
+ m.innerHTML=`<div class="hm">${esc(lineName(ax,n))} · N <input id="hN" type="number" min="1" max="99" value="1" aria-label="How many"></div>`+
+  `<button data-a="i0">Insert N ${ax?"left":"above"}</button><button data-a="i1">Insert N ${ax?"right":"below"}</button><button data-a="d">Delete N ${W} from here</button>`;
+ m.querySelectorAll("button").forEach(b=>b.onclick=()=>{const k=Math.max(1,Math.min(99,parseInt($("hN").value,10)||1)),d=b.dataset.a;closeCtx();
+  const r=d==="d"?deleteLines(ax,n,k):insertLines(ax,d==="i0"?n:n+1,k);flash(r.msg,!r.ok)});return placeCtx(m,cx,cy)}
+function fixMounts(old,nw,sh){const corner=x=>(x[0]===0||x[0]===old.rows-1)&&(x[1]===1||x[1]===old.cols);
+ L.mounts=(L.mounts||[]).map(m=>{const x=hole(m);if(!x)return m;if(corner(x))return hname([x[0]===0?0:nw.rows-1,x[1]===1?1:nw.cols]);return sh(m)})}
+// insert k rows/cols before line `at` (row index / column number): everything at or past it shifts by k, wires keep their attachments
+function insertLines(ax,at,k){const W=ax?"columns":"rows",rn=i=>hname([i,1]).replace(/\d+$/,""),where=ax?(at===1?"left of column 1":at>L.grid.cols?`right of column ${at-1}`:`between columns ${at-1} and ${at}`):(at===0?"above row A":at>=L.grid.rows?`below row ${rn(at-1)}`:`between rows ${rn(at-1)} and ${rn(at)}`);
+ const span=L.parts.filter(p=>{const ix=Object.values(pinsOf(p)).map(rc=>rc[ax]);return ix.length&&Math.min(...ix)<at&&Math.max(...ix)>=at}).map(p=>p.ref);
+ if(span.length)return {ok:false,msg:`Can't insert ${W} ${where}: ${span.join(", ")} ha${span.length>1?"ve":"s"} pins on both sides`};
+ const old={...L.grid},nw={...old,[ax?"cols":"rows"]:old[ax?"cols":"rows"]+k},sh=h=>{const x=hole(h);if(!x)return h;if(x[ax]>=at)x[ax]+=k;return hname(x)};
+ for(const p of L.parts){const ix=Object.values(pinsOf(p)).map(rc=>rc[ax]),a=hole(p.at);if(a&&ix.length&&Math.min(...ix)>=at){a[ax]+=k;p.at=hname(a)}}
+ for(const w of L.wires)w.pts=w.pts.map(sh);if(L.star)L.star=sh(L.star);fixMounts(old,nw,sh);L.grid=nw;ms=null;sel=null;commitFull();
+ return {ok:true,msg:`Inserted ${k} ${k>1?W:W.slice(0,-1)} ${where}; ${ax?"columns":"rows"} renumbered (${old[ax?"cols":"rows"]} → ${nw[ax?"cols":"rows"]})`}}
+// delete k rows/cols starting at line lo: blocked (naming the blocker) if any part, wire, star or mount uses those holes
+function deleteLines(ax,lo,k){const size=ax?L.grid.cols:L.grid.rows,first=ax?1:0,hi=lo+k-1,W=ax?"columns":"rows",inR=x=>x[ax]>=lo&&x[ax]<=hi;
+ const rng=k>1?`${W} ${ax?lo:hname([lo,1]).replace(/\d+$/,"")}–${ax?hi:hname([hi,1]).replace(/\d+$/,"")}`:lineName(ax,lo);
+ if(hi>first+size-1)return {ok:false,msg:`Can't delete ${k} ${W} from ${lineName(ax,lo)}: the board ends at ${lineName(ax,first+size-1)}`};
+ if(size-k<2)return {ok:false,msg:`Can't delete ${k} ${W}: the board needs at least 2`};
+ const occ=[],old={...L.grid},corner=x=>(x[0]===0||x[0]===old.rows-1)&&(x[1]===1||x[1]===old.cols);
+ for(const p of L.parts){if(!FP[p.fp]||!hole(p.at))continue;const pin=Object.entries(pinsOf(p)).find(([,rc])=>inR(rc)),bd=bodyCells(p).find(inR);
+  if(pin)occ.push(`${p.ref} pin ${pin[0]} at ${hname(pin[1])}`);else if(bd)occ.push(`${p.ref} body at ${hname(bd)}`)}
+ for(const w of L.wires){const c=wireCells(w).find(inR);if(c){occ.push(`wire ${w.id} at ${hname(c)}`);continue}
+  const P=w.pts.map(hole);if(P.slice(1).some((q,i)=>q&&P[i]&&(P[i][ax]<lo&&q[ax]>hi||P[i][ax]>hi&&q[ax]<lo)))occ.push(`wire ${w.id} crosses it`)}
+ if(L.star&&hole(L.star)&&inR(hole(L.star)))occ.push(`star ground ${L.star}`);
+ for(const m of L.mounts||[]){const x=hole(m);if(x&&inR(x)&&!corner(x))occ.push(`mount hole ${m}`)}
+ if(occ.length)return {ok:false,msg:`Can't delete ${rng}: ${occ.slice(0,6).join(", ")}${occ.length>6?` (+${occ.length-6} more)`:""} ${occ.length>1?"are":"is"} in the way`};
+ const nw={...old,[ax?"cols":"rows"]:size-k},sh=h=>{const x=hole(h);if(!x)return h;if(x[ax]>hi)x[ax]-=k;return hname(x)};
+ for(const p of L.parts)if(hole(p.at))p.at=sh(p.at);for(const w of L.wires)w.pts=w.pts.map(sh);if(L.star)L.star=sh(L.star);fixMounts(old,nw,sh);L.grid=nw;ms=null;sel=null;commitFull();
+ return {ok:true,msg:`Deleted ${rng}; ${W} renumbered (${size} → ${size-k})`}}
 function closeCtx(){const m=$("ctx");if(m&&!m.hidden){m.hidden=true;m.innerHTML=""}}
 document.addEventListener("pointerdown",e=>{if(!(e.target.closest&&e.target.closest("#ctx")))closeCtx()},true);
 // ---- auto-size: parts (pins + body) + wires + star, plus a 2-hole margin (same rule as tools/boards/gen_bms_master.py)
@@ -266,13 +390,16 @@ sv.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)r
  const base={x0:e.clientX,y0:e.clientY,p0,moved:false,sc:ctm.a,vb0:{...vb},shift:e.shiftKey};
  if(e.pointerType!=="mouse"){const cx=e.clientX,cy=e.clientY;lpT=setTimeout(()=>{if(act&&!act.moved&&ptrs.size===1&&openCtx(cx,cy)){ptrs.clear();act=null}},550)}
  if(mode==="wire"){act={...base,k:"tap"};return}
- const vh=t.closest&&t.closest("[data-vh]"),pg=t.closest&&t.closest("[data-ref]"),wg=t.closest&&t.closest("[data-wire]");
- const tgt=pg?{t:"p",ref:pg.dataset.ref}:wg?{t:"w",id:wg.dataset.wire}:null,inMs=ms&&tgt&&(tgt.t==="p"?ms.parts.has(tgt.ref):ms.wires.has(tgt.id));
+ const vh=t.closest&&t.closest("[data-vh]"),pg=t.closest&&t.closest("[data-ref]"),wg=t.closest&&t.closest("[data-wire]"),eg=t.closest&&t.closest("[data-edge]");
+ const tgt=pg?{t:"p",ref:pg.dataset.ref}:wg?{t:"w",id:wg.dataset.wire}:eg?{t:"e",e:eg.dataset.edge}:null,inMs=ms&&tgt&&(tgt.t==="p"?ms.parts.has(tgt.ref):tgt.t==="e"?ms.edges.has(tgt.e):ms.wires.has(tgt.id));
+ if(mode==="inst"){act={...base,k:"pan",tgt:tgt&&tgt.t!=="e"?tgt:null};return}
  if(inMs&&!e.shiftKey)act=startStretch({...base,tgt});
+ else if(eg&&mode==="sel"&&!e.shiftKey){ms=msNew();ms.edges.add(eg.dataset.edge);ms.kind="edge";sel=null;act=startStretch({...base,tgt});draw();selBox()}
  else if(vh&&sel&&sel.t==="w"){const w=L.wires.find(w=>w.id===sel.id),i=+vh.dataset.vh,o=w.pts[i];act={...base,k:"vtx",w,i,o,undo:()=>{w.pts[i]=o;draw()}}}
  else if(mode==="box"||(e.shiftKey&&!tgt))act={...base,k:"box",tgt};
- else if(pg){const p=L.parts.find(p=>p.ref===pg.dataset.ref),o=p.at,att=attEnds(new Set([p.ref])),W0=snapW(att);act={...base,k:"part",p,o,att,tgt,undo:()=>{p.at=o;W0.forEach((pts,w)=>w.pts=pts);draw()}}}
- else if(wg){const w=L.wires.find(w=>w.id===wg.dataset.wire),o=w.pts.slice();act={...base,k:"wire",w,o,tgt,undo:()=>{w.pts=o;draw()}}}
+ else if(pg){const p=L.parts.find(p=>p.ref===pg.dataset.ref),o=p.at,att=attEnds(new Set([p.ref])),W0=snapW(att);act={...base,k:"part",p,o,att,tgt,before:overlaps(),undo:()=>{p.at=o;W0.forEach((pts,w)=>w.pts=pts);ghost=null;draw()}}}
+ else if(wg){const w=L.wires.find(w=>w.id===wg.dataset.wire),o=w.pts.slice(),own=pinOwner(),fix=new Set(o.map((h,i)=>i).filter(i=>{const x=hole(o[i]);return x&&own[key(x)]&&!(endIx(w).includes(i)&&isFree(w,i))}));
+  act={...base,k:"wire",w,o,fix,tgt,undo:()=>{w.pts=o;draw()}}}
  else act={...base,k:"pan"}});
 sv.addEventListener("pointermove",e=>{const rc=snap(svgPt(e.clientX,e.clientY));const nh=onGrid(rc)?rc:null;
  if((nh&&key(nh))!==(hov&&key(hov))){hov=nh;drawDraft();hint()}
@@ -283,44 +410,65 @@ sv.addEventListener("pointermove",e=>{const rc=snap(svgPt(e.clientX,e.clientY));
  if(act.k==="box"){box={a:act.p0,b:svgPt(e.clientX,e.clientY)};drawDraft();return}
  if(act.k==="pan"||act.k==="tap"){vb.x=act.vb0.x-dxp/act.sc;vb.y=act.vb0.y-dyp/act.sc;setVB();return}
  const p=svgPt(e.clientX,e.clientY),dr=Math.round((p[1]-act.p0[1])/PI),dc=Math.round((p[0]-act.p0[0])/PI);
- if(act.k==="part"){const a=hole(act.o),n=[a[0]+dr,a[1]+dc];if(onGrid(n)&&act.p.at!==hname(n)){act.p.at=hname(n);follow(act.att);draw()}}
- else if(act.k==="stretch"){if(act.dr===dr&&act.dc===dc)return;const sh=h=>{const a=hole(h);return [a[0]+dr,a[1]+dc]},np=[...act.P0].map(([p,at])=>[p,sh(at)]),nv=[];
-  act.mv.forEach((s,w)=>s.forEach(i=>nv.push([w,i,sh(act.W0.get(w)[i])])));if(!np.every(x=>onGrid(x[1]))||!nv.every(x=>onGrid(x[2])))return;
-  act.dr=dr;act.dc=dc;np.forEach(([p,n])=>p.at=hname(n));act.W0.forEach((pts,w)=>w.pts=pts.slice());nv.forEach(([w,i,n])=>w.pts[i]=hname(n));draw()}
+ if(act.k==="part"){const a=hole(act.o),n=[a[0]+dr,a[1]+dc];if(onGrid(n)&&act.p.at!==hname(n)){act.p.at=hname(n);follow(act.att);act.hits=newHits(act.before);setGhost(act.hits);draw()}}
+ else if(act.k==="stretch"){if(act.dr===dr&&act.dc===dc)return;let nb=null,inb=onGrid;
+  if(act.ed.size){nb=edgeBounds(act.ed,dr,dc,act.ob);if(!nb)return;inb=x=>x[0]>=Math.min(nb.t,act.ob.t)&&x[0]<=Math.max(nb.b,act.ob.b)&&x[1]>=Math.min(nb.l,act.ob.l)&&x[1]<=Math.max(nb.r,act.ob.r)}
+  const sh=h=>{const a=hole(h);return [a[0]+dr,a[1]+dc]},np=[...act.P0].map(([p,at])=>[p,sh(at)]),nv=[];
+  act.mv.forEach((s,w)=>s.forEach(i=>nv.push([w,i,sh(act.W0.get(w)[i])])));if(!np.every(x=>inb(x[1]))||!nv.every(x=>inb(x[2])))return;
+  act.dr=dr;act.dc=dc;np.forEach(([p,n])=>p.at=hname(n));act.W0.forEach((pts,w)=>w.pts=pts.slice());nv.forEach(([w,i,n])=>w.pts[i]=hname(n));
+  act.hits=newHits(act.before);setGhost(act.hits);
+  if(nb){act.nb=nb;const o=outside({...nb,cnr:{rows:L.grid.rows,cols:L.grid.cols}});act.cut=Object.keys(o).filter(k=>o[k]>(act.out0[k]||0))}draw();drawDraft()}
  else if(act.k==="vtx"){const a=hole(act.o),n=[a[0]+dr,a[1]+dc];if(onGrid(n)&&act.w.pts[act.i]!==hname(n)){act.w.pts[act.i]=hname(n);draw()}}
- else if(act.k==="wire"){const n=act.o.map(h=>{const a=hole(h);return [a[0]+dr,a[1]+dc]});if(n.every(onGrid)){const s=n.map(hname);if(s.join()!==act.w.pts.join()){act.w.pts=s;draw()}}}});
+ else if(act.k==="wire"){const n=act.o.map((h,i)=>{const a=hole(h);return act.fix.has(i)?a:[a[0]+dr,a[1]+dc]});if(n.every(onGrid)){const s=n.map(hname);if(s.join()!==act.w.pts.join()){act.w.pts=s;draw()}}}});
 function up(e){clearTimeout(lpT);ptrs.delete(e.pointerId);if(pinch){if(ptrs.size<2)pinch=null;act=null;return}if(!act)return;const a=act;act=null;
  if(a.k==="box"){if(a.moved){box=null;selectRect(a.p0,svgPt(e.clientX,e.clientY),a.shift)}else{if(a.tgt)toggleMs(a.tgt,a.shift);else if(!a.shift){ms=null;sel=null;draw();selBox()}}return}
+ if(mode==="inst"){if(!a.moved&&a.tgt){const so=stepOf(),i=a.tgt.t==="p"?so.P[a.tgt.ref]:so.W[a.tgt.id];if(i!=null)goStep(i)}return}
  if(a.moved){if(a.k==="vtx"&&(a.i===0||a.i===a.w.pts.length-1)&&pinHere(hole(a.w.pts[a.i])))setFree(a.w,a.i,false);   // a free end dropped on a pin attaches
-  if(a.k!=="pan"&&a.k!=="tap")commit();return}
- if(a.k==="stretch"){if(mode==="box")return;ms=null;sel=a.tgt.t==="p"?{t:"p",ref:a.tgt.ref}:{t:"w",id:a.tgt.id};draw();selBox();return}
+  if(a.hits&&a.hits.length){const h=a.hits;a.undo();ghost=null;draw();flash(blockedMsg(h),true);return}   // collision: red ghost, snap back
+  if(a.k==="stretch"&&a.nb){if(a.cut&&a.cut.length){a.undo();draw();flash(`Blocked — the new edge would cut through ${a.cut.slice(0,4).join(", ")}${a.cut.length>4?` (+${a.cut.length-4} more)`:""}. Snapped back.`,true);return}
+   const g0={...L.grid},v0={...vb};if(a.nb.t!==a.ob.t||a.nb.b!==a.ob.b||a.nb.l!==a.ob.l||a.nb.r!==a.ob.r){rebase(a.nb);ms=null;const E1=checkBoard(L).E;
+    if(E1.length>a.E0){L=JSON.parse(a.pre);vb=v0;setVB();ghost=null;full();flash(`Blocked — the new outline breaks the check: ${E1[E1.length-1]}. Snapped back.`,true);return}
+    flash(`Board ${g0.rows}×${g0.cols} → ${L.grid.rows}×${L.grid.cols} holes`)}
+   ghost=null;commitFull();drawDraft();return}
+  if(a.k!=="pan"&&a.k!=="tap"){ghost=null;commit()}return}
+ if(a.k==="stretch"){if(mode==="box"||a.tgt.t==="e"){draw();selBox();return}ms=null;sel=a.tgt.t==="p"?{t:"p",ref:a.tgt.ref}:{t:"w",id:a.tgt.id};draw();selBox();return}
  if(a.shift&&a.tgt){toggleMs(a.tgt,true);return}
  const rc=snap(a.p0);
  if(a.k==="tap"){if(!onGrid(rc))return;const h=hname(rc);if(!draft){const pid=R.pinAt[key(rc)];draft={pts:[]};if(pid&&R.pinNet[pid])$("wnet").value=R.pinNet[pid]}
   if(draft.pts[draft.pts.length-1]!==h)draft.pts.push(h);else finishWire();drawDraft();hint();return}
  if(a.k==="part")sel={t:"p",ref:a.p.ref};else if(a.k==="wire"||a.k==="vtx")sel={t:"w",id:a.w.id};else sel=null;ms=null;draw();selBox()}
-sv.addEventListener("pointerup",up);sv.addEventListener("pointercancel",e=>{clearTimeout(lpT);if(act&&act.undo&&act.moved)act.undo();act=null;box=null;ptrs.delete(e.pointerId);pinch=null});
+sv.addEventListener("pointerup",up);sv.addEventListener("pointercancel",e=>{clearTimeout(lpT);if(act&&act.undo&&act.moved)act.undo();act=null;ghost=null;box=null;ptrs.delete(e.pointerId);pinch=null});
 sv.addEventListener("wheel",e=>{e.preventDefault();const p=svgPt(e.clientX,e.clientY);zoomAt(Math.exp(e.deltaY*.0015),p[0],p[1])},{passive:false});
 sv.addEventListener("pointerleave",()=>{hov=null;drawDraft();hint()});
 sv.addEventListener("contextmenu",e=>{e.preventDefault();clearTimeout(lpT);openCtx(e.clientX,e.clientY)});
 function hint(){const h=$("hint");if(mode==="wire"){h.textContent=`Wire (${$("wnet").value}, ${$("wside").dataset.s==="bot"?"bottom":"top"}): tap holes · tap the last hole again or Done to finish`+(draft&&draft.pts.length?` · ${draft.pts.join("→")}`:"");return}
+ if(mode==="inst"){const S=steps();h.textContent=S.length?`Install step ${stepI+1}/${S.length}: ${S[stepI].title} · tap a part to jump to its step · ← → step`:"Install: no steps in this layout";return}
  if(mode==="box"&&!hov){h.textContent="Window: drag left→right = window (fully inside) · right→left = crossing (touching) · Shift adds · Esc clears";return}
  if(!hov){h.textContent="";return}const pid=R.pinAt[key(hov)];h.textContent=hname(hov)+(pid?` · ${pid}${R.pinNet[pid]?" ("+R.pinNet[pid]+")":R.nc.has(pid)?" (NC)":""}`:"")}
 // ---- tools
-function setMode(m){if(m!=="wire"&&draft)finishWire(true);mode=m;$("mSel").classList.toggle("on",m==="sel");$("mBox").classList.toggle("on",m==="box");$("mWire").classList.toggle("on",m==="wire");$("mWire").textContent=m==="wire"?"Done":"Wire";
- $("wnet").hidden=$("wside").hidden=m!=="wire";if(m==="wire"){sel=null;selBox()}hint();drawDraft()}
+function setMode(m){if(m!=="wire"&&draft)finishWire(true);const was=mode;mode=m;$("mInst").classList.toggle("on",m==="inst");if(m==="inst"){ms=null;sel=null;$("addf").classList.remove("on")}
+ document.body.classList.toggle("inst",m==="inst");$("mSel").classList.toggle("on",m==="sel");$("mBox").classList.toggle("on",m==="box");$("mWire").classList.toggle("on",m==="wire");$("mWire").textContent=m==="wire"?"Done":"Wire";
+ $("wnet").hidden=$("wside").hidden=m!=="wire";if(m==="wire"){sel=null;selBox()}if(L&&(m==="inst"||was==="inst"||m==="wire"||was==="wire")){draw();selBox()}renderInst();hint();drawDraft()}
 function finishWire(quiet){const d=draft;draft=null;if(d&&d.pts.length>=2){let n=$("wnet").value;if(n==="+"||!n)n=newNet();if(n){let i=L.wires.length+1;while(L.wires.some(w=>w.id==="w"+i))i++;
   L.wires.push({id:"w"+i,net:n,side:$("wside").dataset.s||"top",awg:/^S\d|^GATE/.test(n)?"22 AWG (signal)":"18 AWG solid (coil path)",pts:d.pts});commit()}}drawDraft();hint()}
 function newNet(){const n=(prompt("New net name (e.g. V12_BLK3)")||"").trim().toUpperCase().replace(/[^A-Z0-9_+\-−]/g,"_");if(!n)return null;L.nets[n]=L.nets[n]||{members:[]};side();$("wnet").value=n;return n}
-$("mSel").onclick=()=>setMode("sel");$("mBox").onclick=()=>setMode(mode==="box"?"sel":"box");$("mWire").onclick=()=>setMode(mode==="wire"?"sel":"wire");
+$("mSel").onclick=()=>setMode("sel");$("mInst").onclick=()=>setMode(mode==="inst"?"sel":"inst");
+$("undo").onclick=()=>undoRedo(true);$("redo").onclick=()=>undoRedo(false);$("mBox").onclick=()=>setMode(mode==="box"?"sel":"box");$("mWire").onclick=()=>setMode(mode==="wire"?"sel":"wire");
 $("wnet").onchange=e=>{if(e.target.value==="+")newNet();hint()};$("wside").dataset.s="top";
 $("wside").onclick=()=>{const b=$("wside");b.dataset.s=b.dataset.s==="top"?"bot":"top";b.textContent=b.dataset.s==="top"?"Top side":"Bottom side";hint()};
-$("rot").onclick=()=>{const p=sel&&sel.t==="p"&&L.parts.find(p=>p.ref===sel.ref);if(!p)return;const att=attEnds(new Set([p.ref]));p.rot=((p.rot||0)+90)%360;follow(att);commit()};
+$("rot").onclick=()=>{const p=sel&&sel.t==="p"&&L.parts.find(p=>p.ref===sel.ref);if(!p)return;const att=attEnds(new Set([p.ref])),W0=snapW(att),r0=p.rot||0,before=overlaps();p.rot=(r0+90)%360;follow(att);
+ const h=newHits(before);if(h.length){p.rot=r0;W0.forEach((pts,w)=>w.pts=pts);setGhost(h);draw();setTimeout(()=>{if(!act){ghost=null;draw()}},700);flash(blockedMsg(h).replace("Snapped back","Not rotated"),true);return}commit()};
+function purgeSteps(){if(!Array.isArray(L.steps))return;const refs=new Set(L.parts.map(p=>p.ref)),ws=new Set(L.wires.map(w=>w.id)),ob={};(L.offboard||[]).forEach(o=>ob[o.ref]=o.part);
+ for(const st of L.steps){st.parts=(st.parts||[]).filter(r=>refs.has(r));st.wires=(st.wires||[]).filter(w=>ws.has(w));
+  st.part_ids=[...new Set([...st.parts.map(r=>L.parts.find(p=>p.ref===r).part),...(st.offboard||[]).map(r=>ob[r]).filter(Boolean)])].sort()}}
 function delPart(r){L.parts=L.parts.filter(p=>p.ref!==r);L.nc=(L.nc||[]).filter(x=>!x.startsWith(r+"."));for(const n of Object.values(L.nets))n.members=n.members.filter(x=>!x.startsWith(r+"."))}
-$("del").onclick=()=>{if(msN()){ms.parts.forEach(delPart);L.wires=L.wires.filter(w=>!ms.wires.has(w.id));ms=null;commit();return}
- if(!sel)return;if(sel.t==="p")delPart(sel.ref);else L.wires=L.wires.filter(w=>w.id!==sel.id);sel=null;commit()};
-$("asz").onclick=()=>{if(!autosize(L))return;ms=null;sel=null;save();fit();full()};
-document.addEventListener("keydown",e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.key==="r"||e.key==="R")$("rot").click();else if(e.key==="Delete"||e.key==="Backspace"){if(sel||msN()){e.preventDefault();$("del").click()}}
+$("del").onclick=()=>{if(mode==="inst")return;if(msN()){if(!(ms.parts.size+ms.wires.size))return;ms.parts.forEach(delPart);L.wires=L.wires.filter(w=>!ms.wires.has(w.id));ms=null;purgeSteps();commit();return}
+ if(!sel)return;if(sel.t==="p")delPart(sel.ref);else L.wires=L.wires.filter(w=>w.id!==sel.id);sel=null;purgeSteps();commit()};
+$("asz").onclick=()=>{if(!autosize(L))return;ms=null;sel=null;record();save();fit();full()};
+document.addEventListener("keydown",e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;const K=e.key.toLowerCase();
+ if((e.ctrlKey||e.metaKey)&&(K==="z"||K==="y")){e.preventDefault();undoRedo(K==="z"&&!e.shiftKey);return}
+ if(mode==="inst"){if(e.key==="ArrowRight"||e.key==="ArrowDown")goStep(stepI+1);else if(e.key==="ArrowLeft"||e.key==="ArrowUp")goStep(stepI-1);else if(e.key==="Escape")setMode("sel");return}
+ if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.key==="r"||e.key==="R")$("rot").click();else if(e.key==="Delete"||e.key==="Backspace"){if(sel||msN()){e.preventDefault();$("del").click()}}
  else if(e.key==="Escape"){draft=null;box=null;ms=null;sel=null;closeCtx();if(act&&act.undo&&act.moved)act.undo();act=null;if(mode==="wire")setMode("sel");else{draw();selBox()}}else if(e.key==="Enter"&&mode==="wire")finishWire();else if(e.key==="w")setMode(mode==="wire"?"sel":"wire")});
 $("zi").onclick=()=>zoomAt(1/1.3,vb.x+vb.w/2,vb.y+vb.h/2);$("zo").onclick=()=>zoomAt(1.3,vb.x+vb.w/2,vb.y+vb.h/2);$("zf").onclick=fit;
 $("exp").onclick=()=>{const t=JSON.stringify(L,null,1)+"\n",a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"application/json"}));a.download=B+".layout.json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
@@ -335,8 +483,37 @@ $("addb").onclick=()=>{const a=$("addf");a.classList.toggle("on");if(!a.classLis
 $("acx").onclick=()=>$("addf").classList.remove("on");
 $("ago").onclick=()=>{const ref=$("aref").value.trim();if(!ref||L.parts.some(p=>p.ref===ref)){alert("Give a new, unique refdes");return}
  const rc=snap([vb.x+vb.w/2,vb.y+vb.h/2]);rc[0]=Math.max(0,Math.min(L.grid.rows-1,rc[0]));rc[1]=Math.max(1,Math.min(L.grid.cols,rc[1]));
- L.parts.push({ref,part:$("apid").value,fp:$("afp").value,at:hname(rc),rot:0});sel={t:"p",ref};$("addf").classList.remove("on");commit()};
-window.PB={get L(){return L},get ms(){return ms&&{parts:[...ms.parts].sort(),wires:[...ms.wires].sort(),verts:Object.fromEntries([...ms.verts].map(([k,s])=>[k,[...s].sort((a,b)=>a-b)])),kind:ms.kind}},
- get mode(){return mode},check:()=>checkBoard(L),load,hole,hname,pinsOf,autosize:x=>autosize(x||L),partBox:r=>partBox(L.parts.find(p=>p.ref===r)),XY};
-load(B);
+ const before=overlaps(),np={ref,part:$("apid").value,fp:$("afp").value,at:hname(rc),rot:0};L.parts.push(np);const h=newHits(before);
+ if(h.length){L.parts.pop();flash(blockedMsg(h).replace("Snapped back","Not placed — pan to a free spot and add again"),true);return}
+ sel={t:"p",ref};$("addf").classList.remove("on");commit()};
+// ---- install mode (Build 25): layout.steps = ordered build steps (parts + wires + PARTS ids); done check-offs live in localStorage
+const SK=b=>"teryx-pb-steps-"+b,steps=()=>Array.isArray(L&&L.steps)?L.steps:[];
+function stState(){try{return JSON.parse(localStorage.getItem(SK(B))||"{}")||{}}catch(_){return {}}}
+function stSave(o){localStorage.setItem(SK(B),JSON.stringify(o))}
+function stepOf(){const P={},W={};steps().forEach((s,i)=>{(s.parts||[]).forEach(r=>P[r]=i);(s.wires||[]).forEach(w=>W[w]=i)});return {P,W}}
+function stCls(i){if(mode!=="inst")return "";if(i==null)return " st-fut";return i<stepI?" st-prev":i===stepI?" st-cur":" st-fut"}
+function goStep(i){const n=steps().length;if(!n)return;stepI=Math.max(0,Math.min(n-1,i));const o=stState();o.cur=stepI;stSave(o);draw();renderInst();hint()}
+function renderInst(){const bx=$("inst");bx.classList.toggle("on",mode==="inst");if(mode!=="inst"){bx.innerHTML="";return}const S=steps();
+ if(!S.length){bx.innerHTML=`<b>Install</b><p class="mut">This layout has no install steps yet — add a "steps" list to docs/boards/${esc(B)}.layout.json.</p>`;return}
+ const s=S[stepI],done=stState().done||{},ob={};(L.offboard||[]).forEach(o=>ob[o.ref]=o);
+ const pl=(s.parts||[]).map(r=>{const p=L.parts.find(q=>q.ref===r);return p?`<div><b>${esc(r)}</b> ${esc(p.value||"")} <span class="mut">${esc((PARTS[p.part]||{}).name||p.part)} · ${esc(p.at)}</span></div>`:""}).join("");
+ const ol=(s.offboard||[]).map(r=>ob[r]?`<div><b>${esc(r)}</b> ${esc(ob[r].value||"")} <span class="mut">(off-board) ${esc((PARTS[ob[r].part]||{}).name||ob[r].part)}</span></div>`:"").join("");
+ bx.innerHTML=`<div class="ib"><button id="sPrev" ${stepI?"":"disabled"}>◀ Prev</button><b id="sNum">Step ${stepI+1} / ${S.length}</b><button id="sNext" ${stepI<S.length-1?"":"disabled"}>Next ▶</button></div>
+  <h4 id="sTitle">${esc(s.title||s.id)}</h4><span class="chip${s.label==="PROPOSED"||s.label==="UNVERIFIED"?" P":""}" id="sLab">${esc(s.label||"")}</span>
+  <p id="sText">${esc(s.text||"")}</p>${pl||ol?`<div id="sParts">${pl}${ol}</div>`:""}
+  ${(s.wires||[]).length?`<div class="mut" style="margin-top:4px">Wires (${s.wires.length}): ${esc(s.wires.join(", "))}</div>`:""}
+  <div class="mut" style="margin-top:4px">PARTS ids: ${esc((s.part_ids||[]).join(", ")||"—")}</div>
+  <label class="chk"><input type="checkbox" id="sDone" ${done[s.id]?"checked":""}> Step done</label>
+  <ol id="sList">${S.map((t,i)=>`<li data-i="${i}" class="${i===stepI?"cur":""}${done[t.id]?" done":""}"><input type="checkbox" data-c="${esc(t.id)}" ${done[t.id]?"checked":""} aria-label="${esc(t.title)} done"><span>${esc(t.title||t.id)}</span></li>`).join("")}</ol>`;
+ $("sPrev").onclick=()=>goStep(stepI-1);$("sNext").onclick=()=>goStep(stepI+1);
+ const tog=(id,v)=>{const o=stState();o.done=o.done||{};if(v)o.done[id]=true;else delete o.done[id];stSave(o);renderInst()};
+ $("sDone").onchange=e=>tog(s.id,e.target.checked);
+ bx.querySelectorAll("#sList input").forEach(c=>{c.onclick=e=>e.stopPropagation();c.onchange=()=>tog(c.dataset.c,c.checked)});
+ bx.querySelectorAll("#sList li").forEach(li=>li.onclick=e=>{if(e.target.tagName!=="INPUT")goStep(+li.dataset.i)})}
+window.PB={get L(){return L},get ms(){return ms&&{parts:[...ms.parts].sort(),wires:[...ms.wires].sort(),verts:Object.fromEntries([...ms.verts].map(([k,s])=>[k,[...s].sort((a,b)=>a-b)])),edges:[...ms.edges].sort(),kind:ms.kind}},
+ get mode(){return mode},check:()=>checkBoard(L),load,hole,hname,pinsOf,autosize:x=>autosize(x||L),partBox:r=>partBox(L.parts.find(p=>p.ref===r)),XY,
+ undo:()=>undoRedo(true),redo:()=>undoRedo(false),get hist(){return [hist.length,redo.length]},overlaps:()=>[...overlaps().keys()],flags:()=>bodyFlags(L),
+ insertLines,deleteLines,get msg(){return lastMsg},get ghost(){return ghost&&{refs:[...ghost.refs].sort(),cells:ghost.cells.map(hname)}},
+ goStep,get step(){return stepI},stState,setMode};
+load(B);{const m=qs.get("mode"),n=parseInt(qs.get("step")||"",10);if(m==="install"){setMode("inst");if(n>0)goStep(n-1)}}
 </script></body></html>

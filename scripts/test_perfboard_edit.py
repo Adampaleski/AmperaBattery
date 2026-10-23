@@ -75,8 +75,8 @@ with sync_playwright() as p:
     pg.mouse.click(x + dx, y); pg.wait_for_timeout(80); pg.click('#rot'); pg.wait_for_timeout(80)
     p2 = J("PB.hname(PB.pinsOf(PB.L.parts.find(p=>p.ref==='R2'))['2'])")
     ok(W('w1')['pts'][-1] == p2 and J("PB.L.parts.find(p=>p.ref==='R2').rot") == 90, f'Rotate: w1 end follows R2.2 to {p2}')
-    for _ in range(3): pg.click('#rot'); pg.wait_for_timeout(50)
-    ok(W('w1')['pts'][-1] == 'J8', 'rotate back to 0°: the end is back on J8')
+    pg.keyboard.press('Control+z'); pg.wait_for_timeout(100)   # Build 25: (a 180° turn would put R2's pins on w1 -> blocked) undo the Rotate instead
+    ok(W('w1')['pts'][-1] == 'J8' and J("PB.L.parts.find(p=>p.ref==='R2').rot") == 0, 'Ctrl+Z undoes the Rotate: R2 back to 0°, the end is back on J8')
     pg.keyboard.press('Escape')
     pg.mouse.click(*S(*H('J8')), button='right'); pg.wait_for_timeout(120)
     txt = pg.inner_text('#ctx') if pg.is_visible('#ctx') else ''
@@ -84,15 +84,19 @@ with sync_playwright() as p:
     pg.click('#ctx button'); pg.wait_for_timeout(100)
     ok(W('w1').get('free') == [False, True] and not pg.is_visible('#ctx'), 'Detach frees the end (w1.free = [false, true])')
     ok(J("document.querySelectorAll('#gO .att').length") == 2, 'the detached end loses its dot')
+    dy1 = S(0, 2.54)[1] - S(0, 0)[1]
+    # Build 25: moving R2 one hole right would put its body over the detached w1 end (J8) -> rejected; move it one row down instead
     drag((x + dx, y), (x + 2 * dx, y))
-    ok(at('R2') == 'J5' and W('w1')['pts'][-1] == 'J8' and W('w2')['pts'][0] == 'J5', f'after Detach, moving R2 leaves w1 behind at J8 (w2 still follows to {W("w2")["pts"][0]})')
+    ok(at('R2') == 'J4' and 'Blocked' in J("PB.msg"), f'moving R2 so its body covers the free w1 end is rejected (snaps back): {J("PB.msg")[:80]!r}')
+    drag((x + dx, y), (x + dx, y + dy1))
+    ok(at('R2') == 'K4' and W('w1')['pts'][-1] == 'J8' and W('w2')['pts'][0] == 'K4', f'after Detach, moving R2 leaves w1 behind at J8 (w2 still follows to {W("w2")["pts"][0]})')
     E = J("PB.check().E"); ok(any('N1' in e and 'NOT connected' in e for e in E), 'the check flags N1 as open: ' + repr(E[:2]))
     pg.mouse.click(*S(22.86, 12.7)); pg.wait_for_timeout(100)   # select w1 on its D10-J10 run
     ok(J("document.querySelectorAll('#gD [data-vh]').length") == 4, 'select w1: its 4 solder-point handles show')
-    drag(S(*H('J8')), S(*H('J9')))
-    ok(W('w1')['pts'][-1] == 'J9' and 'free' not in W('w1') and J("PB.check().E.length") == 0, f'dropping the free end on R2.2 (J9) re-attaches it: free={W("w1").get("free")}, check {J("PB.check().E.length")} err')
-    pg.keyboard.press('Escape'); drag((x + 2 * dx, y), (x + dx, y))
-    ok(W('w1')['pts'][-1] == 'J8', 'and it follows R2 again (J9 -> J8)')
+    drag(S(*H('J8')), S(*H('K8')))
+    ok(W('w1')['pts'][-1] == 'K8' and 'free' not in W('w1') and J("PB.check().E.length") == 0, f'dropping the free end on R2.2 (K8) re-attaches it: free={W("w1").get("free")}, check {J("PB.check().E.length")} err')
+    pg.keyboard.press('Escape'); drag((x + dx, y + dy1), (x + dx, y))
+    ok(W('w1')['pts'][-1] == 'J8', 'and it follows R2 again (K8 -> J8)')
     # ---- 4) auto-size
     put(T); pg.click('#asz'); pg.wait_for_timeout(200); L = J("PB.L")
     ok(L['grid']['rows'] == 15 and L['grid']['cols'] == 18, f'Auto-size: 30x40 -> {L["grid"]["rows"]}x{L["grid"]["cols"]} (rows 1..11, cols 3..16 + 2 holes each side)')

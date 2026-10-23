@@ -22,6 +22,7 @@ if [ -z "$FAST" ]; then
   run iphone "python3 scripts/test_iphone.py"
   run perfboard "python3 scripts/test_perfboard.py"
   run perfboard_edit "python3 scripts/test_perfboard_edit.py"
+  run perfboard_b25 "python3 scripts/test_perfboard_b25.py"
   run layout_ui "python3 scripts/test_layout.py"
 fi
 exit $fail
