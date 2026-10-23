@@ -7,6 +7,8 @@
 #include "FaultLog.h"
 #include "Thresholds.h"
 #include "DriveProfile.h"
+#include "BlockReasons.h"
+#include "EstopLatch.h"
 
 using namespace BmsSim;
 
@@ -118,14 +120,22 @@ float simTruthPct() {
     return p < 0 ? 0 : (p > 100 ? 100 : p);
 }
 
+// E-stop (sim only): pressed = the NC block-3 log input reads open. Latched = the hardware cut is open, so the
+// core sees key off and no charger (coils can't close). Clears only on key off -> on with the button released.
+Estop::Latch g_estop; bool g_estopPressed = false;
+
 // One 10 ms tick: plant + Core (BmsSim), sim cell drain, then the estimator.
 void tick() {
+    g_estop.update(!g_estopPressed);
+    const bool keyIn = g_w.keyOn, plugInIn = g_w.plugIn;
+    if (g_estop.latched) { g_w.keyOn = false; g_w.plugIn = false; }
     const bool drop = g_lemDropMs && g_w.now + 10 < g_lemDropMs;
     const bool fitted = g_w.currentFitted;
     if (drop) g_w.currentFitted = false;
     g_w.step(10);
     flogTick();
     g_w.currentFitted = fitted;
+    g_w.keyOn = keyIn; g_w.plugIn = plugInIn;
     if (g_lemDropMs && !drop) g_lemDropMs = 0;
     const BmsCore::Outputs &o = g_w.core.out();
     const bool closed = (o.mainPos && o.mainNeg) || g_w.welded;
@@ -175,7 +185,7 @@ struct Buf {
 
 #define EXPORT extern "C" __attribute__((visibility("default")))
 
-EXPORT void sim_reset() { g_w.reset(); socReset(); flogBegin(); }   // a reset is a reboot: new boot no., EEPROM kept
+EXPORT void sim_reset() { g_w.reset(); socReset(); flogBegin(); g_estop = Estop::Latch{}; g_estopPressed = false; }   // a reset is a reboot: new boot no., EEPROM kept
 EXPORT void sim_step(int ms) { for (int t = 0; t < ms; t += 10) tick(); }
 EXPORT void sim_set_cell(int b, int c, float v) { if (b >= 0 && b < kBoards && c >= 0 && c < kBoardCells[b]) g_w.cell[b][c] = v; }
 EXPORT float sim_get_cell(int b, int c) { return (b >= 0 && b < kBoards && c >= 0 && c < 24) ? g_w.cell[b][c] : 0; }
@@ -191,7 +201,26 @@ EXPORT void sim_set_bus_force(float v) { g_w.busForce = v; }   // < 0 = plant mo
 EXPORT void sim_set_link(int up) { g_w.linkUp = up; }
 EXPORT void sim_set_precharge_open(int on) { g_w.preOpenCircuit = on; }
 EXPORT void sim_set_welded(int on) { g_w.welded = on; }
-EXPORT void sim_set_key(int on) { g_w.keyOn = on; }
+EXPORT void sim_set_key(int on) {
+    if (on && !g_w.keyOn && g_estop.latched) g_estop.reset(!g_estopPressed);   // key off -> on clears a released e-stop
+    g_w.keyOn = on;
+}
+EXPORT void sim_set_estop(int pressed) { g_estopPressed = pressed; if (pressed) g_estop.update(false); }
+EXPORT int sim_estop_latched() { return g_estop.latched; }
+// Block reasons (BlockReasons.h): bitmask of why `action` (0 drive, 1 wake, 2 shift, 3 setting) is refused now.
+// ui bits from the page: 1 park brake, 2 neutral, 4 PIN to Drive on, 8 brake pressed, 16 phone nearby,
+// 32 PIN entered, 64 precharge allowed (park set), 128 park contact fault. Core facts come from g_w / Outputs.
+EXPORT unsigned sim_block_mask(int action, int ui) {
+    BmsCore::Block::In i;
+    BmsCore::Block::fromCore(i, g_w.core.out(), g_w.keyOn && !g_estop.latched, g_w.plugIn);
+    i.keyOn = g_w.keyOn;
+    if (g_w.welded && g_w.keyOn) i.ready = true;
+    i.estopLatched = g_estop.latched || g_estopPressed;
+    i.parkBrake = ui & 1; i.neutral = ui & 2; i.pinToDrive = ui & 4; i.brakePressed = ui & 8;
+    i.phone = ui & 16; i.pinOk = ui & 32; i.prechargeAllowed = ui & 64; i.parkFault = ui & 128;
+    return BmsCore::Block::reasons(static_cast<BmsCore::Block::Action>(action), i);
+}
+EXPORT const char *sim_block_text(unsigned bit) { return BmsCore::Block::text(bit); }
 EXPORT void sim_set_charge(int on) { g_w.chargeReq = on; }
 EXPORT void sim_set_plug(int on) { g_w.plugIn = on; }
 EXPORT void sim_set_charge_stop(int on) { g_w.chargeStop = on; }          // charge screen Stop
@@ -308,6 +337,7 @@ EXPORT const char *sim_state_json() {
     b.f(",\"chargeWhy\":"); b.str(o.chargeWhy ? o.chargeWhy : "");
     b.f(",\"mode\":"); b.str(BmsCore::modeName(o.mode));
     b.f(",\"chargerPath\":%d,\"driveLocked\":%d,\"keyRefused\":%d,\"plugIn\":%d", o.chargerPath, o.driveLocked, o.keyRefused, g_w.plugIn);
+    b.f(",\"estop\":%d,\"estopPressed\":%d,\"estopTrips\":%u", g_estop.latched, g_estopPressed, static_cast<unsigned>(g_estop.trips));
     b.f(",\"ccfg\":{\"chargeMaxA\":%.1f,\"chargeEndA\":%.1f,\"chargeColdC\":%.1f,\"chargeColdFrac\":%.2f,\"chargeMinTempC\":%.1f,\"chargeMaxTempC\":%.1f,\"taperBandV\":%.3f}",
         c.chargeMaxA, c.chargeEndA, c.chargeColdC, c.chargeColdFrac, c.chargeMinTempC, c.chargeMaxTempC, c.taperBandV);
     b.f(",\"kellyPct\":%.1f,\"kellyLimp\":%d,\"kellyRegenOk\":%d", o.kellyPct, o.kellyLimp, o.kellyRegenOk);

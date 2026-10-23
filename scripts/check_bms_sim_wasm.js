@@ -167,3 +167,30 @@ const scFail=r.filter(x=>!x.pass).length;if(sf||df||scFail)process.exitCode=1;
   tk(J.overrides===2&&S.cfg.overA===600&&Math.abs(S.dcfg.hardFloorV-2.9)<1e-3&&JZ.overrides===0&&JZ.keys[0].value===650,"reload: saved EEPROM restores ocA 600 + floorV 2.9; corrupt = defaults",`after reload overrides=${J.overrides} ocA=${S.cfg.overA} floorV=${S.dcfg.hardFloorV}; corrupt overrides=${JZ.overrides}`);}
  X.sim_thr_reset_all();X.sim_reset();
  console.log(`thresholds-page: ${tn-tf}/${tn} checks passed`);if(tf)process.exitCode=1;}
+// ---- Block reasons + e-stop (include/BlockReasons.h via sim_block_mask; Adam t284). Pop-up text only, never a fault.
+{let bf=0,bn=0;const bk=(ok,name,d)=>{bn++;if(!ok)bf++;console.log((ok?"PASS":"FAIL")+" block "+name.padEnd(52),d||"");};
+ const txt=(a,ui)=>{const m=X.sim_block_mask(a,ui)>>>0,o=[];for(let i=0;i<13;i++)if(m&(1<<i))o.push(cs(X.sim_block_text(1<<i)));return o;};
+ const st=()=>JSON.parse(cs(X.sim_state_json()));
+ X.sim_reset();X.sim_set_key(1);X.sim_step(4000);
+ bk(txt(0,0).length===0&&st().state==="Closed","key on, closed, park off: drive not blocked",txt(0,0).join(" | "));
+ {const t=txt(0,1);bk(t.length===1&&t[0]==="Parking brake is on, release it to drive"&&(st().faults|st().latched)===0,"park on: one plain reason, no fault",t.join(" | "));}
+ {const t=txt(0,1|2);bk(t.length===2&&/Neutral/.test(t[1]),"park + neutral: short list of two",t.join(" | "));}
+ {const t=txt(0,4);bk(t.length===1&&t[0]==="Enter PIN or bring phone to drive","PIN to Drive, no phone/PIN: blocked",t.join(" | "));bk(txt(0,4|16).length===0&&txt(0,4|32).length===0,"PIN to Drive: phone or PIN unblocks");}
+ X.sim_set_key(0);X.sim_set_plug(1);X.sim_step(500);
+ {const t=txt(0,0);bk(t.includes("Key is off")&&t.includes("Charger plugged in, drive locked"),"key off + plugged: both listed",t.join(" | "));bk(txt(1,64).includes("Charger plugged in, drive locked"),"wake refused while plugged in",txt(1,64).join(" | "));}
+ X.sim_set_plug(0);X.sim_step(500);
+ bk(txt(1,64).length===0&&txt(1,0)[0]==="Set the parking brake to power up","wake: ok with park set, refused with park released",txt(1,0).join(" | "));
+ bk(txt(3,16)[0]==="Key is off"&&txt(2,8)[0]==="Key is off","key off: settings and shift refused");
+ X.sim_set_key(1);X.sim_step(4000);
+ bk(txt(3,16).length===0&&txt(3,0)[0]==="PIN needed (no phone nearby)"&&txt(3,32).length===0,"settings: phone ok, no phone needs PIN, PIN ok");
+ bk(txt(2,0)[0]==="Brake must be pressed to shift"&&txt(2,8).length===0,"shift into/out of R needs brake");
+ const trips0=st().estopTrips;X.sim_set_estop(1);X.sim_step(200);
+ {const s=st();bk(s.estop===1&&s.state==="Open"&&!s.mainPos&&txt(0,0)[0]&&/E-stop/.test(txt(0,0).join())&&/E-stop/.test(txt(1,64).join()),"e-stop pressed: latched, mains open, drive + wake say e-stop",txt(0,0).join(" | "));}
+ X.sim_set_estop(0);X.sim_step(4000);
+ bk(st().estop===1&&st().state==="Open","e-stop released: stays latched (no auto-restart)");
+ X.sim_set_key(0);X.sim_step(100);X.sim_set_key(1);X.sim_step(4000);
+ bk(st().estop===0&&st().state==="Closed"&&st().estopTrips===trips0+1,"key off -> on with button released: clears, closes again");
+ X.sim_set_estop(1);X.sim_step(100);X.sim_set_key(0);X.sim_step(100);X.sim_set_key(1);X.sim_step(1000);
+ bk(st().estop===1&&st().state==="Open","key cycle with button still pressed: stays latched");
+ X.sim_reset();bk(st().estop===0,"reset clears sim e-stop");
+ console.log(`block-reasons: ${bn-bf}/${bn} checks passed`);if(bf)process.exitCode=1;}
