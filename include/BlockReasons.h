@@ -22,7 +22,7 @@ enum Bit : uint32_t {
     Starting    = 1u << 7,   // key on, contactors still closing
     ParkOn      = 1u << 8,   // parking brake set: Kelly Foot_SW open
     Neutral     = 1u << 9,   // F/N/R in neutral
-    PinDrive    = 1u << 10,  // PROPOSED PIN to Drive: phone not seen and PIN not entered
+    PinDrive    = 1u << 10,  // PROPOSED PIN to Drive: phone not seen now and PIN not entered this key cycle (Build 18: caller evaluates it live, never latched)
     BrakeShift  = 1u << 11,  // PROPOSED: brake pressed to shift into / out of reverse
     PinSetting  = 1u << 12,  // PROPOSED phone-as-key: no phone, PIN not entered
     kBits       = 13

@@ -277,7 +277,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
       <div class="slider"><label>Throttle</label><input id="cthr" type="range" min="0" max="100" value="0"><b id="cthrv">0 %</b></div>
       <div class="slider"><label>Kelly temp (SIM)</label><input id="ckt" type="range" min="10" max="90" value="25"><b id="cktv">25 °C</b></div>
       <div class="slider"><label>Brake</label><input id="cbrk" type="range" min="0" max="100" value="0"><b id="cbrkv">0 %</b></div>
-      <div class="controls"><label class="sw"><span>Parking brake set <span class="tag">2 contacts + Kelly Foot_SW interlock</span></span><input type="checkbox" id="cpark" checked><i></i></label><label class="sw"><span>Phone nearby (Bluetooth) <span class="tag">PROPOSED/UNVERIFIED: future ESP32, read-only, outside every safety path; simulated input only here. No phone = PIN for drive settings · key off = no settings · night/display always open</span></span><input type="checkbox" id="phonek" checked><i></i></label><label class="sw danger"><span>E-stop button pressed (sim) <span class="tag">latches: release it, then key off and on</span></span><input type="checkbox" id="cestop"><i></i></label><label class="sw"><span>Brake-to-wake <span class="tag">PROPOSED: hold the brake at full travel ≈1 s = key on; e-stop + precharge rules unchanged</span></span><input type="checkbox" id="bwake" checked><i></i></label><label class="sw" data-drive-lock><span>PIN to Drive <span class="tag">PROPOSED · off by default: throttle blocked until the phone is nearby or the PIN is entered; changing this needs the PIN or the phone</span></span><input type="checkbox" id="dpin"><i></i></label><label class="sw"><span>F/N/R selector in Neutral</span><input type="checkbox" id="cneut" checked><i></i></label><label class="sw danger"><span>Park contact B open-circuit (inject)</span><input type="checkbox" id="cparkb"><i></i></label><label class="sw danger"><span>Both Teensys dead (inject: pedal-direct, Kelly Low cap relay drops)</span><input type="checkbox" id="cdead"><i></i></label><button class="btn" id="cparkclr">Clear park faults</button></div>
+      <div class="controls"><label class="sw"><span>Parking brake set <span class="tag">2 contacts + Kelly Foot_SW interlock</span></span><input type="checkbox" id="cpark" checked><i></i></label><label class="sw"><span>Phone nearby (Bluetooth) <span class="tag">PROPOSED/UNVERIFIED: future ESP32, read-only, outside every safety path; simulated input only here. No phone = PIN for drive settings · key off = no settings · night/display always open</span></span><input type="checkbox" id="phonek" checked><i></i></label><label class="sw danger"><span>E-stop button pressed (sim) <span class="tag">latches: release it, then key off and on</span></span><input type="checkbox" id="cestop"><i></i></label><label class="sw"><span>Brake-to-wake <span class="tag">PROPOSED: hold the brake at full travel ≈1 s = key on; e-stop + precharge rules unchanged</span></span><input type="checkbox" id="bwake" checked><i></i></label><label class="sw" data-drive-lock><span>PIN to Drive <span class="tag">PROPOSED · off by default: with no phone nearby, every drive action (key on, wake, throttle, F/N/R, mode, Kid, drive settings) opens the PIN pad first; the PIN counts until key off. One PIN for drive, settings and Kid exit</span></span><input type="checkbox" id="dpin"><i></i></label><span class="controls" style="display:inline-flex;gap:8px;align-items:center"><button class="btn" id="pinChange" title="Asks the current PIN (always), then the new PIN twice. Key on only; Park is fine">Change PIN</button><span id="pinDef" class="tag" style="color:var(--warn,#d6a33a)">PIN is still 0000, change it</span><span class="tag">one PIN: PIN to Drive + drive settings + Kid exit (PROPOSED)</span></span><label class="sw"><span>Forgot-Park warning after <input id="pkwarn" type="number" min="10" max="600" step="5" value="60" style="width:70px"> s stopped, no Park, no pedal <span class="tag">PROPOSED · warning light + chime only, never moves the vehicle</span></span></label><label class="sw"><span>F/N/R selector in Neutral</span><input type="checkbox" id="cneut" checked><i></i></label><label class="sw danger"><span>Park contact B open-circuit (inject)</span><input type="checkbox" id="cparkb"><i></i></label><label class="sw danger"><span>Both Teensys dead (inject: pedal-direct, Kelly Low cap relay drops)</span><input type="checkbox" id="cdead"><i></i></label><button class="btn" id="cparkclr">Clear park faults</button></div>
       <div class="readout" id="pkdet"></div>
       <div class="slider"><label>Grade</label><input id="cgrade" type="range" min="-20" max="20" step="0.5" value="0"><b id="cgradev">0 %</b></div>
       <div class="readout" id="vdet"></div>
@@ -321,7 +321,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
     <h3 style="margin-top:18px">Drive modes · pedal maps <span class="tag">PROPOSED</span></h3>
     <div class="dim" style="font-size:18px">Reduce-only throttle trim (MCP4131, 1 kHz, 5 ms pedal filter): it can only lower the pedal, never raise it. "Strong low end" for Mud/Sand = linear, no softening (boost would need the Kelly throttle curve). Current limit = pedal cap (proxy). Kid: ~10 mph, PIN required to leave. Firmware: THROTTLE_TRIM_ENABLE=0, CREW REVIEW.</div>
     <table class="set" id="modeT"></table>
-    <div class="controls"><input id="kidPinSet" type="password" inputmode="numeric" maxlength="4" placeholder="new Kid PIN (4 digits)" style="width:220px"><button class="btn" id="kidPinBtn">Set Kid PIN</button><button class="btn primary" id="modeSave">Save modes</button><button class="btn" id="modeReset">Reset modes</button><span id="modeMsgS" class="mut"></span></div>
+    <div class="controls"><span class="mut">Kid exit uses the one PIN: change it with Change PIN (Cluster tab or dash Display settings)</span><button class="btn primary" id="modeSave">Save modes</button><button class="btn" id="modeReset">Reset modes</button><span id="modeMsgS" class="mut"></span></div>
     <div class="controls" style="margin-top:14px"><button class="btn" id="vehSave">Save vehicle</button><button class="btn" id="vehDef">Restore vehicle defaults</button></div>
   </div>
 </section>
@@ -482,7 +482,7 @@ function buildDiagram(){
   path('M1268 330 H1300','hv','hvL0');path('M1300 120 V620','hv','loadbus');
   path('M800 330 H930 M1044 330 H1300','flow','mainflow');
   // loads
-  part('kelly',1308,98,86,74,'Kelly KLS8080 NPS','550 A',{owned:true,kv:()=>({'Part':'Kelly KLS8080 NPS','Order':'SOURCED: Adam\'s Kelly order #81746 (2025-05-03, $1,214.90) — KLS-8080N, 144 V / 550 A config (model line 72–168 V), Sin/Cos sensor (8080NPS series), field weakening, bidirectional anti-slip','Included':'W3-GT2 liquid-cooling heatsink · 35-pin plug-and-play cable · Kelly USB cable · KLS test box','Voltage':'36S full charge ≈148–149 V is inside the 72–168 V model range (SOURCED: order listing #81746)','Cooling':'W3-GT2 liquid heatsink on the stock Teryx radiator + Bosch 12 V pump (PROPOSED, on with key) · radiator fan relay at ~40 °C (PROPOSED)','Overvoltage cutout':'≈173 V per earlier research; adjustable in Kelly software; factory default UNVERIFIED (read from Kelly config)','Limits':'phase 550 A · battery 550 A (Adam 2026-10-20, set in Kelly config tool — not yet confirmed programmed)','Motor':'Zero 75-7R · peak rating UNVERIFIED','Speed cap':'~6000 RPM ≈ 55 mph on 27" tires (plan doc)','Input capacitance':'UNVERIFIED (2 mF model only)','Logic power':'isolated 8–20 V, never pack B+','CAN2':'0x0CF11E05 / 0x0CF11F05 broadcast only — accepts no commands','Limp':'OUT3 pin 20 → low-speed input (wiring TBD)','Derate':'OUT5 pin 2 PWM → throttle (wiring TBD)','Regen':'OUT6 pin 3 → regen enable (wiring TBD)','Allowed':S.kellyPct.toFixed(0)+'%'+(S.kellyLimp?' · LIMP':'')})});
+  part('kelly',1308,98,86,74,'Kelly KLS8080 NPS','550 A',{owned:true,kv:()=>({'Part':'Kelly KLS8080 NPS','Order':'SOURCED: Adam (2026-10-23, purchase email; no nameplate photo needed) — KLS8080 NPS, 168 V / 550 A, all add-ons incl. high-speed and anti-slip, sin/cos sensor; order #81746 (2025-05-03, $1,214.90)','Included':'W3-GT2 liquid-cooling heatsink · 35-pin plug-and-play cable · Kelly USB cable · KLS test box','Voltage':'36S full charge ≈148–149 V is inside the 72–168 V model range (SOURCED: order listing #81746)','Cooling':'W3-GT2 liquid heatsink on the stock Teryx radiator + Bosch 12 V pump (PROPOSED, on with key) · radiator fan relay at ~40 °C (PROPOSED)','Overvoltage cutout':'#7 Over Volt 158 V (Sparky 2026-10-23, was 162 V on the old 173 V assumption) under the 168 V rating; factory default UNVERIFIED (read from Kelly config)','Limits':'phase 550 A · battery 550 A (Adam 2026-10-20, set in Kelly config tool — not yet confirmed programmed)','Motor':'Zero 75-7R, used (SOURCED: Adam 2026-10-23) · sin/cos sensor · old-style sprocket adapter (cylinder + one flat) · bench spin test DONE · pole count / thermistor OPEN (motor nameplate) · peak rating UNVERIFIED','Speed cap':'~6000 RPM ≈ 55 mph on 27" tires (plan doc)','Input capacitance':'UNVERIFIED (2 mF model only)','Logic power':'isolated 8–20 V, never pack B+','CAN2':'0x0CF11E05 / 0x0CF11F05 broadcast only — accepts no commands','Limp':'OUT3 pin 20 → low-speed input (wiring TBD)','Derate':'OUT5 pin 2 PWM → throttle (wiring TBD)','Regen':'OUT6 pin 3 → regen enable (wiring TBD)','Allowed':S.kellyPct.toFixed(0)+'%'+(S.kellyLimp?' · LIMP':'')})});
   path('M1300 135 H1308','hv','hvK');
   part('aev1',1206,420,84,44,'AEV14012','optional',{owned:true,kv:()=>({'Part':'Volt AEV14012 contactor (factory, owned)','Use':'optional isolation of the charger branch','Status':'not in the control loop'})});
   part('elcon',1308,412,86,60,'Elcon','HK-LF-144-46',{owned:true,kv:()=>({'Part':'Elcon HK-LF-144-46 (100–202 V, 46 A)','CAN3':'0x1806E5F4 control · 0x18FF50E5 status','Request':S.chargeEnable?`${S.chargeV.toFixed(1)} V / ${S.chargeA.toFixed(2)} A`:'STOP','Why':S.chargeWhy||'-','Gate':'BMS_CAP_CHARGE_TX=0 → print only'})});
@@ -648,37 +648,55 @@ function selMode(g,pin){if(!GEARS[g])return 'unknown mode';const from=modeOf(cGe
   if(g==='R')cRevMode=from;cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));ulog('Gear '+GEARS[cGear].n+(g==='R'?' (from '+GEARS[from].n+': reverse cap '+vehRevTop(from)+' mph, PROPOSED)':''));if(modeSave&&cGear!=='R')modeSave();return '';}
 // UI path: opens the PIN pad when needed. pin given (dash.html?src=sim sends gear:G:PIN) = no pad.
 function requestMode(g,pin){if(g===cGear)return '';
+  if(pinGate('Mode '+(GEARS[g]?GEARS[g].n:g),()=>requestMode(g,pin)))return 'pin';
   if((g==='R')!==(cGear==='R')){const sh=blockReasons('shift').filter(t=>/^Brake/.test(t));if(sh.length){const w=sh[0]+' into or out of Reverse';ulog('Gear change to '+GEARS[g].n+' refused: brake not pressed (PROPOSED)');dashToast(w);return w;}}
   const from=modeOf(cGear),to=g==='R'?from:g,leave=from==='KID'&&to!=='KID',enter=to==='KID'&&from!=='KID';
   if((leave||enter)&&!PK.kidChangeAllowed()){const w=selMode(g,pin);dashToast(w);return w;}
-  if(leave&&pin==null){TeryxPad.open({title:'Enter Kid PIN to leave Kid',note:'4 digits · Cancel stays in Kid',onEnter:p=>{const w=selMode(g,p);if(!w){dashToast(GEARS[g].n+' mode');return '';}return /PIN/.test(w)?'Wrong PIN — try again':w;}});return 'pin';}
-  if(enter&&!VEH_KID.hash){TeryxPad.open({title:'Set Kid exit PIN (first time)',note:'You will need it to leave Kid',onEnter:p=>{VEH_KID.hash=vehHashPin(p);if(modeSave)modeSave();ulog('Kid exit PIN set (sim)');const w=selMode('KID');if(!w)dashToast('Kid mode · PIN needed to leave');return w;}});return 'pin';}
+  if(leave&&pin==null){TeryxPad.open({title:'Enter Kid PIN to leave Kid',note:'4 digits · asked even with the phone nearby · Cancel stays in Kid',onEnter:p=>{const lk=TeryxGate.lockLeft(PG,Date.now());if(lk)return TeryxGate.check(PG,false,Date.now());const w=selMode(g,p);if(!w){TeryxGate.check(PG,true,Date.now());dashToast(GEARS[g].n+' mode');return '';}if(/PIN/.test(w)){const m=TeryxGate.check(PG,false,Date.now());alertInfo(m);return m;}return w;}});return 'pin';}
   const w=selMode(g,pin);if(w)dashToast(w);else if(enter)dashToast('Kid mode · PIN needed to leave');return w;}
-TeryxLock.verify=p=>!!VEH_KID.hash&&vehHashPin(p)===VEH_KID.hash;TeryxLock.hasPin=()=>!!VEH_KID.hash;
+TeryxLock.verify=p=>vehPinOk(p);TeryxLock.hasPin=()=>true;TeryxLock.check=p=>pinTry(p,'drive settings');
 // One plain-words "why it won't" list: BmsCore (include/BlockReasons.h, compiled into the wasm) + the sim's interlock inputs.
 // Shown as a pop-up only. It never latches a fault and never writes the fault log.
-const BLK={drive:0,wake:1,shift:2,setting:3};let driveOk=false,noticeN=0,noticeText='',padReqN=0,thrWas=false,thrWhy='',lastLoopAt=0;
+const BLK={drive:0,wake:1,shift:2,setting:3};let noticeN=0,noticeText='',padReqN=0,thrWas=false,thrWhy='',lastLoopAt=0;
 const PIN_DRIVE_TXT='Enter PIN or bring phone to drive';
-function pinOkNow(){return driveOk||TeryxLock.unlocked;}
+// Build 18 security fix. Root cause: driveOk was latched true whenever the phone was seen (default on) and only cleared at key off,
+// and the pad only opened from brake-wake. Now ONE source of truth, PG.entered = pinEnteredThisKeyCycle (dash.js TeryxGate),
+// cleared at key off / reset / PIN to Drive turned on, and the gate is worked out live every tick.
+const PG=TeryxGate.make();let pinThen=null,padTitle='Enter PIN to drive',pinChk={n:0,msg:''},walkT=null,WALKUP_MS=30000;
+function pinOkNow(){return PG.entered||PG.grace;}
+function gateLocked(){return TeryxGate.locked(PG,{pinToDrive:$('dpin').checked,phone:$('phonek').checked});}
+function pinTry(p,what){const m=TeryxGate.check(PG,vehPinOk(p),Date.now());pinChk={n:pinChk.n+1,msg:m};
+  if(!m){PG.entered=true;TeryxLock.set({unlocked:true});ulog('PIN accepted ('+(what||'PIN to Drive')+'): counts until key off');}
+  else{ulog('PIN refused: '+m);if(/locked 30 s|wait/.test(m))TeryxAlert.raise('warn',m,'lockout',TeryxGate.LOCKOUT_MS);else alertInfo(m);}return m;}
+// Any drive action while the gate is locked: open the pad, do nothing else; run the action once the PIN is right.
+function pinGate(what,then,title){if(!gateLocked())return false;padReqN++;if(then||!TeryxPad.isOpen())pinThen=then||null;   // a later plain request (throttle) must not drop a queued action (shift) while the pad is open
+  padTitle=title||'Enter PIN to drive';
+  ulog(what+': held, PIN to Drive is on and no phone nearby → PIN pad first (PROPOSED)');alertInfo(PIN_DRIVE_TXT);
+  if(!TeryxPad.isOpen())TeryxPad.open({title:padTitle,note:'PIN to Drive is on · or bring the phone nearby · '+what+' waits for the PIN',
+    onEnter:p=>{const m=pinTry(p,what);if(m)return m;dashToast('PIN accepted');pinRunThen();return '';},onCancel:()=>{pinThen=null;}});
+  return true;}
+function pinRunThen(){const f=pinThen;pinThen=null;if(f)setTimeout(f,0);}
+function alertInfo(m){if(m)TeryxAlert.raise('info',m);}
 function blkUi(){const brk=+$('cbrk').value>0||!!(vLast&&vLast.brakeSwitch);
   return ($('cpark').checked?1:0)|($('cneut').checked?2:0)|($('dpin').checked?4:0)|(brk?8:0)|($('phonek').checked?16:0)|(pinOkNow()?32:0)|(PK.prechargeAllowed()?64:0)|((PK.S.fault&1)?128:0);}
 function blockReasons(a){if(!X||!X.sim_block_mask)return [];const m=X.sim_block_mask(BLK[a],blkUi())>>>0,o=[];for(let b=0;b<16;b++)if(m&(1<<b))o.push(cs(X.sim_block_text(1<<b)));return o;}
 function blockMsg(list,lead){if(!list.length)return '';if(list.length===1)return (lead?lead+': ':'')+list[0];return (lead||'Can\u2019t do that yet')+':\n• '+list.join('\n• ');}
-TeryxLock.why=()=>blockReasons('setting').join(', ');TeryxLock.onUnlock=()=>{driveOk=true;ulog('PIN accepted (drive settings + PIN to Drive until key off)');};
-function pinAccepted(src){driveOk=true;TeryxLock.unlocked=true;TeryxLock.set({});ulog('PIN accepted'+(src?' ('+src+')':'')+': unlocked until key off');}
-function requestDrivePin(){padReqN++;if(TeryxPad.isOpen())return;
-  if(!VEH_KID.hash){dashToast('No PIN set yet: bring the phone nearby');return;}
-  TeryxPad.open({title:'Enter PIN to drive',note:'PIN to Drive is on (PROPOSED) · or bring the phone nearby',onEnter:p=>{if(vehHashPin(p)===VEH_KID.hash){pinAccepted('PIN to Drive');dashToast('PIN accepted, ready to drive');return '';}return 'Wrong PIN — try again';}});}
+TeryxLock.why=()=>blockReasons('setting').join(', ');TeryxLock.onUnlock=null;
+function pinKeyOff(){TeryxGate.keyOff(PG);pinThen=null;TeryxLock.set({unlocked:false});}
+// Change PIN (sim + dash): current PIN always (lockout applies), new PIN twice, key on only.
+const pinApi={keyOn:()=>keyOn,check:p=>{const m=TeryxGate.check(PG,vehPinOk(p),Date.now());pinChk={n:pinChk.n+1,msg:m};if(m){ulog('Change PIN: current PIN refused');alertInfo(m);}return m;},
+  save:p=>{if(!keyOn)return 'Key is off';if(!/^[0-9]{4}$/.test(String(p)))return 'PIN must be 4 digits';VEH_KID.hash=vehHashPin(p);if(modeSave)modeSave();ulog('PIN changed');pinChk={n:pinChk.n+1,msg:''};return '';}};
+function changePin(){TeryxPinChange(pinApi);}
 function dashToast(m){if(!m)return;noticeN++;noticeText=m;try{if(dashC&&dashC.toast)dashC.toast(m);}catch(e){}TeryxPad.toast(m);}
 function wireCluster(){
-  $('cpark').onchange=e=>{ulog('Parking brake '+(e.target.checked?'set':'released'));hparkPaint();};$('hpark').onclick=()=>simCmd('park');$('cneut').onchange=e=>ulog('F/N/R '+(e.target.checked?'neutral':'drive'));
+  $('cpark').onchange=e=>{ulog('Parking brake '+(e.target.checked?'set':'released'));hparkPaint();};$('hpark').onclick=()=>simCmd('park');$('cneut').onchange=e=>{const v=e.target.checked;if(keyOn&&pinGate('F/N/R',()=>{$('cneut').checked=v;$('cneut').dispatchEvent(new Event('change'));})){e.target.checked=!v;return;}ulog('F/N/R '+(v?'neutral':'drive'));};
   $('cparkb').onchange=e=>ulog('Park contact B '+(e.target.checked?'open-circuit injected':'restored'));$('cdead').onchange=e=>ulog(e.target.checked?'Both Teensys dead (sim): relay off → Kelly ECO 12 V → Low cap (Kelly holds ≈ 15 mph fwd / 10 mph rev; the 10 mph Kid software cap is gone)':'Teensys restored');$('cparkclr').onclick=()=>{PK.clear();ulog('Park faults cleared');};
   $('cgsel').querySelectorAll('button').forEach(b=>b.onclick=()=>requestMode(b.dataset.g));
   $('phonek').onchange=e=>{ulog('Phone '+(e.target.checked?'nearby':'not nearby')+' (Bluetooth, PROPOSED sim input)');};
   $('cestop').onchange=e=>{X.sim_set_estop(e.target.checked?1:0);ulog('E-stop button '+(e.target.checked?'pressed':'released')+' (sim)');if(e.target.checked)dashToast('E-stop pressed: contactors open. Release it, then turn the key off and on');};
-  $('dpin').onchange=e=>{const on=e.target.checked;
-    if(on&&!VEH_KID.hash){e.target.checked=false;TeryxPad.open({title:'Set a PIN for PIN to Drive',note:'4 digits · also the Kid exit PIN',onEnter:p=>{VEH_KID.hash=vehHashPin(p);if(modeSave)modeSave();$('dpin').checked=true;ulog('PIN set · PIN to Drive on (PROPOSED)');dashToast('PIN to Drive on: after wake, enter PIN or bring phone to drive');return '';}});return;}
-    ulog('PIN to Drive '+(on?'on':'off')+' (PROPOSED)');dashToast(on?'PIN to Drive on: after wake, enter PIN or bring phone to drive':'PIN to Drive off');};
+  $('dpin').onchange=e=>{const on=e.target.checked;if(on){PG.entered=false;TeryxLock.set({unlocked:false});}   // turning it on = PIN needed again (unless the phone is nearby)
+    ulog('PIN to Drive '+(on?'on':'off')+' (PROPOSED)');dashToast(on?'PIN to Drive on: with no phone nearby, any drive action asks for the PIN':'PIN to Drive off');};
+  $('pinChange').onclick=()=>changePin();
   $('cthr').oninput=e=>$('cthrv').textContent=e.target.value+' %';$('cthr').onchange=e=>ulog('Throttle '+e.target.value+'%');
   $('ckt').oninput=e=>$('cktv').textContent=e.target.value+' °C';
   $('cbrk').oninput=e=>$('cbrkv').textContent=e.target.value+' %';$('cbrk').onchange=e=>ulog('Brake '+e.target.value+'%');
@@ -705,7 +723,7 @@ function wireCycle(){
   $('dcgo').onclick=()=>dc?dcStop('stopped by you'):dcStart();dcShow();
 }
 function dcStart(){
-  const P=DRIVE_CYCLES[dcSel];if(plugOn){ulog('Drive cycle refused: unplug first (charging – drive locked)');return;}simKeyOn();simDriveAway();$('cdrive').checked=true;
+  if(pinGate('Drive cycle',dcStart))return;const P=DRIVE_CYCLES[dcSel];if(plugOn){ulog('Drive cycle refused: unplug first (charging – drive locked)');return;}simKeyOn();simDriveAway();$('cdrive').checked=true;
   dc={k:dcSel,name:P.name,len:cycleLen(P),t:0,t0:S.t,dist:0,whOut:0,whIn:0,peakA:0,peakRegenA:0,minCell:dcLowCell(),minKelly:100,minWhy:'',wasClosed:false,
       soc0:S.soc.known?S.soc.pct:null,trips:0,label:''};
   ulog('Drive cycle "'+P.name+'" started (sim profile)');dcShow();
@@ -751,18 +769,25 @@ function setGrade(g){VP.gradePct=g;$('cgrade').value=g;$('cgradev').textContent=
 function clusterTick(dt){ // runs every loop: vehicle model -> pack amps (when enabled)
   dcStep(dt);
   const drv=$('cdrive').checked&&($('t-cluster').classList.contains('on')||dc||remoteDrive);
-  parkStep(dt*1000);if(!keyOn)driveOk=false;else if($('phonek').checked)driveOk=true;TeryxLock.set({keyOn,phone:$('phonek').checked,gear:modeOf(cGear)});
+  parkStep(dt*1000);
+  {const ev=TeryxGate.tick(PG,{pinToDrive:$('dpin').checked,phone:$('phonek').checked,keyOn,moving:Math.abs(cSpd)>=0.5&&!$('cpark').checked});
+   if(ev==='warn'){ulog('Phone left while moving: drive kept, PIN to Drive locks at 0 mph or Park (PROPOSED)');TeryxAlert.raise('warn','Phone left: PIN to Drive locks when you stop','phone');dashToast('Phone left: keep driving, PIN to Drive locks when you stop');}
+   else if(ev==='lock'){TeryxAlert.clear('phone');ulog('Stopped: PIN to Drive locked (no phone, no PIN)');dashToast('Stopped: '+PIN_DRIVE_TXT);if(!$('cpark').checked)parkWarnStart('phone left, stopped without Park');}
+   if(!PG.grace)TeryxAlert.clear('phone');}
+  forgotParkTick(dt);
+  {const pd=$('pinDef');if(pd)pd.style.display=vehPinIsDefault()?'':'none';}
+  TeryxLock.set({keyOn,phone:$('phonek').checked,gear:modeOf(cGear),unlocked:PG.entered});
   const socP=S.soc&&S.soc.known?S.soc.pct:null,socTaper=socP==null?100:Math.max(0,Math.min(100,(100-socP)/10*100));   // PROPOSED: 100 % regen ≤90 % SOC → 0 at 100 %
   const tmp=(typeof S.tMin==='number'&&isFinite(S.tMin))?S.tMin:25,tmpTaper=Math.max(0,Math.min(100,(tmp-0)/10*100));                                   // PROPOSED: 0 % at ≤0 °C → 100 % at ≥10 °C
   const parkSet=$('cpark').checked,neut=$('cneut').checked;
-  pinLocked=$('dpin').checked&&keyOn&&!pinOkNow();const inp={thr:neut||pinLocked?0:+$('cthr').value,brake:+$('cbrk').value,gear:cGear,closed:S.state==='Closed',allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV,
+  pinLocked=keyOn&&gateLocked();const inp={thr:neut||pinLocked?0:+$('cthr').value,brake:+$('cbrk').value,gear:cGear,closed:S.state==='Closed',allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV,
     neutral:neut,parkBrake:parkSet,regenAllowPct:Math.min(socTaper,tmpTaper),teensyDead:$('cdead').checked,kellyLowCap:$('cdead').checked||modeOf(cGear)==='KID'||!!S.kellyLimp,revMode:modeOf(cGear)};
   let o=null;for(let t=0;t<dt-1e-9;t+=0.05){const h=Math.min(0.05,dt-t);o=vehStep(VP,{mph:cSpd,trim:cTrim},inp,h);cSpd=o.mph;}  // <=50 ms slices
   if(!o)o=vehStep(VP,{mph:cSpd},inp,0);
   vLast=o;const a=drv?o.packA:null;
   if(+$('cthr').value>0&&(parkSet||neut))o.why=parkSet?'park brake set: Kelly Foot_SW open (hardware interlock)':'F/N/R in neutral';
   {const thrOn=+$('cthr').value>0;   // throttle pressed but nothing happens: say why (pop-up, not a fault)
-   if(thrOn&&!dc){const r=blockReasons('drive'),k=r.join('|');if(r.length&&(!thrWas||k!==thrWhy)){dashToast(blockMsg(r,'Throttle blocked'));ulog('Throttle blocked: '+r.join('; '));if(!thrWas&&r.includes(PIN_DRIVE_TXT))requestDrivePin();}thrWhy=k;}else thrWhy='';thrWas=thrOn;}
+   if(thrOn&&!dc){const r=blockReasons('drive'),k=r.join('|');if(r.length&&(!thrWas||k!==thrWhy)){dashToast(blockMsg(r,'Throttle blocked'));ulog('Throttle blocked: '+r.join('; '));}if(!thrWas&&pinLocked)pinGate('Throttle');thrWhy=k;}else thrWhy='';thrWas=thrOn;}
   hparkPaint();
   if($('pkdet'))$('pkdet').innerHTML=`<div><span class="mut">Park</span> <b>${PK.S.parked?'PARKED':'not parked'}</b> · contacts A/B <b>${parkSet?'set':'open'}/${parkSet&&!$('cparkb').checked?'set':'open'}</b> · precharge <b>${PK.prechargeAllowed()?'allowed':'BLOCKED (set the parking brake)'}</b> · Kid changes <b>${PK.kidChangeAllowed()?'allowed':'locked'}</b>${PK.faultNames().length?' · <span style="color:var(--bad)">'+PK.faultNames().join(', ')+'</span>':''} <span class="src">PROPOSED · docs/PARK_BRAKE.md</span></div><div><span class="mut">Brake</span> switch <b>${o.brakeSwitch?'ON':'off'}</b> · Brake_AN regen <b>${((o.brakeFrac||0)*100).toFixed(0)} %</b> of BRK_AD · regen taper <b>${inp.regenAllowPct.toFixed(0)} %</b> · Kelly Low cap <b>${inp.kellyLowCap?'ENGAGED ('+($('cdead').checked?'Teensys dead, relay off':cGear==='KID'?'Kid':'hard fault: '+(S.limpWhy||'?'))+')':'released (Teensy A holds relay)'}</b></div>`;
   if(a!=null){X.sim_set_pack_amps(a);if(Math.abs(+$('amps').value-a)>2){$('amps').value=Math.round(a);$('ampsv').textContent=Math.round(a)+' A';$('damps').value=Math.round(a);$('dampsv').textContent=Math.round(a)+' A';}}
@@ -782,7 +807,7 @@ const setSl=(id,v)=>{$(id).value=v;$(id).dispatchEvent(new Event('input'));};
 // Build 15: in-page engine for phones. dash.html?src=sim loads this page hidden as index.html?embed=1 when no Sim tab
 // answers (iOS Safari freezes background tabs). Embedded: status goes to the parent page only (no BroadcastChannel),
 // commands come from the parent, and PIN pads / pop-ups are shown by the parent dash (touch-friendly), not in this hidden frame.
-const EMBED=new URLSearchParams(location.search).get('embed')==='1'&&window.parent!==window;
+const EMBED=new URLSearchParams(location.search).get('embed')==='1'&&window.parent!==window;if(EMBED)TeryxAlert.setSilent(true);   // hidden engine frame: the visible dash mirrors simInfo.alert and plays the chime
 function embedInit(){remoteDrive=true;const up=m=>{try{parent.postMessage(m,'*');}catch(e){}};let padId=0;const pads={};
   TeryxPad.open=o=>{const id=++padId;pads[id]=o;up({teryxPad:{id,title:o.title,note:o.note||''}});return null;};
   TeryxPad.isOpen=()=>Object.keys(pads).length>0;
@@ -796,21 +821,25 @@ function embedInit(){remoteDrive=true;const up=m=>{try{parent.postMessage(m,'*')
   up({teryxEngine:'hello'});}
 // Sim quick panel commands (dash panel inside the sim, or dash.html?src=sim over BroadcastChannel 'teryx-dash-cmd')
 function simCmd(c,v){
-  const gear=g0=>{const [g,pin]=String(g0).split(':');if(TeryxLock.locked()&&pin==null&&!(keyOn&&(g==='KID'||modeOf(cGear)==='KID'))){dashToast(TeryxLock.msg());return;}requestMode(g,pin===undefined?undefined:pin);};
+  const gear=g0=>{const [g,pin]=String(g0).split(':');if(pinGate('Mode '+(GEARS[g]?GEARS[g].n:g),()=>gear(g0)))return;if(TeryxLock.locked()&&pin==null&&!(keyOn&&(g==='KID'||modeOf(cGear)==='KID'))){dashToast(TeryxLock.msg());return;}requestMode(g,pin===undefined?undefined:pin);};
   switch(c){
   case 'tick':if(performance.now()-lastLoopAt>150)loop();break;   // dash.html heartbeat: keeps the sim running when its tab is hidden
   case 'phone':{const e=$('phonek');e.checked=!e.checked;e.dispatchEvent(new Event('change'));break;}
   case 'estop':{const e=$('cestop');e.checked=!e.checked;e.dispatchEvent(new Event('change'));break;}
   case 'dpin':{if(TeryxLock.locked()){dashToast(TeryxLock.msg());break;}const e=$('dpin');e.checked=!e.checked;e.dispatchEvent(new Event('change'));break;}
-  case 'pin':if(VEH_KID.hash&&vehHashPin(String(v))===VEH_KID.hash){pinAccepted('dash');if(TeryxPad.isOpen())TeryxPad.close();}else dashToast('Wrong PIN — try again');break;
+  case 'pin':{const m=pinTry(String(v),'dash');if(!m){if(TeryxPad.isOpen())TeryxPad.close();dashToast('PIN accepted');pinRunThen();}else dashToast(m);break;}
+  case 'pincheck':pinApi.check(String(v));break;                       // dash.html Change PIN step 1 (result in simInfo.pinChk)
+  case 'pinset':{const [o,n]=String(v).split(':');const m=pinApi.check(o);if(!m){const w=pinApi.save(n);if(w)pinChk={n:pinChk.n+1,msg:w};}break;}
+  case 'pinchange':changePin();break;
+  case 'pkwarn':$('pkwarn').value=+v;break;
   case 'park':{const e=$('cpark');e.checked=!e.checked;e.dispatchEvent(new Event('change'));break;}
   case 'neut':{const e=$('cneut');e.checked=!e.checked;e.dispatchEvent(new Event('change'));break;}
   case 'key':$('key').click();break; case 'plug':$('plug').click();break;
   case 'thr':setSl('cthr',v);break; case 'brk':setSl('cbrk',v);break; case 'grade':setSl('cgrade',v);VP.gradePct=+v;break; case 'gear':gear(v);break;
-  case 'launch':simKeyOn();simDriveAway();setGrade(0);gear('H');setSl('cbrk',0);setSl('cthr',100);ulog('Sim: hard launch (throttle 100 %, gear H)');break;
+  case 'launch':if(pinGate('Hard launch',()=>simCmd('launch')))break;simKeyOn();simDriveAway();setGrade(0);gear('H');setSl('cbrk',0);setSl('cthr',100);ulog('Sim: hard launch (throttle 100 %, gear H)');break;
   case 'regen':setSl('cthr',0);setSl('cbrk',60);ulog('Sim: regen stop (brake 60 %)');break;
   case 'coast':setSl('cthr',0);setSl('cbrk',0);ulog('Sim: coast');break;
-  case 'climb':simKeyOn();simDriveAway();gear('L');setGrade(15);setSl('cbrk',0);setSl('cthr',70);ulog('Sim: climb (15 % grade, Low, 70 %)');break;
+  case 'climb':if(pinGate('Climb',()=>simCmd('climb')))break;simKeyOn();simDriveAway();gear('L');setGrade(15);setSl('cbrk',0);setSl('cthr',70);ulog('Sim: climb (15 % grade, Low, 70 %)');break;
   case 'lowcell':setSl('dcell',3.15);ulog('Sim: low cell 3.150 V');break;
   case 'hotpack':setSl('tmax',55);ulog('Sim: hot pack 55 °C');break;
   case 'lemimb':setSl('dlem',75);ulog('Sim: LEM imbalance 75 / 25');break;
@@ -842,13 +871,13 @@ function simStatus(lo,hi,Q,est,closed){
     energy:{kWhUsed:null,whPerMi:null,rangeMiEst:null,packKWh:null,calibrated:false},
     aux12v:(()=>{const L=loadsOn();return {wired:false,volts:null,loadA:loadAmps(L),loadAEstimate:true,loads:{lights:L.lights,fan:L.fan,pump:L.pump,alarm:L.alarm,speakers:L.spk,seatDriver:seatLv.driver,seatPassenger:seatLv.passenger,seatHeat:seatLv.driver+seatLv.passenger>0}};})(),
     coolant:{wired:false,pumpOn:keyOn||!!cLoad.pump,flowOk:null,tempC:null},faults:fl,events:[],fw:'BmsCore (wasm sim build)',log:simLog(),
-    simInfo:{phoneKey:$('phonek').checked,driveLocked:TeryxLock.locked(),estop:!!S.estop,estopPressed:!!S.estopPressed,pinToDrive:$('dpin').checked,driveOk:!pinLocked,pinOk:pinOkNow(),
-      block:{drive:blockReasons('drive'),wake:blockReasons('wake'),shift:blockReasons('shift'),setting:blockReasons('setting')},notice:{n:noticeN,text:noticeText},padReq:{n:padReqN},modeMsg,parkBrake:$('cpark').checked,neutral:$('cneut').checked,parked:!!PK.S.parked,key:keyOn,plug:plugOn,gear:cGear,mode:modeOf(cGear),revCapMph:vehRevTop(modeOf(cGear)),gradePct:VP.gradePct,speed,weld:$('welded').checked,cycleSel:dcSel,cycleOn:!!dc,cycleTxt:dc?`${dc.name}: ${dc.label||''} ${(100*dc.t/dc.len).toFixed(0)} %`:(dcLast?dcLast.name+' ended: '+dcLast.why:''),cycles:Object.entries(DRIVE_CYCLES).map(([k,p])=>[k,p.name])}};
+    simInfo:{phoneKey:$('phonek').checked,driveLocked:TeryxLock.locked(),estop:!!S.estop,estopPressed:!!S.estopPressed,pinToDrive:$('dpin').checked,driveOk:!pinLocked,pinOk:pinOkNow(),pinEntered:PG.entered,pinDefault:vehPinIsDefault(),pinChk,pinLockS:Math.ceil(TeryxGate.lockLeft(PG,Date.now())/1000),alert:TeryxAlert.state(),parkWarn:!!parkWarn,parkWarnS:+$('pkwarn').value||60,
+      block:{drive:blockReasons('drive'),wake:blockReasons('wake'),shift:blockReasons('shift'),setting:blockReasons('setting')},notice:{n:noticeN,text:noticeText},padReq:{n:padReqN,title:padTitle},modeMsg,parkBrake:$('cpark').checked,neutral:$('cneut').checked,parked:!!PK.S.parked,key:keyOn,plug:plugOn,gear:cGear,mode:modeOf(cGear),revCapMph:vehRevTop(modeOf(cGear)),gradePct:VP.gradePct,speed,weld:$('welded').checked,cycleSel:dcSel,cycleOn:!!dc,cycleTxt:dc?`${dc.name}: ${dc.label||''} ${(100*dc.t/dc.len).toFixed(0)} %`:(dcLast?dcLast.name+' ended: '+dcLast.why:''),cycles:Object.entries(DRIVE_CYCLES).map(([k,p])=>[k,p.name])}};
 }
 function pushDash(st){if(EMBED){try{parent.postMessage(st,'*');}catch(e){}doorPulse=false;return;}if(!dashC)dashC=TeryxDash.create($('dashHost'),{hostLock:true,simControls:true,simPanel:{send:simCmd,hostKey:true},
     veh:{get:()=>VP,set:(k,v)=>{VP[k]=v;try{localStorage.setItem('teryxVehSettings',JSON.stringify(VP));}catch(e){}ulog('Vehicle setting '+k+' = '+v);if($('vn_'+k))$('vn_'+k).value=+v;}},
     onFan:on=>{$('ld_fan').checked=on;$('ld_fan').dispatchEvent(new Event('change'));},
-    onGear:g=>{if(Math.abs(cSpd)>1&&(g==='R')!==(cGear==='R'))return 'Stop first to change into or out of reverse';if(TeryxLock.locked()&&!(keyOn&&(g==='KID'||modeOf(cGear)==='KID'))){TeryxLock.prompt();return '';}requestMode(g);return '';},onControl:(t)=>ulog('Controls: '+t),onSeat:(k,lv)=>{seatLv[k]=lv;ulog(`Seat heater ${k} ${['off','Low','Med','High'][lv]}`);},
+    pinApi,onGear:g=>{if(Math.abs(cSpd)>1&&(g==='R')!==(cGear==='R'))return 'Stop first to change into or out of reverse';if(pinGate('Mode '+(GEARS[g]?GEARS[g].n:g),()=>requestMode(g)))return '';if(TeryxLock.locked()&&!(keyOn&&(g==='KID'||modeOf(cGear)==='KID'))){TeryxLock.prompt();return '';}requestMode(g);return '';},onControl:(t)=>ulog('Controls: '+t),onSeat:(k,lv)=>{seatLv[k]=lv;ulog(`Seat heater ${k} ${['off','Low','Med','High'][lv]}`);},
     onChargeLimit:v=>{$('pct').value=v;$('pct').dispatchEvent(new Event('input'));ulog('Charge limit '+v+'% (charge screen, saved)');},
     onAmpsLimit:a=>{X.sim_set_charge_max_a(a);ulog('Charge amps limit '+a+' A (sim)');},
     onChargeStop:on=>{X.sim_set_charge_stop(on?1:0);ulog(on?'Charging stopped (charge screen); drive stays locked':'Charging started (charge screen)');},
@@ -911,7 +940,8 @@ function wireModes(){try{const sv=JSON.parse(localStorage.getItem('teryx.modes.v
   buildModes();const save=()=>localStorage.setItem('teryx.modes.v1',JSON.stringify({p:Object.fromEntries(Object.keys(VEH_GEARS).map(k=>[k,Object.fromEntries(VEH_MODE_FIELDS.map(([f])=>[f,VEH_GEARS[k][f]]))])),hash:VEH_KID.hash,mode:cGear}));modeSave=save;
   $('modeSave').onclick=()=>{let bad=0;Object.keys(VEH_GEARS).forEach(k=>VEH_MODE_FIELDS.forEach(([f])=>{const e=$('mp_'+k+'_'+f);if(e&&+e.value!==VEH_GEARS[k][f]&&!vehModeSet(k,f,+e.value))bad++;}));save();buildModes();$('modeMsgS').textContent=bad?bad+' value(s) out of range, kept':'Modes saved (sim)';ulog('Drive modes saved (sim)'+(bad?', '+bad+' refused':''));};
   $('modeReset').onclick=()=>{Object.keys(VEH_MODE_DEF).forEach(k=>Object.assign(VEH_GEARS[k],VEH_MODE_DEF[k]));save();buildModes();$('modeMsgS').textContent='Modes reset to PROPOSED defaults';};
-  $('kidPinBtn').onclick=()=>{const v=$('kidPinSet').value;$('kidPinSet').value='';if(modeOf(cGear)==='KID'){$('modeMsgS').textContent='Leave Kid before changing the PIN';return;}if(!/^[0-9]{4}$/.test(v)){$('modeMsgS').textContent='PIN must be 4 digits';return;}VEH_KID.hash=vehHashPin(v);save();$('modeMsgS').textContent='Kid PIN set';ulog('Kid PIN set (sim)');};}
+  // Build 18: the old 'Set Kid PIN' box is gone; Change PIN (one PIN for drive + Kid exit) replaces it.
+}
 function wireVeh(){buildVeh();wireModes();
   $('vehSave').onclick=()=>{const st={};VEH_SETS.forEach(([k])=>{const v=+$('vn_'+k).value;if(isFinite(v))st[k]=typeof VEH_DEF[k]==='boolean'?!!v:v;});const gr=st.gradePct;delete st.gradePct;
     Object.assign(VP,st);localStorage.setItem('teryxVehSettings',JSON.stringify(st));setGrade(gr||0);ulog('Vehicle model saved (sim): '+(Object.entries(st).filter(([k,v])=>v!==VEH_DEF[k]).map(([k,v])=>k+'='+v).join(', ')||'defaults'));buildVeh();};
@@ -988,25 +1018,48 @@ function render(){
   renderBanner();
 }
 document.addEventListener('wheel',e=>{const t=e.target;if(t&&t.matches&&t.matches('input[type=number],input[type=range]')&&document.activeElement===t)t.blur();},{passive:true,capture:true});   // scrolling never edits a value
-let bwMs=0,pinLocked=false;const BW_HOLD_MS=1000,BW_FULL=98;   // PROPOSED: brake ≥98 % for 1 s wakes (sim time)
+let bwMs=0,pinLocked=false;
+// Build 18 forgot-Park warning (PROPOSED): parking brake not set at 0 mph -> amber light + repeating double chime when
+// (a) the phone goes nearby -> not nearby, (b) the key goes off without Park, (c) stopped, no Park, no pedal/brake for pkwarn s (60 s).
+// Clears when Park is set. Warning only: it never moves or stops the vehicle.
+let parkWarn='',pkIdle=0,pkPhoneWas=true,pkPedal='';
+function parkWarnStart(why){if(parkWarn||$('cpark').checked)return;parkWarn=why;ulog('Forgot-Park warning: '+why+' (PROPOSED)');TeryxAlert.raise('warn','Parking brake not set','park');dashToast('Set the parking brake ('+why+')');}
+function parkWarnStop(why){if(!parkWarn)return;parkWarn='';TeryxAlert.clear('park');ulog('Forgot-Park warning cleared: '+why);}
+function forgotParkTick(dt){const park=$('cpark').checked,stopped=Math.abs(cSpd)<0.5,ph=$('phonek').checked,pd=$('cthr').value+'/'+$('cbrk').value;
+  if(park){parkWarnStop('Park set');pkIdle=0;}
+  else if(stopped){if(pkPhoneWas&&!ph)parkWarnStart('phone walked away');
+    if(pd!==pkPedal||+$('cthr').value>0||+$('cbrk').value>0)pkIdle=0;else{pkIdle+=dt;if(pkIdle>=(+$('pkwarn').value||60))parkWarnStart('stopped '+(+$('pkwarn').value||60)+' s without Park');}}
+  else pkIdle=0;
+  pkPhoneWas=ph;pkPedal=pd;}const BW_HOLD_MS=1000,BW_FULL=98;   // PROPOSED: brake ≥98 % for 1 s wakes (sim time)
 let bwMsg='';
-function brakeWake(dtMs){if(!$('bwake')||!$('bwake').checked||keyOn){bwMs=0;bwMsg='';return;}
+let bwPrev=0;
+// Build 18 walk-up (PROPOSED): vehicle off, PIN to Drive on, no phone: ANY brake press opens "Enter PIN to wake" at once.
+// Right PIN = wake (same wake rules) + counts as this key cycle's PIN. Cancel / 30 s timeout / wrong PIN = stays off.
+function walkUpWake(){clearTimeout(walkT);walkT=null;if(keyOn)return;const r=blockReasons('wake').filter(t=>t!==PIN_DRIVE_TXT);
+  if(r.length){const m=blockMsg(r,'Can\u2019t wake');ulog('Walk-up wake refused after PIN: '+r.join('; '));dashToast(m);alertInfo(m);pinKeyOff();return;}
+  ulog('Walk-up: PIN accepted → key on (PROPOSED)');$('key').click();if(keyOn)dashToast('Waking\u2026 PIN accepted, ready to drive');}
+function brakeWake(dtMs){const b=+$('cbrk').value,tap=b>0&&bwPrev<=0;bwPrev=b;
+  if(!keyOn&&$('dpin').checked&&!$('phonek').checked&&!PG.entered){bwMs=0;
+    if(tap&&!TeryxPad.isOpen()){pinGate('Brake (walk-up)',walkUpWake,'Enter PIN to wake');clearTimeout(walkT);walkT=setTimeout(()=>{walkT=null;if(!keyOn&&TeryxPad.isOpen()){TeryxPad.close();pinThen=null;ulog('Walk-up PIN pad timed out: stays off');}},WALKUP_MS);}
+    return;}
+  if(!$('bwake')||!$('bwake').checked||keyOn){bwMs=0;bwMsg='';return;}
   if(+$('cbrk').value>=BW_FULL){const r=blockReasons('wake');   // e-stop, charger plugged in, parking brake (same list as the key)
     if(r.length){const k='r'+r.join('|');if(bwMsg!==k){bwMsg=k;ulog('Brake-to-wake refused: '+r.join('; '));dashToast(blockMsg(r,'Can\u2019t wake'));if(dashC)dashC.wake('brake-to-wake refused');}bwMs=0;return;}
     if(bwMsg!=='h'){bwMsg='h';dashToast('Hold brake\u2026 waking');if(dashC)dashC.wake('brake-to-wake');}
     bwMs+=dtMs;if(bwMs>=BW_HOLD_MS){bwMs=0;bwMsg='done';
-    ulog('Brake-to-wake: brake held at full travel 1 s → key on (PROPOSED)');$('key').click();if(!keyOn)return;
-    if($('dpin').checked&&!$('phonek').checked){dashToast('Waking\u2026 '+PIN_DRIVE_TXT);requestDrivePin();}else dashToast('Waking\u2026');}}
+    ulog('Brake-to-wake: brake held at full travel 1 s → key on (PROPOSED)');$('key').click();if(!keyOn)return;dashToast('Waking\u2026');}}
   else{if(bwMsg==='h'&&bwMs>0){dashToast('Brake released too soon: hold it at full travel for 1 s');}bwMs=0;if(bwMsg!=='done'||+$('cbrk').value<BW_FULL)bwMsg='';}}
 function loop(){const t=performance.now();lastLoopAt=t;acc+=(t-last)*speed;last=t;
   if(acc>=10){const ms=Math.min(Math.floor(acc/10)*10,5000);X.sim_step(ms);brakeWake(ms);if(S)clusterTick(ms/1000);acc-=ms;if(acc>1000)acc=0;}render();if(dc)dcShow();}
 function wire(){
-  $('key').onclick=()=>{if(!keyOn&&!PK.prechargeAllowed()){const r=blockReasons('wake').filter(t=>/[Pp]arking brake/.test(t));const m=blockMsg(r.length?r:['Set the parking brake to power up'],'Can\u2019t start');ulog('Key on refused: '+m.replace(/\n/g,' ')+' (PROPOSED)');dashToast(m);return;}keyOn=!keyOn;X.sim_set_key(keyOn?1:0);ulog('Key '+(keyOn?'on':'off'));};
+  $('key').onclick=()=>{if(!keyOn&&pinGate('Key on',()=>$('key').click()))return;
+    if(keyOn){keyOn=false;X.sim_set_key(0);pinKeyOff();ulog('Key off');if(!$('cpark').checked&&Math.abs(cSpd)<0.5)parkWarnStart('key off without Park');return;}
+    if(!keyOn&&!PK.prechargeAllowed()){const r=blockReasons('wake').filter(t=>/[Pp]arking brake/.test(t));const m=blockMsg(r.length?r:['Set the parking brake to power up'],'Can\u2019t start');ulog('Key on refused: '+m.replace(/\n/g,' ')+' (PROPOSED)');dashToast(m);return;}keyOn=!keyOn;X.sim_set_key(keyOn?1:0);ulog('Key '+(keyOn?'on':'off'));};
   $('chg').onclick=()=>{chgOn=!chgOn;X.sim_set_charge(chgOn?1:0);ulog('Bench charge request '+(chgOn?'on':'off'));};
   $('plug').onclick=$('hplug').onclick=()=>{plugOn=!plugOn;X.sim_set_plug(plugOn?1:0);ulog(plugOn?'Plugged in (charger present)':'Unplugged');};
   $('pct').oninput=e=>{X.sim_set_charge_pct(+e.target.value);$('pctv').textContent=e.target.value+'%';};$('pct').onchange=e=>ulog('Charge limit '+e.target.value+'%');
   document.querySelectorAll('#speed button').forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll('#speed button').forEach(x=>x.classList.toggle('on',x===b));});
-  $('reset').onclick=()=>{if(!confirm('Reset the simulator? Cells, faults and the log go back to start.'))return;X.sim_reset();X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);keyOn=chgOn=plugOn=false;$('cestop').checked=false;driveOk=false;cSpd=0;userLog=[];hideBefore=-1;socAnchorPending=false;X.sim_set_soc_drain($('sdrain').checked?1:0);
+  $('reset').onclick=()=>{if(!confirm('Reset the simulator? Cells, faults and the log go back to start.'))return;X.sim_reset();X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);keyOn=chgOn=plugOn=false;$('cestop').checked=false;pinKeyOff();PG.wrong=0;PG.until=0;parkWarnStop('reset');cSpd=0;userLog=[];hideBefore=-1;socAnchorPending=false;X.sim_set_soc_drain($('sdrain').checked?1:0);
     ['link','charger_on','curfit','tvalid'].forEach(i=>$(i).checked=true);['preopen','welded','busf'].forEach(i=>$(i).checked=false);
     BOARDS.forEach((b,bi)=>$('sil'+bi).checked=false);$('dcell').value=3.80;$('dcellv').textContent='3.800 V';[['tmin',20],['tmax',22],['amps',0],['dlem',50],['dlcut',3.30]].forEach(([i,v])=>{$(i).value=v;$(i).dispatchEvent(new Event('input'));});};
   const tog=(id,fn,txt)=>$(id).onchange=e=>{fn(e.target.checked?1:0);ulog(txt+(e.target.checked?' on':' off'));};
@@ -1019,7 +1072,7 @@ function wire(){
   $('busf').onchange=()=>{bus();ulog($('busf').checked?'HV bus forced '+$('busv').value+' V':'HV bus model');};$('busv').oninput=bus;
   $('db').onchange=e=>X.sim_set_deadband_mv(+e.target.value);
   $('clrlog').onclick=()=>hideBefore=simNow;
-  const flRe=()=>{keyOn=chgOn=plugOn=false;cSpd=0;userLog=[];hideBefore=-1;socAnchorPending=false;X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);X.sim_set_soc_drain($('sdrain').checked?1:0);
+  const flRe=()=>{keyOn=chgOn=plugOn=false;pinKeyOff();cSpd=0;userLog=[];hideBefore=-1;socAnchorPending=false;X.sim_set_charge_pct(+$('pct').value);X.sim_set_deadband_mv(+$('db').value);X.sim_set_soc_drain($('sdrain').checked?1:0);
     ['link','charger_on','curfit','tvalid'].forEach(i=>$(i).checked=true);['preopen','welded','busf'].forEach(i=>$(i).checked=false);
     BOARDS.forEach((b,bi)=>$('sil'+bi).checked=false);$('dcell').value=3.80;$('dcellv').textContent='3.800 V';[['tmin',20],['tmax',22],['amps',0],['dlem',50],['dlcut',3.30]].forEach(([i,v])=>{$(i).value=v;$(i).dispatchEvent(new Event('input'));});};
   $('flPow').onclick=()=>{X.sim_power_cycle();flRe();ulog('Power cycle (RAM lost, fault log kept)');};

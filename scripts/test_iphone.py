@@ -43,29 +43,35 @@ with sync_playwright() as p:
     t = J("(document.querySelector('.tlock-toast')||{}).textContent||''")
     ok('Throttle blocked' in t and 'Parking brake' in t, 'park set + throttle: the pop-up shows on the phone dash ' + repr(t))
     J("(()=>{const e=document.querySelector('.tdash [data-sv=thr]');e.value=0;e.dispatchEvent(new Event('input'));})()"); pg.wait_for_timeout(300)
-    # PIN to Drive: first time asks to set a PIN (pad forwarded from the in-page sim to this page; touch taps)
-    pg.tap(F('sdpin')); pg.wait_for_timeout(700)
-    ok(pg.locator('.tpad').count() == 1 and 'Set a PIN' in pg.inner_text('.tpad .tpt'), 'PIN to Drive with no PIN yet: the PIN pad opens on the phone dash ("Set a PIN…")')
+    # PIN to Drive (Build 18, Adam DECIDED 2026-10-23): default PIN 0000 + "change it" reminder, no forced first-time setup.
+    # With the phone nearby, turning it on needs no PIN.
     def pad(pin):
         for d in pin: pg.tap('.tpad [data-k="%s"]' % d)
         pg.tap('.tpad [data-a=enter]'); pg.wait_for_timeout(700)
-    pad('2468')
-    ok(pg.locator('.tpad').count() == 0 and I('pinToDrive'), 'PIN pad works by touch: PIN set, PIN to Drive is on')
-    pg.tap(F('sphone')); pg.wait_for_timeout(500)      # phone away
-    pg.tap(F('skey')); pg.wait_for_timeout(1200); pg.tap(F('skey')); pg.wait_for_timeout(2500)
-    ok(I('key') and not I('phoneKey') and I('driveOk') is False, 'key cycle without the phone: drive is locked until PIN')
+    pg.tap(F('sdpin')); pg.wait_for_timeout(700)
+    ok(pg.locator('.tpad').count() == 0 and I('pinToDrive'), 'PIN to Drive on with the phone nearby: no PIN asked, no forced "Set a PIN" pad')
+    ok(I('pinDefault') is True, 'default PIN is 0000 and the in-page sim flags the "change your PIN" reminder')
+    pg.tap(F('sphone')); pg.wait_for_timeout(800)      # phone away, key on, stopped -> the gate locks at once (live rule)
+    ok(I('key') and not I('phoneKey') and I('driveOk') is False, 'phone away with the key on and stopped: drive locks until PIN (live, not latched)')
     if J("last.simInfo.block.drive.some(x=>/Parking brake/.test(x))"): pg.tap(F('spark')); pg.wait_for_timeout(500)
     if J("last.simInfo.block.drive.some(x=>/Neutral/.test(x))"): pg.tap(F('sneut')); pg.wait_for_timeout(500)
-    if pg.locator('.tpad').count(): pad('2468'); pg.tap(F('skey')); pg.wait_for_timeout(1200); pg.tap(F('skey')); pg.wait_for_timeout(2500)
     J("(()=>{const e=document.querySelector('.tdash [data-sv=thr]');e.value=20;e.dispatchEvent(new Event('input'));})()"); pg.wait_for_timeout(900)
     t = J("(document.querySelector('.tlock-toast')||{}).textContent||''")
     ok('Enter PIN or bring phone to drive' in t and pg.locator('.tpad').count() == 1, 'throttle with PIN to Drive on: pop-up "Enter PIN or bring phone to drive" + PIN pad on the phone ' + repr(t))
     if pg.locator('.tpad').count():
         pad('1111'); ok(pg.locator('.tpad').count() == 1 and 'Wrong PIN' in pg.inner_text('.tpad .tpm'), 'wrong PIN: pad stays open and says "Wrong PIN — try again"')
-        pad('2468'); ok(pg.locator('.tpad').count() == 0, 'right PIN: pad closes')
+        pad('0000'); ok(pg.locator('.tpad').count() == 0, 'right PIN (default 0000): pad closes')
     pg.wait_for_timeout(800)
     ok(I('driveOk') is True, 'after the PIN the in-page sim allows drive')
     J("(()=>{const e=document.querySelector('.tdash [data-sv=thr]');e.value=0;e.dispatchEvent(new Event('input'));})()")
+    # key cycle with no phone: key-on itself asks for the PIN (Build 18 key-on gate); the key stays off until the PIN
+    pg.tap(F('skey')); pg.wait_for_timeout(1200)
+    if 'red' not in (pg.get_attribute(F('spark'), 'class') or ''): pg.tap(F('spark')); pg.wait_for_timeout(600)   # key-on needs the parking brake set
+    pg.tap(F('skey')); pg.wait_for_timeout(1500)
+    ok(pg.locator('.tpad').count() == 1 and not I('key'), 'key on without the phone: PIN pad opens and the key stays off until the PIN')
+    if pg.locator('.tpad').count():
+        pad('0000'); pg.wait_for_timeout(2500)
+        ok(I('key') and I('driveOk') is True, 'PIN 0000 at key-on: key turns on, drive allowed this key cycle')
     # full controls overlay
     pg.tap(F('sengf')); pg.wait_for_timeout(500)
     ok(J("document.getElementById('simEngine').getBoundingClientRect().width>300") and pg.locator('[data-f=sengx]').is_visible(), '"Full sim controls" shows the whole simulator over the dash, with a Back button')

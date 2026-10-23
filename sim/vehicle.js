@@ -19,14 +19,14 @@ const VEH_SETS=[['tireIn','Tire diameter','in','SOURCED: Adam (stock tires, 24")
   ['cdA','Drag area CdA','m²','ASSUMED',0.3,3,0.05],['gradePct','Grade (+ = nose uphill)','%','SIM input',-30,30,0.5],['dtDragN','Drivetrain drag','N','ASSUMED (chain + diffs + motor iron loss)',0,500,5],
   ['maxRegenA','Max regen current','A','PROPOSED 60 A',0,200,5],['analogBrake','Analog brake pedal on Kelly Brake_AN (DEFERRED)','on/off','DEFERRED for first drive (crew): needs Kelly config readback + Boost OFF confirmed. Default off = brake-switch regen at a fixed level',0,1,1],['brkSwRegenPct','Kelly BRK_SW Brk (switch regen strength)','% (0-50)','SOURCED range 0-50 %, default 10 %; amps mapping UNVERIFIED (× maxRegenA / 50)',0,50,1],['brkDeadLo','Kelly Brake Dead Low','% pedal','SOURCED default 20 % (=1 V)',5,40,1],['brkDeadHi','Kelly Brake Dead High','% pedal','SOURCED default 80 % (=4 V)',60,95,1],['brkAdPct','Kelly BRK_AD Brk (pedal regen strength)','% (0-50)','SOURCED range 0-50 %, default 0; 30 PROPOSED; mapping to amps UNVERIFIED (maxRegenA scales it)',0,50,1],['brkSwPct','Brake switch closes above','% pedal','PROPOSED (switch position on pedal UNVERIFIED)',0,20,1],['brkMinRpm','Kelly Brk_Speed Limit','RPM','SOURCED range 0-500, default 0; 100 PROPOSED',0,500,10],
   ['ntlBrkPct','Regen in Neutral (Kelly NTL Brk)','%','SOURCED: Kelly manual item 45 NTL Brk, 0–50 %, default 0 = no regen in neutral',0,50,1],['liftRegen','Throttle lift-off regen','on/off','PROPOSED off by default',0,1,1],['liftRegenA','Lift-off regen current','A','PROPOSED',0,100,5],
-  ['lowCapRpm','Kelly Low speed cap (ECO pin 22)','RPM','DECIDED (Adam 2026-10-23) 1800 RPM ≈ 15 mph (LowSpeed Fwd 30 % of 6000, kelly-settings.md #29): the Kid hardware backstop if both Teensys die; Kid software cap stays 10 mph; Kelly + ECO pin + relay UNVERIFIED',300,6000,25],['lowRevRpm','Kelly Low speed reverse cap (ECO pin 22)','RPM','DECIDED (Adam 2026-10-23) 1200 RPM ≈ 10 mph (LowSpeed Rev 20 % of 6000, kelly-settings.md #30); Kelly UNVERIFIED',300,6000,25],['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
+  ['lowCapRpm','Kelly Low speed cap (ECO pin 22)','RPM','DECIDED (Adam 2026-10-23) 1800 RPM ≈ 15 mph (LowSpeed Fwd 30 % of 6000, docs/KELLY_SETTINGS.md #29): the Kid hardware backstop if both Teensys die; Kid software cap stays 10 mph; Kelly + ECO pin + relay UNVERIFIED',300,6000,25],['lowRevRpm','Kelly Low speed reverse cap (ECO pin 22)','RPM','DECIDED (Adam 2026-10-23) 1200 RPM ≈ 10 mph (LowSpeed Rev 20 % of 6000, docs/KELLY_SETTINGS.md #30); Kelly UNVERIFIED',300,6000,25],['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
   ['phaseA','Kelly phase current limit','A','SOURCED: Adam 550 A (Kelly config not yet read back)',50,800,10],['battA','Kelly battery current limit','A','SOURCED: Adam 550 A',50,800,10]];
 // Drive modes = pedal-map profiles (Adam approved 2026-10-21). Mirror of include/DriveProfile.h kDefaults
 // (parity-checked against the wasm build). ALL values PROPOSED, editable in Settings. Reduce-only trim:
 // expo (0 linear .. 1 soft), cur = pedal cap % (current-limit proxy), ramp A/s (vs 550 A), top mph, regen %.
 // rpm = Kelly 6000 RPM cap (all forward modes). Reverse keeps its own gentle PROPOSED profile (expo/cur/ramp/regen);
 // its top speed depends on the mode you reversed from (Adam request 2026-10-22, PROPOSED): vehRevTop().
-// R.rpm = Kelly Max/Mid Rev Speed 31 % of 6000 = 1860 RPM ≈ 15 mph (kelly-settings.md #26/#28, Kelly UNVERIFIED).
+// R.rpm = Kelly Max/Mid Rev Speed 31 % of 6000 = 1860 RPM ≈ 15 mph (docs/KELLY_SETTINGS.md #26/#28, Kelly UNVERIFIED).
 const VEH_MODE_DEF={H:{n:'High',expo:0,cur:100,ramp:2000,top:49,regen:100,rpm:6000},M:{n:'Medium',expo:.3,cur:70,ramp:1000,top:36,regen:80,rpm:6000},
   L:{n:'Low',expo:.5,cur:45,ramp:600,top:22,regen:60,rpm:6000},SNOW:{n:'Snow',expo:.8,cur:40,ramp:150,top:25,regen:25,rpm:6000},
   MUD:{n:'Mud',expo:0,cur:90,ramp:2500,top:30,regen:20,rpm:6000},SAND:{n:'Sand',expo:0,cur:100,ramp:3000,top:35,regen:15,rpm:6000},
@@ -47,8 +47,13 @@ const VEH_KID={hash:0};
 function vehHashPin(pin){pin=(+pin)&0xFFFF;if(!pin)return 0;let h=2166136261>>>0;const salt='TeryxKid1';
   for(let it=0;it<1000;it++){for(let i=0;i<salt.length;i++){h^=salt.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}h^=pin&0xFF;h=Math.imul(h,16777619)>>>0;h^=pin>>8;h=Math.imul(h,16777619)>>>0;}
   return h>>>0||1;}
-function vehSelectMode(cur,next,pin){if(!VEH_GEARS[next])return 'unknown mode';if(next==='KID'&&cur!=='KID'&&!VEH_KID.hash)return 'Set a Kid PIN first (Settings)';
-  if(cur==='KID'&&next!=='KID'){if(!pin)return 'PIN required to leave Kid';if(!/^[0-9]{1,4}$/.test(String(pin))||vehHashPin(pin)!==VEH_KID.hash)return 'Wrong PIN';}return '';}
+// Build 18 (Adam): ONE PIN for PIN to Drive, drive settings and Kid exit. No saved hash = default PIN 0000 (PROPOSED sim default,
+// a known weak default: the dash says "PIN is still 0000, change it"). hashPin(0)==0 stays "no PIN saved" (firmware DriveProfile mirror).
+const VEH_PIN_DEFAULT='0000';
+function vehPinIsDefault(){return !VEH_KID.hash;}
+function vehPinOk(pin){pin=String(pin==null?'':pin);if(!/^[0-9]{4}$/.test(pin))return false;return VEH_KID.hash?vehHashPin(pin)===VEH_KID.hash:pin===VEH_PIN_DEFAULT;}
+function vehSelectMode(cur,next,pin){if(!VEH_GEARS[next])return 'unknown mode';
+  if(cur==='KID'&&next!=='KID'){if(!pin)return 'PIN required to leave Kid';if(!vehPinOk(pin))return 'Wrong PIN';}return '';}
 function vehCurve(x,e){x=Math.max(0,Math.min(1,x));e=Math.max(0,Math.min(1,e));return (1-e)*x+e*x*x*x;}
 // Reduce-only trim step (mirror of DriveProfile::Trim). tr={filt,out} persists between calls; dtMs step.
 function vehTrim(g,tr,pedal,mph,allow,ok,dtMs){const raw=Math.max(0,Math.min(100,pedal));if(!ok){tr.out=0;tr.filt=raw;return 0;}

@@ -63,7 +63,22 @@ The firmware's `HubStatus` emitter doesn't send these extra fields yet. Adding t
 - Display settings (night mode) are always open.
 - Kid mode can be entered without the PIN; leaving it needs the PIN.
 
-**PIN to Drive (PROPOSED, off by default).** When on, the throttle is blocked until the phone is seen or the PIN is entered, and the pop-up says "Enter PIN or bring phone to drive". Turning the setting on or off needs the PIN or the phone. The first time it asks you to set a PIN.
+**PIN to Drive (PROPOSED, off by default).** When on, the throttle is blocked until the phone is seen or the PIN is entered, and the pop-up says "Enter PIN or bring phone to drive". Turning the setting on or off needs the PIN or the phone. (Build 15 asked you to set a PIN the first time; Build 18 replaced that with the 0000 default below.)
+
+## Build 18: security (PIN to Drive, lock, master alert)
+
+**Root cause fixed.** Before Build 18 the sim set "drive OK" whenever the phone was seen and only cleared it at key-off, the pad only opened on brake wake or the first throttle press, and two flags could disagree. Now one rule is checked live on every loop and never latched: drive allowed = PIN to Drive off, OR phone nearby right now, OR PIN entered this key cycle (PROPOSED).
+- While locked, every drive action (throttle, shift, drive settings) opens the PIN pad. Display and night settings stay open.
+- Phone walks away while moving: warning only, drive is NOT cut; the gate locks at 0 mph or in Park.
+- 5 wrong PINs lock the pad for 30 s.
+- Walk-up: a brake tap with the key on and no phone opens the pad (30 s timeout).
+- With the phone nearby no PIN is asked, except Kid exit, which always needs the PIN. Kid entry is free (sim only, see below).
+- Change PIN: current PIN, then the new PIN twice; a mismatch changes nothing.
+- Master alert (PROPOSED): amber light and a WebAudio chime with mute (Display settings). Real 12 V buzzer is LATER (MCP23017 bit 13, PROPOSED).
+
+**Default PIN: DECIDED (Adam, 2026-10-23).** The default PIN is 0000 and the dash shows a "PIN is still 0000, change it" reminder. There is no forced first-time PIN setup. When PIN to Drive moves to firmware (after first drive, LATER), the firmware follows the same rule: default 0000 + change-your-PIN reminder, no forced setup. This supersedes the firmware `NO_PIN_SET` rule in `include/DriveProfile.h` (firmware code not changed in Build 18).
+
+**Known sim / firmware difference (UNVERIFIED until the firmware work):** the sim lets you enter Kid mode with no PIN. Today's firmware `DriveProfile` returns `NO_PIN_SET` for Kid when no PIN is stored; that goes away with the DECIDED 0000 default when the firmware PIN work is done.
 
 ## Build 15: iPhone / in-page sim engine
 
@@ -92,10 +107,10 @@ iOS Safari freezes background tabs, so a dash fed by a Sim tab in another tab go
 
 ## Kelly (SOURCED: Adam's order #81746, 2025-05-03)
 
-- KLS-8080N in the 144 V / 550 A configuration, Sin/Cos sensor (8080NPS series), field weakening, bidirectional anti-slip.
+- KLS8080 NPS, 168 V / 550 A, all add-ons incl. high-speed and anti-slip (SOURCED: Adam 2026-10-23, purchase email). Drives a used Zero 75-7R with a sin/cos sensor; motor bench spin test DONE (SOURCED: Adam 2026-10-23).
 - W3-GT2 liquid-cooling heatsink, 35-pin plug-and-play cable, USB cable, KLS test box.
 - The 36S full charge (≈148–149 V) is inside the 72–168 V model range (order listing).
-- Overvoltage cutout: about 173 V per earlier research, and adjustable in the Kelly software. The factory default is **UNVERIFIED**; read it from the Kelly config.
+- Over Volt (#7): **158 V** (Sparky 2026-10-23, was 162 V on the old 173 V assumption), under the 168 V rating (SOURCED: purchase email). Adjustable in the Kelly software; the factory default is **UNVERIFIED**; read it back from the Kelly config.
 
 ## Cooling (PROPOSED)
 

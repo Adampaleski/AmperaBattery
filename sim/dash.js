@@ -74,6 +74,7 @@ const CSS=`
 .tdash .ctb.auto{cursor:default}.tdash .cmsg{min-height:28px;color:var(--amb);font-size:18px}
 .tdash .cset{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px 18px;font-size:14px;color:var(--mut)}.tdash .cset label{display:flex;gap:8px;align-items:center}.tdash .cset input[type=number]{width:70px;background:#2c2c2e;color:var(--tx);border:0;border-radius:8px;padding:6px}
 .tdash .tt i.blink.on{animation:none}
+.tdash .tt i[data-k=malert].on.warnlv{animation:malertb 1s steps(2) infinite}@keyframes malertb{50%{opacity:.35}}
 @media(max-width:900px){.tdash{aspect-ratio:auto}.tdash .main{grid-template-columns:1fr}.tdash .bot{grid-template-columns:repeat(2,1fr)}.tdash .xl{font-size:110px}}
 .tdash .stage{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
 .tdash .home{flex:1;display:grid;grid-template-columns:1.3fr 1fr;gap:18px;min-height:0}
@@ -137,6 +138,7 @@ const CSS=`
 @media(max-width:900px){.tdash .home{grid-template-columns:1fr}.tdash .dock{flex-wrap:wrap}.tdash .qb{flex:1 0 22%}.tdash .mnu{grid-template-columns:1fr}}
 `;
 const IC={ // simple line icons
+ malert:'<path d="M12 3 2 20h20L12 3z"/><path d="M12 9v5M12 17v.5"/>',
  fault:'<path d="M12 3 2 21h20L12 3z"/><path d="M12 10v5M12 18v.5"/>',
  batt:'<rect x="3" y="7" width="16" height="11" rx="2"/><path d="M21 11v3M7 12h3M15 12h0M14 10.5v3"/>',
  temp:'<path d="M12 3a2 2 0 0 0-2 2v9a4 4 0 1 0 4 0V5a2 2 0 0 0-2-2z"/><path d="M12 9v7"/>',
@@ -161,7 +163,7 @@ const IC={ // simple line icons
  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',mode:'<path d="M5 18a8 8 0 1 1 14 0"/><path d="M12 14l4-5"/>',plug:'<path d="M9 3v5M15 3v5M7 8h10v4a5 5 0 0 1-10 0zM12 17v4"/>',
  car:'<path d="M3 16v-4l2-5h14l2 5v4zM3 16v2M21 16v2"/><circle cx="7.5" cy="13" r="1"/><circle cx="16.5" cy="13" r="1"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
  disp:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',wire:'<path d="M4 6h6v4h4v4h6M4 18h4"/><circle cx="4" cy="6" r="1.5"/><circle cx="20" cy="14" r="1.5"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'};
-const TT=[['turnL','g','Left turn'],['d4wd','a','4WD engaged (status input UNVERIFIED)'],['diff','r','Diff locked (actuator UNVERIFIED)'],['high','b','High beam'],['hazard','r','Hazard'],['fault','r','BMS fault'],['hv','a','HV contactors open'],['batt','a','Low cell'],['temp','r','Pack hot'],['limp','a','Limp / derate'],['regen','a','Regen off'],['imb','a','LEM imbalance'],['link','a','No data'],['lights','g','Lights'],['fan','b','Cooling fan'],['seat','a','Seat heater'],['pump','b','Kelly coolant pump on'],['coolant','r','Coolant warning (no live source yet)'],['alarm','r','Alarm'],['estop','r','E-stop latched (sim)'],['phone','b','Phone nearby (Bluetooth key, PROPOSED/UNVERIFIED: future ESP32, read-only, outside every safety path)'],['turnR','g','Right turn']];
+const TT=[['turnL','g','Left turn'],['d4wd','a','4WD engaged (status input UNVERIFIED)'],['diff','r','Diff locked (actuator UNVERIFIED)'],['high','b','High beam'],['hazard','r','Hazard'],['fault','r','BMS fault'],['hv','a','HV contactors open'],['batt','a','Low cell'],['temp','r','Pack hot'],['limp','a','Limp / derate'],['regen','a','Regen off'],['imb','a','LEM imbalance'],['link','a','No data'],['lights','g','Lights'],['fan','b','Cooling fan'],['seat','a','Seat heater'],['pump','b','Kelly coolant pump on'],['coolant','r','Coolant warning (no live source yet)'],['alarm','r','Alarm'],['estop','r','E-stop latched (sim)'],['malert','a','Master alert (amber, PROPOSED): PIN needed, wrong PIN, phone left, Park not set'],['phone','b','Phone nearby (Bluetooth key, PROPOSED/UNVERIFIED: future ESP32, read-only, outside every safety path)'],['turnR','g','Right turn']];
 const STY=['digital','analog','minimal'];   // Night is a separate toggle + dim level (Adam, Build 2)
 const ASSUMED_WHMI=350;           // PROPOSED fallback, docs/DASH.md
 const ASSUMED_PACK_KWH=36*3.6*180/1000; // SIM-ASSUMED 180 Ah (4 × 45 Ah) × 36 × 3.6 V
@@ -225,17 +227,75 @@ body.drive-locked [data-drive-lock]{opacity:.55;position:relative}body.drive-loc
 // Drive settings (modes, thresholds, limits) lock. PROPOSED phone-as-key: key OFF = locked; key ON + no phone key = PIN pad first.
 // Display-only settings (night, dim, style) are never marked data-drive-lock.
 // Kid: entering never needs the drive-settings PIN (key on); leaving Kid asks for the Kid PIN on the pad instead.
-const TeryxLock={keyOn:false,phone:true,unlocked:false,verify:null,hasPin:null,setPin:null,gear:'',why:null,onUnlock:null,
+// Build 18 security fix: `unlocked` is the ONE "PIN entered this key cycle" flag (the sim pushes its PG.entered here every tick).
+// It is cleared at key off only; the phone being nearby no longer clears it, and nothing latches from the phone.
+const TeryxLock={keyOn:false,phone:true,unlocked:false,verify:null,check:null,hasPin:null,setPin:null,gear:'',why:null,onUnlock:null,
   locked(){return !this.keyOn||(!this.phone&&!this.unlocked);},
   msg(){const w=this.why&&this.why();if(w)return 'Drive settings locked: '+w+(this.keyOn?' · tap to enter PIN':'');return !this.keyOn?'Drive settings locked: Key is off':'Drive settings locked: PIN needed (no phone nearby) · tap to enter PIN';},
   bypass(el){if(!this.keyOn||!el||!el.closest)return false;const b=el.closest('[data-sg],[data-g]');if(!b)return false;const g=b.dataset.sg||b.dataset.g;return g==='KID'||this.gear==='KID';},
-  set(o){const was=this.keyOn;Object.assign(this,o);if(!this.keyOn||this.phone)this.unlocked=false;if(typeof document!=='undefined'){document.body.classList.toggle('drive-locked',this.locked());document.querySelectorAll('[data-drive-lock]').forEach(e=>e.setAttribute('data-lock-msg',this.msg()));}},
+  set(o){o=o||{};Object.assign(this,o);if(!this.keyOn&&!('unlocked' in o))this.unlocked=false;if(typeof document!=='undefined'){document.body.classList.toggle('drive-locked',this.locked());document.querySelectorAll('[data-drive-lock]').forEach(e=>e.setAttribute('data-lock-msg',this.msg()));}},
   prompt(){if(!this.keyOn){TeryxPad.toast(this.msg());return;}if(!this.verify){TeryxPad.toast('No PIN available');return;}
-    if(this.hasPin&&!this.hasPin()){TeryxPad.toast('Set a PIN first (enter Kid mode once to set it)');return;}
-    TeryxPad.open({title:'Enter PIN to change drive settings',note:'No phone key detected (PROPOSED)',onEnter:p=>{const r=this.verify(p);const ok=r&&r.then?r.then(x=>x):r;const fin=x=>{if(x){this.unlocked=true;this.set({});if(this.onUnlock)this.onUnlock(p);TeryxPad.toast('Drive settings unlocked until key off');return '';}return 'Wrong PIN — try again';};return ok&&ok.then?ok.then(fin):fin(ok);}});}};
+    TeryxPad.open({title:'Enter PIN to change drive settings',note:'No phone key detected (PROPOSED) · one PIN for drive, settings and Kid exit',onEnter:p=>{
+      // check(p) -> '' or the refusal text (wrong PIN / lockout); verify(p) -> bool is the older form.
+      const r=this.check?this.check(p):this.verify(p);const fin=x=>{const m=this.check?x:(x?'':'Wrong PIN — try again');if(!m){this.unlocked=true;this.set({unlocked:true});if(this.onUnlock)this.onUnlock(p);TeryxPad.toast('Drive settings unlocked until key off');return '';}return m;};return r&&r.then?r.then(fin):fin(r);}});}};
+// Build 18 security fix (Adam): PIN to Drive gate. ONE pure function set, used by the sim page and dash.html.
+// Drive allowed = !pinToDrive || phoneNearbyNow || pinEnteredThisKeyCycle, worked out live every tick (never latched from the phone).
+// g.entered = pinEnteredThisKeyCycle: cleared at key off, reset, and when PIN to Drive is turned on.
+// Phone leaves while moving: drive is NOT cut mid-drive; a warning shows and the gate locks once at 0 mph or Park (PROPOSED).
+// 5 wrong PINs -> pad locked 30 s (PROPOSED). Applies to every PIN entry (drive, settings, wake, Kid exit, Change PIN).
+const TeryxGate={MAX_WRONG:5,LOCKOUT_MS:30000,
+  make(){return {entered:false,grace:false,wasOk:true,wrong:0,until:0};},
+  allowed(s){return !s.pinToDrive||!!s.phone||!!s.entered;},
+  locked(g,s){return !this.allowed({pinToDrive:s.pinToDrive,phone:s.phone,entered:g.entered})&&!g.grace;},
+  // s:{pinToDrive,phone,keyOn,moving}. Returns 'warn' when the moving grace starts, 'lock' when it ends at a stop.
+  tick(g,s){const ok=this.allowed({pinToDrive:s.pinToDrive,phone:s.phone,entered:g.entered});let ev='';
+    if(ok)g.grace=false;else if(g.wasOk&&s.keyOn&&s.moving){g.grace=true;ev='warn';}else if(g.grace&&(!s.moving||!s.keyOn)){g.grace=false;ev='lock';}
+    g.wasOk=ok;return ev;},
+  keyOff(g){g.entered=false;g.grace=false;},
+  lockLeft(g,now){return Math.max(0,g.until-now);},
+  // ok = the PIN matched. Returns '' or the text for the pad. Counts wrong tries; the 5th starts the 30 s lockout.
+  check(g,ok,now){const left=this.lockLeft(g,now);if(left)return 'Too many wrong PINs: wait '+Math.ceil(left/1000)+' s';
+    if(ok){g.wrong=0;return '';}
+    if(++g.wrong>=this.MAX_WRONG){g.wrong=0;g.until=now+this.LOCKOUT_MS;return 'Wrong PIN — too many tries: PIN pad locked 30 s';}
+    return 'Wrong PIN — try again ('+(this.MAX_WRONG-g.wrong)+' left before a 30 s lock)';}};
+// Build 18: Change PIN flow (sim + dash). api={keyOn():bool, check(pin)->''|msg|Promise, save(newPin)->''|msg|Promise}.
+// Always asks for the current PIN (even with the phone nearby), then the new 4-digit PIN twice. Key off = refused (settings rule).
+function TeryxPinChange(api){const later=f=>setTimeout(f,0),fin=(r,f)=>r&&r.then?r.then(f):f(r);
+  if(!api||!api.keyOn()){TeryxPad.toast('Change PIN: turn the key on first (settings rule; Park is fine)');return;}
+  const step2=note=>TeryxPad.open({title:'New PIN (4 digits)',note:note||'One PIN for PIN to Drive, drive settings and Kid exit',onEnter:p1=>{later(()=>TeryxPad.open({title:'New PIN again',note:'Type the same 4 digits',onEnter:p2=>{
+      if(p2!==p1){later(()=>{TeryxPad.toast('New PINs did not match: nothing changed');step2('Did not match — enter the new PIN again');});return '';}
+      return fin(api.save(p1),m=>{if(m)return m;TeryxPad.toast('PIN changed (also the Kid exit PIN)');return '';});}}));return '';}});
+  TeryxPad.open({title:'Change PIN: enter the current PIN',note:'Asked even with the phone nearby',onEnter:p=>fin(api.check(p),m=>{if(m)return m;later(()=>step2());return '';})});}
 if(typeof document!=='undefined'){const guard=e=>{const t=e.target&&e.target.closest&&e.target.closest('[data-drive-lock]');if(!t||!TeryxLock.locked()||TeryxPad.isOpen()||TeryxLock.bypass(e.target))return;e.preventDefault();e.stopImmediatePropagation();if(e.type==='click')TeryxLock.prompt();if(e.type==='focusin'&&e.target.blur)e.target.blur();};
   ['pointerdown','mousedown','touchstart','click','focusin','keydown','input','change'].forEach(t=>document.addEventListener(t,guard,{capture:true,passive:false}));}
-if(typeof window!=='undefined'){window.TeryxPad=TeryxPad;window.TeryxLock=TeryxLock;}
+// Build 18 master alert (Adam, PROPOSED): amber light + WebAudio chime (no audio files) for important NON-fault alerts:
+// PIN needed, wrong PIN / lockout, phone walked away, Park not set, blocked actions that matter. Real faults keep their red handling.
+// info = one soft chime + light for 6 s; warn = repeating double chime + light until cleared. Mute (Display settings, never locked).
+// iOS Safari: the AudioContext is created/resumed on the first touch. A real 12 V buzzer output is LATER (PINMAP BUZZER, PROPOSED).
+const TeryxAlert=(()=>{const A={act:{},muted:false,silent:false,ctx:null,chimes:0,lastKind:'',warnT:null,mirror:null,mSeen:null,unlocked:false};
+  try{A.muted=localStorage.getItem('teryx.chime.muted')==='1';}catch(_){}
+  const W=typeof window!=='undefined'?window:null;
+  function ac(){if(A.ctx||!W)return A.ctx;const C=W.AudioContext||W.webkitAudioContext;if(!C)return null;try{A.ctx=new C();}catch(_){A.ctx=null;}return A.ctx;}
+  function unlock(){if(A.unlocked)return;const c=ac();if(!c)return;try{if(c.state==='suspended')c.resume();const o=c.createOscillator(),g=c.createGain();g.gain.value=0;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+0.02);A.unlocked=true;}catch(_){}}
+  if(typeof document!=='undefined')['touchstart','pointerdown','keydown'].forEach(t=>document.addEventListener(t,unlock,{capture:true,passive:true}));
+  function tone(c,t0,f,d,v){const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(v,t0+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t0+d);o.connect(g);g.connect(c.destination);o.start(t0);o.stop(t0+d+0.05);}
+  function chime(kind){A.chimes++;A.lastKind=kind;if(A.muted||A.silent)return;const c=ac();if(!c)return;try{if(c.state==='suspended')c.resume();const t=c.currentTime+0.01;
+    if(kind==='warn'){tone(c,t,988,0.22,0.18);tone(c,t+0.28,988,0.22,0.18);}else tone(c,t,784,0.45,0.08);}catch(_){}}
+  function warnLoop(){const any=Object.values(A.act).some(a=>a.level==='warn');if(any&&!A.warnT)A.warnT=setInterval(()=>{if(Object.values(A.act).some(a=>a.level==='warn'))chime('warn');else{clearInterval(A.warnT);A.warnT=null;}},2500);}
+  function raise(level,text,key,ms){key=key||text;const cur=A.act[key];level=level==='warn'?'warn':'info';
+    if(cur&&cur.level===level&&cur.text===text&&level==='warn')return;   // a warn already repeating
+    if(cur&&cur.tm)clearTimeout(cur.tm);const a={level,text,t:Date.now(),tm:null};A.act[key]=a;
+    const life=ms||(level==='info'?6000:0);if(life)a.tm=setTimeout(()=>{if(A.act[key]===a)delete A.act[key];},life);
+    chime(level);if(level==='warn')warnLoop();}
+  function clear(key){const a=A.act[key];if(!a)return;if(a.tm)clearTimeout(a.tm);delete A.act[key];}
+  function top(){const v=Object.entries(A.act);const w=v.filter(([,a])=>a.level==='warn');const b=(w.length?w:v).sort((x,y)=>y[1].t-x[1].t)[0];return b?{key:b[0],...b[1]}:null;}
+  function state(){const t=top(),M=A.mirror&&A.mirror.on?A.mirror:null;const lv=t&&t.level==='warn'||M&&M.level==='warn'?'warn':t||M?'info':'';
+    return {on:!!(t||M),level:lv,text:t?t.text:M?M.text:'',keys:Object.keys(A.act).concat(M?M.keys||[]:[]),muted:A.muted,chimes:A.chimes,lastKind:A.lastKind};}
+  // dash.html?src=sim / iPhone: mirror the simulator's alert state; play the chime here when the sim chimed.
+  function sync(st){if(!st)return;if(A.mSeen!=null&&st.chimes>A.mSeen)chime(st.lastKind||st.level||'info');A.mSeen=st.chimes;A.mirror=st;}
+  function mute(on){A.muted=!!on;try{localStorage.setItem('teryx.chime.muted',A.muted?'1':'0');}catch(_){}}
+  return {raise,clear,state,sync,mute,isMuted:()=>A.muted,setSilent:v=>{A.silent=!!v;},unlock,_A:A};})();
+if(typeof window!=='undefined'){window.TeryxPad=TeryxPad;window.TeryxLock=TeryxLock;window.TeryxGate=TeryxGate;window.TeryxPinChange=TeryxPinChange;window.TeryxAlert=TeryxAlert;}
 const DASH_BUILD='@@BUILD@@';
 function create(root,opt){
   opt=opt||{};if(!document.getElementById('tdash-css')){const st=document.createElement('style');st.id='tdash-css';st.textContent=CSS;document.head.appendChild(st);}
@@ -322,10 +382,14 @@ function create(root,opt){
       <div class="k">Settings · all PROPOSED · each change asks first</div><div class="cset" data-f="cset" data-drive-lock></div></section>
      <section data-s2="flt"><h3>Faults &amp; log</h3><div class="k">Active now</div><div class="lst" data-f="mfa"></div><div class="k">Power cutback (derate)</div><div class="kv" data-f="mfd"></div><div class="k">Seen on this screen</div><div class="lst" data-f="mfh"></div><div class="k">Event log <span class="tag" data-f="mflT"></span></div><div class="lst" data-f="mfl"></div></section>
      <section data-s2="cool"><h3>Cooling</h3><div class="kv" data-f="mco"></div><div class="row"><button class="mb" data-f="mfan">Fan override</button><span class="tag" data-f="mfanN"></span></div>
-      <div class="k">Pump: PROPOSED Bosch 12 V pump on the stock radiator, on whenever the key is on. Fan: PROPOSED relay, auto at ~40 °C. No flow or coolant-temp sensor yet, so those read —.</div></section>
+      <div class="k">Pump: PROPOSED Bosch 12 V pump on the stock radiator, on whenever the key is on. Fan: PROPOSED relay, auto at ~40 °C. No flow or coolant-temp sensor yet, so those read —.</div>
+      <div class="k">First drive (chief 2026-10-23): pump hardwired to key-switched 12 V, fan on a thermoswitch or always on — no Teensy logic.</div>
+      <div class="k" data-f="coolLater">LATER — reserved, no logic: Motor fan (MCP23017 bit 14, IRLB8721 + 1N4007 relay; future trigger Kelly CAN 0x0CF11F05 byte 2) · Pack heater: not reserved (dropped from Build 18).</div></section>
      <section data-s2="veh" data-drive-lock><h3>Vehicle settings</h3><div class="note">Tire 24 in (SOURCED: Adam, stock tires). At the PROPOSED 6000 RPM High cap the top speed is ≈49 mph; 55 mph would need ≈6740 RPM. Top speed falls as the pack drains (SOURCED: Sparky, back-EMF 0.026 V/RPM): base speed ≈ pack V ÷ 0.026 = ≈5680 RPM (≈46 mph) at 147.6 V full, ≈5120 RPM (≈42 mph) at 133 V nominal, ≈4570 RPM (≈37 mph) at the 118.8 V low cut; above base speed the Kelly must field-weaken, up to the 6000 RPM cap (≈49 mph). mph from the 24in tire and 8.75 ratio; sag under load lowers it further (not modelled). Total ratio 8.75 = sprockets 16T/32T 2.0:1 (SOURCED: cash ledger) × diff 4.375:1 (SOURCED: 2008 owner's manual).</div><div data-f="mveh"></div></section>
      <section data-s2="disp"><h3>Display</h3><div class="k">Cluster style</div><div class="row" data-f="sty">${STY.map(s=>`<button class="mb" data-s="${s}">${s[0].toUpperCase()+s.slice(1)}</button>`).join('')}</div>
       <div class="row"><button class="mb" data-f="nightb">Night mode: off</button><span class="k">Dim</span><input type="range" min="20" max="100" step="5" data-f="dimr" aria-label="Night dim level" style="width:160px"><b data-f="dimv">60 %</b><span class="k"><span class="tag">screen brightness while Night is on</span></span></div>
+      <div class="row"><button class="mb" data-f="mute">Alert chime: on</button><span class="k"><span class="tag">amber light + chime for PIN, phone left, Park not set (PROPOSED) · faults stay red</span></span></div>
+      <div class="k">PIN</div><div class="row"><button class="mb" data-f="pinchg">Change PIN</button><span class="tag" data-f="pindef"></span><span class="k"><span class="tag">one PIN: PIN to Drive + drive settings + Kid exit · asks the current PIN first, key on only</span></span></div>
       <div class="row"><span class="k">Sleep while charging after</span><input type="number" min="10" max="3600" step="10" data-f="msl"><span class="k">s <span class="tag">PROPOSED 120 s</span></span></div>
       <div class="k">Wakes on tap, brake, key, door/button input, charge fault or charge complete.</div>
       ${opt.sourceUI?`<div class="k">Data source</div><div class="row" data-f="srcs"><button class="mb" data-src="sim">Simulator</button><button class="mb" data-src="http">HTTP poll</button><button class="mb" data-src="ws">WebSocket</button><button class="mb" data-src="none">None</button></div>
@@ -347,6 +411,9 @@ function create(root,opt){
     localStorage.setItem('teryxDashNight',night?'1':'0');localStorage.setItem('teryxDashDim',String(dimPct));
     const b=F('nightb');if(b){b.textContent='Night mode: '+(night?'ON':'off');b.classList.toggle('on',night);F('dimr').value=dimPct;F('dimv').textContent=dimPct+' %';}};
   setStyle(STY.includes(style)?style:'digital');setNight(night);
+  const mutePaint=()=>{const m=TeryxAlert.isMuted();F('mute').textContent='Alert chime: '+(m?'MUTED':'on');F('mute').classList.toggle('on',!m);};mutePaint();
+  F('mute').onclick=()=>{TeryxAlert.unlock();TeryxAlert.mute(!TeryxAlert.isMuted());mutePaint();toast(TeryxAlert.isMuted()?'Alert chime muted (light still shows)':'Alert chime on');};
+  F('pinchg').onclick=()=>changePinUi();
   F('nightb').onclick=()=>setNight(!night);F('dimr').oninput=e=>setNight(true,e.target.value);
   D.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>setStyle(b.dataset.s));
   F('trst').onclick=()=>{trip={mi:0,kwh:0,reg:0};win=[];localStorage.setItem('teryxDashTrip',JSON.stringify(trip));};
@@ -560,16 +627,24 @@ function create(root,opt){
     else{F('limP').innerHTML='<span class="na">—</span>';F('limW').textContent='';lim.classList.remove('cut','off');}
     if(r.msg&&r.msg!==toastMsg&&performance.now()-toastT>300)toast(r.msg);if(performance.now()-toastT>6000&&F('toast').textContent)F('toast').textContent='';
     if(sim)simPaint(s);}
-  let noticeSeen=null,padSeen=null;
+  let noticeSeen=null,padSeen=null,pinChkN=null,pinWait=null;
+  // dash.html?src=sim: every PIN typed here is checked BY THE SIM (one gate, one wrong-PIN counter): send, wait for simInfo.pinChk.
+  function simCheck(cmd,v){return new Promise(res=>{if(pinWait)pinWait.res('Busy, try again');const w={n0:pinChkN,res:m=>{clearTimeout(w.t);if(pinWait===w)pinWait=null;res(m);}};w.t=setTimeout(()=>w.res('No answer from the simulator'),3000);pinWait=w;sim.send(cmd,v);});}
+  function changePinUi(){if(opt.pinApi){TeryxPinChange(opt.pinApi);return;}
+    if(sim&&!opt.hostLock){let old='';TeryxPinChange({keyOn:()=>TeryxLock.keyOn,check:p=>{old=p;return simCheck('pincheck',p);},save:n=>simCheck('pinset',old+':'+n)});return;}
+    toast('Change PIN: not available on this data source (firmware PIN change not built)');TeryxPad.toast('Change PIN: not available on this data source');}
   function simNotices(I){if(opt.hostLock||!sim)return;   // dash.html?src=sim: show the sim's plain-words pop-ups here too
     const nt=I.notice;if(nt&&num(nt.n)){if(noticeSeen!=null&&nt.n!==noticeSeen&&nt.text){toast(nt.text);TeryxPad.toast(nt.text);}noticeSeen=nt.n;}
-    const pr=I.padReq;if(pr&&num(pr.n)){if(padSeen!=null&&pr.n!==padSeen&&!TeryxPad.isOpen())TeryxPad.open({title:pr.title||'Enter PIN to drive',note:pr.note||'',onEnter:pin=>{if(TeryxLock.verify&&!TeryxLock.verify(pin))return 'Wrong PIN — try again';sim.send('pin',pin);TeryxLock.unlocked=true;TeryxLock.set({});return '';}});padSeen=pr.n;}}
+    const pr=I.padReq;if(pr&&num(pr.n)){if(padSeen!=null&&pr.n!==padSeen&&!TeryxPad.isOpen())TeryxPad.open({title:pr.title||'Enter PIN to drive',note:pr.note||'PIN to Drive is on · or bring the phone nearby',onEnter:pin=>simCheck('pin',pin)});padSeen=pr.n;}}
   function update(s,meta){
     {const I=(s&&s.simInfo)||{},B=(s&&s.bms)||{};const k=I.key!=null?!!I.key:(s&&s.keyOn!=null?!!s.keyOn:/Closed|Precharge|MainClose/.test(String(B.state||'')));
-     if(!opt.hostLock&&sim&&!TeryxLock.onUnlock)TeryxLock.onUnlock=p=>sim.send('pin',p);   // a PIN typed here also counts in the sim
+     if(!opt.hostLock&&sim&&!TeryxLock.check){TeryxLock.check=p=>simCheck('pin',p);TeryxLock.verify=()=>true;}   // a PIN typed here is checked by the sim
+     if(I.pinChk&&num(I.pinChk.n)){if(pinWait&&I.pinChk.n!==pinWait.n0)pinWait.res(I.pinChk.msg||'');pinChkN=I.pinChk.n;}
+     if(!opt.hostLock&&I.alert)TeryxAlert.sync(I.alert);
+     {const pd=F('pindef');if(pd)pd.textContent=I.pinDefault?'PIN is still 0000, change it':'';}
      if(!opt.hostLock&&I.block){const w=(I.block.setting||[]).join(', ');TeryxLock.why=()=>w;}
-     TeryxLock.set({keyOn:k,phone:I.phoneKey!=null?!!I.phoneKey:false,gear:I.mode||I.gear||(s&&s.drive&&s.drive.gear)||''});if(s&&!(meta&&meta.stale))simNotices(I);
-     if(!opt.hostLock&&!TeryxLock.verify){TeryxLock.verify=p=>{try{const h=(JSON.parse(localStorage.getItem('teryx.modes.v1')||'{}').hash)>>>0;return !!h&&typeof vehHashPin==='function'&&vehHashPin(p)===h;}catch(_){return false;}};TeryxLock.hasPin=()=>{try{return !!(JSON.parse(localStorage.getItem('teryx.modes.v1')||'{}').hash>>>0);}catch(_){return false;}};}}
+     TeryxLock.set(Object.assign({keyOn:k,phone:I.phoneKey!=null?!!I.phoneKey:false,gear:I.mode||I.gear||(s&&s.drive&&s.drive.gear)||''},I.pinEntered!=null?{unlocked:!!I.pinEntered}:{}));if(s&&!(meta&&meta.stale))simNotices(I);
+}
     meta=meta||{};const now=performance.now(),dt=lastT?Math.min(2,(now-lastT)/1000):0;lastT=now;
     const live=!!s&&!meta.stale,B=(s&&s.bms)||{},Dr=(s&&s.drive)||{},E=(s&&s.energy)||{},C=(s&&s.contactors)||{},A=(s&&s.aux12v)||{},L=A.loads||{};
     const packV=live&&B.wired&&num(B.packV)?B.packV:null,packA=live&&B.wired&&num(B.packA)?B.packA:null;
@@ -623,8 +698,9 @@ function create(root,opt){
     // tell-tales
     const fl=(s&&s.faults)||[],faultTxt=fl.filter(f=>f.level==='fault').map(f=>f.text);
     const on={fault:live&&faultTxt.length>0,hv:live&&C.wired!==false&&!closed,batt:cmn!=null&&cmn<3.2,temp:tP!=null&&tP>=50,limp:live&&(!!Dr.limp||(num(Dr.powerAllowedPct)&&Dr.powerAllowedPct<100)),
-      regen:live&&Dr.regenOk===false&&closed,imb:live&&!!B.lemImbalance,link:!live,lights:!!L.lights||co.headLow,fan:!!L.fan,seat:!!L.seatHeat,pump:!!L.pump,coolant:live&&((s.coolant||{}).flowOk===false||num((s.coolant||{}).tempC)&&s.coolant.tempC>=60),turnL:co.turnL,turnR:co.turnR,hazard:CT.S.hazard,high:co.headHigh,d4wd:cr.wd==='4WD',diff:cr.diff!=='off'||!!cr.faultD,alarm:!!L.alarm||(live&&faultTxt.length>0),phone:live&&!!(s.simInfo||{}).phoneKey,estop:live&&!!(s.simInfo||{}).estop};
+      regen:live&&Dr.regenOk===false&&closed,imb:live&&!!B.lemImbalance,link:!live,lights:!!L.lights||co.headLow,fan:!!L.fan,seat:!!L.seatHeat,pump:!!L.pump,coolant:live&&((s.coolant||{}).flowOk===false||num((s.coolant||{}).tempC)&&s.coolant.tempC>=60),turnL:co.turnL,turnR:co.turnR,hazard:CT.S.hazard,high:co.headHigh,d4wd:cr.wd==='4WD',diff:cr.diff!=='off'||!!cr.faultD,alarm:!!L.alarm||(live&&faultTxt.length>0),phone:live&&!!(s.simInfo||{}).phoneKey,estop:live&&!!(s.simInfo||{}).estop,malert:TeryxAlert.state().on};
     D.querySelectorAll('.tt i').forEach(i=>i.classList.toggle('on',!!on[i.dataset.k]));
+    {const as=TeryxAlert.state(),mi=D.querySelector('.tt i[data-k=malert]');if(mi){mi.title='Master alert (amber, PROPOSED): '+(as.on?as.text:'none')+(as.muted?' · chime muted':'');mi.classList.toggle('warnlv',as.level==='warn');}}
     curFaultKey=faultTxt.join('|');if(!curFaultKey)ack=null;
     F('ban').classList.toggle('on',!!curFaultKey&&ack!==curFaultKey);F('banT').textContent='⚠ '+faultTxt.join(' · ');
     if(curFaultKey!==prevFault){const a=prevFault?prevFault.split('|'):[],b=faultTxt;b.filter(x=>!a.includes(x)).forEach(x=>fhist.push({t:Date.now(),text:x,on:true}));a.filter(x=>!b.includes(x)).forEach(x=>fhist.push({t:Date.now(),text:x,on:false}));prevFault=curFaultKey;}
@@ -633,5 +709,5 @@ function create(root,opt){
   update(null);if(split.on)applySplit();
   return {toast,update,controls:CT,root:D,setStyle,F,wake,openMenu,setSplit,getSplit:()=>Object.assign({},split),isAsleep:()=>cs.asleep};
 }
-g.TeryxDash={TeryxPad,TeryxLock,create,IOMAP,SEC:TeryxDash_SEC,ASSUMED_WHMI,ASSUMED_PACK_KWH,RPM_PER_MPH};
+g.TeryxDash={TeryxPad,TeryxLock,TeryxGate,TeryxPinChange,TeryxAlert,create,IOMAP,SEC:TeryxDash_SEC,ASSUMED_WHMI,ASSUMED_PACK_KWH,RPM_PER_MPH};
 })(window);
