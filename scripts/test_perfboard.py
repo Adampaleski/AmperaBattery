@@ -2,7 +2,7 @@
 # 1) check_boards.py: the repo layouts PASS; a temp copy with a bogus PARTS id FAILS (and so do an open net and a short).
 # 2) tools/perfboard.html?board=coil_driver loads: 14 parts, 20 wires (low side only, J-12V deleted), check chip PASS, PROPOSED chip, notes + off-board 1N4007.
 # 3) the in-page check catches a bogus PARTS id (via localStorage edits) and Reset drops it.
-# 4) drag a part (snaps to holes), Rotate, edits persist across reload, Export JSON of an unedited board == the repo file.
+# 4) drag a part (snaps to holes; its attached wire ends follow), Rotate, edits persist across reload, Export JSON of an unedited board == the repo file.
 # 5) wiring.html precharge: clicking the drv node opens perfboard.html?board=coil_driver.
 # 6) iPhone portrait (touch): tap selects a part, pinch-free fit, no sideways scroll.
 # 7) bms_master (Build 21): PROPOSED, every part a PARTS id, Teensy A + B on TEENSY41, ONE star (one 18 AWG bar), LEM dividers
@@ -88,13 +88,18 @@ with sync_playwright() as p:
     # drag Q-BP one hole right... find the part's anchor on screen
     ref = J("PB.L.parts.find(p=>p.fp==='TO220').ref"); at0 = J(f"PB.L.parts.find(p=>p.ref==='{ref}').at")
     def scr(h): return J(f"""(()=>{{const rc=PB.hole('{h}'),sv=document.getElementById('sv'),m=sv.getScreenCTM(),pt=new DOMPoint((rc[1]-1)*2.54,rc[0]*2.54).matrixTransform(m);return [pt.x,pt.y,m.a]}})()""")
+    FET_ENDS = J(f"""(()=>{{const p=PB.L.parts.find(p=>p.ref==='{ref}'),set=new Set(Object.values(PB.pinsOf(p)).map(x=>PB.hname(x)));
+      return PB.L.wires.flatMap(w=>[[w.id,0],[w.id,w.pts.length-1]].filter(([i,k])=>set.has(w.pts[k])))}})()""")
     x, y, sc = scr(at0); pitch = 2.54 * sc
     pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x + pitch * .6, y, steps=4); pg.mouse.move(x + pitch * 3, y + pitch * 2, steps=8); pg.mouse.up(); pg.wait_for_timeout(200)
     r0, c0 = J(f"PB.hole('{at0}')"); at1 = J(f"PB.L.parts.find(p=>p.ref==='{ref}').at"); r1, c1 = J(f"PB.hole('{at1}')")
     ok((r1 - r0, c1 - c0) == (2, 3), f'drag {ref} snaps to holes: {at0} -> {at1}')
     pg.mouse.click(*scr(at1)[:2]); pg.wait_for_timeout(150); pg.click('#rot'); pg.wait_for_timeout(150)
     ok(J(f"PB.L.parts.find(p=>p.ref==='{ref}').rot") == 90, f'Rotate turns {ref} to 90°')
-    ok(int(J("document.getElementById('ck').dataset.err")) > 0, 'moving a FET off its wires makes the check fail (open/dangling nets flagged)')
+    # Build 22: wire ends on the FET's pins are attached, so they followed the drag and the rotate
+    ends_ok = J(f"""(()=>{{const p=PB.L.parts.find(p=>p.ref==='{ref}'),pins=PB.pinsOf(p),set=new Set(Object.values(pins).map(x=>PB.hname(x)));
+      return PB.L.wires.filter(w=>!w.free).flatMap(w=>[w.pts[0],w.pts[w.pts.length-1]]).filter(h=>set.has(h)).length}})()""")
+    ok(ends_ok == len(FET_ENDS), f'drag + Rotate: all {len(FET_ENDS)} wire ends attached to {ref} followed its pins ({ends_ok} on the new pins)')
     pg.reload(); pg.wait_for_timeout(400)
     ok(J(f"PB.L.parts.find(p=>p.ref==='{ref}').at") == at1 and J(f"PB.L.parts.find(p=>p.ref==='{ref}').rot") == 90, 'edits persist across reload (localStorage)')
     pg.click('#rst'); pg.wait_for_timeout(300)

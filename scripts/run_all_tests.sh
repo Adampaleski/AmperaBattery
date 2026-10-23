@@ -20,5 +20,6 @@ if [ -z "$FAST" ]; then
   run dash_ui "python3 scripts/test_dash_ui.py"
   run iphone "python3 scripts/test_iphone.py"
   run perfboard "python3 scripts/test_perfboard.py"
+  run perfboard_edit "python3 scripts/test_perfboard_edit.py"
 fi
 exit $fail
