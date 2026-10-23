@@ -34,7 +34,7 @@ console.log(`socpage: ${sn-sf}/${sn} checks passed`);
 // ---- Drive cycles (sim/drive_cycles.js profiles through the page's driver-input model, 100 ms steps)
 const path=require("path");
 const DC=new Function(fs.readFileSync(path.join(__dirname,"../sim/drive_cycles.js"),"utf8")+";return {DRIVE_CYCLES,cycleLen,cycleAt};")();
-const VM=new Function(fs.readFileSync(path.join(__dirname,"../sim/vehicle.js"),"utf8")+";return {VEH_DEF,VEH_GEARS,VEH_MODE_DEF,VEH_KID,vehHashPin,vehPinOk,vehTrim,vehSelectMode,vehStep,vehRpm,vehRatio,vehMphAtRpm,vehMigrate};")();  // same vehicle model as the page
+const VM=new Function(fs.readFileSync(path.join(__dirname,"../sim/vehicle.js"),"utf8")+";return {VEH_DEF,VEH_GEARS,VEH_MODE_DEF,VEH_KID,vehHashPin,vehPinOk,vehTrim,vehSelectMode,vehStep,vehRpm,vehRatio,vehMphAtRpm,vehMigrate,vehBattA};")();  // same vehicle model as the page
 let df=0,dn=0;
 const dck=(ok,name,d)=>{dn++;if(!ok)df++;console.log((ok?"PASS":"FAIL")+" drivecycle "+name.padEnd(44),`end=${d.end} t=${d.t.toFixed(0)}s peak=${d.peakA.toFixed(0)}A regen=${(-d.minA).toFixed(0)}A dist=${d.dist.toFixed(2)}mi Ah=${d.ah.toFixed(2)} soc=${d.soc0.toFixed(1)}->${d.soc1.toFixed(1)} lowCell=${d.lo.toFixed(3)}`);};
 const lowCell=()=>{let lo=9;for(let b=0;b<8;b++)for(let c=0;c<X.sim_board_cells(b);c++)lo=Math.min(lo,X.sim_get_cell(b,c));return lo;};
@@ -57,7 +57,8 @@ function drive(k,prep){
 {const P=DC.DRIVE_CYCLES.trail,a=DC.cycleAt(P,6.5),z=DC.cycleAt(P,1e6);
  dck(a.i===1&&a.gear==="L"&&Math.abs(a.thr-12.5)<0.01&&z.done&&DC.cycleLen(P)===125,"profile: 1 s throttle ramp, done flag",{end:"-",t:0,peakA:0,minA:0,dist:0,ah:0,soc0:0,soc1:0,lo:0});}
 {const d=drive("trail");dck(d.end==="complete"&&d.peakA<650&&d.minA<0&&d.dist>0.1&&Math.abs((d.soc0-d.soc1)-d.ah/180*100)<0.05,"trail loop: mains stay closed, regen, SoC = Ah/180",d);}
-{const d=drive("launch");dck(d.end==="complete"&&d.peakA>400&&d.peakA<=550.5&&d.minA<0,"hard launches: peak <= 550 A Kelly limit, regen, no trip",d);}
+{const BA=VM.vehBattA(VM.VEH_DEF),d=drive("launch");dck(d.end==="complete"&&d.peakA>0.9*BA&&d.peakA<=BA+0.5&&d.minA<0,"hard launches: peak <= Kelly #11 battery limit ("+BA+" A @ "+VM.VEH_DEF.kellyStrings+" strings), regen, no trip",d);}
+{const f=n=>VM.vehBattA({kellyStrings:n});dck(f(1)===137.5&&f(2)===269.5&&f(4)===412.5&&f(3)===269.5&&VM.VEH_DEF.battA===269.5&&VM.VEH_DEF.phaseA===550&&VM.vehMigrate({battA:550}).battA===undefined,"Kelly #11 battery A: 25/49/75 % of 550 = 137.5/269.5/412.5",{end:"-",t:0,peakA:0,minA:0,dist:0,ah:0,soc0:0,soc1:0,lo:0});}
 {const d=drive("climb");dck(d.end==="complete"&&d.soc0-d.soc1>10&&Math.abs((d.soc0-d.soc1)-d.ah/180*100)<0.2,"long climb 10 min: SoC drop matches Ah",d);}
 {const d=drive("trail",()=>X.sim_set_cell(3,5,3.25));dck(d.end!=="complete"&&d.ah<0.01,"cell 3.25 V < low cut: mains never close",d);}
 console.log(`drivecycle: ${dn-df}/${dn} checks passed`);

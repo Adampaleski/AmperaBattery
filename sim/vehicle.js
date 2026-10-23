@@ -10,8 +10,17 @@
 // Hydraulic friction is NOT blended: it always follows the pedal; regen adds on top. Regen is still capped by the
 // BMS (regenOk: cells full / pack cold) and a PROPOSED taper regenAllowPct (SOC + cold, from the sim page).
 const VEH_DEF={tireIn:24,sprFront:16,sprRear:32,diffRatio:4.375,massKg:900,crr:0.030,cdA:1.20,gradePct:0,
-  maxRegenA:60,regenBlendPct:30,brkDeadLo:20,brkDeadHi:80,brkAdPct:30,brkSwPct:3,brkMinRpm:100,analogBrake:false,brkSwRegenPct:10,liftRegen:false,ntlBrkPct:0,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,battA:550,
+  maxRegenA:60,regenBlendPct:30,brkDeadLo:20,brkDeadHi:80,brkAdPct:30,brkSwPct:3,brkMinRpm:100,analogBrake:false,brkSwRegenPct:10,liftRegen:false,ntlBrkPct:0,liftRegenA:20,eta:0.88,ktNmA:0.26,phaseA:550,kellyStrings:2,
   frictionG:0.6,dtDragN:60,parkG:0.25,lowCapRpm:1800,lowRevRpm:1200,fadeLoMph:1.5,fadeHiMph:4.5};
+// Kelly battery current follows the number of strings connected (Kelly #11 Battery_Current, % of the 550 A controller rating).
+// PROPOSED/DECIDED by chief 2026-10-23, from docs/KELLY_SETTINGS.md #11 — NOT yet confirmed programmed in the Kelly.
+// 1 string 25 % (wheels up) · 2 strings 49 % (first-drive default) · 4 strings 75 % (after the LEM sign check).
+// 550 A is ONLY the controller rating (phase); battery amps are always computed from the % below, never typed.
+const KELLY_RATED_A=550,KELLY_BATT_PCT={1:25,2:49,4:75};
+// 3 strings is not a #11 stage: use the next LOWER defined stage (2 strings, 49 %) until chief sets one.
+function vehBattPct(n){n=Math.round(+n||2);while(n>1&&KELLY_BATT_PCT[n]==null)n--;return KELLY_BATT_PCT[n]==null?KELLY_BATT_PCT[1]:KELLY_BATT_PCT[n];}
+function vehBattA(p){return KELLY_RATED_A*vehBattPct(p&&p.kellyStrings)/100;}
+VEH_DEF.battA=vehBattA(VEH_DEF);   // derived (269.5 A at 2 strings); read-only, recomputed from kellyStrings in vehStep
 // [key, label, unit, tag, min, max, step]
 const VEH_SETS=[['tireIn','Tire diameter','in','SOURCED: Adam (stock tires, 24")',18,40,0.5],['sprFront','Drive sprocket','teeth','SOURCED: cash ledger (#50 chain, 16T)',8,40,1],
   ['sprRear','Driven sprocket','teeth','SOURCED: cash ledger (#50 chain, 32T → 2.0:1)',16,80,1],['diffRatio','Diff ratio','× : 1','SOURCED: 2008 Teryx owner\'s manual 4.375:1 (35/8, front = rear) · total 2.0 × 4.375 = 8.75',1,12,0.005],
@@ -20,7 +29,7 @@ const VEH_SETS=[['tireIn','Tire diameter','in','SOURCED: Adam (stock tires, 24")
   ['maxRegenA','Max regen current','A','PROPOSED 60 A',0,200,5],['analogBrake','Analog brake pedal on Kelly Brake_AN (DEFERRED)','on/off','DEFERRED for first drive (crew): needs Kelly config readback + Boost OFF confirmed. Default off = brake-switch regen at a fixed level',0,1,1],['brkSwRegenPct','Kelly BRK_SW Brk (switch regen strength)','% (0-50)','SOURCED range 0-50 %, default 10 %; amps mapping UNVERIFIED (× maxRegenA / 50)',0,50,1],['brkDeadLo','Kelly Brake Dead Low','% pedal','SOURCED default 20 % (=1 V)',5,40,1],['brkDeadHi','Kelly Brake Dead High','% pedal','SOURCED default 80 % (=4 V)',60,95,1],['brkAdPct','Kelly BRK_AD Brk (pedal regen strength)','% (0-50)','SOURCED range 0-50 %, default 0; 30 PROPOSED; mapping to amps UNVERIFIED (maxRegenA scales it)',0,50,1],['brkSwPct','Brake switch closes above','% pedal','PROPOSED (switch position on pedal UNVERIFIED)',0,20,1],['brkMinRpm','Kelly Brk_Speed Limit','RPM','SOURCED range 0-500, default 0; 100 PROPOSED',0,500,10],
   ['ntlBrkPct','Regen in Neutral (Kelly NTL Brk)','%','SOURCED: Kelly manual item 45 NTL Brk, 0–50 %, default 0 = no regen in neutral',0,50,1],['liftRegen','Throttle lift-off regen','on/off','PROPOSED off by default',0,1,1],['liftRegenA','Lift-off regen current','A','PROPOSED',0,100,5],
   ['lowCapRpm','Kelly Low speed cap (ECO pin 22)','RPM','DECIDED (Adam 2026-10-23) 1800 RPM ≈ 15 mph (LowSpeed Fwd 30 % of 6000, docs/KELLY_SETTINGS.md #29): the Kid hardware backstop if both Teensys die; Kid software cap stays 10 mph; Kelly + ECO pin + relay UNVERIFIED',300,6000,25],['lowRevRpm','Kelly Low speed reverse cap (ECO pin 22)','RPM','DECIDED (Adam 2026-10-23) 1200 RPM ≈ 10 mph (LowSpeed Rev 20 % of 6000, docs/KELLY_SETTINGS.md #30); Kelly UNVERIFIED',300,6000,25],['ktNmA','Motor torque constant','Nm/A','PLACEHOLDER: Zero Z75-7 / 75-7R IPM (cash ledger); kW, torque, rpm, voltage MISSING',0.05,1,0.01],['eta','Drive efficiency','','ASSUMED 0.88',0.5,1,0.01],
-  ['phaseA','Kelly phase current limit','A','SOURCED: Adam 550 A (Kelly config not yet read back)',50,800,10],['battA','Kelly battery current limit','A','SOURCED: Adam 550 A',50,800,10]];
+  ['phaseA','Kelly phase current limit','A','SOURCED: Adam 550 A = controller rating (Kelly config not yet read back)',50,800,10],['kellyStrings','Strings connected (sets Kelly #11 battery current)','strings','PROPOSED/DECIDED by chief 2026-10-23, from docs/KELLY_SETTINGS.md #11 — NOT yet confirmed programmed: 1 = 25 % (≈138 A), 2 = 49 % (≈270 A, first-drive default), 4 = 75 % (≈413 A) of the 550 A controller rating; 3 uses the 2-string 49 %',1,4,1]];
 // Drive modes = pedal-map profiles (Adam approved 2026-10-21). Mirror of include/DriveProfile.h kDefaults
 // (parity-checked against the wasm build). ALL values PROPOSED, editable in Settings. Reduce-only trim:
 // expo (0 linear .. 1 soft), cur = pedal cap % (current-limit proxy), ramp A/s (vs 550 A), top mph, regen %.
@@ -67,6 +76,7 @@ function vehRatio(p){return p.sprRear/p.sprFront*p.diffRatio;}
 // Saved settings from before the rename: 'gearbox' was the diff ratio all along -> diffRatio.
 function vehMigrate(o){o=o||{};if(o.tireIn===27)o.tireIn=24;if(o.lowCapRpm===1225)delete o.lowCapRpm;  // old 20 % (10 mph) Low cap -> DECIDED 30 % (Adam 2026-10-23)
    // old ASSUMED 27" default -> Adam's stock 24"
+  if(o.battA!=null)delete o.battA;   // battA is derived from kellyStrings (Kelly #11, chief 2026-10-23); old saved 550 A dropped
   if(o.gearbox!=null){if(o.diffRatio==null)o.diffRatio=o.gearbox;delete o.gearbox;}return o;}
 function vehWheelR(p){return p.tireIn*0.0254/2;}
 function vehRpm(p,mph){return Math.abs(mph)*MPS_PER_MPH/vehWheelR(p)*vehRatio(p)*60/(2*Math.PI);}
@@ -91,7 +101,7 @@ function vehStep(p,st,inp,dt){
     const k100=inp.teensyDead?thr:vehTrim(g,tr,thr*100,st.mph,inp.allowPct,true,dt*1000)/100;st.trimOut=k100*100;
     T=p.ktNmA*p.phaseA*k100;                                                  // trim output (curve, cap, ramp, top, BMS allowance)
     if(k100<thr*g.cur/100*Math.max(0,inp.allowPct)/100-0.5e-2&&Math.abs(st.mph)>=g.top-2)why=inp.gear==='R'?'reverse cap '+g.top+' mph ('+((VEH_GEARS[g.mode]||{}).n||'High')+')':'mode top speed';
-    const Pmax=p.eta*V*p.battA;if(w>1&&T*w>Pmax){T=Pmax/w;why='Kelly battery limit';}   // battery-amp limit
+    const Pmax=p.eta*V*vehBattA(p);if(w>1&&T*w>Pmax){T=Pmax/w;why='Kelly battery limit';}   // battery-amp limit
     const lowCap=inp.gear==='R'?(p.lowRevRpm||1200):p.lowCapRpm,capRpm=inp.kellyLowCap?Math.min(g.rpm,lowCap):g.rpm;
     if(inp.kellyLowCap&&rpm>=capRpm*0.95){T*=Math.max(0,(capRpm-rpm)/(capRpm*0.05));why='Kelly Low cap (ECO relay'+(inp.teensyDead?', Teensys dead':'')+')';}
     else if(rpm>=g.rpm*0.95){T*=Math.max(0,(g.rpm-rpm)/(g.rpm*0.05));why=inp.gear==='R'?'reverse RPM cap':'Kelly 6000 RPM cap';}
