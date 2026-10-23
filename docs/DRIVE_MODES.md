@@ -36,24 +36,24 @@ Every value is **PROPOSED** and adjustable (firmware: `MP <key> expo|cur|ramp|to
 - `d` prints mode, pedal, output, wiper, max ISR period and compute µs.
 
 ## Hardware Low cap: Kelly ECO (Adam's final call + crew, 2026-10-21) — fail-safe
-Kid's 10 mph limit must hold even if **both Teensys die**, so one Kelly speed switch is kept as a hardware Low-only cap:
+Kid's normal limit is **10 mph forward, enforced by the Teensy** (software). One Kelly speed switch is kept as a hardware Low-only cap so Kid stays slow even if **both Teensys die**: the Kelly then holds Kid at **about 15 mph forward and 10 mph reverse** (DECIDED, Adam 2026-10-23). That backstop is 5 mph faster forward than the software cap, on purpose:
 ```
 Kelly 12 V out (pin 11) --- relay NC contact --- Kelly ECO (pin 22, low-speed switch)
 Teensy A OUT3 (pin 20) --- logic FET low-side --- relay coil (12 V) + 1N4007 flyback
 ```
 - Relay **de-energized = NC closed = ECO at 12 V = LOW cap** (SW Level default = high-level enable, SOURCED KLS-8080N V2.11 item 93). So Teensy unpowered, reset, hung or flashing → capped.
 - Teensy A must actively drive OUT3 **HIGH** to energize the relay and **release** the cap. `src/KellyLimit.cpp`: cap held (OUT3 LOW) when BMS limp **or Kid mode**. Boot writes OUT3 LOW. Pins are driven only with `BMS_CAP_KELLY_LIMIT_DRV=1` + `TELEMETRY_ONLY=0` (both still off). **Firmware semantics changed** (OUT3 was "HIGH = limp"): CREW REVIEW.
-- Kelly config PROPOSED: Three Speed = 1 or 2 with ECO = low speed. LowSpeed Forw Speed ≈ 20 % of Max Speed 6000 RPM ≈ 1225 RPM ≈ 10 mph (122.5 RPM/mph SOURCED gearing). LowSpeed Rev 20 % ≈ 1200 RPM ≈ 10 mph (kelly-settings.md #30; the SOURCED Kelly default is 30 %). **CONFLICT, needs a decision:** kelly-settings.md #29 sets LowSpeed Fwd to 30 % (≈ 15 mph), not 20 %; at 30 % the hardware Kid backstop would be ≈ 15 mph forward, not 10. Three Gears (F/N/R) shares FWD pin 12 with the high-speed switch, so use ECO + max only (SOURCED note 4).
+- Kelly config PROPOSED: Three Speed = 1 or 2 with ECO = low speed. **LowSpeed DECIDED (Adam 2026-10-23): Fwd 30 % of Max Speed 6000 RPM ≈ 1800 RPM ≈ 15 mph, Rev 20 % ≈ 1200 RPM ≈ 10 mph** (122.5 RPM/mph SOURCED gearing; kelly-settings.md #29/30; the SOURCED Kelly default for Rev is 30 %). Three Gears (F/N/R) shares FWD pin 12 with the high-speed switch, so use ECO + max only (SOURCED note 4).
 - **UNVERIFIED:** relay part (12 V automotive SPDT, e.g. Bosch-style 30/87a — not chosen), whether Adam's harness brings ECO out, the exact ECO pin on his connector, and that ECO really caps speed on his firmware (bench: ECO 12 V → RPM ≤ cap at full pedal).
 - **Limp threshold (crew 2026-10-21, `BmsCore::kellyLogic`, PROPOSED + adjustable):**
   - **Soft derates only scale current smoothly**, with no Low cap: pack hot, low-ish cells at rest, pack/cell sag, discharge amps.
-  - **Hard faults engage the 10 mph cap:** current sensor lost (only when `CURRENT_SENSE_ENABLE=1`), **one LEM reading nothing or out of range** (|half| > `lemRangeA` 450 A, PROPOSED), temps stale (only when `TEMPS_VERIFIED=1`), any cell < `limpCellV` 3.00 V.
+  - **Hard faults engage the Kelly Low cap** (≈ 15 mph forward / 10 mph reverse at the Kelly): current sensor lost (only when `CURRENT_SENSE_ENABLE=1`), **one LEM reading nothing or out of range** (|half| > `lemRangeA` 450 A, PROPOSED), temps stale (only when `TEMPS_VERIFIED=1`), any cell < `limpCellV` 3.00 V.
   - **LEM A vs B disagreeing** by > `imbalanceA` **60 A** for 1 s (crew 2026-10-21, was 100 A) = **SOFT** `imbalancePct` 50 % derate (PROPOSED, adjustable on the Thresholds page). It never triggers the Low cap.
   - Teensy A vs B disagreeing is handled by the throttle clamp (docs/THROTTLE_CLAMP.md), not here.
   - On a hard fault, power ramps from 100 % to `limpRampPct` 30 % over `limpRampMs` 1000 ms, then ECO asserts. It releases when the fault clears.
   - Note: a cell < 3.00 V for 500 ms also trips the existing hard-floor fault (mains open), so the cap only shows its ramp start there.
   - Tests: scripts/test_limp.cpp (11) + 3 wasm checks.
-- Sim: Kid engages the cap. The "Both Teensys dead" toggle uses pedal-direct, so the relay drops and the Kelly holds Low (scripts/test_controls.js: capped at ≤1225 RPM vs uncapped > 2450).
+- Sim: Kid engages the cap. The "Both Teensys dead" toggle uses pedal-direct, so the relay drops and the Kelly holds Low (scripts/test_controls.js: forward capped at ≤ 1800 RPM ≈ 14.7 mph, about 14.3 mph at full pedal, vs uncapped > 3600 RPM; Kid with the Teensys alive still tops out under 10 mph; Kid reverse with both dead ≤ 1200 RPM ≈ 9.8 mph). A saved old 1225 RPM Low cap setting migrates to 1800.
 
 ## Limits / UNVERIFIED (crew)
 - MCP4131 powers up at mid-scale (50 %) and holds its last wiper if a Teensy hangs: covered by the two-Teensy clamp (THROTTLE_CLAMP.md); sim scenario "digipot stuck 50% + A fault".
