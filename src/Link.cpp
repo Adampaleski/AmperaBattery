@@ -7,6 +7,8 @@
 #include "Config.h"
 #include "ContactorSeq.h"
 #include "StringConfig.h"
+#include "CurrentSense.h"
+#include "LemLink.h"
 
 namespace Link {
 namespace {
@@ -23,6 +25,7 @@ Remote   g_rem[StringMon::kStrings];
 uint8_t  g_remCells[StringMon::kStrings] = {};
 struct RemTemp { bool seen = false; uint32_t lastMs = 0; uint8_t hb = 0, b[8] = {}; };
 [[maybe_unused]] RemTemp g_remT;
+[[maybe_unused]] LemLink::Rx g_remLem;   // A: LEM B from 0x6A5
 [[maybe_unused]] uint32_t g_peerMs = 0;
 [[maybe_unused]] bool     g_peerSeen = false;
 [[maybe_unused]] uint8_t  g_peerState = 0, g_peerFaults = 0, g_peerHb = 0;
@@ -107,6 +110,9 @@ void tick() {
     }
     b[7] = g_hb;
     send(kLinkIdBTemps, b);
+    // LEM B: valid only when CurrentSense says so (CURRENT_SENSE_ENABLE 0 -> always invalid).
+    LemLink::encode(CurrentSense::amps(), CurrentSense::valid(), g_hb, b);
+    send(kLinkIdBLem, b);
 #endif
 }
 
@@ -135,6 +141,9 @@ void onFrame(const CAN_message_t &m) {
         g_remT.seen = true;
         g_remT.hb = m.buf[7];
         memcpy(g_remT.b, m.buf, 8);
+    } else if (m.id == kLinkIdBLem) {
+        g_rx++;
+        g_remLem.onFrame(m.buf, now);
     } else if (m.id == kLinkIdBStatus) {
         g_rx++;
         g_remCells[0] = m.buf[2];
@@ -174,6 +183,14 @@ uint8_t remoteFaults() {
     return (remote(0).faults | remote(1).faults) & StringMon::kFaultMask;
 }
 
+bool remoteLemB(float *amps) {
+#if ROLE_IS_A
+    return g_remLem.get(millis(), g_staleMs, amps);
+#else
+    (void)amps; return false;
+#endif
+}
+
 bool peerAlive() { return g_peerSeen && (millis() - g_peerMs) <= g_staleMs; }
 void setStaleMs(uint32_t ms) { g_staleMs = ms; }
 
@@ -209,6 +226,14 @@ void print() {
         StringMon::printFaults(r.faults);
         SERIALCONSOLE.println();
     }
+    float lb = 0;
+    const bool lbOk = remoteLemB(&lb);
+    SERIALCONSOLE.print(F("REMOTE LEM B "));
+    if (lbOk) { SERIALCONSOLE.print(lb, 1); SERIALCONSOLE.print(F(" A")); }
+    else SERIALCONSOLE.print(!g_remLem.seen ? F("none") : (!g_remLem.fresh(millis(), g_staleMs) ? F("STALE") : F("invalid (B CurrentSense off)")));
+    SERIALCONSOLE.print(F("  frames="));
+    SERIALCONSOLE.print(g_remLem.frames);
+    SERIALCONSOLE.println(F("  (not used by SoC / trips yet)"));
 #else
     SERIALCONSOLE.print(F("PEER A "));
     SERIALCONSOLE.print(peerAlive() ? F("alive") : F("STALE/none (info only on B)"));

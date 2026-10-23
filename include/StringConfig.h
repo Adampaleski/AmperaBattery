@@ -90,4 +90,5 @@ constexpr uint32_t kLinkIdBTemps   = 0x6A3;  // B -> A  per-string temps (2026-1
 constexpr uint32_t kLinkIdBThrottle= 0x6A4;  // B -> A  B's own pedal-map trim (20 ms, ThrottleTrim.cpp)
 constexpr uint32_t kLinkIdAThrottle= 0x6A9;  // A -> B  A's commanded trim + mode + ok/allow/speed (20 ms)
 constexpr uint32_t kLinkIdAProfile = 0x6AA;  // A -> B  profile sync, one field per frame (50 ms, 35 fields)
-// 0x6A5-0x6A7, 0x6AB-0x6AF reserved.
+constexpr uint32_t kLinkIdBLem     = 0x6A5;  // B -> A  LEM B amps x10 + valid + hb (include/LemLink.h, 2026-10-23; not consumed yet)
+// 0x6A6-0x6A7, 0x6AB-0x6AF reserved.

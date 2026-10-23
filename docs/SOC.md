@@ -72,3 +72,6 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 - Wear (PLACEHOLDER): it writes on the key-off / power-loss edge, or after 0.5 Ah moved and at least 60 s since the last write, at most 120 writes per boot. Identical records are skipped.
 - UNVERIFIED: it assumes no unmetered Ah flows while the BMS is off (self-discharge and 12 V draw not measured), and Teensy emulated-EEPROM endurance is unverified.
 - 16 host checks in `scripts/test_soc_store.cpp`, part of `scripts/run_all_tests.sh`.
+
+## LEM B over the link (2026-10-23 4 PM, frame only, NOT consumed)
+Teensy B now sends LEM B on CAN2 frame 0x6A5 every 50 ms: [0-1] amps x10 (int16 LE, + = discharge), [2] bit0 valid, [7] heartbeat. Format + A-side rule in include/LemLink.h. A trusts it only when valid=1, the heartbeat advanced within the link stale limit (linkMs, 200 ms), and the value is in range; otherwise no LEM B (fail closed). With CURRENT_SENSE_ENABLE 0 B always sends valid=0 (a bench `I<amps>` dry-run on B would send valid=1; A still ignores it). `Link::remoteLemB()` exposes it and the link print shows `REMOTE LEM B`. SocRun kHaveLemB and ContactorSeq lemBValid are still false: wiring them is the next step. 12 host checks (scripts/test_lem_link.cpp). NOT bench-tested.
