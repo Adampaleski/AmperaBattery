@@ -492,8 +492,8 @@ function create(root,opt){
   if(sim){const send=(c,v)=>sim.send(c,v);let drag={};
     F('simcol').onclick=()=>{const c=F('simp').classList.toggle('col');localStorage.setItem('teryxSimPanelCol',c?'1':'0');F('simcol').textContent=c?'Show ▾':'Hide ▴';};
     D.querySelectorAll('[data-sv]').forEach(e=>{const k=e.dataset.sv;e.oninput=()=>{drag[k]=performance.now();F('sv_'+k).textContent=e.value+' %';send(k,+e.value);};});
-    D.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>{const g=b.dataset.sg,I=(lastSim&&lastSim.simInfo)||{},cur=I.gear;
-      if(cur==='KID'&&g!=='KID'){TeryxPad.open({title:'Enter Kid PIN to leave Kid',note:'Parked only',onEnter:pin=>{send('gear',g+':'+pin);return new Promise(res=>setTimeout(()=>{const J=(lastSim&&lastSim.simInfo)||{};res(J.gear==='KID'?(J.modeMsg&&!/PIN/i.test(J.modeMsg)?J.modeMsg:'Wrong PIN — try again'):'');},450));}});return;}
+    D.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>{const g=b.dataset.sg,I=(lastSim&&lastSim.simInfo)||{},cur=I.mode||I.gear;
+      if(cur==='KID'&&g!=='KID'&&g!=='R'){TeryxPad.open({title:'Enter Kid PIN to leave Kid',note:'Parked only',onEnter:pin=>{send('gear',g+':'+pin);return new Promise(res=>setTimeout(()=>{const J=(lastSim&&lastSim.simInfo)||{};res((J.mode||J.gear)==='KID'?(J.modeMsg&&!/PIN/i.test(J.modeMsg)?J.modeMsg:'Wrong PIN — try again'):'');},450));}});return;}
       send('gear',g);});
     D.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>{const k=b.dataset.sc;if(k==='wake')wake('sim Wake button');if(k==='reset'&&!confirm('Reset the simulator? Cells, faults and the log go back to start.'))return;send(k,k==='cycle'?simCyc:undefined);});
     var lastSim=null,simCyc=null,simPaint=s=>{lastSim=s;const Dr=(s&&s.drive)||{},B=(s&&s.bms)||{},I=(s&&s.simInfo)||{},n=performance.now();
@@ -553,7 +553,7 @@ function create(root,opt){
     q('lights',o.headHigh?'high':o.headLow?'low':'off',o.headLow);
     q('4wd',r.fault4?'FAULT':r.wdShifting?'shifting…':r.wd||'2WD',r.wd==='4WD',!!r.wdWhy);
     q('diff',r.faultD?'FAULT':r.diffShifting?'moving…':r.diff||'off',r.diff&&r.diff!=='off',!!(r.diffWhy&&r.diffWhy[nextDiff[r.diff]||'off']));
-    const g=live?Dr.gear:null;q('mode',g?(MODE_NAME[g]||g):'—',false,!opt.onGear);
+    const g=live?Dr.gear:null,rc=g==='R'&&s&&s.simInfo?s.simInfo.revCapMph:null;q('mode',g?(MODE_NAME[g]||g)+(rc?' · max '+rc+' mph':''):'—',false,!opt.onGear);
     const Ch=(live&&s.charge)||{};q('chg',(cs.lim||Ch.limitPct)?'limit '+(cs.lim||Ch.limitPct)+' %':'limit —',false);
     q('fan',L.fan!=null?(L.fan?(fanOv?'override':'on'):'off'):'—',!!L.fan,!opt.onFan);
     const P=Dr.powerAllowedPct,lim=F('lim');if(num(P)){F('limP').textContent=P.toFixed(0)+' %';F('limW').textContent=P>=99.5?'full power':'limited by '+(Dr.powerWhy||(Dr.limp?'limp':'BMS'));lim.classList.toggle('cut',P<99.5&&P>0);lim.classList.toggle('off',P<=0);}
@@ -568,7 +568,7 @@ function create(root,opt){
     {const I=(s&&s.simInfo)||{},B=(s&&s.bms)||{};const k=I.key!=null?!!I.key:(s&&s.keyOn!=null?!!s.keyOn:/Closed|Precharge|MainClose/.test(String(B.state||'')));
      if(!opt.hostLock&&sim&&!TeryxLock.onUnlock)TeryxLock.onUnlock=p=>sim.send('pin',p);   // a PIN typed here also counts in the sim
      if(!opt.hostLock&&I.block){const w=(I.block.setting||[]).join(', ');TeryxLock.why=()=>w;}
-     TeryxLock.set({keyOn:k,phone:I.phoneKey!=null?!!I.phoneKey:false,gear:I.gear||(s&&s.drive&&s.drive.gear)||''});if(s&&!(meta&&meta.stale))simNotices(I);
+     TeryxLock.set({keyOn:k,phone:I.phoneKey!=null?!!I.phoneKey:false,gear:I.mode||I.gear||(s&&s.drive&&s.drive.gear)||''});if(s&&!(meta&&meta.stale))simNotices(I);
      if(!opt.hostLock&&!TeryxLock.verify){TeryxLock.verify=p=>{try{const h=(JSON.parse(localStorage.getItem('teryx.modes.v1')||'{}').hash)>>>0;return !!h&&typeof vehHashPin==='function'&&vehHashPin(p)===h;}catch(_){return false;}};TeryxLock.hasPin=()=>{try{return !!(JSON.parse(localStorage.getItem('teryx.modes.v1')||'{}').hash>>>0);}catch(_){return false;}};}}
     meta=meta||{};const now=performance.now(),dt=lastT?Math.min(2,(now-lastT)/1000):0;lastT=now;
     const live=!!s&&!meta.stale,B=(s&&s.bms)||{},Dr=(s&&s.drive)||{},E=(s&&s.energy)||{},C=(s&&s.contactors)||{},A=(s&&s.aux12v)||{},L=A.loads||{};

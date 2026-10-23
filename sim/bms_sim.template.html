@@ -281,7 +281,7 @@ ol.chain{margin:0;padding-left:20px;color:var(--mut);font-size:18px}ol.chain li{
       <div class="readout" id="pkdet"></div>
       <div class="slider"><label>Grade</label><input id="cgrade" type="range" min="-20" max="20" step="0.5" value="0"><b id="cgradev">0 %</b></div>
       <div class="readout" id="vdet"></div>
-      <div class="controls"><span class="mut" style="font-size:18px">Gear</span><span class="seg" id="cgsel" data-drive-lock><button data-g="H" class="on">High</button><button data-g="M">Medium</button><button data-g="L">Low</button><button data-g="SNOW">Snow</button><button data-g="MUD">Mud</button><button data-g="SAND">Sand</button><button data-g="KID">Kid</button><button data-g="R">Reverse</button></span> <span class="tag">Kid: enter free, no PIN (parked) · leave = PIN pad</span> <span class="tag">Into/out of Reverse: brake pressed (PROPOSED)</span> <span class="tag">PROPOSED pedal maps</span></div>
+      <div class="controls"><span class="mut" style="font-size:18px">Gear</span><span class="seg" id="cgsel" data-drive-lock><button data-g="H" class="on">High</button><button data-g="M">Medium</button><button data-g="L">Low</button><button data-g="SNOW">Snow</button><button data-g="MUD">Mud</button><button data-g="SAND">Sand</button><button data-g="KID">Kid</button><button data-g="R">Reverse</button></span> <span class="tag">Kid: enter free, no PIN (parked) · leave = PIN pad · Reverse: 15 mph, 10 mph from Low/Kid (PROPOSED)</span> <span class="tag">Into/out of Reverse: brake pressed (PROPOSED)</span> <span class="tag">PROPOSED pedal maps</span></div>
       <div class="dim" style="font-size:18px">Vehicle model (sim/vehicle.js): motor torque = throttle × speed-mode scale × BMS power allowed × 550 A phase × <span style="color:var(--warn)">ASSUMED</span> Kt, capped by the 550 A Kelly battery limit; wheel speed from mass, Crr, CdA, grade (ASSUMED) and 24" stock tire (SOURCED: Adam), 16/32 sprockets × 4.375 diff = 8.75 (SOURCED), edit in Settings; motor RPM = wheel speed × ratio. Brake (first drive default): the 12 V brake switch gives Kelly switch regen at a fixed BRK_SW Brk level (10 % SOURCED default). Brake_AN analog regen is <b>DEFERRED</b> (Kelly config readback + Boost OFF first); optional in Settings, where regen is proportional between Brake Dead Low 20 % and Dead High 80 % (SOURCED defaults), scaled by BRK_AD Brk (0–50 %, <span style="color:var(--warn)">PROPOSED</span> 30) × the PROPOSED 60 A cap; hydraulic friction always follows the pedal on top. The 12 V brake switch (Kelly pin 25 + brake light) cuts the throttle. Regen only flows if the BMS allows it and is tapered by SOC (>90 %) and cold (<10 °C) (PROPOSED). Parking brake set = Kelly Foot_SW open = no drive (hardware interlock). Speed-mode scales/RPM caps (H 100 %/6000, M 70 %/4400, L 45 %/2700, R 25 %/1100) are PROPOSED. Throttle is ignored while plugged in. Top speed falls as the pack drains (SOURCED: Sparky, back-EMF 0.026 V/RPM): base speed ≈ pack V ÷ 0.026 = ≈5680 RPM (≈46 mph) at 147.6 V full, ≈5120 RPM (≈42 mph) at 133 V nominal, ≈4570 RPM (≈37 mph) at the 118.8 V low cut; above base speed the Kelly must field-weaken, up to the 6000 RPM cap (≈49 mph). mph from the 24" tire and 8.75 ratio; sag under load lowers it further (not modelled).</div>
     </div></div>
     <div class="card"><h3>12 V loads <span class="tag">PROPOSED</span></h3><div class="mut">Total ≈ <b id="cload">0 A</b> <span class="small">ESTIMATE currents; seats ~4.5 A × level/3 each (use the seat buttons on the dash)</span></div><div class="rows" id="cloads"></div></div>
@@ -626,7 +626,7 @@ const IOMAP=[['Coolant pump','PROPOSED: stock Teryx radiator + Bosch 12 V pump �
  ['Kelly / motor temp','Kelly CAN 0x0CF11F05 b1/b2 (offset TBD)','Kelly RX off'],
  ['SOC / range','BmsCore::Soc coulomb count on LEM A + LEM B, full-charge anchor (docs/SOC.md); range = SoC × SIM-ASSUMED 23.3 kWh ÷ 350 Wh/mi','sim only · capAh UNVERIFIED · CURRENT_SENSE_ENABLE=0'],
  ['Cluster display','Teensy A Serial4 → ESP32 (STATUS_SCHEMA v1) → Wi-Fi → Surface 3 head unit','schema exists']];
-let cGear='H',cSpd=0,cLoad={},socAnchorPending=false;
+let cGear='H',cRevMode='H',cSpd=0,cLoad={},socAnchorPending=false;
 // Park detection (docs/PARK_BRAKE.md): TeryxPark mirror of include/ParkState.h. Sim starts parked.
 const PK=TeryxPark.create();let pkT=0;
 function hparkPaint(){const b=$('hpark');if(!b)return;const on=$('cpark').checked;b.textContent=on?'Ⓟ Park SET · release':'Park released · set';b.style.background=on?'#e82127':'';b.style.color=on?'#fff':'';}
@@ -635,16 +635,21 @@ function parkStep(dtMs){pkT+=Math.max(1,Math.round(dtMs));const n0=PK.S.log.leng
 function simKeyOn(){if(keyOn)return;if(!PK.prechargeAllowed()){$('cpark').checked=true;$('cparkb').checked=false;parkStep(200);ulog('Sim: parking brake set for precharge');}$('key').click();}
 function simDriveAway(){if($('cpark').checked||$('cneut').checked){$('cpark').checked=false;$('cneut').checked=false;ulog('Sim: parking brake released, F/N/R → drive');}}
 function gauge(k,v,src,nw){return `<div class="g"><div class="k">${k}</div><div class="v">${v}</div><div class="src${nw?' nw':''}">${src}</div></div>`;}
+// Drive mode in effect: Reverse keeps the mode it was selected from (Build 16: per-mode reverse cap, Kid reverse stays Kid).
+function modeOf(g){return g==='R'?cRevMode:g;}
+function revInfo(){const m=modeOf(cGear);return {mode:m,capMph:vehRevTop(m)};}
 // Mode change core (Build 4). Returns '' or the refusal reason. Kid: enter = no PIN (parked only); leave = PIN.
-function selMode(g,pin){if(!GEARS[g])return 'unknown mode';
-  if((g==='KID')!==(cGear==='KID')&&!PK.kidChangeAllowed()){const w='Kid changes only while Parked (park brake set, 0 RPM, Neutral)';ulog('Mode '+GEARS[g].n+' refused: '+w);modeMsg=w;return w;}
+// Build 16: Reverse is not a mode change. Kid -> R -> Kid needs no PIN (still Kid: 10 mph reverse, ECO Low cap held);
+// R (from Kid) -> any other mode = leaving Kid = PIN.
+function selMode(g,pin){if(!GEARS[g])return 'unknown mode';const from=modeOf(cGear),to=g==='R'?from:g;
+  if((to==='KID')!==(from==='KID')&&!PK.kidChangeAllowed()){const w='Kid changes only while Parked (park brake set, 0 RPM, Neutral)';ulog('Mode '+GEARS[g].n+' refused: '+w);modeMsg=w;return w;}
   if(Math.abs(cSpd)>1&&(g==='R')!==(cGear==='R')){const w='Stop first to change into or out of reverse';ulog('Gear change to '+GEARS[g].n+' refused: stop first');modeMsg=w;return w;}
-  const why=vehSelectMode(cGear,g,pin);if(why){ulog('Mode '+GEARS[g].n+' refused: '+why);modeMsg=why;return why;}modeMsg='';
-  cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));ulog('Gear '+GEARS[cGear].n);if(modeSave&&cGear!=='R')modeSave();return '';}
+  const why=vehSelectMode(from,to,pin);if(why){ulog('Mode '+GEARS[g].n+' refused: '+why);modeMsg=why;return why;}modeMsg='';
+  if(g==='R')cRevMode=from;cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));ulog('Gear '+GEARS[cGear].n+(g==='R'?' (from '+GEARS[from].n+': reverse cap '+vehRevTop(from)+' mph, PROPOSED)':''));if(modeSave&&cGear!=='R')modeSave();return '';}
 // UI path: opens the PIN pad when needed. pin given (dash.html?src=sim sends gear:G:PIN) = no pad.
 function requestMode(g,pin){if(g===cGear)return '';
   if((g==='R')!==(cGear==='R')){const sh=blockReasons('shift').filter(t=>/^Brake/.test(t));if(sh.length){const w=sh[0]+' into or out of Reverse';ulog('Gear change to '+GEARS[g].n+' refused: brake not pressed (PROPOSED)');dashToast(w);return w;}}
-  const leave=cGear==='KID'&&g!=='KID',enter=g==='KID'&&cGear!=='KID';
+  const from=modeOf(cGear),to=g==='R'?from:g,leave=from==='KID'&&to!=='KID',enter=to==='KID'&&from!=='KID';
   if((leave||enter)&&!PK.kidChangeAllowed()){const w=selMode(g,pin);dashToast(w);return w;}
   if(leave&&pin==null){TeryxPad.open({title:'Enter Kid PIN to leave Kid',note:'4 digits · Cancel stays in Kid',onEnter:p=>{const w=selMode(g,p);if(!w){dashToast(GEARS[g].n+' mode');return '';}return /PIN/.test(w)?'Wrong PIN — try again':w;}});return 'pin';}
   if(enter&&!VEH_KID.hash){TeryxPad.open({title:'Set Kid exit PIN (first time)',note:'You will need it to leave Kid',onEnter:p=>{VEH_KID.hash=vehHashPin(p);if(modeSave)modeSave();ulog('Kid exit PIN set (sim)');const w=selMode('KID');if(!w)dashToast('Kid mode · PIN needed to leave');return w;}});return 'pin';}
@@ -692,8 +697,8 @@ function wireCluster(){
 let dc=null,dcSel='trail',dcLast=null;
 function dcLowCell(){let lo=9;for(let b=0;b<8;b++)for(let c=0;c<X.sim_board_cells(b);c++)lo=Math.min(lo,X.sim_get_cell(b,c));return lo;}
 function dcFaultText(){const f=[];S.faultNames.forEach((n,i)=>{if((S.faults|S.latched)&(1<<i))f.push(n);});return f.join(', ');}
-function dcSetGearRaw(g){cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));}
-function dcSetGear(g){if(cGear==='KID'&&g!=='KID')return;if(vehSelectMode(cGear,g,'x'))return;cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));}
+function dcSetGearRaw(g){if(g==='R')cRevMode=modeOf(cGear);cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));}
+function dcSetGear(g){const from=modeOf(cGear),to=g==='R'?from:g;if(from==='KID'&&to!=='KID')return;if(vehSelectMode(from,to,'x'))return;if(g==='R')cRevMode=from;cGear=g;$('cgsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.g===g));}
 function wireCycle(){
   $('dcsel').innerHTML=Object.entries(DRIVE_CYCLES).map(([k,p])=>`<button data-c="${k}"${k===dcSel?' class="on"':''}>${p.name}</button>`).join('');
   $('dcsel').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(dc)return;dcSel=b.dataset.c;dcLast=null;$('dcsel').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));dcShow();});
@@ -746,12 +751,12 @@ function setGrade(g){VP.gradePct=g;$('cgrade').value=g;$('cgradev').textContent=
 function clusterTick(dt){ // runs every loop: vehicle model -> pack amps (when enabled)
   dcStep(dt);
   const drv=$('cdrive').checked&&($('t-cluster').classList.contains('on')||dc||remoteDrive);
-  parkStep(dt*1000);if(!keyOn)driveOk=false;else if($('phonek').checked)driveOk=true;TeryxLock.set({keyOn,phone:$('phonek').checked,gear:cGear});
+  parkStep(dt*1000);if(!keyOn)driveOk=false;else if($('phonek').checked)driveOk=true;TeryxLock.set({keyOn,phone:$('phonek').checked,gear:modeOf(cGear)});
   const socP=S.soc&&S.soc.known?S.soc.pct:null,socTaper=socP==null?100:Math.max(0,Math.min(100,(100-socP)/10*100));   // PROPOSED: 100 % regen ≤90 % SOC → 0 at 100 %
   const tmp=(typeof S.tMin==='number'&&isFinite(S.tMin))?S.tMin:25,tmpTaper=Math.max(0,Math.min(100,(tmp-0)/10*100));                                   // PROPOSED: 0 % at ≤0 °C → 100 % at ≥10 °C
   const parkSet=$('cpark').checked,neut=$('cneut').checked;
   pinLocked=$('dpin').checked&&keyOn&&!pinOkNow();const inp={thr:neut||pinLocked?0:+$('cthr').value,brake:+$('cbrk').value,gear:cGear,closed:S.state==='Closed',allowPct:S.kellyPct,regenOk:!!S.kellyRegenOk,driveLocked:!!S.driveLocked,packV:S.busV,
-    neutral:neut,parkBrake:parkSet,regenAllowPct:Math.min(socTaper,tmpTaper),teensyDead:$('cdead').checked,kellyLowCap:$('cdead').checked||cGear==='KID'||!!S.kellyLimp};
+    neutral:neut,parkBrake:parkSet,regenAllowPct:Math.min(socTaper,tmpTaper),teensyDead:$('cdead').checked,kellyLowCap:$('cdead').checked||modeOf(cGear)==='KID'||!!S.kellyLimp,revMode:modeOf(cGear)};
   let o=null;for(let t=0;t<dt-1e-9;t+=0.05){const h=Math.min(0.05,dt-t);o=vehStep(VP,{mph:cSpd,trim:cTrim},inp,h);cSpd=o.mph;}  // <=50 ms slices
   if(!o)o=vehStep(VP,{mph:cSpd},inp,0);
   vLast=o;const a=drv?o.packA:null;
@@ -791,7 +796,7 @@ function embedInit(){remoteDrive=true;const up=m=>{try{parent.postMessage(m,'*')
   up({teryxEngine:'hello'});}
 // Sim quick panel commands (dash panel inside the sim, or dash.html?src=sim over BroadcastChannel 'teryx-dash-cmd')
 function simCmd(c,v){
-  const gear=g0=>{const [g,pin]=String(g0).split(':');if(TeryxLock.locked()&&pin==null&&!(keyOn&&(g==='KID'||cGear==='KID'))){dashToast(TeryxLock.msg());return;}requestMode(g,pin===undefined?undefined:pin);};
+  const gear=g0=>{const [g,pin]=String(g0).split(':');if(TeryxLock.locked()&&pin==null&&!(keyOn&&(g==='KID'||modeOf(cGear)==='KID'))){dashToast(TeryxLock.msg());return;}requestMode(g,pin===undefined?undefined:pin);};
   switch(c){
   case 'tick':if(performance.now()-lastLoopAt>150)loop();break;   // dash.html heartbeat: keeps the sim running when its tab is hidden
   case 'phone':{const e=$('phonek');e.checked=!e.checked;e.dispatchEvent(new Event('change'));break;}
@@ -838,12 +843,12 @@ function simStatus(lo,hi,Q,est,closed){
     aux12v:(()=>{const L=loadsOn();return {wired:false,volts:null,loadA:loadAmps(L),loadAEstimate:true,loads:{lights:L.lights,fan:L.fan,pump:L.pump,alarm:L.alarm,speakers:L.spk,seatDriver:seatLv.driver,seatPassenger:seatLv.passenger,seatHeat:seatLv.driver+seatLv.passenger>0}};})(),
     coolant:{wired:false,pumpOn:keyOn||!!cLoad.pump,flowOk:null,tempC:null},faults:fl,events:[],fw:'BmsCore (wasm sim build)',log:simLog(),
     simInfo:{phoneKey:$('phonek').checked,driveLocked:TeryxLock.locked(),estop:!!S.estop,estopPressed:!!S.estopPressed,pinToDrive:$('dpin').checked,driveOk:!pinLocked,pinOk:pinOkNow(),
-      block:{drive:blockReasons('drive'),wake:blockReasons('wake'),shift:blockReasons('shift'),setting:blockReasons('setting')},notice:{n:noticeN,text:noticeText},padReq:{n:padReqN},modeMsg,parkBrake:$('cpark').checked,neutral:$('cneut').checked,parked:!!PK.S.parked,key:keyOn,plug:plugOn,gear:cGear,gradePct:VP.gradePct,speed,weld:$('welded').checked,cycleSel:dcSel,cycleOn:!!dc,cycleTxt:dc?`${dc.name}: ${dc.label||''} ${(100*dc.t/dc.len).toFixed(0)} %`:(dcLast?dcLast.name+' ended: '+dcLast.why:''),cycles:Object.entries(DRIVE_CYCLES).map(([k,p])=>[k,p.name])}};
+      block:{drive:blockReasons('drive'),wake:blockReasons('wake'),shift:blockReasons('shift'),setting:blockReasons('setting')},notice:{n:noticeN,text:noticeText},padReq:{n:padReqN},modeMsg,parkBrake:$('cpark').checked,neutral:$('cneut').checked,parked:!!PK.S.parked,key:keyOn,plug:plugOn,gear:cGear,mode:modeOf(cGear),revCapMph:vehRevTop(modeOf(cGear)),gradePct:VP.gradePct,speed,weld:$('welded').checked,cycleSel:dcSel,cycleOn:!!dc,cycleTxt:dc?`${dc.name}: ${dc.label||''} ${(100*dc.t/dc.len).toFixed(0)} %`:(dcLast?dcLast.name+' ended: '+dcLast.why:''),cycles:Object.entries(DRIVE_CYCLES).map(([k,p])=>[k,p.name])}};
 }
 function pushDash(st){if(EMBED){try{parent.postMessage(st,'*');}catch(e){}doorPulse=false;return;}if(!dashC)dashC=TeryxDash.create($('dashHost'),{hostLock:true,simControls:true,simPanel:{send:simCmd,hostKey:true},
     veh:{get:()=>VP,set:(k,v)=>{VP[k]=v;try{localStorage.setItem('teryxVehSettings',JSON.stringify(VP));}catch(e){}ulog('Vehicle setting '+k+' = '+v);if($('vn_'+k))$('vn_'+k).value=+v;}},
     onFan:on=>{$('ld_fan').checked=on;$('ld_fan').dispatchEvent(new Event('change'));},
-    onGear:g=>{if(Math.abs(cSpd)>1&&(g==='R')!==(cGear==='R'))return 'Stop first to change into or out of reverse';if(TeryxLock.locked()&&!(keyOn&&(g==='KID'||cGear==='KID'))){TeryxLock.prompt();return '';}requestMode(g);return '';},onControl:(t)=>ulog('Controls: '+t),onSeat:(k,lv)=>{seatLv[k]=lv;ulog(`Seat heater ${k} ${['off','Low','Med','High'][lv]}`);},
+    onGear:g=>{if(Math.abs(cSpd)>1&&(g==='R')!==(cGear==='R'))return 'Stop first to change into or out of reverse';if(TeryxLock.locked()&&!(keyOn&&(g==='KID'||modeOf(cGear)==='KID'))){TeryxLock.prompt();return '';}requestMode(g);return '';},onControl:(t)=>ulog('Controls: '+t),onSeat:(k,lv)=>{seatLv[k]=lv;ulog(`Seat heater ${k} ${['off','Low','Med','High'][lv]}`);},
     onChargeLimit:v=>{$('pct').value=v;$('pct').dispatchEvent(new Event('input'));ulog('Charge limit '+v+'% (charge screen, saved)');},
     onAmpsLimit:a=>{X.sim_set_charge_max_a(a);ulog('Charge amps limit '+a+' A (sim)');},
     onChargeStop:on=>{X.sim_set_charge_stop(on?1:0);ulog(on?'Charging stopped (charge screen); drive stays locked':'Charging started (charge screen)');},
@@ -901,12 +906,12 @@ function wireSettings(){
 function buildVeh(){$('vehT').innerHTML='<tr><td><b>Parameter</b></td><td><b>Value</b></td><td><b>Status</b></td></tr>'+VEH_SETS.map(([k,n,u,t,mn,mx,st])=>`<tr><td>${n}</td><td><input id="vn_${k}" type="number" min="${mn}" max="${mx}" step="${st}" value="${typeof VP[k]==='boolean'?+VP[k]:VP[k]}"> ${u}</td><td class="small" style="color:var(--warn)">${t}</td></tr>`).join('')+
   `<tr><td>Overall ratio · 55 mph</td><td>${vehRatio(VP).toFixed(2)} : 1 · ${vehRpm(VP,55).toFixed(0)} RPM</td><td class="small">derived</td></tr>`;}
 function buildModes(){$('modeT').innerHTML='<tr><td><b>Mode</b></td>'+VEH_MODE_FIELDS.map(f=>`<td><b>${f[1]}</b> <span class="small">${f[2]}</span></td>`).join('')+'</tr>'+
-  VEH_MODE_ORDER.concat(['R']).map(k=>`<tr data-mode="${k}"><td>${VEH_GEARS[k].n}</td>`+VEH_MODE_FIELDS.map(([f,,,mn,mx,st])=>`<td><input id="mp_${k}_${f}" type="number" min="${mn}" max="${mx}" step="${st}" value="${VEH_GEARS[k][f]}"></td>`).join('')+'</tr>').join('');}
-function wireModes(){try{const sv=JSON.parse(localStorage.getItem('teryx.modes.v1')||'null');if(sv){Object.entries(sv.p||{}).forEach(([k,o])=>Object.entries(o).forEach(([f,v])=>vehModeSet(k,f,v)));VEH_KID.hash=sv.hash>>>0||0;if(sv.mode&&VEH_GEARS[sv.mode]&&sv.mode!=='R'&&(sv.mode!=='KID'||VEH_KID.hash))dcSetGearRaw(sv.mode);}}catch(e){}
+  VEH_MODE_ORDER.concat(['R']).map(k=>`<tr data-mode="${k}"><td>${VEH_GEARS[k].n}${k==='R'?' <span class="small">(top = max; Low + Kid 10, never above the mode\u2019s own top · PROPOSED)</span>':''}</td>`+VEH_MODE_FIELDS.map(([f,,,mn,mx,st])=>`<td><input id="mp_${k}_${f}" type="number" min="${mn}" max="${mx}" step="${st}" value="${VEH_GEARS[k][f]}"></td>`).join('')+'</tr>').join('');}
+function wireModes(){try{const sv=JSON.parse(localStorage.getItem('teryx.modes.v1')||'null');if(sv){Object.entries(sv.p||{}).forEach(([k,o])=>Object.entries(o).forEach(([f,v])=>{if(k==='R'&&f==='top'&&+v===9)return;vehModeSet(k,f,v);}));VEH_KID.hash=sv.hash>>>0||0;if(sv.mode&&VEH_GEARS[sv.mode]&&sv.mode!=='R'&&(sv.mode!=='KID'||VEH_KID.hash))dcSetGearRaw(sv.mode);}}catch(e){}
   buildModes();const save=()=>localStorage.setItem('teryx.modes.v1',JSON.stringify({p:Object.fromEntries(Object.keys(VEH_GEARS).map(k=>[k,Object.fromEntries(VEH_MODE_FIELDS.map(([f])=>[f,VEH_GEARS[k][f]]))])),hash:VEH_KID.hash,mode:cGear}));modeSave=save;
   $('modeSave').onclick=()=>{let bad=0;Object.keys(VEH_GEARS).forEach(k=>VEH_MODE_FIELDS.forEach(([f])=>{const e=$('mp_'+k+'_'+f);if(e&&+e.value!==VEH_GEARS[k][f]&&!vehModeSet(k,f,+e.value))bad++;}));save();buildModes();$('modeMsgS').textContent=bad?bad+' value(s) out of range, kept':'Modes saved (sim)';ulog('Drive modes saved (sim)'+(bad?', '+bad+' refused':''));};
   $('modeReset').onclick=()=>{Object.keys(VEH_MODE_DEF).forEach(k=>Object.assign(VEH_GEARS[k],VEH_MODE_DEF[k]));save();buildModes();$('modeMsgS').textContent='Modes reset to PROPOSED defaults';};
-  $('kidPinBtn').onclick=()=>{const v=$('kidPinSet').value;$('kidPinSet').value='';if(cGear==='KID'){$('modeMsgS').textContent='Leave Kid before changing the PIN';return;}if(!/^[0-9]{4}$/.test(v)){$('modeMsgS').textContent='PIN must be 4 digits';return;}VEH_KID.hash=vehHashPin(v);save();$('modeMsgS').textContent='Kid PIN set';ulog('Kid PIN set (sim)');};}
+  $('kidPinBtn').onclick=()=>{const v=$('kidPinSet').value;$('kidPinSet').value='';if(modeOf(cGear)==='KID'){$('modeMsgS').textContent='Leave Kid before changing the PIN';return;}if(!/^[0-9]{4}$/.test(v)){$('modeMsgS').textContent='PIN must be 4 digits';return;}VEH_KID.hash=vehHashPin(v);save();$('modeMsgS').textContent='Kid PIN set';ulog('Kid PIN set (sim)');};}
 function wireVeh(){buildVeh();wireModes();
   $('vehSave').onclick=()=>{const st={};VEH_SETS.forEach(([k])=>{const v=+$('vn_'+k).value;if(isFinite(v))st[k]=typeof VEH_DEF[k]==='boolean'?!!v:v;});const gr=st.gradePct;delete st.gradePct;
     Object.assign(VP,st);localStorage.setItem('teryxVehSettings',JSON.stringify(st));setGrade(gr||0);ulog('Vehicle model saved (sim): '+(Object.entries(st).filter(([k,v])=>v!==VEH_DEF[k]).map(([k,v])=>k+'='+v).join(', ')||'defaults'));buildVeh();};
