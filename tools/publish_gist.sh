@@ -32,3 +32,6 @@ for p in index.html:tools/bms_sim.html dash.html:tools/dash.html wiring.html:too
   echo "$n $c $m"
 done
 [ $ok = 1 ]
+# Open pages via the gist REVISION url: all 6 files share it, so the relative top-nav links stay on the same build.
+# (Per-file blob-sha githack urls break relative links; the sha-less url can serve a cached older build.)
+for n in index dash wiring perfboard layout checklist; do echo "https://gist.githack.com/Adampaleski/$G/raw/$R/$n.html"; done

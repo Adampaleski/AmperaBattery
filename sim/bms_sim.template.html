@@ -1088,7 +1088,7 @@ function wire(){
   const {instance}=await WebAssembly.instantiate(bytes,{});
   X=instance.exports;X._initialize();flLoad();X.sim_reset();
   buildStrings();buildDiagram();wire();wireDrive();wireCluster();wireCycle();wireSettings();wireVeh();wireThr();$('dwake').onclick=()=>{if(dashC)dashC.wake('sim Wake button');};$('ddoor').onclick=()=>{doorPulse=true;ulog('Door / button input (PROPOSED pin)');};
-  {const L=+localStorage.getItem('teryxChargeLimit');if(L>=50&&L<=100){$('pct').value=L;$('pct').dispatchEvent(new Event('input'));}}$('dashWin').onclick=()=>{dashW=window.open(/githack\.com$/.test(location.hostname)?'https://gist.githack.com/Adampaleski/1788c8fcff378fb83d20d0198b5290cc/raw/dash.html?src=sim':location.href.replace(/bms_sim\.html.*$|index\.html.*$/,'dash.html')+'?src=sim','teryxdash');};loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
+  {const L=+localStorage.getItem('teryxChargeLimit');if(L>=50&&L<=100){$('pct').value=L;$('pct').dispatchEvent(new Event('input'));}}$('dashWin').onclick=()=>{dashW=window.open(location.href.replace(/bms_sim\.html.*$|index\.html.*$/,'dash.html')+'?src=sim','teryxdash');};loadSettings();$('hkey').onclick=()=>$('key').click();$('fack').onclick=()=>{ackMask=(S.faults|S.latched)>>>0;ulog('Fault banner acknowledged');};last=performance.now();setInterval(loop,50);loop();
   if(EMBED)embedInit();else try{new BroadcastChannel('teryx-dash-cmd').onmessage=e=>{const m=e.data||{};if(m.cmd){remoteDrive=true;simCmd(m.cmd,m.v);}};}catch(e){}
   if(location.hash){const t=document.querySelector(`.tab[data-t="${location.hash.slice(1)}"]`);if(t)t.click();}
 })();

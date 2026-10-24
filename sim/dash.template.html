@@ -52,7 +52,7 @@ function engMsg(m){
   else if(m.teryxPadResult){const {id,err}=m.teryxPadResult;const r=engPend[id];delete engPend[id];if(r)r(err);}
   else if(m.teryxPadClose!=null){if(engPads.cur===m.teryxPadClose&&TeryxPad.isOpen()){engPads.cur=null;TeryxPad.close();}}}
 function startPageEngine(why){if(eng||!simPanel)return;engWhy=why;if(bc){bc.close();bc=null;}
-  engTries=location.protocol==='file:'?['bms_sim.html','index.html']:(/githack\.com$/.test(location.hostname)?['https://gist.githack.com/Adampaleski/1788c8fcff378fb83d20d0198b5290cc/raw/index.html','index.html']:['index.html','bms_sim.html']);
+  engTries=location.protocol==='file:'?['bms_sim.html','index.html']:['index.html','bms_sim.html'];
   const load=()=>{const src=engTries.shift();if(!src)return;eng.src=src+'?embed=1';
     setTimeout(()=>{if(!engHello&&engTries.length)load();},4000);};
   eng=document.createElement('iframe');eng.id='simEngine';eng.title='Simulator engine running in this page';
