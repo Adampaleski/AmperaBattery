@@ -53,6 +53,7 @@ aside ul{margin:4px 0;padding-left:18px}aside li{margin:2px 0}.e{color:var(--red
  #zb{gap:0}#zb button{width:44px;padding:0}#ctx{padding:0}}
 @media print{#hd .tools,#zb,aside{display:none}main{display:block;height:auto}#view{height:90vh}}
 </style></head><body><style id="tnav-css">
+#tnav a{flex:0 0 auto}
 #tnav{--k:var(--tnk,1);position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:calc(6px*var(--k));
  height:calc(48px*var(--k));padding:0 calc(8px*var(--k));padding-top:env(safe-area-inset-top);box-sizing:content-box;
  background:rgba(0,0,0,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid #1f1f22;
@@ -75,7 +76,7 @@ a,button,input,select,textarea,label,summary,[role=button],[data-sc],[data-sv]{t
 body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom)}
 @media (max-width:560px){#tnav{flex-wrap:wrap;height:auto;min-height:calc(48px*var(--k));white-space:normal;overflow-x:visible}
  #tnav .lbl{flex-basis:100%;margin-left:0;padding:0 0 calc(4px*var(--k)) calc(4px*var(--k))}}
-</style><div id="tnav" role="navigation" aria-label="Pages"><a href="index.html" target="teryx_sim">Sim</a><a href="dash.html?src=sim" target="teryx_dash">Dash</a><a href="wiring.html">Wiring</a><a href="perfboard.html">Boards</a><a href="layout.html" class="on" aria-current="page">Layout</a><a href="checklist.html">Checklist</a><span class="lbl">Build 26 · 7a76a05 · Oct 23 12:35 PM CT</span></div><script>/* keep the bar thumb-sized when the browser shows the page zoomed out (dash fit-to-screen); measured at load/rotate only, not on pinch */
+</style><div id="tnav" role="navigation" aria-label="Pages"><a href="https://gist.githack.com/Adampaleski/1788c8fcff378fb83d20d0198b5290cc/raw/index.html" target="teryx_sim">Sim</a><a href="https://gist.githack.com/Adampaleski/1788c8fcff378fb83d20d0198b5290cc/raw/dash.html?src=sim" target="teryx_dash">Dash</a><a href="https://gist.githack.com/Adampaleski/1788c8fcff378fb83d20d0198b5290cc/raw/wiring.html">Wiring</a><a href="https://gist.githack.com/Adampaleski/1788c8fcff378fb83d20d0198b5290cc/raw/perfboard.html">Boards</a><a href="https://gist.githack.com/Adampaleski/1788c8fcff378fb83d20d0198b5290cc/raw/layout.html" class="on" aria-current="page">Layout</a><a href="https://gist.githack.com/Adampaleski/1788c8fcff378fb83d20d0198b5290cc/raw/checklist.html">Checklist</a><span class="lbl">Build 27 · fe33c74 · Oct 23 7:34 PM CT</span></div><script>/* keep the bar thumb-sized when the browser shows the page zoomed out (dash fit-to-screen); measured at load/rotate only, not on pinch */
 (function(){function k(){const v=window.visualViewport,sc=v&&v.scale>0?v.scale:1;document.documentElement.style.setProperty('--tnk',String(Math.max(1,Math.min(4,1/sc))));}
  k();addEventListener('load',()=>{k();setTimeout(k,600);});addEventListener('orientationchange',()=>setTimeout(k,100));})();</script>
 <header id="hd"><div class="ttl"><b id="bt">Layout</b><span id="st" class="chip"></span><span id="sc" class="chip lc"></span><span id="ck" class="chip"></span><span id="lc" class="chip lc" hidden>local edits</span></div>
@@ -332,7 +333,7 @@ function up(e){clearTimeout(lpT);ptrs.delete(e.pointerId);if(pinch){if(ptrs.size
  if(a.k==="blk")sel={t:"b",id:a.id};else if(a.k==="run"||a.k==="vtx")sel={t:"r",id:a.r.id};else sel=null;ms=null;draw();side()}
 function toggleMs(t){ms=ms||{blocks:new Set(),verts:new Set(),runs:new Set(),kind:"pick"};if(t.t==="b"){ms.blocks.has(t.id)?ms.blocks.delete(t.id):ms.blocks.add(t.id)}else{const r=L.runs.find(r=>r.id===t.id);if(ms.runs.has(t.id)){ms.runs.delete(t.id);(r.pts||[]).forEach((_,i)=>ms.verts.delete(t.id+":"+i))}else{ms.runs.add(t.id);(r.pts||[]).forEach((_,i)=>ms.verts.add(t.id+":"+i))}}draw();selBox()}
 sv.addEventListener("pointerup",up);sv.addEventListener("pointercancel",e=>{clearTimeout(lpT);if(act&&act.undo&&act.moved)act.undo();act=null;box=null;ptrs.delete(e.pointerId);pinch=null});
-sv.addEventListener("wheel",e=>{e.preventDefault();const p=svgPt(e.clientX,e.clientY);zoomAt(Math.exp(e.deltaY*.0015),p[0],p[1])},{passive:false});
+sv.addEventListener("wheel",e=>{e.preventDefault();const p=svgPt(e.clientX,e.clientY);{let dy=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?400:1);dy=Math.max(-100,Math.min(100,dy));zoomAt(Math.exp(dy*(e.ctrlKey?.01:.0012)),p[0],p[1])}},{passive:false});
 sv.addEventListener("contextmenu",e=>{e.preventDefault();clearTimeout(lpT);openCtx(e.clientX,e.clientY,svgPt(e.clientX,e.clientY),e.target)});
 // ---- bends: add (nearest segment) / delete
 function addBend(r,p){const P=R.RP[r.id];if(!P)return;let bi=0,bd=1e9;for(let i=0;i<P.length-1;i++){const [d]=ptSeg(p,P[i],P[i+1]);if(d<bd){bd=d;bi=i}}r.pts=r.pts||[];r.pts.splice(bi,0,[q1(p[0]),q1(p[1])]);sel={t:"r",id:r.id};commit()}
