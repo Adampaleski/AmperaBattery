@@ -22,7 +22,7 @@ let cfg=JSON.parse(localStorage.getItem('teryxDashSrc')||'{"src":"sim","url":""}
 if(q.get('src')){const s=q.get('src');cfg=/^wss?:/.test(s)?{src:'ws',url:s}:/^https?:/.test(s)?{src:'http',url:s}:{src:s,url:cfg.url};}
 // Sim quick panel only with ?src=sim (commands go back to the open simulator tab); never in real mode.
 // Build 15 (iPhone): eng = the sim running inside this page (hidden frame). Commands go to it when it runs.
-let cmdBC=null,eng=null;const simPanel=q.get('src')==='sim'?{send:(cmd,v)=>{if(eng){try{eng.contentWindow.postMessage({teryxCmd:{cmd,v}},'*');}catch(e){}return;}try{(cmdBC||(cmdBC=new BroadcastChannel('teryx-dash-cmd'))).postMessage({cmd,v});}catch(e){}}}:null;
+let cmdBC=null,eng=null;const simPanel=cfg.src==='sim'?{send:(cmd,v)=>{if(eng){try{eng.contentWindow.postMessage({teryxCmd:{cmd,v}},'*');}catch(e){}return;}try{(cmdBC||(cmdBC=new BroadcastChannel('teryx-dash-cmd'))).postMessage({cmd,v});}catch(e){}}}:null;
 const dash=TeryxDash.create(document.getElementById('dash'),{full:true,sourceUI:true,simPanel});
 let last=null,lastAt=0,timer=null,ws=null,bc=null;
 const STALE_MS=3000;
@@ -52,7 +52,7 @@ function engMsg(m){
   else if(m.teryxPadResult){const {id,err}=m.teryxPadResult;const r=engPend[id];delete engPend[id];if(r)r(err);}
   else if(m.teryxPadClose!=null){if(engPads.cur===m.teryxPadClose&&TeryxPad.isOpen()){engPads.cur=null;TeryxPad.close();}}}
 function startPageEngine(why){if(eng||!simPanel)return;engWhy=why;if(bc){bc.close();bc=null;}
-  engTries=location.protocol==='file:'?['bms_sim.html','index.html']:['index.html','bms_sim.html'];
+  engTries=location.protocol==='file:'?['bms_sim.html','index.html']:(/githack\.com$/.test(location.hostname)?['https://gist.githack.com/Adampaleski/1788c8fcff378fb83d20d0198b5290cc/raw/index.html','index.html']:['index.html','bms_sim.html']);
   const load=()=>{const src=engTries.shift();if(!src)return;eng.src=src+'?embed=1';
     setTimeout(()=>{if(!engHello&&engTries.length)load();},4000);};
   eng=document.createElement('iframe');eng.id='simEngine';eng.title='Simulator engine running in this page';

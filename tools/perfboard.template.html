@@ -438,7 +438,7 @@ function up(e){clearTimeout(lpT);ptrs.delete(e.pointerId);if(pinch){if(ptrs.size
   if(draft.pts[draft.pts.length-1]!==h)draft.pts.push(h);else finishWire();drawDraft();hint();return}
  if(a.k==="part")sel={t:"p",ref:a.p.ref};else if(a.k==="wire"||a.k==="vtx")sel={t:"w",id:a.w.id};else sel=null;ms=null;draw();selBox()}
 sv.addEventListener("pointerup",up);sv.addEventListener("pointercancel",e=>{clearTimeout(lpT);if(act&&act.undo&&act.moved)act.undo();act=null;ghost=null;box=null;ptrs.delete(e.pointerId);pinch=null});
-sv.addEventListener("wheel",e=>{e.preventDefault();const p=svgPt(e.clientX,e.clientY);zoomAt(Math.exp(e.deltaY*.0015),p[0],p[1])},{passive:false});
+sv.addEventListener("wheel",e=>{e.preventDefault();const p=svgPt(e.clientX,e.clientY);{let dy=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?400:1);dy=Math.max(-100,Math.min(100,dy));zoomAt(Math.exp(dy*(e.ctrlKey?.01:.0012)),p[0],p[1])}},{passive:false});
 sv.addEventListener("pointerleave",()=>{hov=null;drawDraft();hint()});
 sv.addEventListener("contextmenu",e=>{e.preventDefault();clearTimeout(lpT);openCtx(e.clientX,e.clientY)});
 function hint(){const h=$("hint");if(mode==="wire"){h.textContent=`Wire (${$("wnet").value}, ${$("wside").dataset.s==="bot"?"bottom":"top"}): tap holes · tap the last hole again or Done to finish`+(draft&&draft.pts.length?` · ${draft.pts.join("→")}`:"");return}

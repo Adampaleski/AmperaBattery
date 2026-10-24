@@ -1,10 +1,12 @@
 """Shared top tab bar for the 6 published pages (Sim, Dash, Wiring, Boards, Layout, Checklist). Relative links (gist-safe).
 Sim <-> Dash open in named tabs so the sim keeps running while the dash shows it (BroadcastChannel)."""
 import html
+BASE = "https://gist.githack.com/Adampaleski/1788c8fcff378fb83d20d0198b5290cc/raw/"
 TABS = [("sim", "Sim", "index.html", "teryx_sim"), ("dash", "Dash", "dash.html?src=sim", "teryx_dash"),
         ("wiring", "Wiring", "wiring.html", ""), ("perfboard", "Boards", "perfboard.html", ""), ("layout", "Layout", "layout.html", ""),
         ("checklist", "Checklist", "checklist.html", "")]
 CSS = """<style id="tnav-css">
+#tnav a{flex:0 0 auto}
 #tnav{--k:var(--tnk,1);position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:calc(6px*var(--k));
  height:calc(48px*var(--k));padding:0 calc(8px*var(--k));padding-top:env(safe-area-inset-top);box-sizing:content-box;
  background:rgba(0,0,0,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid #1f1f22;
@@ -32,6 +34,6 @@ JS = """<script>/* keep the bar thumb-sized when the browser shows the page zoom
 (function(){function k(){const v=window.visualViewport,sc=v&&v.scale>0?v.scale:1;document.documentElement.style.setProperty('--tnk',String(Math.max(1,Math.min(4,1/sc))));}
  k();addEventListener('load',()=>{k();setTimeout(k,600);});addEventListener('orientationchange',()=>setTimeout(k,100));})();</script>"""
 def topnav(cur, label):
-    a = "".join('<a href="%s"%s%s>%s</a>' % (h, ' class="on" aria-current="page"' if k == cur else "",
+    a = "".join('<a href="%s"%s%s>%s</a>' % (BASE + h, ' class="on" aria-current="page"' if k == cur else "",
                  ' target="%s"' % t if t and k != cur else "", n) for k, n, h, t in TABS)
     return CSS + '<div id="tnav" role="navigation" aria-label="Pages">%s<span class="lbl">%s</span></div>' % (a, html.escape(label)) + JS
