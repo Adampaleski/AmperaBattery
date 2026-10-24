@@ -10,13 +10,18 @@
 #include "SocEstimator.h"
 #include "SocStore.h"
 
+// From src/Link.h (declared here so SocRun stays free of FlexCAN for host tests).
+namespace Link { bool remoteLemB(float *amps); }
+
 namespace SocRun {
 
 #if DUAL_STRING && ROLE_IS_A
 namespace {
-// LEM B (strings 3+4) is read on Teensy B; sharing it over the link is not
-// built. Flip to 1 only when Link carries B's amps and they are summed below.
-constexpr bool kHaveLemB = false;
+// Bank current = LEM A (strings 1+2, read here) + LEM B (strings 3+4, read on
+// Teensy B, sent on CAN2 0x6A5, include/LemLink.h). Both must be valid and fresh
+// in the same tick, otherwise the tick is "current lost" (fail closed: no
+// half-bank counting; SocEstimator goes UNKNOWN after 2 s).
+bool g_lemAOk = false, g_lemBOk = false;
 
 BmsCore::Soc g_soc;
 BmsCore::SocStore g_store;
@@ -36,7 +41,7 @@ const char *state() {
     if (g_anchorNow) return "anchored";
     return (g_restored && !g_anchoredThisBoot) ? "restored" : "counting";
 }
-bool pctOk() { return g_started && kHaveLemB && g_soc.out().pct >= 0; }
+bool pctOk() { return g_started && g_soc.out().pct >= 0; }   // pct < 0 while capAh unknown
 void printQ(Print &out, const char *s) {
     out.print('"');
     for (const char *p = s; *p; p++) { if (*p == '"' || *p == '\\') out.print('\\'); out.print(*p); }
@@ -64,8 +69,11 @@ void tick() {
     const BmsCore::Outputs &o = ContactorSeq::coreOut();
     BmsCore::SocIn si;
     si.nowMs = millis();
-    si.currentValid = CurrentSense::valid();
-    si.packA = CurrentSense::amps();   // LEM A only until kHaveLemB (+ = discharge)
+    float lemB = 0;
+    g_lemAOk = CurrentSense::valid();
+    g_lemBOk = Link::remoteLemB(&lemB);
+    si.currentValid = g_lemAOk && g_lemBOk;
+    si.packA = si.currentValid ? CurrentSense::amps() + lemB : 0;   // + = discharge
     si.atChargeLimit = o.chargeWhy && strcmp(o.chargeWhy, "at charge limit") == 0;
     si.chargePct = Settings::chargePct();
     si.minCellV = o.minCellV;
@@ -96,7 +104,9 @@ void printStatus() {
     if (s.pct >= 0) SERIALCONSOLE.print(s.pct, 1); else SERIALCONSOLE.print(F("unknown"));
     if (s.drift) SERIALCONSOLE.print(F("  DRIFT"));
     SERIALCONSOLE.print(F("  (")); SERIALCONSOLE.print(s.why); SERIALCONSOLE.print(')');
-    if (!kHaveLemB) SERIALCONSOLE.print(F("  LEM A only: half bank, socPct held null"));
+    SERIALCONSOLE.print(F("  LEM A ")); SERIALCONSOLE.print(g_lemAOk ? F("ok") : F("--"));
+    SERIALCONSOLE.print(F(" LEM B ")); SERIALCONSOLE.print(g_lemBOk ? F("ok") : F("--"));
+    if (!(g_lemAOk && g_lemBOk)) SERIALCONSOLE.print(F(" (both needed, not counting)"));
     SERIALCONSOLE.print(F("  EEPROM ")); SERIALCONSOLE.print(BmsCore::SocStore::kBase); SERIALCONSOLE.print('-');
     SERIALCONSOLE.print(BmsCore::SocStore::kEnd - 1);
     SERIALCONSOLE.print(g_restored ? F(" restored at boot") : F(" nothing restored"));
@@ -118,7 +128,9 @@ void printJson(Print &out) {
     out.print(F(",\"pct\":")); printSocPct(out);
     out.print(F(",\"drift\":")); out.print(s.drift ? F("true") : F("false"));
     out.print(F(",\"why\":")); printQ(out, s.why);
-    out.print(F(",\"halfBank\":")); out.print(kHaveLemB ? F("false") : F("true"));
+    out.print(F(",\"halfBank\":false"));   // A + B summed; never counts half the bank
+    out.print(F(",\"lemA\":")); out.print(g_lemAOk ? F("true") : F("false"));
+    out.print(F(",\"lemB\":")); out.print(g_lemBOk ? F("true") : F("false"));
     out.print(F(",\"capAh\":")); if (g_soc.cfg.capAh > 0) out.print(g_soc.cfg.capAh, 1); else out.print(F("null"));
     out.print(F(",\"restored\":")); out.print(g_restored ? F("true") : F("false"));
     out.print(F(",\"saves\":")); out.print(g_store.writes());

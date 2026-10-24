@@ -30,7 +30,7 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 
 ## Not done yet
 
-- Go live: CURRENT_SENSE_ENABLE=1 plus LEM B's amps over the A-B link (then `kHaveLemB` in src/SocRun.cpp), and a measured capAh. Until then `socPct` stays null.
+- Go live: CURRENT_SENSE_ENABLE=1 (LEM B's amps over the A-B link are now summed in src/SocRun.cpp, 2026-10-23 7 PM) and a measured capAh. Until then `socPct` stays null.
 - ~~Wire `include/SocStore.h` into SocRun.~~ Done 2026-10-23 1 PM, see "Firmware persistence" below.
 - Real key-off / power-loss save: read KEY-ON (A:34) and add a 12 V power-loss detect, so the last save isn't up to 0.5 Ah / 60 s old after a hard power pull.
 
@@ -58,7 +58,7 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 `src/SocRun.{h,cpp}` runs the same `BmsCore::Soc` on Teensy A (dual string role A only; no-op elsewhere). Inputs each loop: `CurrentSense::valid()/amps()` (LEM A only), Core `chargeWhy == "at charge limit"` as the anchor, Settings P and L. Read-only: no pins, no EEPROM.
 
 - USB `p` prints a `SOC` line (state, Ah used, percent or unknown, why).
-- Hub frame: `bms.socPct` comes from SocRun but stays **null** while the count is half the bank (LEM B not shared, `halfBank:true`) or capAh is unknown. Optional key `"soc":{available,known,state,usedAh,pct,drift,why,halfBank,capAh}`; off role A `{"available":false}`.
+- Hub frame: `bms.socPct` comes from SocRun but stays **null** while capAh is unknown. Since 2026-10-23 7 PM the count is always the whole bank (`halfBank:false`). Optional key `"soc":{available,known,state,usedAh,pct,drift,why,halfBank,lemA,lemB,capAh,restored,saves}`; off role A `{"available":false}`.
 - With CURRENT_SENSE_ENABLE=0 the count only runs on the bench `I<amps>` dry-run.
 - Host check: `g++ -std=c++17 -DDUAL_STRING=1 -DTEENSY_ROLE=0 -Iscripts/hoststub -Iinclude -Isrc scripts/test_soc_run.cpp -o /tmp/tsr && /tmp/tsr` (5 checks).
 
@@ -75,3 +75,6 @@ There is no verified open-circuit-voltage curve for these cells, so SoC is **unk
 
 ## LEM B over the link (2026-10-23 4 PM, frame only, NOT consumed)
 Teensy B now sends LEM B on CAN2 frame 0x6A5 every 50 ms: [0-1] amps x10 (int16 LE, + = discharge), [2] bit0 valid, [7] heartbeat. Format + A-side rule in include/LemLink.h. A trusts it only when valid=1, the heartbeat advanced within the link stale limit (linkMs, 200 ms), and the value is in range; otherwise no LEM B (fail closed). With CURRENT_SENSE_ENABLE 0 B always sends valid=0 (a bench `I<amps>` dry-run on B would send valid=1; A still ignores it). `Link::remoteLemB()` exposes it and the link print shows `REMOTE LEM B`. SocRun kHaveLemB and ContactorSeq lemBValid are still false: wiring them is the next step. 12 host checks (scripts/test_lem_link.cpp). NOT bench-tested.
+
+## SocRun consumes LEM B (2026-10-23 7 PM)
+src/SocRun.cpp now counts LEM A (CurrentSense, this Teensy) + LEM B (`Link::remoteLemB()`, frame 0x6A5). A tick counts only when BOTH are valid and fresh; otherwise it is "current lost" (no half-bank counting) and SocEstimator goes UNKNOWN after 2 s, which is saved as known=0 (fail closed). `p` shows `LEM A ok|-- LEM B ok|--`; the hub `soc` object adds `lemA` / `lemB` and `halfBank` is always false. With CURRENT_SENSE_ENABLE 0 both are invalid, so firmware behaviour is unchanged. 17 host checks (scripts/test_soc_run.cpp). ContactorSeq lemBValid is still false (next step). NOT bench-tested.

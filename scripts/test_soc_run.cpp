@@ -14,6 +14,8 @@ static BmsCore::Outputs g_out;
 static bool g_valid = false; static float g_amps = 0;
 namespace ContactorSeq { const BmsCore::Outputs &coreOut() { return g_out; } }
 namespace CurrentSense { bool valid() { return g_valid; } float amps() { return g_amps; } }
+static bool g_bValid = false; static float g_bAmps = 0;   // LEM B over the link (Link::remoteLemB)
+namespace Link { bool remoteLemB(float *a) { if (g_bValid) *a = g_bAmps; return g_bValid; } }
 namespace Settings { int chargePct() { return 100; } float lowCutoffV() { return 3.30f; } }
 #include "../src/SocRun.cpp"
 
@@ -33,13 +35,19 @@ int main() {
     g_out.chargeWhy = "";
     run(100);
     expect("boot: unknown, socPct null", json() + " socPct=" + pct(),
-           "\"known\":false,\"state\":\"unknown\",\"usedAh\":null,\"pct\":null,\"drift\":false,\"why\":\"no anchor yet\",\"halfBank\":true,\"capAh\":null,\"restored\":false,\"saves\":0} socPct=null");
+           "\"known\":false,\"state\":\"unknown\",\"usedAh\":null,\"pct\":null,\"drift\":false,\"why\":\"no anchor yet\",\"halfBank\":false,\"lemA\":false,\"lemB\":false,\"capAh\":null,\"restored\":false,\"saves\":0} socPct=null");
     g_out.chargeWhy = "at charge limit"; run(20);
     expect("anchor: state anchored", json(), "\"known\":true,\"state\":\"anchored\",\"usedAh\":0.000");
-    g_out.chargeWhy = "no request"; g_valid = true; g_amps = 100; run(36000);
-    expect("100 A x 36 s (LEM A dry-run): ~1 Ah, pct null (half bank, capAh 0)",
+    // LEM A alone is not enough: the tick is current-lost, nothing counted.
+    g_out.chargeWhy = "no request"; g_valid = true; g_amps = 100; run(1000);
+    expect("LEM A only (no LEM B): nothing counted", json(), "\"usedAh\":0.000");
+    expect("LEM A only: lemA true, lemB false", json(), "\"lemA\":true,\"lemB\":false");
+    // A 60 A + B 40 A = 100 A bank for 36 s = 1 Ah.
+    g_amps = 60; g_bValid = true; g_bAmps = 40; run(36000);
+    expect("A 60 A + B 40 A x 36 s: ~1 Ah summed, pct null (capAh 0)",
            json() + " socPct=" + pct(), "\"state\":\"counting\",\"usedAh\":1.00");
     expect("socPct stays null", pct(), "null");
+    expect("both LEMs ok in JSON", json(), "\"halfBank\":false,\"lemA\":true,\"lemB\":true");
     expect("anchor saved once; 1 Ah in 36 s waits for the 60 s gap", json(), "\"restored\":false,\"saves\":1}");
     // Sleep edge: DRIVE -> IDLE forces a save of the exact count.
     g_out.mode = BmsCore::Mode::Drive; run(20);
@@ -51,9 +59,10 @@ int main() {
     SocRun::begin(); run(20);
     expect("reboot: count restored from EEPROM", json(), "\"known\":true,\"state\":\"restored\",\"usedAh\":1.00");
     expect("reboot: restored flag + no new saves yet", json(), "\"restored\":true,\"saves\":0}");
-    expect("reboot: socPct still null (half bank)", pct(), "null");
-    g_valid = false; run(3000);
-    expect("3 s current lost: unknown", json(), "\"known\":false,\"state\":\"unknown\",\"usedAh\":null");
+    expect("reboot: socPct still null (capAh unknown)", pct(), "null");
+    g_bValid = false; run(3000);
+    expect("3 s LEM B lost (LEM A fine): unknown, fail closed", json(), "\"known\":false,\"state\":\"unknown\",\"usedAh\":null");
+    g_valid = false;
     // Loss is persisted as known=0, so the stale count can't come back.
     SocRun::begin(); run(20);
     expect("reboot after loss: nothing restored (fail closed)", json(), "\"known\":false,\"state\":\"unknown\",\"usedAh\":null");
